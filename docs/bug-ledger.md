@@ -133,7 +133,7 @@ The repository remote uses HTTPS, but this local environment does not currently 
 
 Fix:
 
-The human owner completed the push, and local `main` is now aligned with `origin/main`.
+The human owner completed the initial push. A later non-interactive push from this environment also succeeded, and local `main` is aligned with `origin/main`.
 
 Regression Test:
 
@@ -150,7 +150,7 @@ Related Files:
 
 Notes:
 
-The local repository is synced with GitHub. Future pushes may still depend on the human owner's local credential setup.
+The local repository is synced with GitHub. Non-interactive HTTPS push worked from this environment on 2026-05-08.
 
 ### ENV-0003 - Local Git Version Lacks Some Modern Flags
 
