@@ -37,10 +37,6 @@ Error responses should be structured and recoverable when possible:
 ## Planned Chat And Debug API
 
 ```txt
-POST /api/chat/sessions
-POST /api/chat/sessions/{session_id}/turn
-GET  /api/chat/sessions/{session_id}/messages
-GET  /api/debug/traces/{turn_id}
 GET  /api/debug/state/{session_id}
 ```
 
@@ -151,6 +147,139 @@ Tables:
 Trace Behavior:
 
 Trace rows store JSON payloads. Full turn trace assembly will be implemented with the chat endpoints.
+
+## Implemented Chat API
+
+### POST /api/chat/sessions
+
+Status: implemented
+
+Purpose:
+
+Create a persistent chat session.
+
+Request:
+
+```json
+{
+  "title": "Baseline trace",
+  "metadata": {
+    "source": "manual"
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "id": "ses_...",
+  "title": "Baseline trace",
+  "created_at": "2026-05-08T15:00:00Z",
+  "updated_at": "2026-05-08T15:00:00Z",
+  "metadata": {
+    "source": "manual"
+  }
+}
+```
+
+Trace Behavior:
+
+No turn trace is created by session creation.
+
+### POST /api/chat/sessions/{session_id}/turn
+
+Status: implemented
+
+Purpose:
+
+Persist a user message, call MiniMax with the session history, persist the assistant response, and store request/response traces.
+
+Request:
+
+```json
+{
+  "message": "Reply with exactly: pong",
+  "system": null,
+  "max_tokens": null
+}
+```
+
+`max_tokens` is optional. When omitted, the backend uses `MINIMAX_MAX_TOKENS`.
+
+Response:
+
+```json
+{
+  "session": {
+    "id": "ses_...",
+    "title": "Baseline trace",
+    "created_at": "2026-05-08T15:00:00Z",
+    "updated_at": "2026-05-08T15:00:01Z",
+    "metadata": {}
+  },
+  "turn_id": "turn_...",
+  "status": "completed",
+  "user_message": {
+    "id": "msg_...",
+    "role": "user",
+    "content": "Reply with exactly: pong"
+  },
+  "assistant_message": {
+    "id": "msg_...",
+    "role": "assistant",
+    "content": "pong"
+  },
+  "trace_ids": ["trace_...", "trace_..."],
+  "model": "MiniMax-M2.7",
+  "latency_ms": 1104,
+  "usage": {
+    "input_tokens": 26,
+    "output_tokens": 16
+  }
+}
+```
+
+Errors:
+
+- `404 session.not_found`: the session does not exist.
+- `503 llm.not_configured`: `MINIMAX_API_KEY` is missing.
+- `502 llm.provider_error`: MiniMax request failed.
+
+Trace Behavior:
+
+Creates at least:
+
+- `llm.request`
+- `llm.response`
+
+If the provider fails, creates:
+
+- `llm.error`
+
+### GET /api/chat/sessions/{session_id}/messages
+
+Status: implemented
+
+Purpose:
+
+Return persisted messages for a chat session in creation order.
+
+Errors:
+
+- `404 session.not_found`: the session does not exist.
+
+### GET /api/debug/traces/{turn_id}
+
+Status: implemented
+
+Purpose:
+
+Return trace rows linked to a turn.
+
+Errors:
+
+- `404 trace.not_found`: no traces exist for the turn.
 
 ## Planned Mind API
 

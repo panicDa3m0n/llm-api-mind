@@ -1074,10 +1074,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Implement minimal persistent chat endpoints.
-2. Capture turn traces for baseline chat calls.
-3. Add minimal frontend chat/debug cockpit.
-4. Run first trace-only experiment.
+1. Add minimal frontend chat/debug cockpit.
+2. Run first trace-only experiment.
+3. Inspect trace ergonomics and fill gaps before adding memory/attention.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

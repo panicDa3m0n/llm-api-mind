@@ -7,6 +7,7 @@ Current scope:
 - typed environment configuration;
 - `/health` endpoint;
 - MiniMax M2.7 provider smoke test;
+- persistent chat sessions and turns;
 - SQLite schema for sessions, messages, turns, and traces;
 - pytest coverage for health, LLM smoke wiring, and storage.
 
@@ -57,6 +58,23 @@ response = client.post("/api/debug/llm-smoke-test", json={
 })
 print(response.status_code)
 print(response.json())
+PY
+```
+
+## Persistent Chat Smoke Test
+
+```bash
+python3 - <<'PY'
+from fastapi.testclient import TestClient
+from app.main import create_app
+
+client = TestClient(create_app())
+session = client.post("/api/chat/sessions", json={"title": "Local smoke"}).json()
+turn = client.post(f"/api/chat/sessions/{session['id']}/turn", json={
+    "message": "Reply with exactly: pong"
+}).json()
+print(turn["assistant_message"]["content"])
+print(turn["trace_ids"])
 PY
 ```
 

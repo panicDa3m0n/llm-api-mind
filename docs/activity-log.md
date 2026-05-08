@@ -190,3 +190,34 @@ Open Questions:
 Next Suggested Step:
 
 Implement persistent chat endpoints on top of the SQLite schema.
+
+## 2026-05-08 - Phase 1D Persistent Chat Endpoints
+
+Goal:
+
+Implement the baseline chat API on top of the SQLite schema so every turn stores messages and request/response traces.
+
+Changes:
+
+- Added `POST /api/chat/sessions`.
+- Added `POST /api/chat/sessions/{session_id}/turn`.
+- Added `GET /api/chat/sessions/{session_id}/messages`.
+- Added `GET /api/debug/traces/{turn_id}`.
+- Added provider `generate_chat()` support so MiniMax receives persisted chat history instead of a flattened prompt.
+- Wired database initialization into `create_app()`.
+- Added chat API tests with provider fakes, missing-provider-key handling, and in-memory SQLite.
+- Recorded BUG-0002 for detached ORM instances across SQLModel session boundaries.
+- Recorded BUG-0003 for provider initialization errors escaping chat endpoint handling.
+
+Verification:
+
+- Ran `pytest` from `backend`; 10 tests passed.
+- Ran a real MiniMax chat turn through the persistent endpoint using an in-memory DB; response returned `assistant: pong`, two trace IDs, and trace kinds `llm.request` and `llm.response`.
+
+Open Questions:
+
+- The first baseline trace experiment still needs a human-readable debug cockpit or a CLI/scripted scenario runner.
+
+Next Suggested Step:
+
+Add a minimal frontend chat/debug cockpit or a temporary CLI experiment runner for EXP-0001.

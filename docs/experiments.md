@@ -6,7 +6,7 @@ The project should not accept a cognitive module only because it feels intellige
 
 ## EXP-0001 - Baseline Chat Trace
 
-Status: planned
+Status: implementation-ready
 
 Hypothesis:
 
@@ -34,7 +34,7 @@ Metrics:
 
 Result:
 
-Pending implementation.
+Pending scenario run. Backend support now exists for persistent sessions, messages, turns, and traces.
 
 Decision:
 

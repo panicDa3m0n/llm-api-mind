@@ -171,6 +171,7 @@ Consequences:
 - Provider-specific behavior is isolated in `backend/app/llm/minimax_client.py`.
 - Future tool-loop implementation should preserve full assistant content blocks as MiniMax documentation recommends.
 - Smoke tests and agent calls need enough output budget because reasoning models may consume tokens before final text.
+- Baseline chat endpoints pass persisted user/assistant history as structured provider messages, not as one flattened transcript string.
 
 Links:
 

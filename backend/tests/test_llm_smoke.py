@@ -1,7 +1,8 @@
 from fastapi.testclient import TestClient
+from sqlalchemy.engine import Engine
 
 from app.config import Settings
-from app.llm.provider import LLMTextResult
+from app.llm.provider import LLMMessage, LLMTextResult
 from app.main import create_app
 
 
@@ -22,8 +23,21 @@ class FakeProvider:
             usage={"input_tokens": 1, "output_tokens": 1},
         )
 
+    def generate_chat(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+    ) -> LLMTextResult:
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=f"fake:{messages[-1].content}:{max_tokens}",
+            usage={"input_tokens": 1, "output_tokens": 1},
+        )
 
-def test_llm_smoke_test_uses_configured_provider() -> None:
+
+def test_llm_smoke_test_uses_configured_provider(db_engine: Engine) -> None:
     settings = Settings(
         app_name="Test Mind",
         environment="test",
@@ -34,6 +48,7 @@ def test_llm_smoke_test_uses_configured_provider() -> None:
         create_app(
             settings,
             llm_provider_factory=lambda settings: FakeProvider(settings),
+            db_engine=db_engine,
         )
     )
 
@@ -52,7 +67,9 @@ def test_llm_smoke_test_uses_configured_provider() -> None:
     assert isinstance(body["latency_ms"], int)
 
 
-def test_llm_smoke_test_uses_configured_default_token_budget() -> None:
+def test_llm_smoke_test_uses_configured_default_token_budget(
+    db_engine: Engine,
+) -> None:
     settings = Settings(
         app_name="Test Mind",
         environment="test",
@@ -64,6 +81,7 @@ def test_llm_smoke_test_uses_configured_default_token_budget() -> None:
         create_app(
             settings,
             llm_provider_factory=lambda settings: FakeProvider(settings),
+            db_engine=db_engine,
         )
     )
 
@@ -75,14 +93,14 @@ def test_llm_smoke_test_uses_configured_default_token_budget() -> None:
     assert body["max_tokens"] == 4096
 
 
-def test_llm_smoke_test_requires_minimax_key() -> None:
+def test_llm_smoke_test_requires_minimax_key(db_engine: Engine) -> None:
     settings = Settings(
         app_name="Test Mind",
         environment="test",
         minimax_api_key=None,
         minimax_model="MiniMax-M2.7",
     )
-    client = TestClient(create_app(settings))
+    client = TestClient(create_app(settings, db_engine=db_engine))
 
     response = client.post("/api/debug/llm-smoke-test", json={"prompt": "ping"})
 

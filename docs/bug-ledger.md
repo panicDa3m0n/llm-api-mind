@@ -225,3 +225,67 @@ Related Files:
 Notes:
 
 This validates that app factory dependency injection must preserve defaults when optional test doubles are not supplied.
+
+## BUG-0002 - Detached ORM Object In Chat Turn Endpoint
+
+Date Found: 2026-05-08  
+Status: fixed
+
+Symptoms:
+
+Chat API tests failed with:
+
+```txt
+sqlalchemy.orm.exc.DetachedInstanceError: Instance <Turn ...> is not bound to a Session
+```
+
+Root Cause:
+
+`POST /api/chat/sessions/{session_id}/turn` used ORM objects after the SQLModel session that loaded/refreshed them had closed. SQLAlchemy expired attributes on commit, so later attribute access attempted a refresh without a bound session.
+
+Fix:
+
+Capture scalar IDs and response DTOs before leaving the session block. Use `turn_id` and `user_message_response` outside the block instead of detached ORM instances.
+
+Regression Test:
+
+`backend/tests/test_chat_api.py::test_chat_turn_persists_messages_and_traces`
+
+Related Files:
+
+- `backend/app/api/chat.py`
+- `backend/tests/test_chat_api.py`
+
+Notes:
+
+For API routes, return Pydantic response DTOs or scalar IDs across session boundaries rather than ORM instances.
+
+## BUG-0003 - Provider Initialization Error Escaped Chat Endpoint Handling
+
+Date Found: 2026-05-08  
+Status: fixed
+
+Symptoms:
+
+If `MINIMAX_API_KEY` was missing, `MiniMaxProvider(settings)` could raise `LLMConfigurationError` before the chat turn endpoint entered its provider error handling block.
+
+Root Cause:
+
+The provider was instantiated immediately before the `try` block instead of inside it.
+
+Fix:
+
+Moved provider construction into the existing `try` block so configuration errors become structured `503 llm.not_configured` responses and failed turns can be traced.
+
+Regression Test:
+
+`backend/tests/test_chat_api.py::test_chat_turn_returns_503_when_provider_is_not_configured`
+
+Related Files:
+
+- `backend/app/api/chat.py`
+- `backend/tests/test_chat_api.py`
+
+Notes:
+
+Provider construction is part of provider execution and should be inside endpoint error handling.

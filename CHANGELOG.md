@@ -39,6 +39,13 @@ This project uses a practical changelog rather than a release-only log: each mea
   - repository functions for session/message/turn/trace round trips;
   - storage tests.
 - Added ADR-0006 documenting the generous MiniMax output budget policy.
+- Added Phase 1D persistent chat API:
+  - session creation;
+  - chat turn execution through MiniMax;
+  - message persistence;
+  - turn request/response traces;
+  - trace fetch endpoint;
+  - chat endpoint tests including missing-provider-key handling.
 
 ### Changed
 
@@ -47,11 +54,14 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Confirmed local `main` is synchronized with `origin/main` after the human owner completed the push.
 - Confirmed non-interactive HTTPS push works from the local development environment.
 - Replaced the temporary smoke-test token budget with configurable `MINIMAX_MAX_TOKENS=4096`, aligned with MiniMax M2.7 agentic usage instead of token-saving assumptions.
+- Extended the provider abstraction from single-prompt generation to chat-history generation.
 
 ### Fixed
 
 - Initialized project tracking plan for the previously uninitialized Git repository state.
 - Resolved the GitHub push blocker for the initial repository setup.
+- Fixed detached SQLModel ORM object usage in the chat turn endpoint.
+- Fixed chat provider initialization errors so missing MiniMax configuration returns structured `503 llm.not_configured`.
 
 ## Release Notes Policy
 
