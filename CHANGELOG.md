@@ -46,6 +46,12 @@ This project uses a practical changelog rather than a release-only log: each mea
   - turn request/response traces;
   - trace fetch endpoint;
   - chat endpoint tests including missing-provider-key handling.
+- Added Phase 1E frontend/debug cockpit:
+  - Vite React app;
+  - persistent chat UI;
+  - trace panel;
+  - MiniMax usage metrics;
+  - frontend build workflow.
 
 ### Changed
 
@@ -55,6 +61,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Confirmed non-interactive HTTPS push works from the local development environment.
 - Replaced the temporary smoke-test token budget with configurable `MINIMAX_MAX_TOKENS=4096`, aligned with MiniMax M2.7 agentic usage instead of token-saving assumptions.
 - Extended the provider abstraction from single-prompt generation to chat-history generation.
+- Updated project status and local run instructions now that backend and frontend are runnable together.
 
 ### Fixed
 

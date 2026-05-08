@@ -221,3 +221,32 @@ Open Questions:
 Next Suggested Step:
 
 Add a minimal frontend chat/debug cockpit or a temporary CLI experiment runner for EXP-0001.
+
+## 2026-05-08 - Phase 1E Frontend Debug Cockpit
+
+Goal:
+
+Add a minimal browser UI for baseline chat and trace inspection.
+
+Changes:
+
+- Added Vite + React + TypeScript frontend.
+- Added chat session creation and turn submission.
+- Added message list and trace panel.
+- Added frontend API client with Vite proxy to FastAPI.
+- Added local run instructions in root and frontend README files.
+
+Verification:
+
+- Ran `npm run build` from `frontend`; build succeeded.
+- Verified Vite dev server at `http://127.0.0.1:5173`.
+- Verified backend health through the running FastAPI server.
+- Ran headless Chrome smoke: frontend loaded, sent a real MiniMax chat turn, displayed `pong`, and displayed `llm.request` plus `llm.response` traces.
+
+Open Questions:
+
+- Need to run EXP-0001 as a documented scenario and evaluate whether the cockpit exposes enough trace detail.
+
+Next Suggested Step:
+
+Run EXP-0001 Baseline Chat Trace and record the result in `docs/experiments.md`.

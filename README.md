@@ -12,9 +12,12 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Foundation documentation and repository workflow are being established.
+The project has a working local baseline runtime:
 
-Implementation has not started yet.
+- FastAPI backend;
+- MiniMax M2.7 provider integration;
+- SQLite persistence for sessions, messages, turns, and traces;
+- minimal React debug cockpit.
 
 ## Key Documents
 
@@ -31,13 +34,33 @@ Implementation has not started yet.
 ## Immediate Roadmap
 
 ```txt
-1. Complete Git/GitHub setup.
-2. Scaffold FastAPI backend.
-3. Add MiniMax provider client.
-4. Add SQLite trace storage.
-5. Implement minimal chat endpoints.
-6. Add minimal debug UI.
-7. Run EXP-0001 Baseline Chat Trace.
+1. Run EXP-0001 Baseline Chat Trace through the cockpit.
+2. Inspect trace ergonomics and fill gaps.
+3. Add memory and attention only after baseline tracing is stable.
+```
+
+## Local Run
+
+Backend:
+
+```bash
+cd backend
+source .venv/bin/activate
+uvicorn app.main:app --host 127.0.0.1 --port 8000
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev -- --port 5173
+```
+
+Open:
+
+```txt
+http://127.0.0.1:5173
 ```
 
 ## Secrets
@@ -52,4 +75,3 @@ MINIMAX_BASE_URL=https://api.minimax.io/anthropic
 MINIMAX_MODEL=MiniMax-M2.7
 DATABASE_URL=sqlite:///./data/app.db
 ```
-

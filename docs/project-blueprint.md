@@ -1074,9 +1074,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Add minimal frontend chat/debug cockpit.
-2. Run first trace-only experiment.
-3. Inspect trace ergonomics and fill gaps before adding memory/attention.
+1. Run first trace-only experiment.
+2. Inspect trace ergonomics and fill gaps before adding memory/attention.
+3. Prepare Phase 2 `mind_api` only after EXP-0001 is accepted.
 ```
 
 The first milestone is not "digital mind". The first milestone is:
