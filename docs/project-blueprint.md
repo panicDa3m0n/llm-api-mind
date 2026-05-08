@@ -1074,8 +1074,8 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Add SQLite schema for sessions, messages, turns, and traces.
-2. Implement minimal chat endpoint.
+1. Implement minimal persistent chat endpoints.
+2. Capture turn traces for baseline chat calls.
 3. Add minimal frontend chat/debug cockpit.
 4. Run first trace-only experiment.
 ```

@@ -6,8 +6,9 @@ Current scope:
 
 - typed environment configuration;
 - `/health` endpoint;
-- pytest smoke test;
-- ready for the MiniMax provider client in the next slice.
+- MiniMax M2.7 provider smoke test;
+- SQLite schema for sessions, messages, turns, and traces;
+- pytest coverage for health, LLM smoke wiring, and storage.
 
 ## Setup
 
@@ -25,6 +26,7 @@ Add your MiniMax key to `backend/.env`:
 
 ```txt
 MINIMAX_API_KEY=...
+MINIMAX_MAX_TOKENS=4096
 ```
 
 ## Run
@@ -51,8 +53,7 @@ from app.main import create_app
 
 client = TestClient(create_app())
 response = client.post("/api/debug/llm-smoke-test", json={
-    "prompt": "Reply with exactly: pong",
-    "max_tokens": 128,
+    "prompt": "Reply with exactly: pong"
 })
 print(response.status_code)
 print(response.json())

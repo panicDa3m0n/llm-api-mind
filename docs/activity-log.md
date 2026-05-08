@@ -151,7 +151,7 @@ Verification:
 - Installed updated backend dependencies including the Anthropic SDK.
 - Ran `pytest` from `backend`; 3 tests passed.
 - Ran a real MiniMax smoke call with `max_tokens=128`; response returned `text: pong`.
-- Observed that `max_tokens=32` can return an empty text response because M2.7 may spend the output budget before final text. The debug endpoint default is therefore `128`.
+- Observed that `max_tokens=32` can return an empty text response because M2.7 may spend the output budget before final text. This was later superseded by the project policy to use a generous configurable default.
 
 Open Questions:
 
@@ -160,3 +160,33 @@ Open Questions:
 Next Suggested Step:
 
 Add SQLite schema for sessions, messages, turns, and traces.
+
+## 2026-05-08 - Phase 1C Storage Schema And Token Budget Policy
+
+Goal:
+
+Correct the MiniMax token-budget policy and add the SQLite persistence foundation for baseline chat tracing.
+
+Changes:
+
+- Added `MINIMAX_MAX_TOKENS=4096` to backend settings and `.env.example`.
+- Updated the LLM smoke endpoint to use the configured default when `max_tokens` is omitted.
+- Added `max_tokens` to the LLM smoke response for observability.
+- Added SQLModel storage tables for `sessions`, `messages`, `turns`, and `traces`.
+- Added storage DB helpers and repository functions.
+- Added tests for default MiniMax token budget and storage round-trip behavior.
+- Added ADR-0006 for the generous MiniMax output budget policy.
+- Documented the MVP storage schema in `docs/api-contract.md`.
+
+Verification:
+
+- Ran `pytest` from `backend`; 6 tests passed.
+- Ran a real MiniMax smoke call without explicit `max_tokens`; response returned `text: pong` and `max_tokens: 4096`.
+
+Open Questions:
+
+- None for this slice.
+
+Next Suggested Step:
+
+Implement persistent chat endpoints on top of the SQLite schema.

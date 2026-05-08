@@ -27,6 +27,6 @@ class LLMProvider(Protocol):
         *,
         prompt: str,
         system: str | None = None,
-        max_tokens: int = 256,
+        max_tokens: int | None = None,
     ) -> LLMTextResult:
         """Generate text from a single user prompt."""

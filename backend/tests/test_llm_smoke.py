@@ -14,7 +14,7 @@ class FakeProvider:
         *,
         prompt: str,
         system: str | None = None,
-        max_tokens: int = 256,
+        max_tokens: int | None = None,
     ) -> LLMTextResult:
         return LLMTextResult(
             model=self.settings.minimax_model,
@@ -47,8 +47,32 @@ def test_llm_smoke_test_uses_configured_provider() -> None:
     assert body["ok"] is True
     assert body["model"] == "MiniMax-M2.7"
     assert body["text"] == "fake:ping:8"
+    assert body["max_tokens"] == 8
     assert body["usage"] == {"input_tokens": 1, "output_tokens": 1}
     assert isinstance(body["latency_ms"], int)
+
+
+def test_llm_smoke_test_uses_configured_default_token_budget() -> None:
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M2.7",
+        minimax_max_tokens=4096,
+    )
+    client = TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda settings: FakeProvider(settings),
+        )
+    )
+
+    response = client.post("/api/debug/llm-smoke-test", json={"prompt": "ping"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["text"] == "fake:ping:4096"
+    assert body["max_tokens"] == 4096
 
 
 def test_llm_smoke_test_requires_minimax_key() -> None:

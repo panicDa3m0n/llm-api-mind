@@ -170,9 +170,40 @@ Consequences:
 
 - Provider-specific behavior is isolated in `backend/app/llm/minimax_client.py`.
 - Future tool-loop implementation should preserve full assistant content blocks as MiniMax documentation recommends.
-- Smoke tests need enough output budget because reasoning models may consume tokens before final text.
+- Smoke tests and agent calls need enough output budget because reasoning models may consume tokens before final text.
 
 Links:
 
 - `backend/app/llm/minimax_client.py`
 - `docs/api-contract.md`
+
+## ADR-0006 - Use Generous MiniMax Output Budget By Default
+
+Date: 2026-05-08  
+Status: accepted
+
+Context:
+
+The project owner uses a MiniMax Token Plan subscription. The project goal is experimental quality and behavioral evidence, not minimizing token spend. MiniMax M2.7 also uses interleaved thinking and can consume output budget before final text, so tight defaults can produce misleading failures.
+
+Decision:
+
+Use `MINIMAX_MAX_TOKENS=4096` as the backend default output budget for MiniMax calls. Individual requests may override it, but defaults should not be artificially low.
+
+Alternatives Considered:
+
+- Keep the smoke default at `128`: worked for a tiny diagnostic, but encoded the wrong project priority.
+- Keep very low token defaults for cost control: rejected because the Token Plan is request-based for M2.7 and this project optimizes for quality and observability.
+- Set extremely large defaults immediately: deferred until we have persistent traces and real chat workloads.
+
+Consequences:
+
+- M2.7 has enough room for reasoning and final text in normal debug calls.
+- Token budget becomes a configurable experimental parameter rather than a hidden economy setting.
+- Latency and usage should be measured in traces rather than constrained prematurely.
+
+Links:
+
+- `backend/app/config.py`
+- `backend/app/api/debug.py`
+- `backend/.env.example`

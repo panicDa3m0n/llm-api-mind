@@ -96,9 +96,11 @@ Request:
 ```json
 {
   "prompt": "Reply with exactly: pong",
-  "max_tokens": 128
+  "max_tokens": 4096
 }
 ```
+
+`max_tokens` is optional. When omitted, the backend uses `MINIMAX_MAX_TOKENS`, currently defaulting to `4096`.
 
 Response:
 
@@ -107,6 +109,7 @@ Response:
   "ok": true,
   "model": "MiniMax-M2.7",
   "text": "pong",
+  "max_tokens": 4096,
   "latency_ms": 2556,
   "usage": {
     "input_tokens": 28,
@@ -129,6 +132,25 @@ Example:
 ```txt
 POST /api/debug/llm-smoke-test
 ```
+
+## MVP Storage Schema
+
+Status: implemented
+
+Purpose:
+
+Provide the persistence foundation for baseline chat tracing before cognitive modules are added.
+
+Tables:
+
+- `sessions`: conversation/project session container.
+- `turns`: one user-to-assistant processing cycle, including model, status, latency, and error metadata.
+- `messages`: user, assistant, system, or tool messages linked to sessions and optionally turns.
+- `traces`: structured JSON trace events linked to sessions and optionally turns.
+
+Trace Behavior:
+
+Trace rows store JSON payloads. Full turn trace assembly will be implemented with the chat endpoints.
 
 ## Planned Mind API
 

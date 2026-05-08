@@ -24,12 +24,13 @@ class MiniMaxProvider:
         *,
         prompt: str,
         system: str | None = None,
-        max_tokens: int = 256,
+        max_tokens: int | None = None,
     ) -> LLMTextResult:
+        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
         try:
             message = self._client.messages.create(
                 model=self._settings.minimax_model,
-                max_tokens=max_tokens,
+                max_tokens=effective_max_tokens,
                 system=system or "You are a concise diagnostic assistant.",
                 messages=[
                     {

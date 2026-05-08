@@ -16,13 +16,14 @@ class LLMSmokeTestRequest(BaseModel):
         min_length=1,
         max_length=1000,
     )
-    max_tokens: int = Field(default=128, ge=1, le=1024)
+    max_tokens: int | None = Field(default=None, ge=1, le=65536)
 
 
 class LLMSmokeTestResponse(BaseModel):
     ok: bool
     model: str
     text: str
+    max_tokens: int
     latency_ms: int
     usage: dict[str, Any]
 
@@ -41,9 +42,10 @@ def build_debug_router(
         started = time.perf_counter()
         try:
             provider = provider_factory(settings)
+            max_tokens = request.max_tokens or settings.minimax_max_tokens
             result = provider.generate_text(
                 prompt=request.prompt,
-                max_tokens=request.max_tokens,
+                max_tokens=max_tokens,
             )
         except LLMConfigurationError as exc:
             raise HTTPException(
@@ -69,6 +71,7 @@ def build_debug_router(
             ok=True,
             model=result.model,
             text=result.text,
+            max_tokens=max_tokens,
             latency_ms=latency_ms,
             usage=result.usage,
         )

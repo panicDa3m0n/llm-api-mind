@@ -33,6 +33,12 @@ This project uses a practical changelog rather than a release-only log: each mea
   - unit tests for provider injection and missing key handling;
   - real MiniMax smoke verification path;
   - ADR-0005 documenting the Anthropic-compatible MiniMax SDK choice.
+- Added Phase 1C storage foundation:
+  - `sessions`, `messages`, `turns`, and `traces` SQLModel tables;
+  - DB initialization helper;
+  - repository functions for session/message/turn/trace round trips;
+  - storage tests.
+- Added ADR-0006 documenting the generous MiniMax output budget policy.
 
 ### Changed
 
@@ -40,7 +46,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Connected the local repository configuration to `https://github.com/panicDa3m0n/llm-api-mind.git` and documented the remaining HTTPS push authentication blocker.
 - Confirmed local `main` is synchronized with `origin/main` after the human owner completed the push.
 - Confirmed non-interactive HTTPS push works from the local development environment.
-- Set the LLM smoke-test default output budget to 128 tokens after observing that 32 tokens can be consumed before final text.
+- Replaced the temporary smoke-test token budget with configurable `MINIMAX_MAX_TOKENS=4096`, aligned with MiniMax M2.7 agentic usage instead of token-saving assumptions.
 
 ### Fixed
 
