@@ -7,6 +7,8 @@ from app.main import create_app
 
 
 class FakeChatProvider:
+    seen_chat_systems: list[str | None] = []
+
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
@@ -29,6 +31,7 @@ class FakeChatProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
+        self.__class__.seen_chat_systems.append(system)
         last_message = messages[-1]
         return LLMTextResult(
             model=self.settings.minimax_model,
@@ -46,6 +49,7 @@ class FakeChatProvider:
 
 
 def make_client(db_engine: Engine) -> TestClient:
+    FakeChatProvider.seen_chat_systems = []
     settings = Settings(
         app_name="Test Mind",
         environment="test",
@@ -100,8 +104,29 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     traces = traces_response.json()
     assert [trace["kind"] for trace in traces] == ["llm.request", "llm.response"]
     assert traces[0]["payload"]["max_tokens"] == 4096
+    assert traces[0]["payload"]["system_present"] is True
+    assert traces[0]["payload"]["system_source"] == "bundled"
+    assert "You are Scarlet" in traces[0]["payload"]["system"]
+    assert FakeChatProvider.seen_chat_systems[-1] == traces[0]["payload"]["system"]
     assert traces[0]["payload"]["messages"][0]["content"] == "hello"
     assert traces[1]["payload"]["provider_message_id"] == "provider_msg_1"
+
+
+def test_chat_turn_can_override_system_prompt(db_engine: Engine) -> None:
+    client = make_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+    custom_system = "You are a test-only identity."
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "hello", "system": custom_system},
+    )
+
+    assert response.status_code == 200
+    traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
+    assert traces[0]["payload"]["system"] == custom_system
+    assert traces[0]["payload"]["system_source"] == "request"
+    assert FakeChatProvider.seen_chat_systems[-1] == custom_system
 
 
 def test_second_chat_turn_uses_persisted_history(db_engine: Engine) -> None:

@@ -16,6 +16,9 @@ class Settings(BaseSettings):
     minimax_model: str = "MiniMax-M2.7"
     minimax_max_tokens: int = Field(default=4096, ge=1)
 
+    agent_system_prompt: str | None = Field(default=None, repr=False)
+    agent_system_prompt_path: str | None = None
+
     database_url: str = "sqlite:///./data/app.db"
 
     model_config = SettingsConfigDict(

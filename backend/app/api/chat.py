@@ -16,6 +16,7 @@ from app.llm.provider import (
     LLMProvider,
     LLMRequestError,
 )
+from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.storage import repositories
 from app.storage.models import ChatSession, Message, Trace, Turn
 
@@ -127,6 +128,41 @@ def build_chat_router(
             history = repositories.list_messages(db, session_id=session_id)
             llm_messages = _to_llm_messages(history)
             max_tokens = request.max_tokens or settings.minimax_max_tokens
+            try:
+                system_prompt = resolve_agent_system_prompt(
+                    settings,
+                    override=request.system,
+                )
+            except AgentSystemPromptError as exc:
+                repositories.add_trace(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    kind="llm.error",
+                    payload={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                    },
+                )
+                repositories.complete_turn(
+                    db,
+                    turn_id=turn_id,
+                    status="failed",
+                    latency_ms=int((time.perf_counter() - started) * 1000),
+                    error={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                    },
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                        "recoverable": True,
+                    },
+                ) from exc
+
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -135,8 +171,10 @@ def build_chat_router(
                 payload={
                     "model": settings.minimax_model,
                     "max_tokens": max_tokens,
-                    "system": request.system,
-                    "system_present": request.system is not None,
+                    "system": system_prompt.content,
+                    "system_present": True,
+                    "system_source": system_prompt.source,
+                    "system_path": system_prompt.path,
                     "messages": [
                         {
                             "id": message.id,
@@ -154,7 +192,7 @@ def build_chat_router(
             provider = provider_factory(settings)
             result = provider.generate_chat(
                 messages=llm_messages,
-                system=request.system,
+                system=system_prompt.content,
                 max_tokens=max_tokens,
             )
         except LLMConfigurationError as exc:

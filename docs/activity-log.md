@@ -281,3 +281,34 @@ Open Questions:
 Next Suggested Step:
 
 Prepare Phase 2 by adding the minimal `mind_api` facade and schema-discovery contract over the existing traceable runtime.
+
+## 2026-05-08 - Phase 1G Scarlet System Prompt
+
+Goal:
+
+Give the chat agent a stable project identity before adding `mind_api`.
+
+Changes:
+
+- Added bundled Scarlet system prompt at `backend/app/prompts/scarlet_system.md`.
+- Added prompt resolver with `AGENT_SYSTEM_PROMPT` and `AGENT_SYSTEM_PROMPT_PATH` overrides.
+- Wired persistent chat turns to use the resolved system prompt by default.
+- Preserved per-turn `system` override for controlled debug runs.
+- Recorded effective prompt source/path in `llm.request` traces.
+- Replaced the MiniMax provider diagnostic fallback with a neutral fallback for non-agent paths.
+- Added ADR-0007 and BUG-0004.
+
+Verification:
+
+- Ran `pytest` from `backend`; 11 tests passed.
+- Ran a real in-process MiniMax chat check with `Chi sei?`; assistant identified as Scarlet and the request trace showed `system_source=bundled`.
+- Restarted local uvicorn on `http://127.0.0.1:8000`.
+- Ran a live HTTP MiniMax chat check through the restarted backend; assistant identified as Scarlet and the request trace contained the bundled Scarlet system prompt.
+
+Open Questions:
+
+- Full multi-file prompt assembly (`identity`, `rules`, `intelligence`, `api_protocol`, runtime state) remains planned after the single-prompt MVP proves stable.
+
+Next Suggested Step:
+
+Commit and push the system prompt slice, then proceed to the minimal Phase 2 `mind_api` facade.

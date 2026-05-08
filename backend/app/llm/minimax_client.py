@@ -49,7 +49,7 @@ class MiniMaxProvider:
             message = self._client.messages.create(
                 model=self._settings.minimax_model,
                 max_tokens=effective_max_tokens,
-                system=system or "You are a concise diagnostic assistant.",
+                system=system or "You are a concise assistant.",
                 messages=[self._to_anthropic_message(item) for item in messages],
             )
         except anthropic.AnthropicError as exc:

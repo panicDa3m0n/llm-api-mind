@@ -208,3 +208,48 @@ Links:
 - `backend/app/config.py`
 - `backend/app/api/debug.py`
 - `backend/.env.example`
+
+## ADR-0007 - Use A Configurable Scarlet System Prompt For Chat Runtime
+
+Date: 2026-05-08
+Status: accepted
+
+Context:
+
+The baseline chat runtime initially allowed requests without a project system prompt. In that case the provider layer used a generic diagnostic-assistant fallback, which could make the agent present itself as a medical or exam-focused assistant instead of the intended LLM API Mind agent.
+
+Decision:
+
+Every persistent chat turn should receive an effective agent system prompt. The MVP default is the bundled Scarlet prompt:
+
+```txt
+backend/app/prompts/scarlet_system.md
+```
+
+The prompt can be replaced without code changes through:
+
+```txt
+AGENT_SYSTEM_PROMPT
+AGENT_SYSTEM_PROMPT_PATH
+```
+
+Per-turn `system` values remain available for controlled debug overrides. `llm.request` traces record the effective prompt, source, and path when applicable.
+
+Alternatives Considered:
+
+- Keep identity only in frontend copy: rejected because direct API calls would still be ungrounded.
+- Hard-code the prompt in Python: rejected because prompt iteration should be easy and reviewable.
+- Wait for full multi-file prompt assembly: deferred because the identity bug is already visible.
+
+Consequences:
+
+- The agent has a stable initial Scarlet identity before `mind_api` exists.
+- Future prompt experiments can be tracked through files, env config, traces, and commits.
+- The provider fallback is neutral and no longer encodes a diagnostic identity.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/prompts/system.py`
+- `backend/app/api/chat.py`
+- `docs/api-contract.md`

@@ -289,3 +289,38 @@ Related Files:
 Notes:
 
 Provider construction is part of provider execution and should be inside endpoint error handling.
+
+## BUG-0004 - Chat Agent Used Generic Diagnostic Identity
+
+Date Found: 2026-05-08
+Status: fixed
+
+Symptoms:
+
+When asked `Chi sei?`, the chat agent answered as if it worked with medical exams instead of identifying as the LLM API Mind / Scarlet agent.
+
+Root Cause:
+
+Persistent chat turns did not load a project system prompt by default. When no `system` value was supplied, the MiniMax provider used a generic diagnostic-assistant fallback.
+
+Fix:
+
+Added a bundled Scarlet system prompt, a prompt resolver, config overrides, and default chat wiring so every persistent chat turn receives an effective project identity. Replaced the provider fallback with a neutral assistant string for non-agent smoke paths.
+
+Regression Test:
+
+`backend/tests/test_chat_api.py::test_chat_turn_persists_messages_and_traces`
+
+`backend/tests/test_chat_api.py::test_chat_turn_can_override_system_prompt`
+
+Related Files:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/prompts/system.py`
+- `backend/app/api/chat.py`
+- `backend/app/llm/minimax_client.py`
+- `backend/tests/test_chat_api.py`
+
+Notes:
+
+Agent identity is runtime behavior, not UI copy. The effective system prompt and source are recorded in `llm.request` traces.

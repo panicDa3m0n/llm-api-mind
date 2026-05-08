@@ -207,6 +207,8 @@ Request:
 
 `max_tokens` is optional. When omitted, the backend uses `MINIMAX_MAX_TOKENS`.
 
+`system` is optional. When omitted or blank, the backend loads the configured agent system prompt. The default prompt is `backend/app/prompts/scarlet_system.md`. It can be replaced with `AGENT_SYSTEM_PROMPT` or `AGENT_SYSTEM_PROMPT_PATH`.
+
 Response:
 
 ```json
@@ -243,6 +245,7 @@ Response:
 Errors:
 
 - `404 session.not_found`: the session does not exist.
+- `503 agent.system_prompt_error`: the configured agent system prompt could not be loaded.
 - `503 llm.not_configured`: `MINIMAX_API_KEY` is missing.
 - `502 llm.provider_error`: MiniMax request failed.
 
@@ -252,6 +255,12 @@ Creates at least:
 
 - `llm.request`
 - `llm.response`
+
+`llm.request` stores the effective system prompt plus:
+
+- `system_present`
+- `system_source`: `bundled`, `environment`, `configured_path`, or `request`
+- `system_path` when loaded from a file
 
 If the provider fails, creates:
 

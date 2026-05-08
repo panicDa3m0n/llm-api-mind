@@ -7,6 +7,7 @@ Current scope:
 - typed environment configuration;
 - `/health` endpoint;
 - MiniMax M2.7 provider smoke test;
+- configurable Scarlet agent system prompt;
 - persistent chat sessions and turns;
 - SQLite schema for sessions, messages, turns, and traces;
 - pytest coverage for health, LLM smoke wiring, and storage.
@@ -28,6 +29,19 @@ Add your MiniMax key to `backend/.env`:
 ```txt
 MINIMAX_API_KEY=...
 MINIMAX_MAX_TOKENS=4096
+```
+
+The default chat identity is loaded from:
+
+```txt
+backend/app/prompts/scarlet_system.md
+```
+
+To test another identity without editing the bundled prompt, set one of:
+
+```txt
+AGENT_SYSTEM_PROMPT=...
+AGENT_SYSTEM_PROMPT_PATH=path/to/system_prompt.md
 ```
 
 ## Run

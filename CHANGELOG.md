@@ -52,6 +52,7 @@ This project uses a practical changelog rather than a release-only log: each mea
   - trace panel;
   - MiniMax usage metrics;
   - frontend build workflow.
+- Added a configurable Scarlet system prompt for persistent chat turns.
 
 ### Changed
 
@@ -63,6 +64,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Extended the provider abstraction from single-prompt generation to chat-history generation.
 - Updated project status and local run instructions now that backend and frontend are runnable together.
 - Accepted EXP-0001 Baseline Chat Trace after a real two-turn MiniMax run with stored messages and request/response traces.
+- Updated chat tracing so `llm.request` records the effective system prompt source.
 
 ### Fixed
 
@@ -70,6 +72,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Resolved the GitHub push blocker for the initial repository setup.
 - Fixed detached SQLModel ORM object usage in the chat turn endpoint.
 - Fixed chat provider initialization errors so missing MiniMax configuration returns structured `503 llm.not_configured`.
+- Fixed the generic diagnostic-assistant fallback that could make the agent misidentify itself.
 
 ## Release Notes Policy
 

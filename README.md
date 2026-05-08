@@ -16,6 +16,7 @@ The project has a working local baseline runtime:
 
 - FastAPI backend;
 - MiniMax M2.7 provider integration;
+- configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, and traces;
 - minimal React debug cockpit.
 - accepted EXP-0001 baseline trace run.
@@ -74,5 +75,6 @@ Expected future environment variables:
 MINIMAX_API_KEY=
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic
 MINIMAX_MODEL=MiniMax-M2.7
+AGENT_SYSTEM_PROMPT_PATH=
 DATABASE_URL=sqlite:///./data/app.db
 ```
