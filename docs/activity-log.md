@@ -130,3 +130,33 @@ Open Questions:
 Next Suggested Step:
 
 Install backend dev dependencies, run the health test, then add the MiniMax provider client after the user inserts `MINIMAX_API_KEY` into `backend/.env`.
+
+## 2026-05-08 - Phase 1B MiniMax Provider Smoke
+
+Goal:
+
+Add the first real LLM provider integration and verify that MiniMax M2.7 is reachable from the backend.
+
+Changes:
+
+- Added the Anthropic-compatible MiniMax provider wrapper.
+- Added `POST /api/debug/llm-smoke-test`.
+- Added unit tests for provider injection and missing MiniMax key handling.
+- Added API contract documentation for the smoke endpoint.
+- Added backend README smoke-test instructions.
+- Added ADR-0005 for the Anthropic-compatible MiniMax SDK choice.
+
+Verification:
+
+- Installed updated backend dependencies including the Anthropic SDK.
+- Ran `pytest` from `backend`; 3 tests passed.
+- Ran a real MiniMax smoke call with `max_tokens=128`; response returned `text: pong`.
+- Observed that `max_tokens=32` can return an empty text response because M2.7 may spend the output budget before final text. The debug endpoint default is therefore `128`.
+
+Open Questions:
+
+- None for this slice.
+
+Next Suggested Step:
+
+Add SQLite schema for sessions, messages, turns, and traces.

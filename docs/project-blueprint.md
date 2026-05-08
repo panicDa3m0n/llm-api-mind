@@ -1074,11 +1074,10 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Add MiniMax provider client with a smoke test path after `MINIMAX_API_KEY` is set.
-2. Add SQLite schema for sessions, messages, turns, and traces.
-3. Implement minimal chat endpoint.
-4. Add minimal frontend chat/debug cockpit.
-5. Run first trace-only experiment.
+1. Add SQLite schema for sessions, messages, turns, and traces.
+2. Implement minimal chat endpoint.
+3. Add minimal frontend chat/debug cockpit.
+4. Run first trace-only experiment.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

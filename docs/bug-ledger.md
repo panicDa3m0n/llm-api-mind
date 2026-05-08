@@ -2,8 +2,6 @@
 
 This file records bugs, fixes, root causes, and regression tests so the project does not rediscover the same problems across sessions.
 
-No implementation bugs have been recorded yet.
-
 ## Template
 
 ```md
@@ -191,3 +189,39 @@ Related Files:
 Notes:
 
 This is an environment compatibility note, not a project bug.
+
+## Implementation Bugs
+
+## BUG-0001 - Smoke Test Provider Factory None Override
+
+Date Found: 2026-05-08  
+Status: fixed
+
+Symptoms:
+
+`test_llm_smoke_test_requires_minimax_key` failed with:
+
+```txt
+TypeError: 'NoneType' object is not callable
+```
+
+Root Cause:
+
+`create_app()` passed `llm_provider_factory=None` explicitly into `build_debug_router()`, overriding the router's default provider factory.
+
+Fix:
+
+`create_app()` now passes `llm_provider_factory or MiniMaxProvider`.
+
+Regression Test:
+
+`backend/tests/test_llm_smoke.py::test_llm_smoke_test_requires_minimax_key`
+
+Related Files:
+
+- `backend/app/main.py`
+- `backend/tests/test_llm_smoke.py`
+
+Notes:
+
+This validates that app factory dependency injection must preserve defaults when optional test doubles are not supplied.

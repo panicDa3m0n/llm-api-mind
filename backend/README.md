@@ -40,6 +40,25 @@ http://127.0.0.1:8000/health
 http://127.0.0.1:8000/docs
 ```
 
+## MiniMax Smoke Test
+
+After adding `MINIMAX_API_KEY` to `backend/.env`, run:
+
+```bash
+python3 - <<'PY'
+from fastapi.testclient import TestClient
+from app.main import create_app
+
+client = TestClient(create_app())
+response = client.post("/api/debug/llm-smoke-test", json={
+    "prompt": "Reply with exactly: pong",
+    "max_tokens": 128,
+})
+print(response.status_code)
+print(response.json())
+PY
+```
+
 ## Test
 
 ```bash

@@ -27,6 +27,12 @@ This project uses a practical changelog rather than a release-only log: each mea
   - backend `.env.example`;
   - pytest health endpoint smoke test;
   - ADR-0004 documenting SQLModel as the MVP storage choice.
+- Added Phase 1B MiniMax provider smoke support:
+  - Anthropic-compatible MiniMax provider wrapper;
+  - `POST /api/debug/llm-smoke-test`;
+  - unit tests for provider injection and missing key handling;
+  - real MiniMax smoke verification path;
+  - ADR-0005 documenting the Anthropic-compatible MiniMax SDK choice.
 
 ### Changed
 
@@ -34,6 +40,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Connected the local repository configuration to `https://github.com/panicDa3m0n/llm-api-mind.git` and documented the remaining HTTPS push authentication blocker.
 - Confirmed local `main` is synchronized with `origin/main` after the human owner completed the push.
 - Confirmed non-interactive HTTPS push works from the local development environment.
+- Set the LLM smoke-test default output budget to 128 tokens after observing that 32 tokens can be consumed before final text.
 
 ### Fixed
 

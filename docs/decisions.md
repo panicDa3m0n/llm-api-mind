@@ -140,3 +140,39 @@ Links:
 
 - `backend/pyproject.toml`
 - `docs/project-blueprint.md`
+
+## ADR-0005 - Use MiniMax Through Anthropic-Compatible SDK
+
+Date: 2026-05-08  
+Status: accepted
+
+Context:
+
+MiniMax M2.7 supports Anthropic-compatible API calls and tool-use/interleaved-thinking behavior. The project will eventually need reliable tool-call loops and preservation of complete assistant content blocks across multi-turn tool interactions.
+
+Decision:
+
+Use the Anthropic-compatible MiniMax API through the official `anthropic` Python SDK for the initial provider implementation.
+
+Configuration:
+
+```txt
+MINIMAX_BASE_URL=https://api.minimax.io/anthropic
+MINIMAX_MODEL=MiniMax-M2.7
+```
+
+Alternatives Considered:
+
+- Direct HTTP against MiniMax text completion endpoint: smaller dependency surface, but lower-level and less aligned with future tool-use handling.
+- OpenAI-compatible API: useful option, but Anthropic-compatible format better preserves thinking/tool blocks for M2.7.
+
+Consequences:
+
+- Provider-specific behavior is isolated in `backend/app/llm/minimax_client.py`.
+- Future tool-loop implementation should preserve full assistant content blocks as MiniMax documentation recommends.
+- Smoke tests need enough output budget because reasoning models may consume tokens before final text.
+
+Links:
+
+- `backend/app/llm/minimax_client.py`
+- `docs/api-contract.md`

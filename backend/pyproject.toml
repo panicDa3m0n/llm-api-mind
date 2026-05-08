@@ -8,7 +8,9 @@ version = "0.1.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
+    "anthropic>=0.49,<1.0",
     "fastapi>=0.110,<1.0",
+    "httpx>=0.27,<1.0",
     "pydantic-settings>=2.0,<3.0",
     "sqlmodel>=0.0.16,<1.0",
     "uvicorn[standard]>=0.27,<1.0",
@@ -16,7 +18,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "httpx>=0.27,<1.0",
     "pytest>=8.0,<9.0",
 ]
 

@@ -83,6 +83,53 @@ Example:
 GET /health
 ```
 
+### POST /api/debug/llm-smoke-test
+
+Status: implemented
+
+Purpose:
+
+Verify that the backend can call the configured LLM provider. This is a development/debug endpoint, not an agent turn.
+
+Request:
+
+```json
+{
+  "prompt": "Reply with exactly: pong",
+  "max_tokens": 128
+}
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "model": "MiniMax-M2.7",
+  "text": "pong",
+  "latency_ms": 2556,
+  "usage": {
+    "input_tokens": 28,
+    "output_tokens": 28
+  }
+}
+```
+
+Errors:
+
+- `503 llm.not_configured`: `MINIMAX_API_KEY` is missing.
+- `502 llm.provider_error`: the upstream provider request failed.
+
+Trace Behavior:
+
+No persistent trace yet. Provider latency and usage are returned in the response for manual inspection.
+
+Example:
+
+```txt
+POST /api/debug/llm-smoke-test
+```
+
 ## Planned Mind API
 
 ```txt
