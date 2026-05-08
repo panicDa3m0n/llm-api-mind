@@ -115,17 +115,25 @@ Preferred remote repository name:
 panicDa3m0n/llm-api-mind
 ```
 
+Current remote:
+
+```txt
+origin https://github.com/panicDa3m0n/llm-api-mind.git
+```
+
 Preferred visibility:
 
 ```txt
 private until the first runnable experiment is mature enough to publish
 ```
 
-Current environment limitation:
+Current environment notes:
 
 ```txt
 The GitHub connector can access installed repositories, but does not expose repository creation.
 The `gh` CLI is not installed in the local environment.
+HTTPS push currently needs local GitHub credentials.
+SSH push is not currently available because GitHub rejects the local key.
 ```
 
 Remote setup options:
@@ -143,3 +151,8 @@ git push -u origin main
 gh repo create panicDa3m0n/llm-api-mind --private --source=. --remote=origin --push
 ```
 
+Current next push command once credentials are available:
+
+```txt
+git push -u origin main
+```

@@ -1074,7 +1074,7 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Decide whether to initialize Git now or intentionally defer it.
+1. Complete GitHub push after local HTTPS or SSH authentication is available.
 2. Scaffold backend with FastAPI and config.
 3. Add MiniMax provider client with a smoke test path.
 4. Add SQLite schema for sessions, messages, turns, and traces.

@@ -24,6 +24,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 ### Changed
 
 - Updated project next steps to start from Git/repository setup and backend scaffolding.
+- Connected the local repository configuration to `https://github.com/panicDa3m0n/llm-api-mind.git` and documented the remaining HTTPS push authentication blocker.
 
 ### Fixed
 
@@ -37,4 +38,3 @@ Each release section should answer:
 - Why did it change?
 - Which roadmap phase, experiment, or decision does it support?
 - How was it verified?
-

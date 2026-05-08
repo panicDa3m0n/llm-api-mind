@@ -58,7 +58,7 @@ Not a code bug, but relevant because the development ritual expects repository s
 ### ENV-0002 - GitHub Remote Creation Not Available From Current Tooling
 
 Date Found: 2026-05-08  
-Status: open
+Status: fixed
 
 Symptoms:
 
@@ -71,10 +71,7 @@ The local GitHub CLI is not installed, and the available GitHub connector tools 
 
 Fix:
 
-Pending one of:
-
-- Create `panicDa3m0n/llm-api-mind` manually on GitHub, then add it as `origin`.
-- Install and authenticate `gh`, then run the documented `gh repo create` command.
+The project owner created/provided `https://github.com/panicDa3m0n/llm-api-mind.git`, and local `origin` is configured for that URL.
 
 Regression Test:
 
@@ -97,7 +94,67 @@ Related Files:
 
 Notes:
 
-Local Git can still be initialized and committed before remote setup.
+Remote creation is no longer the blocker. Local push authentication is tracked separately.
+
+### ENV-0004 - Local GitHub HTTPS Push Lacks Credentials
+
+Date Found: 2026-05-08  
+Status: open
+
+Symptoms:
+
+Running:
+
+```txt
+GIT_TERMINAL_PROMPT=0 git push -u origin main
+```
+
+returns:
+
+```txt
+fatal: could not read Username for 'https://github.com': terminal prompts disabled
+```
+
+Checking SSH access with:
+
+```txt
+ssh -T -o BatchMode=yes -o StrictHostKeyChecking=accept-new git@github.com
+```
+
+returns:
+
+```txt
+git@github.com: Permission denied (publickey).
+```
+
+Root Cause:
+
+The repository remote uses HTTPS, but this local environment does not currently have GitHub credentials available to non-interactive Git.
+
+Fix:
+
+Pending one of:
+
+- Authenticate GitHub CLI and push through the configured credential helper.
+- Configure a GitHub credential/token for HTTPS Git access.
+- Switch `origin` to SSH after an authorized GitHub SSH key is available.
+
+Regression Test:
+
+Run:
+
+```txt
+git push -u origin main
+```
+
+Related Files:
+
+- `docs/activity-log.md`
+- `docs/release-process.md`
+
+Notes:
+
+The local repository is committed. The remote repository is reachable and appears empty. Both HTTPS and SSH push paths currently need local authentication setup.
 
 ### ENV-0003 - Local Git Version Lacks Some Modern Flags
 
