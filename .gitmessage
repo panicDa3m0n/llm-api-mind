@@ -1,0 +1,11 @@
+<type>(<scope>): <short summary>
+
+Changelog:
+- <user-visible or project-visible change>
+
+Roadmap:
+- <phase, experiment, ADR, or issue reference>
+
+Verification:
+- <tests/checks run, or why not run>
+
