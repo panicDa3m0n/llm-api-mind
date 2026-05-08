@@ -96,3 +96,36 @@ Open Questions:
 Next Suggested Step:
 
 Authenticate local GitHub access, then run `git push -u origin main`.
+
+## 2026-05-08 - Phase 1A Backend Scaffold
+
+Goal:
+
+Start Phase 1 with the smallest useful backend slice: FastAPI config, health endpoint, env template, and a test.
+
+Changes:
+
+- Added `backend/pyproject.toml`.
+- Added `backend/.env.example`.
+- Added `backend/README.md`.
+- Added `backend/app/config.py`.
+- Added `backend/app/main.py`.
+- Added `backend/tests/test_health.py`.
+- Updated `.gitignore` so nested `.env.example` files remain trackable.
+- Documented `GET /health` in `docs/api-contract.md`.
+- Added ADR-0004 to record SQLModel as the MVP storage choice.
+- Marked GitHub HTTPS push authentication as resolved after the human owner pushed `main`.
+
+Verification:
+
+- Created a local ignored venv at `backend/.venv`.
+- Installed backend dev dependencies with `python3 -m pip install -e ".[dev]"`.
+- Ran `pytest` from `backend`; 1 test passed.
+
+Open Questions:
+
+- None for this slice.
+
+Next Suggested Step:
+
+Install backend dev dependencies, run the health test, then add the MiniMax provider client after the user inserts `MINIMAX_API_KEY` into `backend/.env`.

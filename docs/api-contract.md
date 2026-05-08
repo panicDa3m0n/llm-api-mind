@@ -2,8 +2,6 @@
 
 This file documents stable API contracts once they are implemented.
 
-The current API surface is planned, not implemented.
-
 ## Response Philosophy
 
 Mind API responses should be useful to both code and the LLM agent.
@@ -44,6 +42,45 @@ POST /api/chat/sessions/{session_id}/turn
 GET  /api/chat/sessions/{session_id}/messages
 GET  /api/debug/traces/{turn_id}
 GET  /api/debug/state/{session_id}
+```
+
+## Implemented System API
+
+### GET /health
+
+Status: implemented
+
+Purpose:
+
+Report basic backend runtime health without exposing secrets.
+
+Request:
+
+No request body.
+
+Response:
+
+```json
+{
+  "status": "ok",
+  "app": "LLM API Mind",
+  "environment": "local",
+  "model": "MiniMax-M2.7"
+}
+```
+
+Errors:
+
+No custom errors yet.
+
+Trace Behavior:
+
+No persistent trace yet. This endpoint is a process health check, not an agent turn.
+
+Example:
+
+```txt
+GET /health
 ```
 
 ## Planned Mind API

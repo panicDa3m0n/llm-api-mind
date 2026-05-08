@@ -132,7 +132,8 @@ Current environment notes:
 ```txt
 The GitHub connector can access installed repositories, but does not expose repository creation.
 The `gh` CLI is not installed in the local environment.
-HTTPS push currently needs local GitHub credentials.
+Initial push was completed by the human owner.
+Future non-interactive HTTPS pushes may still need local GitHub credentials.
 SSH push is not currently available because GitHub rejects the local key.
 ```
 

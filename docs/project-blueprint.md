@@ -1074,13 +1074,11 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Complete GitHub push after local HTTPS or SSH authentication is available.
-2. Scaffold backend with FastAPI and config.
-3. Add MiniMax provider client with a smoke test path.
-4. Add SQLite schema for sessions, messages, turns, and traces.
-5. Implement minimal chat endpoint.
-6. Add minimal frontend chat/debug cockpit.
-7. Run first trace-only experiment.
+1. Add MiniMax provider client with a smoke test path after `MINIMAX_API_KEY` is set.
+2. Add SQLite schema for sessions, messages, turns, and traces.
+3. Implement minimal chat endpoint.
+4. Add minimal frontend chat/debug cockpit.
+5. Run first trace-only experiment.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

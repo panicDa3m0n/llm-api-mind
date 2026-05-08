@@ -110,3 +110,33 @@ Links:
 - `docs/release-process.md`
 - `CHANGELOG.md`
 - `.gitmessage`
+
+## ADR-0004 - Use SQLModel For MVP Storage Layer
+
+Date: 2026-05-08  
+Status: accepted
+
+Context:
+
+Phase 1 will soon add SQLite persistence for sessions, messages, turns, and traces. The project needs a storage layer that is quick to implement, readable for an IDE agent, and compatible with FastAPI/Pydantic without adding heavy framework behavior.
+
+Decision:
+
+Use SQLModel for the MVP storage layer. SQLModel keeps the SQLAlchemy foundation available while reducing boilerplate for typed models and API-facing schemas.
+
+Alternatives Considered:
+
+- Plain SQLAlchemy: powerful and explicit, but more boilerplate for this early experimental slice.
+- Raw SQLite: very small, but likely to create ad hoc data access patterns too early.
+- Full ORM/framework stack: unnecessary before baseline tracing exists.
+
+Consequences:
+
+- Early data models can serve both persistence and typed validation needs.
+- Future migrations to deeper SQLAlchemy patterns remain possible.
+- SQLModel is included as a backend dependency before the first storage tables are implemented.
+
+Links:
+
+- `backend/pyproject.toml`
+- `docs/project-blueprint.md`
