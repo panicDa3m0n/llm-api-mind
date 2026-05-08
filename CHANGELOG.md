@@ -66,6 +66,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Accepted EXP-0001 Baseline Chat Trace after a real two-turn MiniMax run with stored messages and request/response traces.
 - Updated chat tracing so `llm.request` records the effective system prompt source.
 - Refined the default Scarlet prompt to use positive identity and operating-posture guidance instead of domain-specific denials.
+- Expanded Scarlet's prompt with feminine identity and human-like conversational presence guidance.
 
 ### Fixed
 

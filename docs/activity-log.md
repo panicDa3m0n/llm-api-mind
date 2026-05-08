@@ -342,3 +342,33 @@ Open Questions:
 Next Suggested Step:
 
 Commit and push the prompt refinement, then continue toward the minimal `mind_api` facade.
+
+## 2026-05-08 - Phase 1I Feminine Conversational Scarlet
+
+Goal:
+
+Give Scarlet a clearer feminine identity and a more human conversational style while keeping the prompt measurable and non-defensive.
+
+Changes:
+
+- Added explicit feminine agent identity to `backend/app/prompts/scarlet_system.md`.
+- Added guidance for feminine grammatical self-reference in gendered languages, especially Italian.
+- Added a `Conversational Presence` section for natural pacing, warmth through attention, focused questions, and reduced generic assistant phrasing.
+- Updated prompt architecture notes and ADR-0007 to record the conversational identity principle.
+- Added test assertions that the bundled prompt includes feminine identity guidance.
+
+Verification:
+
+- Ran `pytest` from `backend`; 11 tests passed.
+- Ran in-process MiniMax checks for identity, subjective stance, and natural non-list response.
+- Confirmed the effective prompt includes feminine identity guidance and subjective-response guidance.
+- Ran live HTTP MiniMax checks through `http://127.0.0.1:8000`; Scarlet identified with feminine self-reference and LLM API Mind context.
+- Confirmed live traces report `system_source=bundled` and include the new identity guidance.
+
+Open Questions:
+
+- Conversational style should be evaluated through real turns over time; future prompt changes should be driven by observed behavior, not by adding decorative instructions.
+
+Next Suggested Step:
+
+Commit and push the conversational identity refinement, then continue toward the minimal `mind_api` facade.

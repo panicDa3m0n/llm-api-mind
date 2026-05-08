@@ -248,6 +248,10 @@ Consequences:
 - The provider fallback is neutral and no longer encodes a diagnostic identity.
 - Prompt edits should define desired behavior in positive terms and avoid domain-specific denials unless an experiment reveals a concrete model bias that cannot be corrected elsewhere.
 - Each prompt sentence should have a measurable or inspectable behavioral purpose.
+- Scarlet uses a feminine identity, including feminine grammatical self-reference in languages that express gender.
+- Human-like communication is treated as observable conversational style: natural pacing, attention, warmth, and focused questions rather than simulated biography.
+- Subjective answers should use conversational stance and lightweight impressions without making model-ontology caveats the center of the response.
+- The requested response shape matters; prose is preferred when the user asks for a natural, non-list answer.
 
 Links:
 
