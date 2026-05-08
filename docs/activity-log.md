@@ -312,3 +312,33 @@ Open Questions:
 Next Suggested Step:
 
 Commit and push the system prompt slice, then proceed to the minimal Phase 2 `mind_api` facade.
+
+## 2026-05-08 - Phase 1H Scarlet Prompt Refinement
+
+Goal:
+
+Refine the default system prompt so it shapes identity without adding unnecessary defensive bias.
+
+Changes:
+
+- Rewrote `backend/app/prompts/scarlet_system.md` in positive terms.
+- Removed domain-specific denials and medical/diagnostic corrective wording from the default prompt.
+- Kept the prompt focused on identity, relationship, operating posture, current runtime, and future API discipline.
+- Added a regression assertion that the bundled prompt passed to chat does not contain medical/diagnostic corrective terms.
+- Updated prompt architecture notes and ADR-0007 with the positive-prompt principle.
+
+Verification:
+
+- Ran `pytest` from `backend`; 11 tests passed.
+- Ran an in-process MiniMax check with `Chi sei?`; assistant identified as Scarlet and the effective system prompt contained no medical/diagnostic corrective terms.
+- Ran an in-process MiniMax current-runtime check; assistant described chat, persisted messages, MiniMax calls, and traces, while presenting future modules as research modules.
+- Restarted local uvicorn on `http://127.0.0.1:8000`.
+- Ran a live HTTP MiniMax check through the restarted backend; assistant identified as Scarlet and trace inspection confirmed `system_source=bundled` with no medical/diagnostic corrective terms.
+
+Open Questions:
+
+- Future bias-specific prompt constraints should be added only after tests show that architecture, API state, or traces cannot address the behavior.
+
+Next Suggested Step:
+
+Commit and push the prompt refinement, then continue toward the minimal `mind_api` facade.

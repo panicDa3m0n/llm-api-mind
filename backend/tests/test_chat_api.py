@@ -107,6 +107,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert traces[0]["payload"]["system_present"] is True
     assert traces[0]["payload"]["system_source"] == "bundled"
     assert "You are Scarlet" in traces[0]["payload"]["system"]
+    assert "medical" not in traces[0]["payload"]["system"].lower()
+    assert "diagnostic" not in traces[0]["payload"]["system"].lower()
     assert FakeChatProvider.seen_chat_systems[-1] == traces[0]["payload"]["system"]
     assert traces[0]["payload"]["messages"][0]["content"] == "hello"
     assert traces[1]["payload"]["provider_message_id"] == "provider_msg_1"

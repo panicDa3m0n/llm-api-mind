@@ -246,6 +246,8 @@ Consequences:
 - The agent has a stable initial Scarlet identity before `mind_api` exists.
 - Future prompt experiments can be tracked through files, env config, traces, and commits.
 - The provider fallback is neutral and no longer encodes a diagnostic identity.
+- Prompt edits should define desired behavior in positive terms and avoid domain-specific denials unless an experiment reveals a concrete model bias that cannot be corrected elsewhere.
+- Each prompt sentence should have a measurable or inspectable behavioral purpose.
 
 Links:
 

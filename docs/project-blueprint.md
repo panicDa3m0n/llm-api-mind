@@ -492,6 +492,16 @@ backend/app/prompts/scarlet_system.md
 
 The MVP uses one bundled Scarlet prompt before full prompt assembly exists. It can be replaced through `AGENT_SYSTEM_PROMPT` or `AGENT_SYSTEM_PROMPT_PATH`. Every chat turn should receive an effective system prompt, and the `llm.request` trace should record the prompt source so prompt changes remain inspectable.
 
+Prompt style principle:
+
+```txt
+Define the desired agent identity and operating posture in positive terms.
+Avoid domain-specific denials or corrective examples unless a real experiment shows
+that a model bias cannot be handled through architecture, API state, or traces.
+```
+
+Every sentence in the system prompt should have a behavioral purpose. Remove filler, generic platitudes, and defensive rules that might become repeated self-description.
+
 ### 9.1 Identity
 
 Defines who the agent is, continuity style, tone, and relationship to the human.
