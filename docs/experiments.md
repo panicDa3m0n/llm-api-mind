@@ -6,7 +6,7 @@ The project should not accept a cognitive module only because it feels intellige
 
 ## EXP-0001 - Baseline Chat Trace
 
-Status: ready-to-run
+Status: accepted
 
 Hypothesis:
 
@@ -34,11 +34,37 @@ Metrics:
 
 Result:
 
-Pending scenario run. Backend and frontend support now exists for persistent sessions, messages, turns, trace retrieval, and cockpit inspection.
+Run date: 2026-05-08
+
+Environment:
+
+- FastAPI backend on `http://127.0.0.1:8000`.
+- Vite debug cockpit on `http://127.0.0.1:5173`.
+- MiniMax M2.7 with `max_tokens=4096`.
+
+Scenario run:
+
+- Session: `ses_bf3790e6f01a44b49b3348ebf90289a3`.
+- Turn 1 prompt: `Reply with exactly: pong`.
+- Turn 1 result: assistant returned `pong`; status `completed`; latency `1084 ms`; usage contained `input_tokens=28` and `output_tokens=41`.
+- Turn 1 traces: `llm.request`, `llm.response`.
+- Turn 2 prompt: `Reply with exactly: trace-ok`.
+- Turn 2 result: assistant returned `trace-ok`; status `completed`; latency `841 ms`; usage contained `input_tokens=46` and `output_tokens=20`.
+- Turn 2 traces: `llm.request`, `llm.response`.
+- Stored message count: `4`.
+- Stored messages matched the visible user/assistant conversation.
+- Request traces contained structured provider messages.
+- Response traces contained provider usage metadata.
 
 Decision:
 
-Do not proceed to memory and attention until baseline tracing is stable.
+Accepted as the baseline tracing substrate for Phase 2. The system may proceed to a minimal `mind_api` facade and schema-discovery layer.
+
+Do not proceed to episodic memory, attention, reflection, goals, or background jobs yet. The next layer should wrap and expose the existing traceable runtime without adding cognitive state.
+
+Follow-up:
+
+- Improve trace ergonomics if needed while implementing `mind_api`, especially quick inspection of request/response payloads, provider errors, and trace export.
 
 ## EXP-0002 - Episodic Memory
 

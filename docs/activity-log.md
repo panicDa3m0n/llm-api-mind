@@ -250,3 +250,34 @@ Open Questions:
 Next Suggested Step:
 
 Run EXP-0001 Baseline Chat Trace and record the result in `docs/experiments.md`.
+
+## 2026-05-08 - Phase 1F EXP-0001 Baseline Trace Run
+
+Goal:
+
+Run the first documented baseline trace experiment before adding cognitive APIs.
+
+Changes:
+
+- Executed EXP-0001 against the local FastAPI backend with real MiniMax M2.7 calls.
+- Created a dedicated experiment session.
+- Ran two controlled chat turns: `pong` and `trace-ok`.
+- Retrieved stored messages and traces for each turn.
+- Recorded the accepted experiment result in `docs/experiments.md`.
+
+Verification:
+
+- Session `ses_bf3790e6f01a44b49b3348ebf90289a3` stored 4 messages.
+- Turn `turn_9d2439d67f6344368178bedf61663301` completed with assistant text `pong`.
+- Turn `turn_e4ef9ca301714adc827ccbc1d0d8509e` completed with assistant text `trace-ok`.
+- Each turn produced `llm.request` and `llm.response` traces.
+- Request traces contained structured provider messages.
+- Response traces contained usage metadata and latency was recorded on the turn.
+
+Open Questions:
+
+- Trace UX can still improve during Phase 2, especially export/copy and compact provider-error inspection.
+
+Next Suggested Step:
+
+Prepare Phase 2 by adding the minimal `mind_api` facade and schema-discovery contract over the existing traceable runtime.

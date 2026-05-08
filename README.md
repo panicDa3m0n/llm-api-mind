@@ -18,6 +18,7 @@ The project has a working local baseline runtime:
 - MiniMax M2.7 provider integration;
 - SQLite persistence for sessions, messages, turns, and traces;
 - minimal React debug cockpit.
+- accepted EXP-0001 baseline trace run.
 
 ## Key Documents
 
@@ -34,9 +35,9 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Run EXP-0001 Baseline Chat Trace through the cockpit.
-2. Inspect trace ergonomics and fill gaps.
-3. Add memory and attention only after baseline tracing is stable.
+1. Add the minimal Phase 2 `mind_api` facade.
+2. Add schema discovery for available API actions.
+3. Add memory and attention only after `mind_api` is traceable.
 ```
 
 ## Local Run

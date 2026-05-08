@@ -62,6 +62,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Replaced the temporary smoke-test token budget with configurable `MINIMAX_MAX_TOKENS=4096`, aligned with MiniMax M2.7 agentic usage instead of token-saving assumptions.
 - Extended the provider abstraction from single-prompt generation to chat-history generation.
 - Updated project status and local run instructions now that backend and frontend are runnable together.
+- Accepted EXP-0001 Baseline Chat Trace after a real two-turn MiniMax run with stored messages and request/response traces.
 
 ### Fixed
 

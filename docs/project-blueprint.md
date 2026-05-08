@@ -1074,9 +1074,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Run first trace-only experiment.
-2. Inspect trace ergonomics and fill gaps before adding memory/attention.
-3. Prepare Phase 2 `mind_api` only after EXP-0001 is accepted.
+1. Add the minimal Phase 2 `mind_api` facade over the traceable runtime.
+2. Add schema discovery so the agent can inspect available API actions.
+3. Keep memory/attention deferred until `mind_api` calls are traceable and evaluated.
 ```
 
 The first milestone is not "digital mind". The first milestone is:
