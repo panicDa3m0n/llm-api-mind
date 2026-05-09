@@ -398,3 +398,57 @@ Related Files:
 Notes:
 
 Streaming UI state should not depend on recently scheduled React state when the backend can provide stable event ownership directly.
+
+## BUG-0007 - Strict Memory v0 Schema Caused Avoidable Tool Recovery
+
+Date Found: 2026-05-09
+Status: fixed
+
+Symptoms:
+
+Live MiniMax memory tests repeatedly showed first-attempt memory calls failing even when the intent was clear. Examples included:
+
+```txt
+type=pref
+type=nota_operativa
+type=standard_preference
+confidence=high
+body.limit for search
+GET /mind/memory/search
+scope=user_preference
+extra fields such as id, use_during, salient_for
+```
+
+The model then spent extra tool turns calling `/mind/schema` or retrying with a stricter body.
+
+Root Cause:
+
+Memory v0 initially used a strict canonical Pydantic schema. That was good for contract clarity but too brittle for real model-generated tool bodies, where the semantic action was valid but field names or enum values varied.
+
+Fix:
+
+Added Memory v0 input normalization:
+
+- common type aliases map to canonical memory types;
+- qualitative confidence/salience map to numeric scores;
+- `why`, `reason`, and `rationale` map to `reason_for_storage`;
+- `use`, `future_use`, and `use_during` map to `expected_future_use`;
+- `limit` maps to `top_k`;
+- GET-style memory search is accepted as a compatibility alias;
+- missing write reason can fall back to tool-level `intent`;
+- harmless extra fields are preserved under `metadata.model_extra`;
+- model-suggested IDs are preserved under `metadata.model_suggested_id`.
+
+Regression Test:
+
+`backend/tests/test_mind_api.py::test_mind_memory_accepts_common_model_aliases`
+
+Related Files:
+
+- `backend/app/mind/memory.py`
+- `backend/app/mind/dispatcher.py`
+- `backend/tests/test_mind_api.py`
+
+Notes:
+
+This fix does not mean every malformed memory should be accepted. It means v0 distinguishes semantically recoverable model shape errors from low-salience or low-confidence memory candidates.

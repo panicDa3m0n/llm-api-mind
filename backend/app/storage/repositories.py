@@ -3,7 +3,15 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from app.storage.models import ChatSession, Message, ToolCall, Trace, Turn, utc_now
+from app.storage.models import (
+    ChatSession,
+    MemoryRecord,
+    Message,
+    ToolCall,
+    Trace,
+    Turn,
+    utc_now,
+)
 
 
 def create_chat_session(
@@ -152,6 +160,83 @@ def add_tool_call(
     db.commit()
     db.refresh(tool_call)
     return tool_call
+
+
+def add_memory(
+    db: Session,
+    *,
+    memory_type: str,
+    content: str,
+    reason_for_storage: str,
+    expected_future_use: str | None = None,
+    confidence: float = 0.7,
+    salience: float = 0.7,
+    scope: str = "project",
+    created_by: str = "scarlet",
+    source_session_id: str | None = None,
+    source_turn_id: str | None = None,
+    source_message_id: str | None = None,
+    tags: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> MemoryRecord:
+    memory = MemoryRecord(
+        memory_type=memory_type,
+        content=content,
+        reason_for_storage=reason_for_storage,
+        expected_future_use=expected_future_use,
+        confidence=confidence,
+        salience=salience,
+        scope=scope,
+        created_by=created_by,
+        source_session_id=source_session_id,
+        source_turn_id=source_turn_id,
+        source_message_id=source_message_id,
+        tags_json=tags or [],
+        metadata_json=metadata or {},
+    )
+    db.add(memory)
+    if source_session_id is not None:
+        _touch_session(db, source_session_id)
+    db.commit()
+    db.refresh(memory)
+    return memory
+
+
+def list_memories(
+    db: Session,
+    *,
+    status: str = "active",
+    memory_types: list[str] | None = None,
+    scope: str | None = None,
+    include_low_confidence: bool = False,
+) -> list[MemoryRecord]:
+    statement = select(MemoryRecord).where(MemoryRecord.status == status)
+    if memory_types:
+        statement = statement.where(MemoryRecord.memory_type.in_(memory_types))
+    if scope:
+        statement = statement.where(MemoryRecord.scope == scope)
+    if not include_low_confidence:
+        statement = statement.where(MemoryRecord.confidence >= 0.2)
+    statement = statement.order_by(
+        MemoryRecord.salience.desc(),
+        MemoryRecord.created_at.desc(),
+        MemoryRecord.id,
+    )
+    return list(db.exec(statement).all())
+
+
+def mark_memory_used(db: Session, *, memory_id: str) -> MemoryRecord | None:
+    memory = db.get(MemoryRecord, memory_id)
+    if memory is None:
+        return None
+
+    memory.usage_count += 1
+    memory.last_used_at = utc_now()
+    memory.updated_at = memory.last_used_at
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
+    return memory
 
 
 def _touch_session(

@@ -9,9 +9,10 @@ Current scope:
 - MiniMax M2.7 provider smoke test;
 - configurable Scarlet agent system prompt;
 - persistent chat sessions and turns;
-- SQLite schema for sessions, messages, turns, and traces;
+- SQLite schema for sessions, messages, turns, traces, tool calls, and memories;
+- Memory v0 write/search through `mind_api`;
 - scripted and interactive evaluation runner for traceable experiments;
-- pytest coverage for health, LLM smoke wiring, and storage.
+- pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
 
 ## Setup
 
@@ -102,6 +103,7 @@ Scripted regression scenario:
 
 ```bash
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
+python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
 ```
 
 Adaptive human-in-the-loop session:

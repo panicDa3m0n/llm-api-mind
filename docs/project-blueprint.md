@@ -435,15 +435,23 @@ Memory fields:
 
 ```txt
 id
-session_id
-type: episodic | semantic | preference | project | decision
-content
+source_session_id
 source_turn_id
-importance
+source_message_id
+type: project_fact | user_preference | decision | correction | task_context | behavioral_pattern | episodic
+scope: project | user | session
+status
+content
+reason_for_storage
+expected_future_use
+salience
 confidence
-created_at
-last_used_at
+tags_json
 metadata_json
+usage_count
+created_at
+updated_at
+last_used_at
 ```
 
 Tool call fields:
@@ -1104,14 +1112,14 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Run adaptive end-to-end baseline sessions with the eval runner.
-2. Use scripted scenarios as regression checks only, not as substitutes for live probing.
-3. Hold a dedicated memory-design discussion before implementing memory write/search.
+1. Run adaptive Memory v0 sessions through the cockpit and eval runner.
+2. Use scripted Memory v0 checks as regression evidence, not as the main behavioral signal.
+3. Decide the next memory slice: inspection panel, update/forget/conflict semantics, or attention context over retrieved memories.
 ```
 
 The first milestone is not "digital mind". The first milestone is:
 
 ```txt
 A local chat agent using MiniMax M2.7 where every turn is inspectable, reproducible,
-and ready for cognitive API experiments.
+and now able to run traceable Memory v0 experiments.
 ```

@@ -204,6 +204,79 @@ class FakeToolCallingProvider(FakeChatProvider):
         )
 
 
+class FakeMemoryProvider(FakeChatProvider):
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> LLMTextResult:
+        write = tool_runner(
+            LLMToolUse(
+                id="toolu_memory_write",
+                name="mind_api",
+                input={
+                    "method": "POST",
+                    "path": "/mind/memory/write",
+                    "body": {
+                        "type": "user_preference",
+                        "content": (
+                            "The owner prefers SAL updates with risks and next steps."
+                        ),
+                        "reason_for_storage": (
+                            "Stable communication preference for future status updates."
+                        ),
+                        "expected_future_use": "Shape future SAL answers.",
+                        "confidence": 0.9,
+                        "salience": 0.8,
+                        "scope": "project",
+                        "tags": ["sal", "status"],
+                    },
+                    "intent": "Persist a stable project communication preference.",
+                },
+            )
+        )
+        search = tool_runner(
+            LLMToolUse(
+                id="toolu_memory_search",
+                name="mind_api",
+                input={
+                    "method": "POST",
+                    "path": "/mind/memory/search",
+                    "body": {
+                        "query": "SAL risks next steps",
+                        "types": ["user_preference"],
+                        "scope": "project",
+                        "top_k": 3,
+                    },
+                    "intent": "Retrieve the stored project communication preference.",
+                },
+            )
+        )
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text="Memory stored and retrieved.",
+            usage={"input_tokens": 20, "output_tokens": 5},
+            provider_message_id="provider_msg_memory_loop",
+            raw_content=[{"type": "text", "text": "Memory stored and retrieved."}],
+            stop_reason="end_turn",
+            tool_calls=[write, search],
+            raw_provider_messages=[
+                {
+                    "id": "provider_msg_memory_loop",
+                    "stop_reason": "end_turn",
+                    "content": [
+                        {"type": "text", "text": "Memory stored and retrieved."}
+                    ],
+                }
+            ],
+        )
+
+
 def make_client(db_engine: Engine) -> TestClient:
     FakeChatProvider.seen_chat_systems = []
     settings = Settings(
@@ -235,6 +308,24 @@ def make_tool_client(db_engine: Engine) -> TestClient:
         create_app(
             settings,
             llm_provider_factory=lambda settings: FakeToolCallingProvider(settings),
+            db_engine=db_engine,
+        )
+    )
+
+
+def make_memory_client(db_engine: Engine) -> TestClient:
+    FakeChatProvider.seen_chat_systems = []
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M2.7",
+        minimax_max_tokens=4096,
+    )
+    return TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda settings: FakeMemoryProvider(settings),
             db_engine=db_engine,
         )
     )
@@ -362,6 +453,43 @@ def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
         response_trace["payload"]["tool_calls"][0]["trace_id"]
         == tool_trace["id"]
     )
+
+
+def test_chat_turn_dispatches_traceable_memory_write_and_search(
+    db_engine: Engine,
+) -> None:
+    client = make_memory_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "store and retrieve memory"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["assistant_message"]["content"] == "Memory stored and retrieved."
+    assert len(body["trace_ids"]) == 6
+
+    traces = client.get(f"/api/debug/traces/{body['turn_id']}").json()
+    assert [trace["kind"] for trace in traces] == [
+        "llm.request",
+        "mind.memory.write",
+        "mind.tool_call",
+        "mind.memory.search",
+        "mind.tool_call",
+        "llm.response",
+    ]
+    write_trace = traces[1]
+    assert write_trace["payload"]["stored"] is True
+    memory_id = write_trace["payload"]["memory_id"]
+    assert memory_id.startswith("mem_")
+    assert traces[2]["payload"]["arguments"]["path"] == "/mind/memory/write"
+    assert traces[2]["payload"]["result"]["result"]["trace_ids"] == [write_trace["id"]]
+    assert traces[3]["payload"]["returned_memory_ids"] == [memory_id]
+    assert traces[4]["payload"]["arguments"]["path"] == "/mind/memory/search"
+    assert traces[5]["payload"]["tool_calls"][0]["tool_name"] == "mind_api"
+    assert traces[5]["payload"]["tool_calls"][1]["tool_name"] == "mind_api"
 
 
 def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(

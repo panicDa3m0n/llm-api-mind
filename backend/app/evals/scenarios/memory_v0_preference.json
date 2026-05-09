@@ -1,0 +1,58 @@
+{
+  "id": "memory_v0_preference",
+  "title": "Memory v0 Preference Write/Search",
+  "description": "Checks that Scarlet can autonomously write a stable project preference and later retrieve it through Memory v0. This is a regression floor, not a substitute for adaptive live evaluation.",
+  "max_tokens": 4096,
+  "turns": [
+    {
+      "id": "write_preference",
+      "message": "Scarlet, nota operativa stabile per il progetto: nei prossimi SAL preferisco tre blocchi in ordine, cosa e cambiato, verifica eseguita, rischi e prossimo passo. Rispondi in modo naturale e usa le tue funzioni cognitive se lo ritieni rilevante.",
+      "expectations": [
+        {
+          "kind": "trace_kind",
+          "value": "mind.memory.write",
+          "label": "turn persisted a memory write trace"
+        },
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/memory/write",
+          "label": "agent called memory write"
+        }
+      ],
+      "notes": "The prompt does not ask for permission-gated saving; the model should decide that a stable preference is reusable."
+    },
+    {
+      "id": "search_preference",
+      "message": "Scarlet, quale formato preferisco per i SAL di progetto? Usa memoria persistente se serve e indica la fonte.",
+      "expectations": [
+        {
+          "kind": "trace_kind",
+          "value": "mind.memory.search",
+          "label": "turn persisted a memory search trace"
+        },
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/memory/search",
+          "label": "agent called memory search"
+        },
+        {
+          "kind": "answer_contains",
+          "value": "memoria persistente",
+          "label": "answer attributes source to persistent memory"
+        },
+        {
+          "kind": "answer_contains",
+          "value": "verifica",
+          "label": "answer recalls the SAL format"
+        }
+      ],
+      "notes": "The same scenario session still has chat history, so the trace expectation is the important check."
+    }
+  ],
+  "review_questions": [
+    "Did Scarlet decide to write memory without asking for save permission?",
+    "Did the later answer use memory search rather than relying only on chat history?",
+    "Did the answer distinguish persistent memory from current chat context?",
+    "Were write/search traces and tool-call traces easy to inspect in order?"
+  ]
+}

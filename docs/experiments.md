@@ -68,7 +68,7 @@ Follow-up:
 
 ## EXP-0002 - Episodic Memory
 
-Status: planned
+Status: active
 
 Hypothesis:
 
@@ -130,13 +130,53 @@ Metrics:
 - Token overhead.
 - Human-rated usefulness.
 
-Result:
+Initial Result:
 
-Pending Phase 3.
+Run date: 2026-05-09
+
+Implemented Memory v0:
+
+- `POST /mind/memory/write`
+- `POST /mind/memory/search`
+- persistent `memories` table
+- dedicated `mind.memory.write` and `mind.memory.search` traces
+- source session/turn provenance
+- confidence, salience, tags, metadata, usage count, and simple lexical scoring
+
+Live adaptive checks:
+
+- Write session: `ses_1543241ab39042ec8629f0db9e6c6fb3`
+- Write turn: `turn_2b023a4ca7cf484b8e3ad9162d46bfde`
+- Search session: `ses_c2a96176f3234e7295b6448c69f0dc47`
+- Search turn: `turn_77afd134e3fc4fda9bdd68bbcb04213d`
+- Memory found: `mem_4dbdc6ed630c409eb34781725ceb72e1`
+- Search answer explicitly attributed the SAL format to persistent memory.
+
+Second live preference check:
+
+- Write turn: `turn_cb37c277b4ef48608d5b9cf41e61cab6`
+- Search turn: `turn_080ec485e8554d108273fd8044b7c1e8`
+- Search completed in one memory tool call and answered from persistent memory.
+
+Scripted regression:
+
+- Scenario: `backend/app/evals/scenarios/memory_v0_preference.json`
+- Passing run: `backend/app/evals/runs/20260509_163342_memory_v0_preference/summary.md`
+- Turn 1: `turn_02ef09f26e9642f882407b9ac1ace2d0`
+- Turn 2: `turn_1224797eaf2647ec9fd3cc966bc747cf`
+- Result: passed; write and search traces were present.
+
+Behavioral findings:
+
+- Positive: Scarlet can autonomously write a stable preference without asking for save permission.
+- Positive: Scarlet can retrieve memory across sessions and clearly state persistent-memory provenance.
+- Positive: direct API and chat traces show both model tool calls and dedicated memory operations.
+- Risk: MiniMax often produces non-canonical tool bodies on first attempt; Memory v0 now normalizes common aliases, but this should remain monitored.
+- Risk: when chat history contains the answer, Scarlet may answer from context unless the prompt and/or user request strongly require persistent-memory verification. The prompt now explicitly requires search for persistent-memory/source-attribution questions.
 
 Decision:
 
-Pending.
+Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design. Future work should evaluate update/forget/conflict behavior, memory panels, and a stronger baseline-vs-memory comparison before adding attention.
 
 ## EXP-0004 - Mind API Tool Loop Trace
 
@@ -311,4 +351,4 @@ Behavioral notes:
 
 Decision:
 
-Active. Use this harness for the next evaluation block. Do not implement memory until after a separate memory-design discussion establishes what should be stored, retrieved, forgotten, traced, and exposed to the model.
+Active. Use this harness for memory and future cognitive-module checks. Memory v0 has now been implemented after the dedicated design discussion; continue to treat scripted checks as regression evidence and adaptive sessions as the primary behavioral signal.

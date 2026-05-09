@@ -23,7 +23,12 @@ from app.llm.provider import (
     LLMTextResult,
     LLMToolUse,
 )
-from app.mind.dispatcher import MindAPIError, MindAPIRequest, MindAPIResponse
+from app.mind.dispatcher import (
+    MindAPIContext,
+    MindAPIError,
+    MindAPIRequest,
+    MindAPIResponse,
+)
 from app.mind.dispatcher import dispatch_mind_api
 from app.mind.schema import MIND_API_TOOL_SCHEMA
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
@@ -420,9 +425,17 @@ def _build_mind_tool_runner(
 ) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
     def run(tool_use: LLMToolUse) -> LLMExecutedToolCall:
         started = time.perf_counter()
-        mind_request, mind_response = _dispatch_tool_use(tool_use)
+        mind_request, mind_response = _dispatch_tool_use(
+            tool_use,
+            context=MindAPIContext(
+                engine=engine,
+                session_id=session_id,
+                turn_id=turn_id,
+            ),
+        )
         latency_ms = int((time.perf_counter() - started) * 1000)
         result_payload = mind_response.model_dump(mode="json")
+        _append_unique_trace_ids(trace_ids, _result_trace_ids(result_payload))
 
         with Session(engine) as db:
             tool_call = repositories.add_tool_call(
@@ -636,6 +649,8 @@ def _ndjson(event_type: str, data: dict[str, Any]) -> str:
 
 def _dispatch_tool_use(
     tool_use: LLMToolUse,
+    *,
+    context: MindAPIContext,
 ) -> tuple[MindAPIRequest | None, MindAPIResponse]:
     if tool_use.name != "mind_api":
         return None, MindAPIResponse(
@@ -663,7 +678,23 @@ def _dispatch_tool_use(
             confidence=1.0,
         )
 
-    return mind_request, dispatch_mind_api(mind_request)
+    return mind_request, dispatch_mind_api(mind_request, context=context)
+
+
+def _result_trace_ids(result_payload: dict[str, Any]) -> list[str]:
+    result = result_payload.get("result")
+    if not isinstance(result, dict):
+        return []
+    trace_ids = result.get("trace_ids")
+    if not isinstance(trace_ids, list):
+        return []
+    return [trace_id for trace_id in trace_ids if isinstance(trace_id, str)]
+
+
+def _append_unique_trace_ids(target: list[str], source: list[str]) -> None:
+    for trace_id in source:
+        if trace_id not in target:
+            target.append(trace_id)
 
 
 def build_trace_router(engine: Engine) -> APIRouter:

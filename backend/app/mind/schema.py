@@ -5,7 +5,7 @@ MIND_API_TOOL_SCHEMA: dict[str, Any] = {
     "name": "mind_api",
     "description": (
         "Primary interface to Scarlet's cognitive API. Use it to inspect "
-        "available schemas and, later, request traceable cognitive support."
+        "available schemas and request traceable cognitive support."
     ),
     "input_schema": {
         "type": "object",
@@ -55,16 +55,111 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
     {
         "method": "POST",
         "path": "/mind/memory/write",
-        "status": "planned",
-        "purpose": "Write memory after the Phase 3 memory experiment begins.",
-        "body_schema": None,
+        "status": "implemented",
+        "purpose": (
+            "Autonomously write a reusable, sourceable memory candidate after "
+            "the v0 policy accepts it."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "project_fact",
+                        "user_preference",
+                        "decision",
+                        "correction",
+                        "task_context",
+                        "behavioral_pattern",
+                        "episodic",
+                    ],
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Sourceable memory content to reuse later.",
+                },
+                "reason_for_storage": {
+                    "type": "string",
+                    "description": "Why Scarlet decided this belongs in memory.",
+                },
+                "expected_future_use": {
+                    "type": "string",
+                    "description": "When this memory is expected to help.",
+                },
+                "confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.7,
+                },
+                "salience": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.7,
+                },
+                "scope": {
+                    "type": "string",
+                    "enum": ["project", "user", "session"],
+                    "default": "project",
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+                "metadata": {
+                    "type": "object",
+                },
+            },
+            "required": ["type", "content", "reason_for_storage"],
+        },
     },
     {
         "method": "POST",
         "path": "/mind/memory/search",
-        "status": "planned",
-        "purpose": "Search memory after the Phase 3 memory experiment begins.",
-        "body_schema": None,
+        "status": "implemented",
+        "purpose": (
+            "Search Scarlet's active memories and return sourceable results "
+            "with provenance, confidence, salience, and relevance scores."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string"},
+                "types": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "project_fact",
+                            "user_preference",
+                            "decision",
+                            "correction",
+                            "task_context",
+                            "behavioral_pattern",
+                            "episodic",
+                        ],
+                    },
+                },
+                "scope": {
+                    "type": ["string", "null"],
+                    "enum": ["project", "user", "session", None],
+                    "default": "project",
+                },
+                "top_k": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5,
+                },
+                "include_low_confidence": {
+                    "type": "boolean",
+                    "default": False,
+                },
+            },
+            "required": ["query"],
+        },
     },
     {
         "method": "POST",

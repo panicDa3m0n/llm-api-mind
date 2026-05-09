@@ -465,3 +465,57 @@ Links:
 - `backend/app/evals/runner.py`
 - `backend/app/evals/scenarios/`
 - `docs/experiments.md`
+
+## ADR-0013 - Implement Memory v0 As Traceable Autonomous Cognitive State
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+The project owner clarified that memory is Scarlet's cognitive state, not a permission-gated interaction like "do you want me to save this?" The human configures policy and evaluates behavior, but runtime memory decisions should be made autonomously by Scarlet and mediated by robust APIs.
+
+Decision:
+
+Add Memory v0 behind the existing single model-facing tool:
+
+```txt
+POST /mind/memory/write
+POST /mind/memory/search
+```
+
+Memory writes require traceable session context and store source session/turn provenance, type, scope, content, reason, expected future use, confidence, salience, tags, metadata, usage count, and timestamps. Memory search returns sourceable results with confidence, salience, relevance score, source IDs, and usage metadata.
+
+Every successful memory operation creates a dedicated trace:
+
+```txt
+mind.memory.write
+mind.memory.search
+```
+
+The normal `mind.tool_call` trace remains in place, so the debug timeline shows both model action and cognitive state operation.
+
+The API intentionally accepts common model-shaped aliases and harmless extra fields, normalizing them into canonical storage or metadata rather than failing a semantically clear memory action.
+
+Alternatives Considered:
+
+- Ask the human before each memory write: rejected because it makes memory a UI game rather than Scarlet's cognitive function.
+- Keep the schema strict and force model recovery: rejected after live tests showed extra tool turns from understandable aliases such as `pref`, `nota_operativa`, `limit`, and `GET /mind/memory/search`.
+- Add vector search immediately: deferred because v0 needs an inspectable baseline before adding embedding infrastructure.
+
+Consequences:
+
+- Memory can now be evaluated in real multi-turn behavior.
+- The API surface remains one tool, `mind_api`.
+- Alias tolerance improves live model behavior but must be watched so it does not hide genuinely malformed memory writes.
+- Memory v0 is an experimental substrate, not the final memory design. Forgetting, updates, conflict handling, and semantic retrieval remain future work.
+
+Links:
+
+- `backend/app/mind/memory.py`
+- `backend/app/mind/dispatcher.py`
+- `backend/app/storage/models.py`
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/evals/scenarios/memory_v0_preference.json`
+- `docs/api-contract.md`
+- `docs/experiments.md`

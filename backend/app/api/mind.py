@@ -4,7 +4,12 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.mind.dispatcher import MindAPIRequest, MindAPIResponse, dispatch_mind_api
+from app.mind.dispatcher import (
+    MindAPIContext,
+    MindAPIRequest,
+    MindAPIResponse,
+    dispatch_mind_api,
+)
 from app.mind.schema import build_mind_schema
 from app.storage import repositories
 
@@ -40,9 +45,6 @@ def build_mind_router(engine: Engine) -> APIRouter:
             body=request.body,
             intent=request.intent,
         )
-        response = dispatch_mind_api(mind_request)
-        latency_ms = int((time.perf_counter() - started) * 1000)
-
         with Session(engine) as db:
             if request.session_id is not None:
                 chat_session = repositories.get_chat_session(db, request.session_id)
@@ -56,6 +58,19 @@ def build_mind_router(engine: Engine) -> APIRouter:
                         },
                     )
 
+        context = (
+            MindAPIContext(
+                engine=engine,
+                session_id=request.session_id,
+                turn_id=request.turn_id,
+            )
+            if request.session_id is not None
+            else None
+        )
+        response = dispatch_mind_api(mind_request, context=context)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+
+        with Session(engine) as db:
             result_payload = response.model_dump(mode="json")
             tool_call = repositories.add_tool_call(
                 db,

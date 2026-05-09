@@ -1,2 +1,2 @@
-"""Persistence primitives for sessions, messages, turns, and traces."""
+"""Persistence primitives for sessions, messages, turns, traces, and memories."""
 

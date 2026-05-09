@@ -593,3 +593,51 @@ Open Questions:
 Next Suggested Step:
 
 Hold the memory-design discussion before implementing `POST /mind/memory/write` or `POST /mind/memory/search`.
+
+## 2026-05-09 - Memory v0 Implementation And Live Tests
+
+Goal:
+
+Implement the first autonomous, traceable Memory v0 slice and verify it with both scripted tests and real MiniMax end-to-end behavior.
+
+Changes:
+
+- Added the `memories` SQLModel table and repository helpers.
+- Implemented `POST /mind/memory/write` and `POST /mind/memory/search` behind the existing `mind_api` dispatcher.
+- Added dedicated `mind.memory.write` and `mind.memory.search` traces in addition to `mind.tool_call`.
+- Added source session/turn provenance, confidence, salience, tags, metadata, usage count, and timestamps to memory records.
+- Added simple lexical retrieval and usage-count updates for search results.
+- Updated Scarlet's prompt so memory is treated as autonomous cognitive state, not as a permission prompt to the user.
+- Added robust Memory v0 normalization for common real model tool-body variants discovered during live runs.
+- Added `backend/app/evals/scenarios/memory_v0_preference.json`.
+- Added ADR-0013 and BUG-0007.
+
+Verification:
+
+- Ran backend tests with the backend venv: `23 passed`.
+- Ran frontend build: `npm run build` succeeded.
+- Restarted the local backend on `http://127.0.0.1:8000`.
+- Verified `/mind/schema` lists `POST /mind/memory/write` and `POST /mind/memory/search` as implemented.
+- Verified memory calls without session context return `memory.context_required`.
+- Ran live MiniMax memory write/search checks:
+  - write turn `turn_2b023a4ca7cf484b8e3ad9162d46bfde`
+  - search turn `turn_77afd134e3fc4fda9bdd68bbcb04213d`
+  - retrieved memory `mem_4dbdc6ed630c409eb34781725ceb72e1`
+- Ran second live check:
+  - write turn `turn_cb37c277b4ef48608d5b9cf41e61cab6`
+  - search turn `turn_080ec485e8554d108273fd8044b7c1e8`
+- Ran scripted Memory v0 scenario:
+  - passing run `backend/app/evals/runs/20260509_163342_memory_v0_preference/summary.md`
+  - write turn `turn_02ef09f26e9642f882407b9ac1ace2d0`
+  - search turn `turn_1224797eaf2647ec9fd3cc966bc747cf`
+- Ran final HTTP smoke verifying alias normalization and GET-style memory search.
+
+Open Questions:
+
+- Memory v0 does not yet support update, forgetting, conflict resolution, or semantic/vector retrieval.
+- The frontend has no dedicated memory panel yet; memory is inspectable through traces and raw tool results.
+- Repeated live runs showed that model-generated tool bodies vary substantially, so alias normalization should remain monitored instead of treated as complete.
+
+Next Suggested Step:
+
+Run adaptive Memory v0 sessions through the cockpit, then decide whether the next slice is a memory inspection panel, memory update/forget semantics, or attention context over retrieved memories.

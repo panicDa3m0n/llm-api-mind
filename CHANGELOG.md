@@ -64,6 +64,13 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added a structured frontend agent timeline for provider thinking blocks, tool input, tool calls, tool results, and streamed final answers.
 - Added per-turn inline chat timelines so each assistant message shows the ordered model/tool/final-answer operations that produced it.
 - Added a dual-mode evaluation runner with scripted regression scenarios and adaptive interactive sessions.
+- Added Memory v0:
+  - persistent `memories` table;
+  - implemented `POST /mind/memory/write`;
+  - implemented `POST /mind/memory/search`;
+  - traceable `mind.memory.write` and `mind.memory.search` records;
+  - simple write policy, deduplication, lexical retrieval, source metadata, and usage counters.
+- Added a `memory_v0_preference` evaluation scenario for memory write/search regression checks.
 
 ### Changed
 
@@ -87,6 +94,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Moved the structured agent timeline from the debug pane into the assistant message while keeping raw trace logs in the debug pane.
 - Updated the immediate roadmap to evaluate the current system before designing memory, with scripted checks treated as regression evidence and interactive sessions treated as behavioral evidence.
 - Recorded the first adaptive Scarlet pre-memory evaluation run and its source-attribution findings.
+- Updated Scarlet's prompt with Memory v0 discipline: autonomous write/search decisions, source attribution, and required memory search when the user asks about persistent memory.
+- Made Memory v0 tolerant of common model-shaped input aliases such as `pref`, `standard_preference`, `nota_operativa`, `why`, `reason`, `use`, `use_during`, qualitative confidence/salience, `limit`, and GET-style memory search.
 
 ### Fixed
 
@@ -97,6 +106,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Fixed the generic diagnostic-assistant fallback that could make the agent misidentify itself.
 - Fixed detached SQLModel ORM usage in the new Mind API call endpoint by keeping scalar values across session boundaries.
 - Fixed inline streaming timeline attachment by including `turn_id` on every NDJSON event.
+- Fixed overly brittle Memory v0 validation discovered during live MiniMax runs by normalizing common semantic aliases and preserving harmless extra model fields in memory metadata.
 
 ## Release Notes Policy
 

@@ -96,3 +96,45 @@ class ToolCall(SQLModel, table=True):
     latency_ms: int | None = None
     created_at: datetime = Field(default_factory=utc_now, index=True)
 
+
+class MemoryRecord(SQLModel, table=True):
+    __tablename__ = "memories"
+
+    id: str = Field(default_factory=lambda: new_id("mem"), primary_key=True)
+    memory_type: str = Field(index=True)
+    scope: str = Field(default="project", index=True)
+    status: str = Field(default="active", index=True)
+    content: str
+    reason_for_storage: str
+    expected_future_use: str | None = None
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    salience: float = Field(default=0.7, ge=0.0, le=1.0)
+    created_by: str = Field(default="scarlet", index=True)
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_message_id: str | None = Field(
+        default=None,
+        foreign_key="messages.id",
+        index=True,
+    )
+    tags_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    usage_count: int = Field(default=0)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    last_used_at: datetime | None = Field(default=None, index=True)
+

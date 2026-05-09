@@ -144,6 +144,7 @@ Tables:
 - `messages`: user, assistant, system, or tool messages linked to sessions and optionally turns.
 - `traces`: structured JSON trace events linked to sessions and optionally turns.
 - `tool_calls`: structured model-facing tool calls, arguments, results, status, and latency.
+- `memories`: Scarlet's persistent Memory v0 records with source provenance, confidence, salience, metadata, usage counts, and timestamps.
 
 Trace Behavior:
 
@@ -258,6 +259,11 @@ Creates at least:
 - `llm.response`
 
 When the model uses `mind_api`, the turn also creates one `mind.tool_call` trace per tool invocation.
+
+When the model uses Memory v0 through `mind_api`, the turn also creates:
+
+- `mind.memory.write`
+- `mind.memory.search`
 
 `llm.request` stores the effective system prompt plus:
 
@@ -390,6 +396,16 @@ Response:
         "method": "GET",
         "path": "/mind/schema",
         "status": "implemented"
+      },
+      {
+        "method": "POST",
+        "path": "/mind/memory/write",
+        "status": "implemented"
+      },
+      {
+        "method": "POST",
+        "path": "/mind/memory/search",
+        "status": "implemented"
       }
     ],
     "response_shape": {}
@@ -461,7 +477,7 @@ Structured route errors return `200` with `ok=false` so the model can recover fr
   "ok": false,
   "error": {
     "code": "mind.route_not_available",
-    "message": "POST /mind/memory/search is not implemented in the current Mind API.",
+    "message": "POST /mind/reflection/review is not implemented in the current Mind API.",
     "recoverable": true
   },
   "suggested_next_actions": [
@@ -487,13 +503,169 @@ Example:
 POST /mind/call
 ```
 
+### POST /mind/memory/write through mind_api
+
+Status: implemented
+
+Purpose:
+
+Autonomously write a reusable memory candidate when Scarlet judges that a durable preference, decision, correction, project fact, task context, behavioral pattern, or episodic note should persist beyond the current turn.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/memory/write",
+  "intent": "Persist the owner's SAL format preference.",
+  "body": {
+    "type": "user_preference",
+    "content": "For SAL updates, use three blocks: what changed, verification, risks and next step.",
+    "reason_for_storage": "Stable project communication preference.",
+    "expected_future_use": "Apply to future SAL reports.",
+    "confidence": 0.9,
+    "salience": 0.8,
+    "scope": "project",
+    "tags": ["sal", "format"]
+  }
+}
+```
+
+Canonical memory types:
+
+```txt
+project_fact
+user_preference
+decision
+correction
+task_context
+behavioral_pattern
+episodic
+```
+
+Canonical scopes:
+
+```txt
+project
+user
+session
+```
+
+Response result:
+
+```json
+{
+  "operation": "memory.write",
+  "stored": true,
+  "policy_decision": "accepted",
+  "memory_id": "mem_...",
+  "memory": {
+    "id": "mem_...",
+    "type": "user_preference",
+    "scope": "project",
+    "content": "...",
+    "source_session_id": "ses_...",
+    "source_turn_id": "turn_...",
+    "confidence": 0.9,
+    "salience": 0.8,
+    "usage_count": 0
+  },
+  "trace_ids": ["trace_..."]
+}
+```
+
+Compatibility normalization:
+
+Memory v0 accepts common model-shaped aliases and normalizes them before validation:
+
+- `pref`, `preference`, `standard_preference`, `operational_preference` -> `user_preference`
+- `nota_operativa`, `operational_note` -> `task_context`
+- `why`, `reason`, `rationale` -> `reason_for_storage`
+- `use`, `future_use`, `use_during` -> `expected_future_use`
+- qualitative `confidence` or `salience` values such as `high`, `medium`, `low`
+- model-suggested `id` -> `metadata.model_suggested_id`
+- harmless extra fields -> `metadata.model_extra`
+
+Errors:
+
+- `memory.context_required`: memory write needs session context so it can be traced.
+- `memory.invalid_write`: required shape is missing after normalization.
+- `memory.policy_rejected`: confidence or salience is below the v0 write policy threshold.
+
+Trace Behavior:
+
+Successful, rejected, and deduplicated write decisions create `mind.memory.write` when session context exists. The model-facing call still creates `mind.tool_call`.
+
+### POST /mind/memory/search through mind_api
+
+Status: implemented
+
+Purpose:
+
+Search active Memory v0 records and return sourceable context with provenance, confidence, salience, usage metadata, and a simple lexical relevance score.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/memory/search",
+  "intent": "Find the owner's SAL format preference.",
+  "body": {
+    "query": "SAL format preference",
+    "types": ["user_preference"],
+    "scope": "project",
+    "top_k": 5,
+    "include_low_confidence": false
+  }
+}
+```
+
+Compatibility behavior:
+
+- `GET /mind/memory/search` is accepted as a model-facing compatibility alias.
+- `limit` maps to `top_k`.
+- if `query` is omitted, tool-level `intent` is used as the query fallback.
+
+Response result:
+
+```json
+{
+  "operation": "memory.search",
+  "query": "SAL format preference",
+  "count": 1,
+  "memories": [
+    {
+      "id": "mem_...",
+      "type": "user_preference",
+      "content": "...",
+      "source_session_id": "ses_...",
+      "source_turn_id": "turn_...",
+      "confidence": 0.95,
+      "salience": 0.9,
+      "usage_count": 1,
+      "score": 2.375,
+      "why_relevant": "token overlap: formato, sal"
+    }
+  ],
+  "trace_ids": ["trace_..."]
+}
+```
+
+Errors:
+
+- `memory.context_required`: memory search requires session context because it updates usage metadata and must be traced.
+- `memory.invalid_search`: required shape is missing after normalization.
+
+Trace Behavior:
+
+Every successful memory search creates `mind.memory.search` and increments usage metadata on returned memories. The model-facing call still creates `mind.tool_call`.
+
 ## Planned Mind API
 
 ```txt
 GET  /mind/state
 POST /mind/events/emit
-POST /mind/memory/write
-POST /mind/memory/search
 POST /mind/attention/context
 POST /mind/reflection/review
 ```

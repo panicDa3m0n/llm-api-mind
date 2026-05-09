@@ -19,9 +19,10 @@ The project has a working local baseline runtime:
 - configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, and traces;
 - traceable `mind_api` schema tool loop;
+- Memory v0 write/search with sourceable records and dedicated traces;
 - streaming React cockpit with inline ordered agent-turn timeline;
 - scripted and interactive evaluation runner;
-- accepted baseline, tool-loop, and streaming trace experiments.
+- accepted baseline, tool-loop, streaming trace, and initial Memory v0 experiments.
 
 ## Key Documents
 
@@ -38,9 +39,9 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Run adaptive end-to-end evaluation sessions with the eval runner and cockpit.
-2. Use scripted scenarios as regression checks, not as the main behavioral signal.
-3. Discuss memory design before implementing memory write/search.
+1. Run adaptive Memory v0 evaluation sessions with the eval runner and cockpit.
+2. Use scripted memory scenarios as regression checks, not as the main behavioral signal.
+3. Decide the next memory slice: inspection UI, update/forget/conflict semantics, or attention context.
 ```
 
 ## Local Run
@@ -72,6 +73,7 @@ Evaluation runner:
 ```bash
 cd backend
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
+python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
 python -m app.evals.runner interactive --title "adaptive baseline"
 ```
 

@@ -2,6 +2,12 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from app.mind.memory import (
+    MemoryOperationResult,
+    MindAPIContext,
+    handle_memory_search,
+    handle_memory_write,
+)
 from app.mind.schema import build_mind_schema
 
 
@@ -28,7 +34,10 @@ class MindAPIResponse(BaseModel):
     error: MindAPIError | None = None
 
 
-def dispatch_mind_api(request: MindAPIRequest) -> MindAPIResponse:
+def dispatch_mind_api(
+    request: MindAPIRequest,
+    context: MindAPIContext | None = None,
+) -> MindAPIResponse:
     method = request.method.upper()
     path = _normalize_path(request.path)
 
@@ -37,14 +46,26 @@ def dispatch_mind_api(request: MindAPIRequest) -> MindAPIResponse:
             ok=True,
             result=build_mind_schema(),
             cognitive_hint=(
-                "Use this schema to choose only implemented Mind API routes. "
-                "Memory, attention, events, and reflection are still planned."
+                "Use this schema to choose implemented Mind API routes. "
+                "Memory write/search are available in v0; attention, events, "
+                "and reflection are still planned."
             ),
             suggested_next_actions=[
                 "Call implemented routes only",
+                "Use memory write/search when persistent context is relevant",
                 "Continue without cognitive state for planned routes",
             ],
             confidence=1.0,
+        )
+
+    if method == "POST" and path == "/mind/memory/write":
+        return _memory_response(
+            handle_memory_write(request.body, context, intent=request.intent)
+        )
+
+    if method in {"GET", "POST"} and path == "/mind/memory/search":
+        return _memory_response(
+            handle_memory_search(request.body, context, intent=request.intent)
         )
 
     return MindAPIResponse(
@@ -67,3 +88,20 @@ def _normalize_path(path: str) -> str:
     if not normalized.startswith("/"):
         normalized = f"/{normalized}"
     return normalized
+
+
+def _memory_response(result: MemoryOperationResult) -> MindAPIResponse:
+    return MindAPIResponse(
+        ok=result.ok,
+        result=result.result,
+        cognitive_hint=result.cognitive_hint,
+        suggested_next_actions=result.suggested_next_actions,
+        confidence=result.confidence,
+        error=MindAPIError(
+            code=result.error_code,
+            message=result.error_message or "",
+            recoverable=result.error_recoverable,
+        )
+        if result.error_code is not None
+        else None,
+    )
