@@ -381,3 +381,46 @@ Links:
 - `backend/app/api/chat.py`
 - `frontend/src/api.ts`
 - `frontend/src/App.tsx`
+
+## ADR-0011 - Render Agent Operation Order Inside Each Chat Turn
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+The first streaming cockpit rendered the live agent timeline in the debug/trace pane. That made intermediate events visible, but it blurred the relationship between a specific assistant message and the exact sequence of model requests, thinking blocks, tool input, tool dispatch, tool result, and final text that produced it. A React closure bug also showed that events without `turn_id` could be attached to a temporary bucket instead of the persisted assistant turn.
+
+Decision:
+
+Render the ordered agent operation timeline inside the assistant message for that same turn. Keep the right debug pane focused on persisted raw traces and metrics.
+
+Every NDJSON event emitted by `POST /api/chat/sessions/{session_id}/turn/stream` must include:
+
+```txt
+seq
+turn_id
+```
+
+Provider events that belong to a specific model request should also carry `model_step` when available. The frontend stores operation steps by `turn_id`, orders them by `seq`, and displays them inline in the chat as a numbered chain.
+
+Alternatives Considered:
+
+- Keep the timeline only in the trace pane: rejected because it reads like debug output rather than the causal path of the assistant response.
+- Reconstruct order only from persisted traces after completion: rejected because it loses live streaming granularity and cannot show deltas before the final answer.
+- Use one global frontend timeline: rejected because multi-turn chat can mix or overwrite operation chains.
+
+Consequences:
+
+- Each assistant message can explain its own agentic path without leaving the chat transcript.
+- The raw trace pane remains available for request/response JSON inspection.
+- Stream event contracts are stricter: clients can rely on `seq` and `turn_id`.
+- Future memory, attention, and reflection calls should appear as additional ordered operations in the same inline chain.
+
+Links:
+
+- `backend/app/api/chat.py`
+- `backend/app/llm/minimax_client.py`
+- `frontend/src/App.tsx`
+- `frontend/src/styles.css`
+- `docs/api-contract.md`

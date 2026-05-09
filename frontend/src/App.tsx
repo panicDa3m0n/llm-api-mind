@@ -3,19 +3,25 @@ import {
   Bot,
   Braces,
   BrainCircuit,
-  CheckCircle2,
   Clock3,
   Database,
   MessageSquarePlus,
   RefreshCcw,
   Send,
-  Wrench,
-  UserRound
+  UserRound,
+  Wrench
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { createSession, fetchHealth, fetchMessages, fetchTraces, streamTurn } from "./api";
-import type { AgentStep, ChatMessage, ChatSession, ChatTurn, StreamEvent, TraceItem } from "./types";
+import type {
+  AgentStep,
+  ChatMessage,
+  ChatSession,
+  ChatTurn,
+  StreamEvent,
+  TraceItem
+} from "./types";
 
 type Status = {
   label: string;
@@ -32,21 +38,18 @@ export function App() {
   const [health, setHealth] = useState<string>("checking");
   const [lastTurn, setLastTurn] = useState<ChatTurn | null>(null);
   const [maxTokens, setMaxTokens] = useState("4096");
-  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [turnSteps, setTurnSteps] = useState<Record<string, AgentStep[]>>({});
   const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
     fetchHealth()
-      .then((result) => setHealth(`${result.status} · ${result.model}`))
+      .then((result) => setHealth(`${result.status} - ${result.model}`))
       .catch(() => setHealth("offline"));
   }, []);
 
   const traceSummary = useMemo(() => {
-    const request = traces.find((trace) => trace.kind === "llm.request");
     const response = traces.find((trace) => trace.kind === "llm.response");
     return {
-      request,
-      response,
       usage: lastTurn?.usage ?? response?.payload.usage
     };
   }, [lastTurn, traces]);
@@ -55,23 +58,23 @@ export function App() {
     if (session) {
       return session;
     }
-    const created = await createSession("Baseline trace");
+    const created = await createSession("Agent stream");
     setSession(created);
-      setMessages([]);
-      setTraces([]);
-      setAgentSteps([]);
-      setSelectedTurnId(null);
-      return created;
+    setMessages([]);
+    setTraces([]);
+    setTurnSteps({});
+    setSelectedTurnId(null);
+    return created;
   }
 
   async function startSession() {
     setStatus({ label: "Creating session", tone: "busy" });
     try {
-      const created = await createSession("Baseline trace");
+      const created = await createSession("Agent stream");
       setSession(created);
       setMessages([]);
       setTraces([]);
-      setAgentSteps([]);
+      setTurnSteps({});
       setSelectedTurnId(null);
       setLastTurn(null);
       setStatus({ label: "Session ready", tone: "ok" });
@@ -99,7 +102,10 @@ export function App() {
     try {
       const loaded = await fetchTraces(turnId);
       setTraces(loaded);
-      setAgentSteps(stepsFromTraces(loaded));
+      setTurnSteps((current) => ({
+        ...current,
+        [turnId]: stepsFromTraces(loaded)
+      }));
       setStatus({ label: "Trace loaded", tone: "ok" });
     } catch (error) {
       setStatus({ label: errorMessage(error), tone: "error" });
@@ -115,7 +121,6 @@ export function App() {
     setPrompt("");
     setStatus({ label: "Streaming", tone: "busy" });
     setIsStreaming(true);
-    setAgentSteps([]);
 
     try {
       const activeSession = await ensureSession();
@@ -124,120 +129,204 @@ export function App() {
         activeSession.id,
         message,
         Number.isFinite(tokenValue) && tokenValue > 0 ? tokenValue : undefined,
-        (event) => handleStreamEvent(event)
+        handleStreamEvent
       );
     } catch (error) {
       setStatus({ label: errorMessage(error), tone: "error" });
-      setAgentSteps((current) => [
-        ...current,
-        {
+      if (selectedTurnId) {
+        upsertStep(selectedTurnId, {
           id: `error-${Date.now()}`,
           kind: "runtime",
+          seq: Date.now(),
           title: "Stream error",
           body: errorMessage(error),
           status: "error"
-        }
-      ]);
+        });
+      }
     } finally {
       setIsStreaming(false);
     }
   }
 
   function handleStreamEvent(event: StreamEvent) {
+    const turnId = currentTurnId(event);
+
     switch (event.type) {
       case "turn_started": {
         const userMessage = event.data.user_message as ChatMessage;
-        const turnId = String(event.data.turn_id);
-        setSelectedTurnId(turnId);
+        const startedTurnId = String(event.data.turn_id);
+        setSelectedTurnId(startedTurnId);
         setTraces([]);
+        setTurnSteps((current) => ({ ...current, [startedTurnId]: [] }));
         setMessages((current) => [
           ...current,
           userMessage,
           {
-            id: `stream-assistant-${turnId}`,
+            id: `stream-assistant-${startedTurnId}`,
             session_id: userMessage.session_id,
-            turn_id: turnId,
+            turn_id: startedTurnId,
             role: "assistant",
             content: "",
             created_at: new Date().toISOString(),
             metadata: { streaming: true }
           }
         ]);
-        upsertStep({
+        upsertStep(startedTurnId, {
           id: "runtime-start",
           kind: "runtime",
+          seq: eventSeq(event),
           title: "Turn started",
-          body: turnId,
+          body: startedTurnId,
           status: "done"
         });
         break;
       }
+
       case "model_request":
-        upsertStep({
+        upsertStep(turnId, {
           id: `model-${String(event.data.step ?? "1")}`,
           kind: "runtime",
-          title: "Model request",
-          body: formatJson(event.data),
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.step),
+          title: `MiniMax request #${String(event.data.step ?? "1")}`,
+          body: `model: ${String(event.data.model ?? "MiniMax-M2.7")}`,
           status: "active"
         });
         break;
+
+      case "thinking_start":
+        upsertStep(turnId, {
+          id: `thinking-start-${String(event.data.model_step ?? "1")}-${String(
+            event.data.index ?? "0"
+          )}`,
+          kind: "runtime",
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
+          title: "Thinking block started",
+          body: `content block ${String(event.data.index ?? "0")}`,
+          status: "done"
+        });
+        break;
+
       case "thinking_delta":
-        appendStepText("thinking-live", {
-          kind: "thinking",
-          title: "Provider thinking block",
-          text: String(event.data.text ?? "")
-        });
+        appendStepText(
+          turnId,
+          `thinking-live-${String(event.data.model_step ?? "1")}-${String(
+            event.data.index ?? "0"
+          )}`,
+          {
+            kind: "thinking",
+            seq: eventSeq(event),
+            modelStep: numericValue(event.data.model_step),
+            title: `Thinking - model step ${String(event.data.model_step ?? "1")}`,
+            text: String(event.data.text ?? "")
+          }
+        );
         break;
-      case "tool_input_delta":
-        appendStepText("tool-input-live", {
+
+      case "tool_use_start":
+        upsertStep(turnId, {
+          id: `tool-use-start-${String(event.data.provider_tool_use_id ?? Date.now())}`,
           kind: "tool",
-          title: "Tool input stream",
-          text: String(event.data.partial_json ?? "")
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
+          title: `Prepare tool call: ${String(event.data.tool_name ?? "tool")}`,
+          body: `provider id: ${String(event.data.provider_tool_use_id ?? "pending")}`,
+          status: "active"
         });
         break;
+
+      case "tool_input_delta":
+        appendStepText(
+          turnId,
+          `tool-input-live-${String(event.data.model_step ?? "1")}-${String(
+            event.data.index ?? "0"
+          )}`,
+          {
+            kind: "tool",
+            seq: eventSeq(event),
+            modelStep: numericValue(event.data.model_step),
+            title: "Tool arguments stream",
+            text: String(event.data.partial_json ?? "")
+          }
+        );
+        break;
+
       case "tool_call":
-        upsertStep({
+        upsertStep(turnId, {
           id: `tool-call-${String(event.data.provider_tool_use_id ?? Date.now())}`,
           kind: "tool",
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
           title: `Tool call: ${String(event.data.tool_name ?? "tool")}`,
           body: formatJson(event.data.arguments ?? event.data),
           status: "done"
         });
         break;
+
       case "tool_result":
-        upsertStep({
+        upsertStep(turnId, {
           id: `tool-result-${String(event.data.tool_call_id ?? Date.now())}`,
           kind: "result",
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
           title: `Tool result: ${String(event.data.tool_name ?? "mind_api")}`,
           body: formatJson(event.data.result ?? event.data),
           status: event.data.status === "error" ? "error" : "done"
         });
         break;
+
+      case "text_start":
+        upsertStep(turnId, {
+          id: `text-start-${String(event.data.model_step ?? "1")}-${String(
+            event.data.index ?? "0"
+          )}`,
+          kind: "runtime",
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
+          title: "Final text block started",
+          body: `content block ${String(event.data.index ?? "0")}`,
+          status: "done"
+        });
+        break;
+
       case "text_delta": {
         const delta = String(event.data.text ?? "");
         setMessages((current) =>
           current.map((message) =>
-            message.id.startsWith("stream-assistant-")
+            message.id === `stream-assistant-${turnId}`
               ? { ...message, content: `${message.content}${delta}` }
               : message
           )
         );
-        appendStepText("answer-live", {
-          kind: "answer",
-          title: "Final answer stream",
-          text: delta
-        });
+        appendStepText(
+          turnId,
+          `answer-live-${String(event.data.model_step ?? "1")}-${String(
+            event.data.index ?? "0"
+          )}`,
+          {
+            kind: "answer",
+            seq: eventSeq(event),
+            modelStep: numericValue(event.data.model_step),
+            title: "Final answer stream",
+            text: delta
+          }
+        );
         break;
       }
+
       case "model_stop":
-        upsertStep({
-          id: `model-stop-${Date.now()}`,
+        upsertStep(turnId, {
+          id: `model-stop-${String(event.data.seq ?? Date.now())}`,
           kind: "runtime",
-          title: "Model stop",
+          seq: eventSeq(event),
+          modelStep: numericValue(event.data.model_step),
+          title: "Model step stopped",
           body: String(event.data.stop_reason ?? "unknown"),
           status: "done"
         });
         break;
+
       case "turn_complete": {
         const turn = event.data as unknown as ChatTurn;
         setSession(turn.session);
@@ -253,31 +342,36 @@ export function App() {
         ]);
         setSelectedTurnId(turn.turn_id);
         setStatus({ label: "Turn complete", tone: "ok" });
-        setAgentSteps((current) =>
-          current.map((step) =>
-            step.status === "active" ? { ...step, status: "done" } : step
-          )
-        );
-        void fetchTraces(turn.turn_id).then((loaded) => {
-          setTraces(loaded);
-          setAgentSteps((current) => mergeSteps(current, stepsFromTraces(loaded)));
+        upsertStep(turn.turn_id, {
+          id: "runtime-complete",
+          kind: "runtime",
+          seq: eventSeq(event),
+          title: "Turn persisted",
+          body: `${turn.trace_ids.length} trace records`,
+          status: "done"
         });
+        settleSteps(turn.turn_id);
+        void fetchTraces(turn.turn_id).then((loaded) => setTraces(loaded));
         break;
       }
+
       case "error":
         setStatus({ label: String(event.data.message ?? "Stream error"), tone: "error" });
-        upsertStep({
+        upsertStep(turnId, {
           id: `stream-error-${Date.now()}`,
           kind: "runtime",
+          seq: eventSeq(event),
           title: String(event.data.code ?? "Stream error"),
           body: String(event.data.message ?? ""),
           status: "error"
         });
         break;
+
       default:
-        upsertStep({
+        upsertStep(turnId, {
           id: `event-${event.type}-${Date.now()}`,
           kind: "runtime",
+          seq: eventSeq(event),
           title: event.type,
           body: formatJson(event.data),
           status: "done"
@@ -285,38 +379,75 @@ export function App() {
     }
   }
 
-  function upsertStep(next: AgentStep) {
-    setAgentSteps((current) => {
-      const index = current.findIndex((step) => step.id === next.id);
+  function upsertStep(turnId: string, next: AgentStep) {
+    setTurnSteps((current) => {
+      const steps = current[turnId] ?? [];
+      const index = steps.findIndex((step) => step.id === next.id);
       if (index === -1) {
-        return [...current, next];
+        return { ...current, [turnId]: sortSteps([...steps, next]) };
       }
-      return current.map((step) => (step.id === next.id ? { ...step, ...next } : step));
+      return {
+        ...current,
+        [turnId]: sortSteps(
+          steps.map((step) => (step.id === next.id ? { ...step, ...next } : step))
+        )
+      };
     });
   }
 
   function appendStepText(
+    turnId: string,
     id: string,
-    next: { kind: AgentStep["kind"]; title: string; text: string }
+    next: {
+      kind: AgentStep["kind"];
+      seq: number;
+      modelStep?: number;
+      title: string;
+      text: string;
+    }
   ) {
-    setAgentSteps((current) => {
-      const index = current.findIndex((step) => step.id === id);
+    setTurnSteps((current) => {
+      const steps = current[turnId] ?? [];
+      const index = steps.findIndex((step) => step.id === id);
       if (index === -1) {
-        return [
+        return {
           ...current,
-          {
-            id,
-            kind: next.kind,
-            title: next.title,
-            body: next.text,
-            status: "active"
-          }
-        ];
+          [turnId]: sortSteps([
+            ...steps,
+            {
+              id,
+              kind: next.kind,
+              seq: next.seq,
+              modelStep: next.modelStep,
+              title: next.title,
+              body: next.text,
+              status: "active"
+            }
+          ])
+        };
       }
-      return current.map((step) =>
-        step.id === id ? { ...step, body: `${step.body}${next.text}` } : step
-      );
+      return {
+        ...current,
+        [turnId]: sortSteps(
+          steps.map((step) =>
+            step.id === id ? { ...step, body: `${step.body}${next.text}` } : step
+          )
+        )
+      };
     });
+  }
+
+  function settleSteps(turnId: string) {
+    setTurnSteps((current) => ({
+      ...current,
+      [turnId]: (current[turnId] ?? []).map((step) =>
+        step.status === "active" ? { ...step, status: "done" } : step
+      )
+    }));
+  }
+
+  function currentTurnId(event: StreamEvent): string {
+    return String(event.data.turn_id ?? selectedTurnId ?? "pending-turn");
   }
 
   return (
@@ -372,7 +503,7 @@ export function App() {
         <div className="pane-header">
           <div>
             <div className="section-label">Chat</div>
-            <h2>{session?.title ?? "Baseline trace"}</h2>
+            <h2>{session?.title ?? "Agent stream"}</h2>
           </div>
           {lastTurn ? (
             <div className="turn-chip">
@@ -408,7 +539,10 @@ export function App() {
                       </button>
                     ) : null}
                   </div>
-                  <p>{message.content}</p>
+                  {message.role === "assistant" && message.turn_id ? (
+                    <AgentTimeline steps={turnSteps[message.turn_id] ?? []} />
+                  ) : null}
+                  <p>{message.content || (message.role === "assistant" ? "..." : "")}</p>
                 </div>
               </article>
             ))
@@ -432,7 +566,7 @@ export function App() {
       <aside className="trace-pane" aria-label="Trace">
         <div className="pane-header compact">
           <div>
-            <div className="section-label">Trace</div>
+            <div className="section-label">Trace log</div>
             <h2>{selectedTurnId ?? "none"}</h2>
           </div>
           <Database size={18} aria-hidden="true" />
@@ -443,8 +577,6 @@ export function App() {
           <Metric label="Input" value={metricValue(traceSummary.usage, "input_tokens")} />
           <Metric label="Output" value={metricValue(traceSummary.usage, "output_tokens")} />
         </div>
-
-        <AgentTimeline steps={agentSteps} />
 
         <div className="trace-list">
           {traces.length === 0 ? (
@@ -476,33 +608,38 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function AgentTimeline({ steps }: { steps: AgentStep[] }) {
+  if (steps.length === 0) {
+    return null;
+  }
+
+  const ordered = sortSteps(steps);
   return (
-    <section className="agent-timeline" aria-label="Agent timeline">
-      <div className="timeline-header">
+    <section className="agent-turn" aria-label="Agent turn operations">
+      <div className="agent-turn-header">
         <div>
-          <div className="section-label">Agent loop</div>
-          <h3>Streaming timeline</h3>
+          <div className="section-label">Agent turn</div>
+          <h3>Ordered operations</h3>
         </div>
-        <CheckCircle2 size={17} aria-hidden="true" />
+        <span>{ordered.length} steps</span>
       </div>
-      {steps.length === 0 ? (
-        <div className="timeline-empty">No agent events</div>
-      ) : (
-        <div className="timeline-list">
-          {steps.map((step) => (
-            <article className={`timeline-step ${step.kind} ${step.status}`} key={step.id}>
-              <div className="step-icon">{stepIcon(step.kind)}</div>
-              <div className="step-body">
-                <div className="step-title">
-                  <span>{step.title}</span>
+      <ol className="operation-list">
+        {ordered.map((step, index) => (
+          <li className={`operation-step ${step.kind} ${step.status}`} key={step.id}>
+            <div className="operation-index">{index + 1}</div>
+            <div className="operation-icon">{stepIcon(step.kind)}</div>
+            <div className="operation-body">
+              <div className="operation-title">
+                <span>{step.title}</span>
+                <div className="operation-badges">
+                  {step.modelStep ? <small>model {step.modelStep}</small> : null}
                   <small>{step.status}</small>
                 </div>
-                <pre>{step.body || "..."}</pre>
               </div>
-            </article>
-          ))}
-        </div>
-      )}
+              <pre>{step.body || "..."}</pre>
+            </div>
+          </li>
+        ))}
+      </ol>
     </section>
   );
 }
@@ -522,11 +659,25 @@ function stepIcon(kind: AgentStep["kind"]) {
 
 function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
   const steps: AgentStep[] = [];
+  let seq = 1;
+
   for (const trace of traces) {
+    if (trace.kind === "llm.request") {
+      steps.push({
+        id: `trace-request-${trace.id}`,
+        kind: "runtime",
+        seq: seq++,
+        title: "Persisted model request",
+        body: `tools: ${Array.isArray(trace.payload.tools) ? trace.payload.tools.length : 0}`,
+        status: "done"
+      });
+    }
+
     if (trace.kind === "mind.tool_call") {
       steps.push({
         id: `trace-tool-${trace.id}`,
         kind: "tool",
+        seq: seq++,
         title: `Tool call: ${String(trace.payload.tool_name ?? "mind_api")}`,
         body: formatJson(trace.payload.arguments ?? {}),
         status: trace.payload.status === "error" ? "error" : "done"
@@ -534,6 +685,7 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
       steps.push({
         id: `trace-result-${trace.id}`,
         kind: "result",
+        seq: seq++,
         title: "Tool result",
         body: formatJson(trace.payload.result ?? {}),
         status: trace.payload.status === "error" ? "error" : "done"
@@ -546,6 +698,7 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
           steps.push({
             id: `trace-thinking-${trace.id}-${steps.length}`,
             kind: "thinking",
+            seq: seq++,
             title: "Provider thinking block",
             body: block.thinking,
             status: "done"
@@ -555,6 +708,7 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
           steps.push({
             id: `trace-answer-${trace.id}-${steps.length}`,
             kind: "answer",
+            seq: seq++,
             title: "Final answer",
             body: block.text,
             status: "done"
@@ -563,7 +717,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
       }
     }
   }
-  return steps;
+
+  return sortSteps(steps);
 }
 
 function providerBlocks(payload: Record<string, unknown>): Array<Record<string, unknown>> {
@@ -571,8 +726,8 @@ function providerBlocks(payload: Record<string, unknown>): Array<Record<string, 
   const rawMessages = payload.raw_provider_messages;
   if (Array.isArray(rawMessages)) {
     for (const message of rawMessages) {
-      if (message && typeof message === "object") {
-        const content = (message as Record<string, unknown>).content;
+      if (isRecord(message)) {
+        const content = message.content;
         if (Array.isArray(content)) {
           blocks.push(...(content.filter(isRecord) as Array<Record<string, unknown>>));
         }
@@ -586,9 +741,16 @@ function providerBlocks(payload: Record<string, unknown>): Array<Record<string, 
   return blocks;
 }
 
-function mergeSteps(current: AgentStep[], incoming: AgentStep[]): AgentStep[] {
-  const seen = new Set(current.map((step) => step.id));
-  return [...current, ...incoming.filter((step) => !seen.has(step.id))];
+function sortSteps(steps: AgentStep[]): AgentStep[] {
+  return [...steps].sort((left, right) => left.seq - right.seq);
+}
+
+function eventSeq(event: StreamEvent): number {
+  return numericValue(event.data.seq) ?? Date.now();
+}
+
+function numericValue(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

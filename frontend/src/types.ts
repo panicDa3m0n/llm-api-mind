@@ -39,12 +39,20 @@ export type TraceItem = {
 
 export type StreamEvent = {
   type: string;
-  data: Record<string, unknown>;
+  data: StreamEventData;
+};
+
+export type StreamEventData = Record<string, unknown> & {
+  seq?: number;
+  model_step?: number;
+  turn_id?: string;
 };
 
 export type AgentStep = {
   id: string;
   kind: "thinking" | "tool" | "result" | "answer" | "runtime";
+  seq: number;
+  modelStep?: number;
   title: string;
   body: string;
   status: "active" | "done" | "error";

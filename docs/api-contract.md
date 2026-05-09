@@ -297,9 +297,15 @@ The response is newline-delimited JSON with media type `application/x-ndjson`. E
 ```json
 {
   "type": "text_delta",
-  "data": {}
+  "data": {
+    "seq": 15,
+    "turn_id": "turn_...",
+    "model_step": 2
+  }
 }
 ```
+
+Every streamed event includes `data.seq`, a monotonically increasing turn-local sequence number, and `data.turn_id`, so clients can render the exact operation order inside the correct assistant turn. Provider events tied to a specific model request include `data.model_step`; `model_request` events also include `data.step`.
 
 Current event types:
 

@@ -480,3 +480,37 @@ Open Questions:
 Next Suggested Step:
 
 Use the cockpit manually for several multi-turn tool-loop conversations, then decide whether the next smallest useful slice is trace UI polish or Phase 3 episodic memory.
+
+## 2026-05-09 - Inline Agent Turn Timeline
+
+Goal:
+
+Make each assistant chat turn explain the exact ordered agentic operations that produced it, while keeping raw request/response logs in the debug pane.
+
+Changes:
+
+- Added a turn-local `seq` to every streamed NDJSON event.
+- Added `turn_id` to every streamed NDJSON event so frontend state can attach operations to the correct assistant message.
+- Added `model_step` to provider stream events, tool calls, and tool results where the operation belongs to a specific MiniMax request.
+- Reworked the frontend from one global agent timeline to per-turn operation timelines keyed by `turn_id`.
+- Moved the structured timeline into the assistant message body.
+- Kept the right pane focused on metrics and raw persisted trace JSON.
+- Added local ignore rules for temporary browser verification artifacts.
+- Recorded ADR-0011 and BUG-0006.
+
+Verification:
+
+- Ran `pytest` from `backend`; 17 tests passed.
+- Ran `npm run build` from `frontend`; build succeeded.
+- Restarted FastAPI backend on `http://127.0.0.1:8000`.
+- Ran a live stream smoke with a `mind_api` schema call; 19 events arrived, all with `turn_id`, and event order matched the agent loop.
+- Ran headless Edge verification against `http://127.0.0.1:5173`; the assistant message rendered 16 ordered operations and the trace pane retained raw `llm.request` and `llm.response` logs.
+
+Open Questions:
+
+- Inline thinking/tool payloads are currently fully visible. If real use becomes noisy, add collapse controls per operation without hiding ordering.
+- Cancellation is still not implemented for long streaming turns.
+
+Next Suggested Step:
+
+Use the inline cockpit for a few real multi-turn tool conversations. If the ordering remains clear, proceed to the smallest Phase 3 memory slice.

@@ -31,6 +31,9 @@ data/
 *.sqlite3
 logs/
 tmp/
+.tmp/
+test-results/
+playwright-report/
 
 # OS and editor noise
 .DS_Store

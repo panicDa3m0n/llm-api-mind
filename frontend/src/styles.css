@@ -344,118 +344,179 @@ button:disabled {
   border-bottom: 1px solid #d8e1de;
 }
 
-.agent-timeline {
-  border-bottom: 1px solid #d8e1de;
-  background: #f7faf9;
+.agent-turn {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #ece3f1;
 }
 
-.timeline-header {
+.agent-turn-header {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: space-between;
-  padding: 12px 14px 8px;
-  color: #245c59;
+  gap: 12px;
+  margin-bottom: 8px;
 }
 
-.timeline-header h3 {
+.agent-turn-header h3 {
   margin: 2px 0 0;
-  color: #1f2826;
-  font-size: 14px;
+  color: #202a28;
+  font-size: 13px;
   line-height: 1.2;
 }
 
-.timeline-empty {
-  margin: 0 14px 14px;
-  padding: 14px;
-  border: 1px dashed #cdd8d5;
-  border-radius: 8px;
-  color: #74827e;
-  background: #ffffff;
-  font-size: 13px;
-  text-align: center;
+.agent-turn-header span {
+  flex: 0 0 auto;
+  color: #64736f;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
-.timeline-list {
+.operation-list {
   display: flex;
-  max-height: 42vh;
   flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
-  padding: 0 14px 14px;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.timeline-step {
+.operation-step {
+  position: relative;
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
+  grid-template-columns: 26px 28px minmax(0, 1fr);
   gap: 8px;
   align-items: start;
-  padding: 9px;
+  padding: 6px 0 8px;
+}
+
+.operation-step::after {
+  position: absolute;
+  top: 30px;
+  bottom: -2px;
+  left: 12px;
+  width: 1px;
+  background: #d4dedb;
+  content: "";
+}
+
+.operation-step:last-child::after {
+  display: none;
+}
+
+.operation-index,
+.operation-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  color: #ffffff;
+}
+
+.operation-index {
+  position: relative;
+  z-index: 1;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #245c59;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.operation-icon {
+  width: 25px;
+  height: 25px;
+  border-radius: 7px;
+  background: #3e5f5b;
+}
+
+.operation-step.thinking .operation-icon {
+  background: #6f4e7c;
+}
+
+.operation-step.tool .operation-icon {
+  background: #245c59;
+}
+
+.operation-step.result .operation-icon {
+  background: #427343;
+}
+
+.operation-step.answer .operation-icon {
+  background: #355d84;
+}
+
+.operation-step.error .operation-index,
+.operation-step.error .operation-icon {
+  background: #9a3d34;
+}
+
+.operation-body {
+  min-width: 0;
+  padding: 7px 8px;
   border: 1px solid #d8e1de;
-  border-radius: 8px;
-  background: #ffffff;
+  border-radius: 7px;
+  background: #fbfdfc;
 }
 
-.timeline-step.thinking {
+.operation-step.thinking .operation-body {
   border-color: #d9c8e2;
+  background: #fbf8fc;
 }
 
-.timeline-step.tool {
+.operation-step.tool .operation-body {
   border-color: #bfd1cf;
 }
 
-.timeline-step.result {
+.operation-step.result .operation-body {
   border-color: #c8d8c9;
+  background: #f8fbf7;
 }
 
-.timeline-step.error {
+.operation-step.answer .operation-body {
+  border-color: #c6d5e4;
+  background: #f7fbff;
+}
+
+.operation-step.error .operation-body {
   border-color: #d9a6a0;
   background: #fff7f5;
 }
 
-.step-icon {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  border-radius: 7px;
-  color: #ffffff;
-  background: #245c59;
-}
-
-.timeline-step.thinking .step-icon {
-  background: #6f4e7c;
-}
-
-.timeline-step.result .step-icon {
-  background: #427343;
-}
-
-.timeline-step.answer .step-icon {
-  background: #355d84;
-}
-
-.step-body {
-  min-width: 0;
-}
-
-.step-title {
+.operation-title {
   display: flex;
-  align-items: center;
+  align-items: start;
   justify-content: space-between;
   gap: 8px;
   color: #25312f;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 850;
+  line-height: 1.35;
 }
 
-.step-title small {
+.operation-badges {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.operation-badges small {
+  padding: 2px 5px;
+  border: 1px solid #d4dedb;
+  border-radius: 999px;
   color: #64736f;
+  background: #ffffff;
   font-size: 10px;
+  font-weight: 800;
+  line-height: 1.2;
   text-transform: uppercase;
 }
 
-.step-body pre {
-  max-height: 180px;
+.operation-body pre {
+  max-height: 170px;
   margin: 7px 0 0;
   overflow: auto;
   color: #2d3639;

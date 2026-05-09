@@ -2,7 +2,7 @@
 
 Version: 0.1  
 Status: experimental foundation  
-Last updated: 2026-05-08  
+Last updated: 2026-05-09
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -1103,9 +1103,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Use the streaming cockpit for several real multi-turn tool-loop conversations.
-2. Polish trace/timeline ergonomics only if manual use shows friction.
-3. Start Phase 3 episodic memory after the streaming tool loop remains inspectable.
+1. Use the inline streaming cockpit for several real multi-turn tool-loop conversations.
+2. Start the smallest Phase 3 episodic memory slice if operation ordering remains clear.
+3. Add collapse controls for inline thinking/tool payloads only if the cockpit becomes noisy.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

@@ -62,6 +62,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added Phase 2B MiniMax tool-loop support for `mind_api` during persistent chat turns.
 - Added streaming chat turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
 - Added a structured frontend agent timeline for provider thinking blocks, tool input, tool calls, tool results, and streamed final answers.
+- Added per-turn inline chat timelines so each assistant message shows the ordered model/tool/final-answer operations that produced it.
 
 ### Changed
 
@@ -81,6 +82,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Updated Scarlet's bundled prompt to describe `mind_api` schema discovery as an available runtime capability.
 - Accepted EXP-0004 after a live MiniMax turn used `mind_api` and produced `llm.request`, `mind.tool_call`, and `llm.response` traces.
 - Accepted EXP-0005 after a live MiniMax streaming turn emitted intermediate agentic events and persisted the expected traces.
+- Updated streaming events to include a turn-local sequence and turn identifier so clients can render exact operation order inside the correct chat turn.
+- Moved the structured agent timeline from the debug pane into the assistant message while keeping raw trace logs in the debug pane.
 
 ### Fixed
 
@@ -90,6 +93,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Fixed chat provider initialization errors so missing MiniMax configuration returns structured `503 llm.not_configured`.
 - Fixed the generic diagnostic-assistant fallback that could make the agent misidentify itself.
 - Fixed detached SQLModel ORM usage in the new Mind API call endpoint by keeping scalar values across session boundaries.
+- Fixed inline streaming timeline attachment by including `turn_id` on every NDJSON event.
 
 ## Release Notes Policy
 

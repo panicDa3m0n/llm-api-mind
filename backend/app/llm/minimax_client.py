@@ -183,7 +183,9 @@ class MiniMaxProvider:
                     tools=tools,
                 ) as stream:
                     for event in stream:
-                        yield from self._stream_events_from_raw_event(event)
+                        for stream_event in self._stream_events_from_raw_event(event):
+                            stream_event.data["model_step"] = step + 1
+                            yield stream_event
                     message = stream.get_final_message()
 
                 raw_content = self._extract_raw_content(message.content)
@@ -234,6 +236,7 @@ class MiniMaxProvider:
                     yield LLMStreamEvent(
                         type="tool_call",
                         data={
+                            "model_step": step + 1,
                             "provider_tool_use_id": tool_use.id,
                             "tool_name": tool_use.name,
                             "arguments": tool_use.input,
@@ -243,7 +246,10 @@ class MiniMaxProvider:
                     executed_tool_calls.append(executed)
                     yield LLMStreamEvent(
                         type="tool_result",
-                        data=executed.model_dump(mode="json"),
+                        data={
+                            "model_step": step + 1,
+                            **executed.model_dump(mode="json"),
+                        },
                     )
                     tool_results.append(
                         {

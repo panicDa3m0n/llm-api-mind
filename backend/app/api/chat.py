@@ -491,7 +491,14 @@ def _stream_turn_events(
     system: str,
     max_tokens: int,
 ) -> Iterator[str]:
-    yield _ndjson(
+    sequence = 0
+
+    def emit(event_type: str, data: dict[str, Any]) -> str:
+        nonlocal sequence
+        sequence += 1
+        return _ndjson(event_type, {"seq": sequence, "turn_id": turn_id, **data})
+
+    yield emit(
         "turn_started",
         {
             "turn_id": turn_id,
@@ -519,7 +526,7 @@ def _stream_turn_events(
             if stream_event.type == "final_result":
                 result = LLMTextResult.model_validate(stream_event.data["result"])
             else:
-                yield _ndjson(stream_event.type, stream_event.data)
+                yield emit(stream_event.type, stream_event.data)
     except LLMConfigurationError as exc:
         _record_failed_turn(
             engine,
@@ -529,7 +536,7 @@ def _stream_turn_events(
             code="llm.not_configured",
             message=str(exc),
         )
-        yield _ndjson(
+        yield emit(
             "error",
             {"code": "llm.not_configured", "message": str(exc), "recoverable": True},
         )
@@ -543,7 +550,7 @@ def _stream_turn_events(
             code="llm.provider_error",
             message=str(exc),
         )
-        yield _ndjson(
+        yield emit(
             "error",
             {"code": "llm.provider_error", "message": str(exc), "recoverable": True},
         )
@@ -559,7 +566,7 @@ def _stream_turn_events(
             code="llm.stream_incomplete",
             message=message,
         )
-        yield _ndjson(
+        yield emit(
             "error",
             {"code": "llm.stream_incomplete", "message": message, "recoverable": True},
         )
@@ -620,7 +627,7 @@ def _stream_turn_events(
             usage=result.usage,
         )
 
-    yield _ndjson("turn_complete", turn_response.model_dump(mode="json"))
+    yield emit("turn_complete", turn_response.model_dump(mode="json"))
 
 
 def _ndjson(event_type: str, data: dict[str, Any]) -> str:

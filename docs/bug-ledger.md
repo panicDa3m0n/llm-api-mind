@@ -358,3 +358,43 @@ Related Files:
 Notes:
 
 This reinforces the existing API-route rule: do not return or dereference ORM instances across closed SQLModel sessions.
+
+## BUG-0006 - Stream Events Without Turn ID Broke Inline Timeline Attachment
+
+Date Found: 2026-05-09
+Status: fixed
+
+Symptoms:
+
+Browser verification of the inline agent timeline showed only:
+
+```txt
+Turn started
+Turn persisted
+```
+
+inside the final assistant message, even though the backend streamed model requests, thinking blocks, tool input, tool calls, tool results, and final text events.
+
+Root Cause:
+
+The frontend keyed operation timelines by `turn_id`, but most intermediate NDJSON events did not include `turn_id`. React state updates from `turn_started` were not immediately visible inside the existing stream callback closure, so later events were attached to a temporary `pending-turn` bucket instead of the persisted turn.
+
+Fix:
+
+Updated the streaming endpoint event emitter so every NDJSON event includes the active `turn_id` along with the monotonically increasing `seq`.
+
+Regression Test:
+
+- `backend/tests/test_chat_api.py` streaming tests still pass.
+- Manual stream smoke confirmed no emitted event had a missing `turn_id`.
+- Headless Edge browser verification confirmed the assistant message rendered 16 ordered operations including `MiniMax request #1`, `Tool call: mind_api`, `Tool result: mind_api`, `MiniMax request #2`, and `Final answer stream`.
+
+Related Files:
+
+- `backend/app/api/chat.py`
+- `frontend/src/App.tsx`
+- `frontend/src/types.ts`
+
+Notes:
+
+Streaming UI state should not depend on recently scheduled React state when the backend can provide stable event ownership directly.

@@ -378,7 +378,8 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
         assert response.status_code == 200
         events = [line for line in response.iter_lines() if line]
 
-    event_types = [json.loads(line)["type"] for line in events]
+    decoded_events = [json.loads(line) for line in events]
+    event_types = [event["type"] for event in decoded_events]
     assert event_types == [
         "turn_started",
         "thinking_delta",
@@ -388,7 +389,11 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
         "text_delta",
         "turn_complete",
     ]
-    complete = json.loads(events[-1])["data"]
+    event_data = [event["data"] for event in decoded_events]
+    assert [data["seq"] for data in event_data] == list(range(1, len(event_data) + 1))
+    assert {data["turn_id"] for data in event_data} == {event_data[0]["turn_id"]}
+
+    complete = event_data[-1]
     assert complete["assistant_message"]["content"] == "Schema inspected."
 
     traces = client.get(f"/api/debug/traces/{complete['turn_id']}").json()

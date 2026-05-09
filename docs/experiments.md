@@ -224,7 +224,10 @@ Scenario run:
 - Stream event sequence included `turn_started`, `model_request`, `thinking_start`, `thinking_delta`, `tool_use_start`, `tool_input_delta`, `tool_call`, `tool_result`, `text_delta`, and `turn_complete`.
 - Persisted trace kinds were `llm.request`, `mind.tool_call`, and `llm.response`.
 - Final answer identified `GET /mind/schema` as the currently implemented route.
+- Follow-up stream verification emitted 19 events with no missing `turn_id`.
+- Headless Edge UI verification rendered 16 inline ordered operations inside the assistant turn, including both model requests, thinking blocks, tool argument stream, tool call, tool result, final answer stream, and turn persistence.
+- The debug pane still showed raw `llm.request` and `llm.response` trace logs after completion.
 
 Decision:
 
-Accepted. The streaming cockpit is now the preferred frontend path for evaluating agentic multi-step turns.
+Accepted. The streaming cockpit is now the preferred frontend path for evaluating agentic multi-step turns, and the operation chain belongs inline with the assistant message while raw traces remain in the debug pane.
