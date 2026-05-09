@@ -551,3 +551,45 @@ Open Questions:
 Next Suggested Step:
 
 Run an interactive adaptive baseline session and use the resulting transcript plus notes to decide what the memory design discussion must cover.
+
+## 2026-05-09 - Adaptive Scarlet Pre-Memory Test
+
+Goal:
+
+Run a real adaptive end-to-end Scarlet evaluation before memory design, choosing follow-up prompts from observed answers rather than from a fixed script.
+
+Changes:
+
+- Ran `20260509_adaptive_scarlet_codex` with six live turns against the local backend.
+- Saved the local ignored artifact at `backend/app/evals/runs/20260509_adaptive_scarlet_codex/`.
+- Updated EXP-0006 with the adaptive run results and behavioral notes.
+
+Verification:
+
+- Backend health was `ok` on `http://127.0.0.1:8000`.
+- Frontend remained available on `http://127.0.0.1:5173`.
+- Run session: `ses_02141fe5e23248d988015a8d499adfe5`.
+- Turn trace coverage:
+  - Turn 1: `llm.request`, `mind.tool_call`, `llm.response`.
+  - Turn 2: `llm.request`, `llm.response`.
+  - Turn 3: `llm.request`, `mind.tool_call`, `llm.response`.
+  - Turn 4: `llm.request`, `mind.tool_call`, `llm.response`.
+  - Turn 5: `llm.request`, `llm.response`.
+  - Turn 6: `llm.request`, `llm.response`.
+
+Findings:
+
+- Scarlet used `mind_api` correctly for schema discovery.
+- Scarlet corrected an ambiguous capability classification after being challenged.
+- Scarlet handled explicit `POST /mind/memory/search` as a recoverable planned-route error.
+- Scarlet recalled `protocollo-lanterna` from chat history and did not claim persistent memory.
+- Source attribution should be a first-class memory design requirement.
+
+Open Questions:
+
+- How should future memory results expose source, confidence, age, and write provenance to prevent chat-history/memory confusion?
+- Should the prompt be refined now to classify implemented vs planned capabilities more defensively, or should the memory design solve this through API response shape and trace UI?
+
+Next Suggested Step:
+
+Hold the memory-design discussion before implementing `POST /mind/memory/write` or `POST /mind/memory/search`.

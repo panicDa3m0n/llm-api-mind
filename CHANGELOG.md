@@ -86,6 +86,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Updated streaming events to include a turn-local sequence and turn identifier so clients can render exact operation order inside the correct chat turn.
 - Moved the structured agent timeline from the debug pane into the assistant message while keeping raw trace logs in the debug pane.
 - Updated the immediate roadmap to evaluate the current system before designing memory, with scripted checks treated as regression evidence and interactive sessions treated as behavioral evidence.
+- Recorded the first adaptive Scarlet pre-memory evaluation run and its source-attribution findings.
 
 ### Fixed
 

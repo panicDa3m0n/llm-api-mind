@@ -285,6 +285,30 @@ Scripted smoke:
 - Tool call path was `/mind/schema`.
 - Final answer distinguished the implemented `GET /mind/schema` route from planned memory, attention, event, and reflection routes.
 
+Adaptive run:
+
+- Run: `20260509_adaptive_scarlet_codex`
+- Session: `ses_02141fe5e23248d988015a8d499adfe5`
+- Turns: 6
+- Artifact: `backend/app/evals/runs/20260509_adaptive_scarlet_codex/summary.md` (local ignored run output)
+
+Observed sequence:
+
+1. Scarlet used `mind_api` to inspect runtime capabilities and persisted `mind.tool_call`.
+2. Scarlet initially grouped planned memory/attention/events/reflection under an available-capabilities heading, then corrected the classification when challenged.
+3. Scarlet accepted `protocollo-lanterna` as a marker in current chat history only, explicitly not persistent memory.
+4. When asked vaguely to test a planned memory search route, Scarlet inspected `/mind/schema` and asked whether to attempt the unavailable route instead of directly calling it.
+5. When asked explicitly to call `POST /mind/memory/search`, Scarlet produced a traced `mind.route_not_available` result and did not treat it as a failed memory recall.
+6. Scarlet recalled `protocollo-lanterna` from visible chat history without using a tool and without claiming persistent memory.
+7. Scarlet identified source attribution as the main memory-design risk: future answers must distinguish chat history, retrieved persistent memory, and inference.
+
+Behavioral notes:
+
+- Positive: tool-call traces, planned-route error handling, and chat-history/source separation are good enough to support deeper evaluation.
+- Risk: capability classification can become ambiguous when planned features are discussed near implemented features.
+- Risk: a vague prompt to "try planned memory search" may lead Scarlet to inspect schema first rather than attempting the exact planned route. This is conservative, but evaluators should use explicit method/path prompts when testing unavailable route behavior.
+- Memory design implication: every future memory-derived claim should carry source metadata in the model-facing result and in the visible trace.
+
 Decision:
 
 Active. Use this harness for the next evaluation block. Do not implement memory until after a separate memory-design discussion establishes what should be stored, retrieved, forgotten, traced, and exposed to the model.
