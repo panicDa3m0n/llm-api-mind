@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 import anthropic
@@ -5,9 +6,12 @@ import anthropic
 from app.config import Settings
 from app.llm.provider import (
     LLMConfigurationError,
+    LLMExecutedToolCall,
     LLMMessage,
     LLMRequestError,
     LLMTextResult,
+    LLMToolRunner,
+    LLMToolUse,
 )
 
 
@@ -64,6 +68,89 @@ class MiniMaxProvider:
             stop_reason=getattr(message, "stop_reason", None),
         )
 
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> LLMTextResult:
+        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
+        provider_messages = [self._to_anthropic_message(item) for item in messages]
+        executed_tool_calls: list[LLMExecutedToolCall] = []
+        raw_provider_messages: list[dict[str, Any]] = []
+        usage_totals: dict[str, Any] = {}
+
+        try:
+            for _ in range(max_tool_calls + 1):
+                message = self._client.messages.create(
+                    model=self._settings.minimax_model,
+                    max_tokens=effective_max_tokens,
+                    system=system or "You are a concise assistant.",
+                    messages=provider_messages,
+                    tools=tools,
+                )
+                raw_content = self._extract_raw_content(message.content)
+                raw_provider_messages.append(
+                    {
+                        "id": getattr(message, "id", None),
+                        "model": getattr(message, "model", self._settings.minimax_model),
+                        "stop_reason": getattr(message, "stop_reason", None),
+                        "content": raw_content,
+                        "usage": self._extract_usage(message),
+                    }
+                )
+                usage_totals = self._merge_usage(
+                    usage_totals,
+                    self._extract_usage(message),
+                )
+                tool_uses = self._extract_tool_uses(message.content)
+                if not tool_uses:
+                    return LLMTextResult(
+                        model=getattr(message, "model", self._settings.minimax_model),
+                        text=self._extract_text(message.content),
+                        usage=usage_totals,
+                        provider_message_id=getattr(message, "id", None),
+                        raw_content=raw_content,
+                        stop_reason=getattr(message, "stop_reason", None),
+                        tool_calls=executed_tool_calls,
+                        raw_provider_messages=raw_provider_messages,
+                    )
+
+                provider_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": raw_content,
+                    }
+                )
+                tool_results: list[dict[str, Any]] = []
+                for tool_use in tool_uses:
+                    executed = tool_runner(tool_use)
+                    executed_tool_calls.append(executed)
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": json.dumps(executed.result, ensure_ascii=True),
+                            "is_error": executed.status != "completed",
+                        }
+                    )
+                provider_messages.append(
+                    {
+                        "role": "user",
+                        "content": tool_results,
+                    }
+                )
+        except anthropic.AnthropicError as exc:
+            raise LLMRequestError(self._sanitize_error(str(exc))) from exc
+
+        raise LLMRequestError(
+            f"MiniMax tool loop exceeded max_tool_calls={max_tool_calls}."
+        )
+
     def _sanitize_error(self, message: str) -> str:
         api_key = self._settings.minimax_api_key
         if api_key:
@@ -98,6 +185,24 @@ class MiniMaxProvider:
         return raw_blocks
 
     @staticmethod
+    def _extract_tool_uses(content_blocks: list[Any]) -> list[LLMToolUse]:
+        tool_uses: list[LLMToolUse] = []
+        for block in content_blocks:
+            if getattr(block, "type", None) != "tool_use":
+                continue
+            tool_input = getattr(block, "input", {})
+            if not isinstance(tool_input, dict):
+                tool_input = {}
+            tool_uses.append(
+                LLMToolUse(
+                    id=getattr(block, "id", ""),
+                    name=getattr(block, "name", ""),
+                    input=tool_input,
+                )
+            )
+        return tool_uses
+
+    @staticmethod
     def _extract_usage(message: Any) -> dict[str, Any]:
         usage = getattr(message, "usage", None)
         if usage is None:
@@ -107,3 +212,18 @@ class MiniMaxProvider:
         if isinstance(usage, dict):
             return usage
         return {}
+
+    @staticmethod
+    def _merge_usage(
+        totals: dict[str, Any],
+        usage: dict[str, Any],
+    ) -> dict[str, Any]:
+        merged = dict(totals)
+        for key, value in usage.items():
+            if isinstance(value, int) and isinstance(merged.get(key), int):
+                merged[key] += value
+            elif isinstance(value, int) and key not in merged:
+                merged[key] = value
+            elif key not in merged:
+                merged[key] = value
+        return merged

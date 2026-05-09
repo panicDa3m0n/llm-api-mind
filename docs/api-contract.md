@@ -143,6 +143,7 @@ Tables:
 - `turns`: one user-to-assistant processing cycle, including model, status, latency, and error metadata.
 - `messages`: user, assistant, system, or tool messages linked to sessions and optionally turns.
 - `traces`: structured JSON trace events linked to sessions and optionally turns.
+- `tool_calls`: structured model-facing tool calls, arguments, results, status, and latency.
 
 Trace Behavior:
 
@@ -256,15 +257,20 @@ Creates at least:
 - `llm.request`
 - `llm.response`
 
+When the model uses `mind_api`, the turn also creates one `mind.tool_call` trace per tool invocation.
+
 `llm.request` stores the effective system prompt plus:
 
 - `system_present`
 - `system_source`: `bundled`, `environment`, `configured_path`, or `request`
 - `system_path` when loaded from a file
+- `tools`: currently the single `mind_api` tool schema
 
 If the provider fails, creates:
 
 - `llm.error`
+
+`llm.response` stores final text, usage, raw final content, normalized tool call metadata, and raw provider messages from the tool loop when tools were used.
 
 ### GET /api/chat/sessions/{session_id}/messages
 
@@ -290,10 +296,139 @@ Errors:
 
 - `404 trace.not_found`: no traces exist for the turn.
 
+## Implemented Mind API
+
+### GET /mind/schema
+
+Status: implemented
+
+Purpose:
+
+Return the current `mind_api` tool schema, implemented routes, planned routes, and standard response shape. This is the schema-discovery entry point for Phase 2.
+
+Request:
+
+No request body.
+
+Response:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "tool": {
+      "name": "mind_api",
+      "description": "Primary interface to Scarlet's cognitive API...",
+      "input_schema": {
+        "type": "object",
+        "required": ["method", "path", "intent"]
+      }
+    },
+    "routes": [
+      {
+        "method": "GET",
+        "path": "/mind/schema",
+        "status": "implemented"
+      }
+    ],
+    "response_shape": {}
+  },
+  "cognitive_hint": "This is the currently available Mind API surface.",
+  "suggested_next_actions": ["Use POST /mind/call to exercise mind_api"],
+  "confidence": 1.0,
+  "trace_id": null,
+  "error": null
+}
+```
+
+Errors:
+
+No custom errors yet.
+
+Trace Behavior:
+
+No persistent trace is created by direct schema discovery because no session or turn context is required.
+
+Example:
+
+```txt
+GET /mind/schema
+```
+
+### POST /mind/call
+
+Status: implemented
+
+Purpose:
+
+Exercise the internal `mind_api(method, path, body, intent)` dispatcher through HTTP while the MiniMax tool loop is still being built. This provides the Phase 2 facade and records tool calls before cognitive modules are added.
+
+Request:
+
+```json
+{
+  "method": "GET",
+  "path": "/mind/schema",
+  "body": {},
+  "intent": "Inspect available cognitive API routes before acting.",
+  "session_id": "ses_...",
+  "turn_id": "turn_..."
+}
+```
+
+`session_id` and `turn_id` are optional. When `session_id` is supplied, it must refer to an existing chat session. `turn_id` is used only for trace linkage.
+
+Response:
+
+```json
+{
+  "ok": true,
+  "result": {},
+  "cognitive_hint": "Use this schema to choose only implemented Mind API routes...",
+  "suggested_next_actions": ["Call implemented routes only"],
+  "confidence": 1.0,
+  "trace_id": "trace_...",
+  "error": null,
+  "tool_call_id": "tool_..."
+}
+```
+
+Structured route errors return `200` with `ok=false` so the model can recover from planned or unavailable routes:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "mind.route_not_available",
+    "message": "POST /mind/memory/search is not implemented in the current Mind API.",
+    "recoverable": true
+  },
+  "suggested_next_actions": [
+    "Call GET /mind/schema",
+    "Continue without this cognitive support"
+  ],
+  "tool_call_id": "tool_..."
+}
+```
+
+Errors:
+
+- `404 session.not_found`: a supplied `session_id` does not exist.
+- `422 validation_error`: method, path, or intent is missing or invalid.
+
+Trace Behavior:
+
+Every call creates a `tool_calls` row with arguments, result, status, and latency. If `session_id` is supplied, the endpoint also creates a `mind.tool_call` trace linked to the session and optional turn.
+
+Example:
+
+```txt
+POST /mind/call
+```
+
 ## Planned Mind API
 
 ```txt
-GET  /mind/schema
 GET  /mind/state
 POST /mind/events/emit
 POST /mind/memory/write

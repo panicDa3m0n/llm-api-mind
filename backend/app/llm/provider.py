@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
@@ -22,11 +23,33 @@ class LLMTextResult(BaseModel):
     provider_message_id: str | None = None
     raw_content: list[dict[str, Any]] = Field(default_factory=list)
     stop_reason: str | None = None
+    tool_calls: list["LLMExecutedToolCall"] = Field(default_factory=list)
+    raw_provider_messages: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class LLMMessage(BaseModel):
     role: str
     content: str
+
+
+class LLMToolUse(BaseModel):
+    id: str
+    name: str
+    input: dict[str, Any] = Field(default_factory=dict)
+
+
+class LLMExecutedToolCall(BaseModel):
+    provider_tool_use_id: str
+    tool_name: str
+    arguments: dict[str, Any]
+    result: dict[str, Any]
+    status: str
+    latency_ms: int | None = None
+    tool_call_id: str | None = None
+    trace_id: str | None = None
+
+
+LLMToolRunner = Callable[[LLMToolUse], LLMExecutedToolCall]
 
 
 class LLMProvider(Protocol):
@@ -47,3 +70,15 @@ class LLMProvider(Protocol):
         max_tokens: int | None = None,
     ) -> LLMTextResult:
         """Generate text from a chat history."""
+
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> LLMTextResult:
+        """Generate text from chat history with a bounded model tool loop."""

@@ -1103,9 +1103,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Add the minimal Phase 2 `mind_api` facade over the traceable runtime.
-2. Add schema discovery so the agent can inspect available API actions.
-3. Keep memory/attention deferred until `mind_api` calls are traceable and evaluated.
+1. Run and record a small Phase 2 tool-loop trace scenario.
+2. Improve trace cockpit ergonomics for `mind.tool_call` inspection if needed.
+3. Start Phase 3 memory only after tool-loop traces are easy to inspect.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

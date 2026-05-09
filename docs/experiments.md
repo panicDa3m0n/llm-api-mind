@@ -137,3 +137,52 @@ Pending Phase 3.
 Decision:
 
 Pending.
+
+## EXP-0004 - Mind API Tool Loop Trace
+
+Status: accepted
+
+Hypothesis:
+
+Before adding cognitive state, a MiniMax tool loop using a single `mind_api` tool can be made inspectable and reproducible through stored traces.
+
+Baseline:
+
+Persistent MiniMax chat turns with request/response traces but no model tool calls.
+
+Variant:
+
+Persistent MiniMax chat turns with the `mind_api` tool schema exposed, a bounded provider tool loop, dispatcher-backed tool results, `tool_calls` persistence, and `mind.tool_call` traces.
+
+Scenario:
+
+Ask Scarlet to use `mind_api` to inspect `GET /mind/schema` before answering which Mind API route is implemented.
+
+Metrics:
+
+- The model receives only the `mind_api` tool schema.
+- The model calls `mind_api` during the turn.
+- The call is stored in `tool_calls`.
+- The turn traces include `llm.request`, `mind.tool_call`, and `llm.response`.
+- The final answer uses the schema result rather than claiming unavailable memory or attention.
+
+Result:
+
+Run date: 2026-05-09
+
+Environment:
+
+- FastAPI backend on `http://127.0.0.1:8000`.
+- MiniMax M2.7 with `max_tokens=4096`.
+
+Scenario run:
+
+- Session: `ses_8f97adf47f9842089f73d06b9512dcfa`.
+- Turn: `turn_5bc222c2fb444fc8b3285749cd74024e`.
+- Prompt: ask Scarlet to use `mind_api` to inspect `GET /mind/schema`, then answer which Mind API route is implemented.
+- Trace kinds: `llm.request`, `mind.tool_call`, `llm.response`.
+- Final answer identified `GET /mind/schema` as the currently implemented Mind API route and described memory, attention, events, and reflection as planned.
+
+Decision:
+
+Accepted as the Phase 2 tool-loop trace substrate. The system may proceed toward Phase 3 memory after trace inspection remains clear enough for tool calls.

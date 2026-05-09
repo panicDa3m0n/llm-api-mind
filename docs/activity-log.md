@@ -372,3 +372,76 @@ Open Questions:
 Next Suggested Step:
 
 Commit and push the conversational identity refinement, then continue toward the minimal `mind_api` facade.
+
+## 2026-05-09 - Phase 2A Mind API Facade
+
+Goal:
+
+Start Phase 2 with the smallest traceable `mind_api` slice: schema discovery, dispatcher, and persistent tool-call records.
+
+Changes:
+
+- Restored `backend/.env.example` as a tracked placeholder template after the local workspace was recreated and `backend/.env` was filled manually by the project owner.
+- Added `backend/app/mind/schema.py` with the `mind_api` tool schema and route catalog.
+- Added `backend/app/mind/dispatcher.py` for `mind_api(method, path, body, intent)` dispatch.
+- Added `GET /mind/schema`.
+- Added `POST /mind/call` as an HTTP facade for the model-facing tool contract.
+- Added a `tool_calls` SQLModel table and repository helper.
+- Added `mind.tool_call` traces when `POST /mind/call` includes a session context.
+- Added Mind API tests for schema discovery, traceable calls, planned-route errors, and missing session handling.
+- Recorded ADR-0008 and BUG-0005.
+- Documented the implemented Mind API contracts.
+
+Verification:
+
+- Ran `pytest` from `backend`; 15 tests passed.
+- Ran `npm run build` from `frontend`; build succeeded.
+- Started local FastAPI backend on `http://127.0.0.1:8000`.
+- Verified `GET /mind/schema` over HTTP returned `ok=true` and `tool.name=mind_api`.
+- Verified `POST /mind/call` over HTTP created a `tool_call_id` and `trace_id`.
+
+Open Questions:
+
+- The MiniMax provider tool loop is not wired yet. `POST /mind/call` exercises the dispatcher and persistence path manually for now.
+- `GET /api/debug/traces/{turn_id}` remains turn-scoped; a session-level debug trace endpoint may be useful soon.
+
+Next Suggested Step:
+
+Connect MiniMax tool-use content blocks to the `mind_api` dispatcher while preserving raw provider content and storing every tool call.
+
+## 2026-05-09 - Phase 2B MiniMax Mind API Tool Loop
+
+Goal:
+
+Connect MiniMax M2.7 tool-use content blocks to the traceable `mind_api` dispatcher.
+
+Changes:
+
+- Added provider-level support for a bounded Anthropic-compatible tool loop.
+- Added normalized tool-use and executed-tool-call models.
+- Updated persistent chat turns to expose only the `mind_api` tool to MiniMax.
+- Wired `mind_api` tool calls to the dispatcher created in Phase 2A.
+- Stored every model tool call in `tool_calls`.
+- Added `mind.tool_call` traces during chat turns.
+- Extended `llm.request` traces with the tool schema.
+- Extended `llm.response` traces with normalized tool call metadata and raw provider messages.
+- Updated the bundled Scarlet prompt so `mind_api` schema discovery is described as currently available.
+- Added regression coverage for a chat turn that dispatches and traces a `mind_api` call.
+
+Verification:
+
+- Ran `pytest` from `backend`; 16 tests passed.
+- Restarted local FastAPI backend on `http://127.0.0.1:8000`.
+- Ran a live MiniMax chat turn asking Scarlet to inspect `GET /mind/schema` with `mind_api`.
+- Live turn `turn_5bc222c2fb444fc8b3285749cd74024e` produced trace kinds `llm.request`, `mind.tool_call`, and `llm.response`.
+- Live assistant response correctly identified `GET /mind/schema` as the currently implemented Mind API route.
+- Recorded accepted EXP-0004 Mind API Tool Loop Trace.
+
+Open Questions:
+
+- The frontend trace cockpit can display the new trace kind, but it has not yet been refined specifically for tool-loop inspection.
+- None for Phase 2B.
+
+Next Suggested Step:
+
+Start Phase 3 memory only after confirming the frontend trace cockpit remains usable for `mind.tool_call` inspection.

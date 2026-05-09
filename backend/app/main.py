@@ -3,6 +3,7 @@ from sqlalchemy.engine import Engine
 
 from app.api.chat import build_chat_router, build_trace_router
 from app.api.debug import ProviderFactory, build_debug_router
+from app.api.mind import build_mind_router
 from app.api.system import build_system_router
 from app.config import Settings, get_settings
 from app.llm.minimax_client import MiniMaxProvider
@@ -40,6 +41,7 @@ def create_app(
         )
     )
     app.include_router(build_trace_router(engine))
+    app.include_router(build_mind_router(engine))
 
     return app
 

@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
 
 from app.config import Settings
-from app.llm.provider import LLMMessage, LLMTextResult
+from app.llm.provider import LLMMessage, LLMTextResult, LLMToolRunner, LLMToolUse
 from app.main import create_app
 
 
@@ -47,6 +47,72 @@ class FakeChatProvider:
             stop_reason="end_turn",
         )
 
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> LLMTextResult:
+        return self.generate_chat(
+            messages=messages,
+            system=system,
+            max_tokens=max_tokens,
+        )
+
+
+class FakeToolCallingProvider(FakeChatProvider):
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> LLMTextResult:
+        executed = tool_runner(
+            LLMToolUse(
+                id="toolu_schema",
+                name="mind_api",
+                input={
+                    "method": "GET",
+                    "path": "/mind/schema",
+                    "intent": "Inspect schema before answering.",
+                },
+            )
+        )
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text="I inspected the Mind API schema.",
+            usage={"input_tokens": 10, "output_tokens": 5},
+            provider_message_id="provider_msg_tool_loop",
+            raw_content=[
+                {
+                    "type": "text",
+                    "text": "I inspected the Mind API schema.",
+                }
+            ],
+            stop_reason="end_turn",
+            tool_calls=[executed],
+            raw_provider_messages=[
+                {
+                    "id": "provider_msg_tool_loop",
+                    "stop_reason": "end_turn",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "I inspected the Mind API schema.",
+                        }
+                    ],
+                }
+            ],
+        )
+
 
 def make_client(db_engine: Engine) -> TestClient:
     FakeChatProvider.seen_chat_systems = []
@@ -61,6 +127,24 @@ def make_client(db_engine: Engine) -> TestClient:
         create_app(
             settings,
             llm_provider_factory=lambda settings: FakeChatProvider(settings),
+            db_engine=db_engine,
+        )
+    )
+
+
+def make_tool_client(db_engine: Engine) -> TestClient:
+    FakeChatProvider.seen_chat_systems = []
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M2.7",
+        minimax_max_tokens=4096,
+    )
+    return TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda settings: FakeToolCallingProvider(settings),
             db_engine=db_engine,
         )
     )
@@ -110,6 +194,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert "LLM API Mind" in traces[0]["payload"]["system"]
     assert "feminine agent identity" in traces[0]["payload"]["system"]
     assert "sono pronta" in traces[0]["payload"]["system"]
+    assert "mind_api" in traces[0]["payload"]["system"]
     assert "medical" not in traces[0]["payload"]["system"].lower()
     assert "diagnostic" not in traces[0]["payload"]["system"].lower()
     assert FakeChatProvider.seen_chat_systems[-1] == traces[0]["payload"]["system"]
@@ -152,6 +237,41 @@ def test_second_chat_turn_uses_persisted_history(db_engine: Engine) -> None:
     assert second_turn.status_code == 200
     body = second_turn.json()
     assert body["assistant_message"]["content"] == "assistant:second:history=3"
+
+
+def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
+    db_engine: Engine,
+) -> None:
+    client = make_tool_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "inspect schema first"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["assistant_message"]["content"] == "I inspected the Mind API schema."
+    assert len(body["trace_ids"]) == 3
+
+    traces = client.get(f"/api/debug/traces/{body['turn_id']}").json()
+    assert [trace["kind"] for trace in traces] == [
+        "llm.request",
+        "mind.tool_call",
+        "llm.response",
+    ]
+    assert traces[0]["payload"]["tools"][0]["name"] == "mind_api"
+    tool_trace = traces[1]
+    assert tool_trace["payload"]["tool_name"] == "mind_api"
+    assert tool_trace["payload"]["arguments"]["path"] == "/mind/schema"
+    assert tool_trace["payload"]["result"]["ok"] is True
+    response_trace = traces[2]
+    assert response_trace["payload"]["tool_calls"][0]["tool_name"] == "mind_api"
+    assert (
+        response_trace["payload"]["tool_calls"][0]["trace_id"]
+        == tool_trace["id"]
+    )
 
 
 def test_chat_turn_returns_404_for_missing_session(db_engine: Engine) -> None:

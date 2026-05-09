@@ -76,3 +76,23 @@ class Trace(SQLModel, table=True):
     )
     created_at: datetime = Field(default_factory=utc_now, index=True)
 
+
+class ToolCall(SQLModel, table=True):
+    __tablename__ = "tool_calls"
+
+    id: str = Field(default_factory=lambda: new_id("tool"), primary_key=True)
+    session_id: str | None = Field(default=None, foreign_key="sessions.id", index=True)
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    tool_name: str = Field(index=True)
+    arguments_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    result_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    status: str = Field(index=True)
+    latency_ms: int | None = None
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+

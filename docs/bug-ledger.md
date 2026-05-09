@@ -324,3 +324,37 @@ Related Files:
 Notes:
 
 Agent identity is runtime behavior, not UI copy. The effective system prompt and source are recorded in `llm.request` traces.
+
+## BUG-0005 - Detached ORM Object In Mind API Call Endpoint
+
+Date Found: 2026-05-09
+Status: fixed
+
+Symptoms:
+
+`test_mind_call_records_tool_call_and_session_trace` failed with:
+
+```txt
+sqlalchemy.orm.exc.DetachedInstanceError: Instance <ToolCall ...> is not bound to a Session
+```
+
+Root Cause:
+
+`POST /mind/call` created and refreshed a `ToolCall` ORM object inside a SQLModel session, then accessed `tool_call.id` after the session had closed. SQLAlchemy expired attributes on commit, repeating the same session-boundary failure mode previously fixed for chat turns.
+
+Fix:
+
+Capture scalar values (`tool_call_id`, `tool_call_status`) inside the active session and use those scalars after the session block.
+
+Regression Test:
+
+`backend/tests/test_mind_api.py::test_mind_call_records_tool_call_and_session_trace`
+
+Related Files:
+
+- `backend/app/api/mind.py`
+- `backend/tests/test_mind_api.py`
+
+Notes:
+
+This reinforces the existing API-route rule: do not return or dereference ORM instances across closed SQLModel sessions.

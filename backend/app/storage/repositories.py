@@ -3,7 +3,7 @@ from typing import Any
 
 from sqlmodel import Session, select
 
-from app.storage.models import ChatSession, Message, Trace, Turn, utc_now
+from app.storage.models import ChatSession, Message, ToolCall, Trace, Turn, utc_now
 
 
 def create_chat_session(
@@ -124,6 +124,34 @@ def list_traces_for_turn(db: Session, *, turn_id: str) -> list[Trace]:
         .order_by(Trace.created_at, Trace.id)
     )
     return list(db.exec(statement).all())
+
+
+def add_tool_call(
+    db: Session,
+    *,
+    tool_name: str,
+    arguments: dict[str, Any],
+    result: dict[str, Any],
+    status: str,
+    session_id: str | None = None,
+    turn_id: str | None = None,
+    latency_ms: int | None = None,
+) -> ToolCall:
+    tool_call = ToolCall(
+        session_id=session_id,
+        turn_id=turn_id,
+        tool_name=tool_name,
+        arguments_json=arguments,
+        result_json=result,
+        status=status,
+        latency_ms=latency_ms,
+    )
+    db.add(tool_call)
+    if session_id is not None:
+        _touch_session(db, session_id)
+    db.commit()
+    db.refresh(tool_call)
+    return tool_call
 
 
 def _touch_session(

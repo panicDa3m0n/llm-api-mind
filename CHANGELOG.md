@@ -53,6 +53,13 @@ This project uses a practical changelog rather than a release-only log: each mea
   - MiniMax usage metrics;
   - frontend build workflow.
 - Added a configurable Scarlet system prompt for persistent chat turns.
+- Added Phase 2A Mind API facade:
+  - `GET /mind/schema`;
+  - `POST /mind/call`;
+  - `mind_api` tool schema and dispatcher;
+  - persistent `tool_calls` table;
+  - optional `mind.tool_call` traces linked to sessions and turns.
+- Added Phase 2B MiniMax tool-loop support for `mind_api` during persistent chat turns.
 
 ### Changed
 
@@ -67,6 +74,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Updated chat tracing so `llm.request` records the effective system prompt source.
 - Refined the default Scarlet prompt to use positive identity and operating-posture guidance instead of domain-specific denials.
 - Expanded Scarlet's prompt with feminine identity and human-like conversational presence guidance.
+- Restored `backend/.env.example` as a tracked placeholder template after local workspace recreation.
+- Updated chat request/response traces to include tool schema, `mind.tool_call` events, normalized tool-call metadata, and raw provider tool-loop messages.
+- Updated Scarlet's bundled prompt to describe `mind_api` schema discovery as an available runtime capability.
+- Accepted EXP-0004 after a live MiniMax turn used `mind_api` and produced `llm.request`, `mind.tool_call`, and `llm.response` traces.
 
 ### Fixed
 
@@ -75,6 +86,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Fixed detached SQLModel ORM object usage in the chat turn endpoint.
 - Fixed chat provider initialization errors so missing MiniMax configuration returns structured `503 llm.not_configured`.
 - Fixed the generic diagnostic-assistant fallback that could make the agent misidentify itself.
+- Fixed detached SQLModel ORM usage in the new Mind API call endpoint by keeping scalar values across session boundaries.
 
 ## Release Notes Policy
 

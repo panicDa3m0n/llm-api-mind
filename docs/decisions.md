@@ -259,3 +259,87 @@ Links:
 - `backend/app/prompts/system.py`
 - `backend/app/api/chat.py`
 - `docs/api-contract.md`
+
+## ADR-0008 - Add Mind API Facade Before Provider Tool Loop
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+Phase 2 needs a single `mind_api` tool surface, schema discovery, a dispatcher, and traceable tool calls. MiniMax tool-loop integration will require careful provider handling, but the API contract and trace substrate can be built first without adding memory, attention, reflection, goals, or background workers.
+
+Decision:
+
+Add a minimal HTTP facade for the same `mind_api(method, path, body, intent)` contract:
+
+```txt
+GET  /mind/schema
+POST /mind/call
+```
+
+`GET /mind/schema` exposes the model-facing tool schema and current route catalog. `POST /mind/call` dispatches the same method/path/body/intent shape, records a `tool_calls` row for every call, and creates a `mind.tool_call` trace when a session context is supplied.
+
+Alternatives Considered:
+
+- Implement the full MiniMax provider tool loop first: deferred because schema discovery and trace storage can be tested independently.
+- Add memory or attention immediately: rejected because EXP-0001 says Phase 2 should expose the traceable runtime before cognitive state.
+- Expose many direct cognitive endpoints without a facade: rejected because the project direction is one primary model-facing tool.
+
+Consequences:
+
+- The Mind API contract becomes inspectable and testable before model tool use is wired.
+- Tool-call persistence exists before cognitive modules can mutate state.
+- Planned routes can return structured recoverable errors instead of silently implying unavailable capabilities.
+- The next Phase 2 slice can connect MiniMax tool-use content blocks to this dispatcher.
+
+Links:
+
+- `backend/app/api/mind.py`
+- `backend/app/mind/dispatcher.py`
+- `backend/app/mind/schema.py`
+- `backend/app/storage/models.py`
+- `docs/api-contract.md`
+
+## ADR-0009 - Keep MiniMax Tool Loop Provider-Bounded And Mind Dispatch Backend-Owned
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+Phase 2 requires MiniMax M2.7 to call the single `mind_api` tool during chat turns. MiniMax-specific tool-use details are Anthropic-compatible content blocks, while cognitive route dispatch and persistence are backend responsibilities.
+
+Decision:
+
+Implement the bounded tool loop in the MiniMax provider wrapper, but keep cognitive dispatch outside the provider through a `tool_runner` callback. The provider owns:
+
+```txt
+assistant tool_use blocks -> user tool_result blocks -> final assistant response
+```
+
+The chat runtime owns:
+
+```txt
+mind_api validation -> dispatcher call -> tool_calls row -> mind.tool_call trace
+```
+
+Alternatives Considered:
+
+- Put Mind API dispatch directly inside `MiniMaxProvider`: rejected because provider code should not own cognitive API behavior.
+- Put Anthropic-compatible content block handling in the chat endpoint: rejected because provider-specific protocol details would leak into runtime orchestration.
+- Delay tool-loop integration until memory exists: rejected because tool calls need to be traceable before state-changing cognitive modules are introduced.
+
+Consequences:
+
+- Provider-specific protocol stays isolated.
+- The model still sees one primary tool.
+- Tool calls are persisted and traced before memory, attention, or reflection can mutate state.
+- Future provider adapters can implement the same normalized tool-loop contract.
+
+Links:
+
+- `backend/app/llm/minimax_client.py`
+- `backend/app/llm/provider.py`
+- `backend/app/api/chat.py`
+- `backend/app/mind/dispatcher.py`

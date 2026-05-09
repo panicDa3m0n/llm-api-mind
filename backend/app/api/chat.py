@@ -5,17 +5,23 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
+from pydantic import ValidationError
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from app.config import Settings
 from app.llm.minimax_client import MiniMaxProvider
 from app.llm.provider import (
+    LLMExecutedToolCall,
     LLMConfigurationError,
     LLMMessage,
     LLMProvider,
     LLMRequestError,
+    LLMToolUse,
 )
+from app.mind.dispatcher import MindAPIError, MindAPIRequest, MindAPIResponse
+from app.mind.dispatcher import dispatch_mind_api
+from app.mind.schema import MIND_API_TOOL_SCHEMA
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.storage import repositories
 from app.storage.models import ChatSession, Message, Trace, Turn
@@ -184,16 +190,24 @@ def build_chat_router(
                         for message in history
                         if message.role in {"user", "assistant"}
                     ],
+                    "tools": [MIND_API_TOOL_SCHEMA],
                 },
             )
             trace_ids.append(request_trace.id)
 
         try:
             provider = provider_factory(settings)
-            result = provider.generate_chat(
+            result = provider.generate_chat_with_tools(
                 messages=llm_messages,
                 system=system_prompt.content,
                 max_tokens=max_tokens,
+                tools=[MIND_API_TOOL_SCHEMA],
+                tool_runner=_build_mind_tool_runner(
+                    engine,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    trace_ids=trace_ids,
+                ),
             )
         except LLMConfigurationError as exc:
             _record_failed_turn(
@@ -258,6 +272,11 @@ def build_chat_router(
                     "provider_message_id": result.provider_message_id,
                     "stop_reason": result.stop_reason,
                     "raw_content": result.raw_content,
+                    "tool_calls": [
+                        tool_call.model_dump(mode="json")
+                        for tool_call in result.tool_calls
+                    ],
+                    "raw_provider_messages": result.raw_provider_messages,
                 },
             )
             trace_ids.append(response_trace.id)
@@ -280,6 +299,104 @@ def build_chat_router(
             )
 
     return router
+
+
+def _build_mind_tool_runner(
+    engine: Engine,
+    *,
+    session_id: str,
+    turn_id: str,
+    trace_ids: list[str],
+) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
+    def run(tool_use: LLMToolUse) -> LLMExecutedToolCall:
+        started = time.perf_counter()
+        mind_request, mind_response = _dispatch_tool_use(tool_use)
+        latency_ms = int((time.perf_counter() - started) * 1000)
+        result_payload = mind_response.model_dump(mode="json")
+
+        with Session(engine) as db:
+            tool_call = repositories.add_tool_call(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                tool_name=tool_use.name,
+                arguments=mind_request.model_dump(mode="json")
+                if mind_request is not None
+                else {"raw_input": tool_use.input},
+                result=result_payload,
+                status="completed" if mind_response.ok else "error",
+                latency_ms=latency_ms,
+            )
+            tool_call_id = tool_call.id
+            tool_call_status = tool_call.status
+            trace = repositories.add_trace(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                kind="mind.tool_call",
+                payload={
+                    "provider_tool_use_id": tool_use.id,
+                    "tool_call_id": tool_call_id,
+                    "tool_name": tool_use.name,
+                    "arguments": mind_request.model_dump(mode="json")
+                    if mind_request is not None
+                    else {"raw_input": tool_use.input},
+                    "result": result_payload,
+                    "status": tool_call_status,
+                    "latency_ms": latency_ms,
+                },
+            )
+            trace_id = trace.id
+            trace_ids.append(trace_id)
+
+        mind_response.trace_id = trace_id
+        result_payload = mind_response.model_dump(mode="json")
+        return LLMExecutedToolCall(
+            provider_tool_use_id=tool_use.id,
+            tool_name=tool_use.name,
+            arguments=mind_request.model_dump(mode="json")
+            if mind_request is not None
+            else {"raw_input": tool_use.input},
+            result=result_payload,
+            status=tool_call_status,
+            latency_ms=latency_ms,
+            tool_call_id=tool_call_id,
+            trace_id=trace_id,
+        )
+
+    return run
+
+
+def _dispatch_tool_use(
+    tool_use: LLMToolUse,
+) -> tuple[MindAPIRequest | None, MindAPIResponse]:
+    if tool_use.name != "mind_api":
+        return None, MindAPIResponse(
+            ok=False,
+            error=MindAPIError(
+                code="tool.unknown",
+                message=f"Unknown tool: {tool_use.name}",
+                recoverable=True,
+            ),
+            suggested_next_actions=["Use the mind_api tool only"],
+            confidence=1.0,
+        )
+
+    try:
+        mind_request = MindAPIRequest.model_validate(tool_use.input)
+    except ValidationError as exc:
+        return None, MindAPIResponse(
+            ok=False,
+            error=MindAPIError(
+                code="mind.invalid_request",
+                message=str(exc),
+                recoverable=True,
+            ),
+            suggested_next_actions=["Call GET /mind/schema", "Retry with valid input"],
+            confidence=1.0,
+        )
+
+    return mind_request, dispatch_mind_api(mind_request)
 
 
 def build_trace_router(engine: Engine) -> APIRouter:
