@@ -376,6 +376,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert "feminine agent identity" in traces[0]["payload"]["system"]
     assert "sono pronta" in traces[0]["payload"]["system"]
     assert "mind_api" in traces[0]["payload"]["system"]
+    assert "Visible Metacognition Experiment" in traces[0]["payload"]["system"]
+    assert "Metacognizione:" in traces[0]["payload"]["system"]
     assert "medical" not in traces[0]["payload"]["system"].lower()
     assert "diagnostic" not in traces[0]["payload"]["system"].lower()
     assert FakeChatProvider.seen_chat_systems[-1] == traces[0]["payload"]["system"]

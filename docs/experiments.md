@@ -96,42 +96,6 @@ Metrics:
 
 Result:
 
-Pending Phase 3.
-
-Decision:
-
-Pending.
-
-## EXP-0003 - Attention Context Pack
-
-Status: planned
-
-Hypothesis:
-
-An attention module that prepares a small context pack improves response relevance without flooding model context.
-
-Baseline:
-
-Memory search results inserted directly or no memory at all.
-
-Variant:
-
-`/mind/attention/context` selects and ranks memory, state, active goals, and recent events.
-
-Scenario:
-
-Project continuation tasks requiring only a small subset of prior context.
-
-Metrics:
-
-- Task success.
-- Context precision.
-- Context recall.
-- Token overhead.
-- Human-rated usefulness.
-
-Initial Result:
-
 Run date: 2026-05-09
 
 Implemented Memory v0:
@@ -177,6 +141,42 @@ Behavioral findings:
 Decision:
 
 Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design. Future work should evaluate update/forget/conflict behavior, memory panels, and a stronger baseline-vs-memory comparison before adding attention.
+
+## EXP-0003 - Attention Context Pack
+
+Status: planned
+
+Hypothesis:
+
+An attention module that prepares a small context pack improves response relevance without flooding model context.
+
+Baseline:
+
+Memory search results inserted directly or no memory at all.
+
+Variant:
+
+`/mind/attention/context` selects and ranks memory, state, active goals, and recent events.
+
+Scenario:
+
+Project continuation tasks requiring only a small subset of prior context.
+
+Metrics:
+
+- Task success.
+- Context precision.
+- Context recall.
+- Token overhead.
+- Human-rated usefulness.
+
+Result:
+
+Pending Phase 3.
+
+Decision:
+
+Pending.
 
 ## EXP-0004 - Mind API Tool Loop Trace
 
@@ -352,3 +352,52 @@ Behavioral notes:
 Decision:
 
 Active. Use this harness for memory and future cognitive-module checks. Memory v0 has now been implemented after the dedicated design discussion; continue to treat scripted checks as regression evidence and adaptive sessions as the primary behavioral signal.
+
+## EXP-0007 - Visible Metacognition Prompt Probe
+
+Status: active
+
+Hypothesis:
+
+A concise public metacognitive note can improve human evaluation of Scarlet's cognitive behavior without exposing or encouraging raw hidden chain-of-thought.
+
+Baseline:
+
+Scarlet's current cockpit already shows provider-exposed thinking blocks and tool operations, but the final answer does not consistently include a model-authored self-monitoring summary.
+
+Variant:
+
+The Scarlet system prompt includes a `Visible Metacognition Experiment` section. When asked to think aloud, or when a turn is cognitively important, Scarlet may include a short `Metacognizione:` note describing objective, evidence source, uncertainty/risk, and next cognitive action.
+
+Scenario:
+
+Ask Scarlet to use visible metacognition while orienting a quick Memory v0 check.
+
+Metrics:
+
+- The answer includes the `Metacognizione:` label.
+- The metacognitive note stays concise.
+- The note describes source or next cognitive action rather than raw private deliberation.
+- The turn remains traceable through normal stream events and memory/tool traces.
+
+Initial Result:
+
+Run date: 2026-05-09
+
+Scripted probe:
+
+- Scenario: `backend/app/evals/scenarios/visible_metacognition_probe.json`
+- Passing run: `backend/app/evals/runs/20260509_170747_visible_metacognition_probe/summary.md`
+- Turn: `turn_5f362600358443bb90a089b27592d5a5`
+- Trace coverage: `llm.request`, `mind.memory.search`, `mind.tool_call`, and `llm.response`.
+- Answer included `Metacognizione:` and summarized objective, source, uncertainty, and next action before the final answer.
+
+Behavioral notes:
+
+- Positive: Scarlet used Memory v0 during the metacognitive orientation and kept the visible note compact.
+- Risk: visible metacognition could become repetitive or decorative if left on for every ordinary turn.
+- Risk: the project must keep distinguishing public metacognitive summaries from provider/raw chain-of-thought inspection.
+
+Decision:
+
+Active prompt experiment. Keep the method available for explicit user requests and cognitively important turns, then evaluate through adaptive sessions before making it a default-heavy behavior.

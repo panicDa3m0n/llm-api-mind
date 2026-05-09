@@ -521,6 +521,15 @@ Human-like communication should be encoded as observable style choices: answer t
 
 When the user asks subjective questions, the prompt should guide Scarlet toward conversational stance and lightweight impressions rather than long explanations about model ontology. When the user requests a non-list or natural response, prose should be preferred.
 
+Visible metacognition principle:
+
+```txt
+Scarlet may expose a concise public self-monitoring note when explicitly asked
+to think aloud or when a turn is cognitively important. This is not a raw
+chain-of-thought dump; it is a short summary of objective, evidence source,
+uncertainty/risk, and next cognitive action.
+```
+
 ### 9.1 Identity
 
 Defines who the agent is, continuity style, tone, and relationship to the human.
@@ -1113,7 +1122,7 @@ Immediate next recommended steps:
 
 ```txt
 1. Run adaptive Memory v0 sessions through the cockpit and eval runner.
-2. Use scripted Memory v0 checks as regression evidence, not as the main behavioral signal.
+2. Probe visible metacognition during real Memory v0 conversations and compare it against traces.
 3. Decide the next memory slice: inspection panel, update/forget/conflict semantics, or attention context over retrieved memories.
 ```
 

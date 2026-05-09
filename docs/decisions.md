@@ -519,3 +519,44 @@ Links:
 - `backend/app/evals/scenarios/memory_v0_preference.json`
 - `docs/api-contract.md`
 - `docs/experiments.md`
+
+## ADR-0014 - Use Visible Metacognition Instead Of Raw Reasoning Dumps
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+The project owner wants to test whether Scarlet can think aloud in a useful way, using her own reasoning as active metacognition between turns. The runtime already shows provider-exposed thinking blocks in the debug cockpit, but those blocks are not the same thing as a stable, intentional metacognitive protocol inside the agent's public answer.
+
+Decision:
+
+Add a prompt-level visible metacognition method:
+
+```txt
+Metacognizione:
+- objective
+- evidence source
+- uncertainty/risk
+- next cognitive action
+```
+
+This is a public self-monitoring summary, not a raw chain-of-thought dump. Scarlet should use it when explicitly asked to think aloud or when a turn is cognitively important for the experiment. It should stay compact and should not replace normal answers, traces, tool calls, or Memory v0 source attribution.
+
+Alternatives Considered:
+
+- Ask Scarlet to expose full private reasoning: rejected because it creates noisy, hard-to-evaluate output and conflates private model deliberation with public metacognitive evidence.
+- Rely only on provider thinking blocks: rejected because they are debug evidence, not a stable agent-facing protocol for active metacognition.
+- Make metacognition mandatory for every turn: deferred because it may become repetitive and distort normal conversational behavior.
+
+Consequences:
+
+- The human evaluator gets a concise public view of Scarlet's orientation during important turns.
+- The project can compare provider thinking, visible metacognition, tool traces, and final answer behavior.
+- Future experiments can decide whether visible metacognition should trigger memory writes, reflection, or attention context.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/evals/scenarios/visible_metacognition_probe.json`
+- `docs/experiments.md`

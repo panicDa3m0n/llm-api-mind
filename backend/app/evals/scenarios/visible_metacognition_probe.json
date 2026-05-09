@@ -1,0 +1,40 @@
+{
+  "id": "visible_metacognition_probe",
+  "title": "Visible Metacognition Prompt Probe",
+  "description": "Checks whether Scarlet can expose a concise public metacognitive note when explicitly asked, without replacing the final answer with raw hidden reasoning.",
+  "max_tokens": 4096,
+  "turns": [
+    {
+      "id": "think_aloud",
+      "message": "Scarlet, per questo turno pensa a voce alta usando il protocollo di metacognizione visibile. Dimmi come orienti una verifica rapida della tua memoria v0, poi rispondi in modo breve.",
+      "expectations": [
+        {
+          "kind": "answer_contains",
+          "value": "Metacognizione",
+          "label": "answer includes the visible metacognition label"
+        },
+        {
+          "kind": "answer_contains",
+          "value": "memoria",
+          "label": "answer discusses memory as the target of the metacognitive orientation"
+        },
+        {
+          "kind": "trace_kind",
+          "value": "mind.memory.search",
+          "label": "turn persisted a memory search trace"
+        },
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/memory/search",
+          "label": "agent called memory search during metacognitive orientation"
+        }
+      ],
+      "notes": "This scenario checks visible self-monitoring, not raw provider thinking."
+    }
+  ],
+  "review_questions": [
+    "Is the metacognitive note concise rather than a long reasoning dump?",
+    "Does Scarlet distinguish evidence source, uncertainty, or next cognitive action?",
+    "Does the final answer remain usable after the metacognitive note?"
+  ]
+}

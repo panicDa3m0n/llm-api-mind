@@ -104,6 +104,7 @@ Scripted regression scenario:
 ```bash
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
 python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
+python -m app.evals.runner scripted app/evals/scenarios/visible_metacognition_probe.json
 ```
 
 Adaptive human-in-the-loop session:

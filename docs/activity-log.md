@@ -641,3 +641,38 @@ Open Questions:
 Next Suggested Step:
 
 Run adaptive Memory v0 sessions through the cockpit, then decide whether the next slice is a memory inspection panel, memory update/forget semantics, or attention context over retrieved memories.
+
+## 2026-05-09 - Visible Metacognition Prompt Probe
+
+Goal:
+
+Add a testable prompt-level method for Scarlet to think aloud through concise public metacognitive notes without turning final answers into raw reasoning dumps.
+
+Changes:
+
+- Added `Visible Metacognition Experiment` to `backend/app/prompts/scarlet_system.md`.
+- Defined the visible label `Metacognizione:`.
+- Constrained the note to objective, evidence source, uncertainty/risk, and next cognitive action.
+- Added `backend/app/evals/scenarios/visible_metacognition_probe.json`.
+- Added ADR-0014 and EXP-0007.
+- Cleaned up the experiments document so Memory v0 results are recorded under EXP-0002 rather than the planned attention experiment.
+
+Verification:
+
+- Ran backend tests with the backend venv: `23 passed`.
+- Restarted local backend on `http://127.0.0.1:8000`.
+- Ran the live scripted probe:
+  - run `backend/app/evals/runs/20260509_170747_visible_metacognition_probe/summary.md`
+  - turn `turn_5f362600358443bb90a089b27592d5a5`
+  - result passed
+  - traces included `mind.memory.search` and `mind.tool_call`
+  - answer included a concise `Metacognizione:` block.
+
+Open Questions:
+
+- Visible metacognition may become repetitive if Scarlet uses it on ordinary turns.
+- Adaptive sessions should decide whether metacognitive notes should ever be written to memory or later connected to reflection.
+
+Next Suggested Step:
+
+Run adaptive Memory v0 conversations with explicit and implicit requests for metacognition, then compare visible notes against tool traces and final answers.

@@ -71,6 +71,8 @@ This project uses a practical changelog rather than a release-only log: each mea
   - traceable `mind.memory.write` and `mind.memory.search` records;
   - simple write policy, deduplication, lexical retrieval, source metadata, and usage counters.
 - Added a `memory_v0_preference` evaluation scenario for memory write/search regression checks.
+- Added a visible metacognition prompt experiment with the `Metacognizione:` public self-monitoring note.
+- Added a `visible_metacognition_probe` evaluation scenario.
 
 ### Changed
 
@@ -96,6 +98,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Recorded the first adaptive Scarlet pre-memory evaluation run and its source-attribution findings.
 - Updated Scarlet's prompt with Memory v0 discipline: autonomous write/search decisions, source attribution, and required memory search when the user asks about persistent memory.
 - Made Memory v0 tolerant of common model-shaped input aliases such as `pref`, `standard_preference`, `nota_operativa`, `why`, `reason`, `use`, `use_during`, qualitative confidence/salience, `limit`, and GET-style memory search.
+- Documented ADR-0014 for using concise visible metacognition instead of raw reasoning dumps.
+- Cleaned up the experiments document so Memory v0 results are recorded under EXP-0002.
 
 ### Fixed
 

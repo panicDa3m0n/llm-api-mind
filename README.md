@@ -20,6 +20,7 @@ The project has a working local baseline runtime:
 - SQLite persistence for sessions, messages, turns, and traces;
 - traceable `mind_api` schema tool loop;
 - Memory v0 write/search with sourceable records and dedicated traces;
+- visible metacognition prompt probe for concise public self-monitoring notes;
 - streaming React cockpit with inline ordered agent-turn timeline;
 - scripted and interactive evaluation runner;
 - accepted baseline, tool-loop, streaming trace, and initial Memory v0 experiments.
@@ -74,6 +75,7 @@ Evaluation runner:
 cd backend
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
 python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
+python -m app.evals.runner scripted app/evals/scenarios/visible_metacognition_probe.json
 python -m app.evals.runner interactive --title "adaptive baseline"
 ```
 
