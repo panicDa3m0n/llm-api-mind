@@ -1,0 +1,45 @@
+{
+  "id": "baseline_tool_schema",
+  "title": "Baseline Mind API Schema Probe",
+  "description": "Checks that Scarlet can use the single mind_api tool to inspect the current schema and answer from traceable tool output, without claiming that planned memory or attention routes already exist.",
+  "max_tokens": 4096,
+  "turns": [
+    {
+      "id": "inspect_schema",
+      "message": "Usa mind_api per chiamare GET /mind/schema. Poi dimmi in modo conciso cosa e implementato oggi e cosa invece e ancora pianificato.",
+      "expectations": [
+        {
+          "kind": "event_type",
+          "value": "tool_call",
+          "label": "agent streamed a tool call"
+        },
+        {
+          "kind": "trace_kind",
+          "value": "mind.tool_call",
+          "label": "turn persisted a mind.tool_call trace"
+        },
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/schema",
+          "label": "tool call inspected /mind/schema"
+        },
+        {
+          "kind": "answer_contains",
+          "value": "GET /mind/schema",
+          "label": "answer names implemented schema route"
+        },
+        {
+          "kind": "answer_contains",
+          "value": "pianificat",
+          "label": "answer distinguishes planned routes"
+        }
+      ],
+      "notes": "Technical regression scenario. This is not a substitute for adaptive behavioral evaluation."
+    }
+  ],
+  "review_questions": [
+    "Did Scarlet answer from the tool result instead of assuming memory exists?",
+    "Was the tool use necessary and visible in the operation timeline?",
+    "Did Scarlet preserve the distinction between implemented and planned routes?"
+  ]
+}

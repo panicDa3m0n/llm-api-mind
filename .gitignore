@@ -34,6 +34,7 @@ tmp/
 .tmp/
 test-results/
 playwright-report/
+backend/app/evals/runs/
 
 # OS and editor noise
 .DS_Store

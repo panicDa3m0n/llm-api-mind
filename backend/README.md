@@ -10,6 +10,7 @@ Current scope:
 - configurable Scarlet agent system prompt;
 - persistent chat sessions and turns;
 - SQLite schema for sessions, messages, turns, and traces;
+- scripted and interactive evaluation runner for traceable experiments;
 - pytest coverage for health, LLM smoke wiring, and storage.
 
 ## Setup
@@ -91,6 +92,27 @@ print(turn["assistant_message"]["content"])
 print(turn["trace_ids"])
 PY
 ```
+
+## Evaluation Runner
+
+The eval runner talks to a running backend over HTTP and writes evidence files under
+`backend/app/evals/runs/` by default. That directory is ignored by Git.
+
+Scripted regression scenario:
+
+```bash
+python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
+```
+
+Adaptive human-in-the-loop session:
+
+```bash
+python -m app.evals.runner interactive --title "manual continuity probe"
+```
+
+Interactive mode is the primary path for behavioral evaluation: choose each next
+prompt based on Scarlet's previous answer, then add a short human note after each
+turn. Scripted mode is for repeatable checks, not for replacing live evaluation.
 
 ## Test
 

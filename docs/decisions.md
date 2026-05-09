@@ -424,3 +424,44 @@ Links:
 - `frontend/src/App.tsx`
 - `frontend/src/styles.css`
 - `docs/api-contract.md`
+
+## ADR-0012 - Use Dual-Mode Evaluation Before Memory
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+The project is ready to evaluate Scarlet's behavior before adding memory. Pure scripted tests are useful for regressions, but they can distort cognitive evaluation because real human probing adapts to what the agent actually says. The project owner explicitly wants live end-to-end evaluation where the next question can change based on the previous answer.
+
+Decision:
+
+Add an evaluation runner with two modes:
+
+```txt
+scripted    repeatable scenarios for technical regression checks
+interactive adaptive human-in-the-loop sessions for behavioral evidence
+```
+
+The runner talks to the existing backend over HTTP and stores run evidence as files: transcript JSONL, trace payloads, operation summaries, checks, and optional human notes. It does not add memory, attention, or any new cognitive state.
+
+Memory implementation remains blocked until a dedicated design discussion decides what memories are, how they are written, how they are searched, and how they are exposed back to the model.
+
+Alternatives Considered:
+
+- Only scripted evals: rejected because the behavior of the agent can change the right next question.
+- Only manual UI testing: rejected because it gives weak regression evidence and poor reproducibility.
+- Add memory immediately and evaluate it by feel: rejected because memory design will strongly determine experiment outcomes.
+
+Consequences:
+
+- Scripted scenarios become the technical floor, not the behavioral truth.
+- Interactive sessions become first-class evidence and can store human notes per turn.
+- Future memory experiments will have a pre-memory baseline and a repeatable run format.
+- Eval run artifacts are local generated files and are ignored by Git.
+
+Links:
+
+- `backend/app/evals/runner.py`
+- `backend/app/evals/scenarios/`
+- `docs/experiments.md`

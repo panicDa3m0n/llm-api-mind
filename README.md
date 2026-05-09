@@ -18,8 +18,10 @@ The project has a working local baseline runtime:
 - MiniMax M2.7 provider integration;
 - configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, and traces;
-- minimal React debug cockpit.
-- accepted EXP-0001 baseline trace run.
+- traceable `mind_api` schema tool loop;
+- streaming React cockpit with inline ordered agent-turn timeline;
+- scripted and interactive evaluation runner;
+- accepted baseline, tool-loop, and streaming trace experiments.
 
 ## Key Documents
 
@@ -36,9 +38,9 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Add the minimal Phase 2 `mind_api` facade.
-2. Add schema discovery for available API actions.
-3. Add memory and attention only after `mind_api` is traceable.
+1. Run adaptive end-to-end evaluation sessions with the eval runner and cockpit.
+2. Use scripted scenarios as regression checks, not as the main behavioral signal.
+3. Discuss memory design before implementing memory write/search.
 ```
 
 ## Local Run
@@ -63,6 +65,14 @@ Open:
 
 ```txt
 http://127.0.0.1:5173
+```
+
+Evaluation runner:
+
+```bash
+cd backend
+python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
+python -m app.evals.runner interactive --title "adaptive baseline"
 ```
 
 ## Secrets

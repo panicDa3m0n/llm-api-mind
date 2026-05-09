@@ -63,6 +63,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added streaming chat turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
 - Added a structured frontend agent timeline for provider thinking blocks, tool input, tool calls, tool results, and streamed final answers.
 - Added per-turn inline chat timelines so each assistant message shows the ordered model/tool/final-answer operations that produced it.
+- Added a dual-mode evaluation runner with scripted regression scenarios and adaptive interactive sessions.
 
 ### Changed
 
@@ -84,6 +85,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Accepted EXP-0005 after a live MiniMax streaming turn emitted intermediate agentic events and persisted the expected traces.
 - Updated streaming events to include a turn-local sequence and turn identifier so clients can render exact operation order inside the correct chat turn.
 - Moved the structured agent timeline from the debug pane into the assistant message while keeping raw trace logs in the debug pane.
+- Updated the immediate roadmap to evaluate the current system before designing memory, with scripted checks treated as regression evidence and interactive sessions treated as behavioral evidence.
 
 ### Fixed
 

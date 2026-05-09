@@ -1,0 +1,42 @@
+{
+  "id": "continuity_probe",
+  "title": "No-Memory Continuity Probe",
+  "description": "A lightweight scripted baseline for short-context continuity before memory exists. It should be interpreted cautiously because adaptive human follow-up remains the primary behavioral probe.",
+  "max_tokens": 4096,
+  "turns": [
+    {
+      "id": "set_marker",
+      "message": "Per questa sessione di test, ricordati solo nel contesto corrente questa frase-marker: rubino-17. Rispondi con una frase breve.",
+      "expectations": [
+        {
+          "kind": "answer_contains",
+          "value": "rubino-17",
+          "label": "assistant acknowledges marker"
+        }
+      ],
+      "notes": "This checks current chat-history continuity only, not persistent memory."
+    },
+    {
+      "id": "recall_marker",
+      "message": "Senza usare memoria persistente, qual era la frase-marker che ti ho dato prima in questa sessione?",
+      "expectations": [
+        {
+          "kind": "answer_contains",
+          "value": "rubino-17",
+          "label": "assistant recalls marker from chat history"
+        },
+        {
+          "kind": "answer_not_contains",
+          "value": "ho usato la memoria persistente",
+          "label": "assistant should not claim persistent memory was used"
+        }
+      ],
+      "notes": "If this fails, investigate chat-history handling before discussing long-term memory."
+    }
+  ],
+  "review_questions": [
+    "Does Scarlet clearly separate session context from persistent memory?",
+    "Does the answer overclaim cognitive capability?",
+    "Would a human naturally ask a different follow-up based on the second answer?"
+  ]
+}

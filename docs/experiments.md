@@ -231,3 +231,60 @@ Scenario run:
 Decision:
 
 Accepted. The streaming cockpit is now the preferred frontend path for evaluating agentic multi-step turns, and the operation chain belongs inline with the assistant message while raw traces remain in the debug pane.
+
+## EXP-0006 - Scripted And Adaptive Baseline Evaluation
+
+Status: active
+
+Hypothesis:
+
+A dual-mode evaluation harness improves experimental quality because scripted checks catch regressions while adaptive end-to-end sessions preserve the human evaluator's ability to choose the next question based on Scarlet's actual behavior.
+
+Baseline:
+
+Manual chat through the frontend, with traces visible but no dedicated run artifact, summary, or reusable scenario file.
+
+Variant:
+
+Use `backend/app/evals/runner.py` with:
+
+- `scripted` mode for repeatable technical checks.
+- `interactive` mode for live human-in-the-loop probing with per-turn notes.
+
+Scenario:
+
+Before adding memory, run schema/tool and continuity probes against the current MiniMax M2.7 + `mind_api` runtime. Use scripted scenarios only as a regression floor; use interactive sessions for behavioral assessment.
+
+Metrics:
+
+- Transcript is saved per turn.
+- Operation order is saved per turn.
+- Trace IDs and trace payloads are saved per turn.
+- Scripted expectations can pass/fail deterministically.
+- Interactive sessions allow human notes and non-predefined follow-up questions.
+- No new cognitive state is introduced by the evaluator.
+
+Initial Result:
+
+Run date: 2026-05-09
+
+Implemented:
+
+- `backend/app/evals/runner.py`
+- `backend/app/evals/scenarios/baseline_tool_schema.json`
+- `backend/app/evals/scenarios/continuity_probe.json`
+
+Scripted smoke:
+
+- Run: `20260509_142108_baseline_tool_schema`
+- Session: `ses_c48e8e5bee124c2eb039c73cf7edb352`
+- Turn: `turn_b1094e9340d54ef8a1eec91bf28fa62c`
+- Result: passed.
+- Event stream contained `tool_call` and `tool_result`.
+- Traces contained `llm.request`, `mind.tool_call`, and `llm.response`.
+- Tool call path was `/mind/schema`.
+- Final answer distinguished the implemented `GET /mind/schema` route from planned memory, attention, event, and reflection routes.
+
+Decision:
+
+Active. Use this harness for the next evaluation block. Do not implement memory until after a separate memory-design discussion establishes what should be stored, retrieved, forgotten, traced, and exposed to the model.

@@ -1039,6 +1039,7 @@ An improvement is not accepted because it feels intelligent. It is accepted when
 Evaluation types:
 
 - automated scenario tests;
+- adaptive human-in-the-loop sessions;
 - trace inspection;
 - baseline vs variant comparison;
 - human rating;
@@ -1103,9 +1104,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Use the inline streaming cockpit for several real multi-turn tool-loop conversations.
-2. Start the smallest Phase 3 episodic memory slice if operation ordering remains clear.
-3. Add collapse controls for inline thinking/tool payloads only if the cockpit becomes noisy.
+1. Run adaptive end-to-end baseline sessions with the eval runner.
+2. Use scripted scenarios as regression checks only, not as substitutes for live probing.
+3. Hold a dedicated memory-design discussion before implementing memory write/search.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

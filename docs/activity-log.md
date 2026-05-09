@@ -514,3 +514,40 @@ Open Questions:
 Next Suggested Step:
 
 Use the inline cockpit for a few real multi-turn tool conversations. If the ordering remains clear, proceed to the smallest Phase 3 memory slice.
+
+## 2026-05-09 - Dual-Mode Evaluation Runner
+
+Goal:
+
+Create the first real evaluation harness before memory: scripted checks for regressions and adaptive interactive runs for human-led behavioral probing.
+
+Changes:
+
+- Added `backend/app/evals/runner.py`.
+- Added a scripted scenario loader and runner.
+- Added an interactive runner that creates a live backend session, accepts one human prompt at a time, prints operation summaries and answers, and records optional human notes.
+- Added run artifacts: `transcript.jsonl`, `summary.md`, and `run.json`.
+- Added `baseline_tool_schema.json` and `continuity_probe.json` scenarios.
+- Added pytest coverage for scripted run recording, stream parsing, trace fetching, and expectation checks.
+- Updated README usage and ignored generated eval runs.
+- Recorded ADR-0012 and EXP-0006.
+
+Verification:
+
+- Ran `pytest tests/test_eval_runner.py`; 1 test passed.
+- Ran a real scripted eval against `http://127.0.0.1:8000`:
+  - Run `20260509_142108_baseline_tool_schema`
+  - Session `ses_c48e8e5bee124c2eb039c73cf7edb352`
+  - Turn `turn_b1094e9340d54ef8a1eec91bf28fa62c`
+  - Result passed
+  - Traces included `llm.request`, `mind.tool_call`, and `llm.response`
+  - Tool call path was `/mind/schema`
+
+Open Questions:
+
+- The first adaptive interactive session still needs to be run by the human/agent pair.
+- Memory design remains intentionally blocked until a dedicated discussion.
+
+Next Suggested Step:
+
+Run an interactive adaptive baseline session and use the resulting transcript plus notes to decide what the memory design discussion must cover.
