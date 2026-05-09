@@ -186,3 +186,45 @@ Scenario run:
 Decision:
 
 Accepted as the Phase 2 tool-loop trace substrate. The system may proceed toward Phase 3 memory after trace inspection remains clear enough for tool calls.
+
+## EXP-0005 - Streaming Agentic Turn Inspection
+
+Status: accepted
+
+Hypothesis:
+
+Streaming agentic turn events into the cockpit improves evaluation quality because the human can see model reasoning blocks, tool input, tool output, and final answer progression before the turn completes.
+
+Baseline:
+
+The frontend waits for `POST /api/chat/sessions/{session_id}/turn` to complete and then displays persisted messages plus raw trace JSON.
+
+Variant:
+
+The frontend uses `POST /api/chat/sessions/{session_id}/turn/stream`, renders live NDJSON events, and then loads persisted traces after `turn_complete`.
+
+Scenario:
+
+Ask Scarlet to call `mind_api` for `GET /mind/schema` and answer briefly.
+
+Metrics:
+
+- Streaming emits intermediate events before `turn_complete`.
+- Tool input, tool call, and tool result are visible as separate events.
+- Final answer text is visible as deltas before persistence completes.
+- Stored traces still contain `llm.request`, `mind.tool_call`, and `llm.response`.
+
+Result:
+
+Run date: 2026-05-09
+
+Scenario run:
+
+- Turn: `turn_066c76bf698f480a9a12dff30bd4cfb1`.
+- Stream event sequence included `turn_started`, `model_request`, `thinking_start`, `thinking_delta`, `tool_use_start`, `tool_input_delta`, `tool_call`, `tool_result`, `text_delta`, and `turn_complete`.
+- Persisted trace kinds were `llm.request`, `mind.tool_call`, and `llm.response`.
+- Final answer identified `GET /mind/schema` as the currently implemented route.
+
+Decision:
+
+Accepted. The streaming cockpit is now the preferred frontend path for evaluating agentic multi-step turns.

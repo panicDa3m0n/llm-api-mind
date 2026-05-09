@@ -1,9 +1,11 @@
+import json
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from pydantic import ValidationError
 from sqlalchemy.engine import Engine
@@ -17,6 +19,8 @@ from app.llm.provider import (
     LLMMessage,
     LLMProvider,
     LLMRequestError,
+    LLMStreamEvent,
+    LLMTextResult,
     LLMToolUse,
 )
 from app.mind.dispatcher import MindAPIError, MindAPIRequest, MindAPIResponse
@@ -296,7 +300,113 @@ def build_chat_router(
                 model=result.model,
                 latency_ms=latency_ms,
                 usage=result.usage,
+        )
+
+    @router.post("/sessions/{session_id}/turn/stream")
+    def create_streaming_turn(
+        session_id: str,
+        request: ChatTurnRequest,
+    ) -> StreamingResponse:
+        started = time.perf_counter()
+        trace_ids: list[str] = []
+
+        with Session(engine) as db:
+            _require_session(db, session_id)
+            turn = repositories.create_turn(
+                db,
+                session_id=session_id,
+                model=settings.minimax_model,
             )
+            turn_id = turn.id
+            user_message = repositories.add_message(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                role="user",
+                content=request.message,
+            )
+            user_message_response = _message_response(user_message)
+            history = repositories.list_messages(db, session_id=session_id)
+            llm_messages = _to_llm_messages(history)
+            max_tokens = request.max_tokens or settings.minimax_max_tokens
+            try:
+                system_prompt = resolve_agent_system_prompt(
+                    settings,
+                    override=request.system,
+                )
+            except AgentSystemPromptError as exc:
+                repositories.add_trace(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    kind="llm.error",
+                    payload={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                    },
+                )
+                repositories.complete_turn(
+                    db,
+                    turn_id=turn_id,
+                    status="failed",
+                    latency_ms=int((time.perf_counter() - started) * 1000),
+                    error={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                    },
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "code": "agent.system_prompt_error",
+                        "message": str(exc),
+                        "recoverable": True,
+                    },
+                ) from exc
+
+            request_trace = repositories.add_trace(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                kind="llm.request",
+                payload={
+                    "model": settings.minimax_model,
+                    "max_tokens": max_tokens,
+                    "system": system_prompt.content,
+                    "system_present": True,
+                    "system_source": system_prompt.source,
+                    "system_path": system_prompt.path,
+                    "messages": [
+                        {
+                            "id": message.id,
+                            "role": message.role,
+                            "content": message.content,
+                        }
+                        for message in history
+                        if message.role in {"user", "assistant"}
+                    ],
+                    "tools": [MIND_API_TOOL_SCHEMA],
+                    "stream": True,
+                },
+            )
+            trace_ids.append(request_trace.id)
+
+        return StreamingResponse(
+            _stream_turn_events(
+                settings=settings,
+                engine=engine,
+                provider_factory=provider_factory,
+                session_id=session_id,
+                turn_id=turn_id,
+                started=started,
+                trace_ids=trace_ids,
+                user_message_response=user_message_response,
+                llm_messages=llm_messages,
+                system=system_prompt.content,
+                max_tokens=max_tokens,
+            ),
+            media_type="application/x-ndjson",
+        )
 
     return router
 
@@ -365,6 +475,156 @@ def _build_mind_tool_runner(
         )
 
     return run
+
+
+def _stream_turn_events(
+    *,
+    settings: Settings,
+    engine: Engine,
+    provider_factory: ProviderFactory,
+    session_id: str,
+    turn_id: str,
+    started: float,
+    trace_ids: list[str],
+    user_message_response: ChatMessageResponse,
+    llm_messages: list[LLMMessage],
+    system: str,
+    max_tokens: int,
+) -> Iterator[str]:
+    yield _ndjson(
+        "turn_started",
+        {
+            "turn_id": turn_id,
+            "session_id": session_id,
+            "user_message": user_message_response.model_dump(mode="json"),
+            "trace_ids": trace_ids,
+        },
+    )
+
+    result: LLMTextResult | None = None
+    try:
+        provider = provider_factory(settings)
+        for stream_event in provider.stream_chat_with_tools(
+            messages=llm_messages,
+            system=system,
+            max_tokens=max_tokens,
+            tools=[MIND_API_TOOL_SCHEMA],
+            tool_runner=_build_mind_tool_runner(
+                engine,
+                session_id=session_id,
+                turn_id=turn_id,
+                trace_ids=trace_ids,
+            ),
+        ):
+            if stream_event.type == "final_result":
+                result = LLMTextResult.model_validate(stream_event.data["result"])
+            else:
+                yield _ndjson(stream_event.type, stream_event.data)
+    except LLMConfigurationError as exc:
+        _record_failed_turn(
+            engine,
+            session_id=session_id,
+            turn_id=turn_id,
+            started=started,
+            code="llm.not_configured",
+            message=str(exc),
+        )
+        yield _ndjson(
+            "error",
+            {"code": "llm.not_configured", "message": str(exc), "recoverable": True},
+        )
+        return
+    except LLMRequestError as exc:
+        _record_failed_turn(
+            engine,
+            session_id=session_id,
+            turn_id=turn_id,
+            started=started,
+            code="llm.provider_error",
+            message=str(exc),
+        )
+        yield _ndjson(
+            "error",
+            {"code": "llm.provider_error", "message": str(exc), "recoverable": True},
+        )
+        return
+
+    if result is None:
+        message = "Provider stream ended without a final result."
+        _record_failed_turn(
+            engine,
+            session_id=session_id,
+            turn_id=turn_id,
+            started=started,
+            code="llm.stream_incomplete",
+            message=message,
+        )
+        yield _ndjson(
+            "error",
+            {"code": "llm.stream_incomplete", "message": message, "recoverable": True},
+        )
+        return
+
+    latency_ms = int((time.perf_counter() - started) * 1000)
+    with Session(engine) as db:
+        assistant_message = repositories.add_message(
+            db,
+            session_id=session_id,
+            turn_id=turn_id,
+            role="assistant",
+            content=result.text,
+            provider_message_id=result.provider_message_id,
+            raw_content=result.raw_content,
+            metadata={
+                "model": result.model,
+                "usage": result.usage,
+                "stop_reason": result.stop_reason,
+            },
+        )
+        response_trace = repositories.add_trace(
+            db,
+            session_id=session_id,
+            turn_id=turn_id,
+            kind="llm.response",
+            payload={
+                "model": result.model,
+                "text": result.text,
+                "usage": result.usage,
+                "provider_message_id": result.provider_message_id,
+                "stop_reason": result.stop_reason,
+                "raw_content": result.raw_content,
+                "tool_calls": [
+                    tool_call.model_dump(mode="json")
+                    for tool_call in result.tool_calls
+                ],
+                "raw_provider_messages": result.raw_provider_messages,
+                "stream": True,
+            },
+        )
+        trace_ids.append(response_trace.id)
+        completed_turn = repositories.complete_turn(
+            db,
+            turn_id=turn_id,
+            latency_ms=latency_ms,
+        )
+        chat_session = _require_session(db, session_id)
+        turn_response = ChatTurnResponse(
+            session=_session_response(chat_session),
+            turn_id=completed_turn.id,
+            status=completed_turn.status,
+            user_message=user_message_response,
+            assistant_message=_message_response(assistant_message),
+            trace_ids=trace_ids,
+            model=result.model,
+            latency_ms=latency_ms,
+            usage=result.usage,
+        )
+
+    yield _ndjson("turn_complete", turn_response.model_dump(mode="json"))
+
+
+def _ndjson(event_type: str, data: dict[str, Any]) -> str:
+    return json.dumps({"type": event_type, "data": data}, ensure_ascii=True) + "\n"
 
 
 def _dispatch_tool_use(

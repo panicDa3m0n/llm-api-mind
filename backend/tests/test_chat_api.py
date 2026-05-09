@@ -1,8 +1,16 @@
+import json
+
 from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
 
 from app.config import Settings
-from app.llm.provider import LLMMessage, LLMTextResult, LLMToolRunner, LLMToolUse
+from app.llm.provider import (
+    LLMMessage,
+    LLMStreamEvent,
+    LLMTextResult,
+    LLMToolRunner,
+    LLMToolUse,
+)
 from app.main import create_app
 
 
@@ -63,6 +71,27 @@ class FakeChatProvider:
             max_tokens=max_tokens,
         )
 
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ):
+        result = self.generate_chat(
+            messages=messages,
+            system=system,
+            max_tokens=max_tokens,
+        )
+        yield LLMStreamEvent(type="text_delta", data={"text": result.text})
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
 
 class FakeToolCallingProvider(FakeChatProvider):
     def generate_chat_with_tools(
@@ -111,6 +140,67 @@ class FakeToolCallingProvider(FakeChatProvider):
                     ],
                 }
             ],
+        )
+
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ):
+        yield LLMStreamEvent(
+            type="thinking_delta",
+            data={"text": "I should inspect the schema."},
+        )
+        yield LLMStreamEvent(
+            type="tool_input_delta",
+            data={"partial_json": '{"method":"GET","path":"/mind/schema"'},
+        )
+        executed = tool_runner(
+            LLMToolUse(
+                id="toolu_schema",
+                name="mind_api",
+                input={
+                    "method": "GET",
+                    "path": "/mind/schema",
+                    "intent": "Inspect schema before answering.",
+                },
+            )
+        )
+        yield LLMStreamEvent(
+            type="tool_call",
+            data={
+                "provider_tool_use_id": executed.provider_tool_use_id,
+                "tool_name": executed.tool_name,
+                "arguments": executed.arguments,
+            },
+        )
+        yield LLMStreamEvent(type="tool_result", data=executed.model_dump(mode="json"))
+        yield LLMStreamEvent(type="text_delta", data={"text": "Schema inspected."})
+        yield LLMStreamEvent(
+            type="final_result",
+            data={
+                "result": LLMTextResult(
+                    model=self.settings.minimax_model,
+                    text="Schema inspected.",
+                    usage={"input_tokens": 12, "output_tokens": 4},
+                    provider_message_id="provider_msg_stream",
+                    raw_content=[{"type": "text", "text": "Schema inspected."}],
+                    stop_reason="end_turn",
+                    tool_calls=[executed],
+                    raw_provider_messages=[
+                        {
+                            "id": "provider_msg_stream",
+                            "stop_reason": "end_turn",
+                            "content": [{"type": "text", "text": "Schema inspected."}],
+                        }
+                    ],
+                ).model_dump(mode="json")
+            },
         )
 
 
@@ -272,6 +362,42 @@ def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
         response_trace["payload"]["tool_calls"][0]["trace_id"]
         == tool_trace["id"]
     )
+
+
+def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
+    db_engine: Engine,
+) -> None:
+    client = make_tool_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream",
+        json={"message": "inspect schema first"},
+    ) as response:
+        assert response.status_code == 200
+        events = [line for line in response.iter_lines() if line]
+
+    event_types = [json.loads(line)["type"] for line in events]
+    assert event_types == [
+        "turn_started",
+        "thinking_delta",
+        "tool_input_delta",
+        "tool_call",
+        "tool_result",
+        "text_delta",
+        "turn_complete",
+    ]
+    complete = json.loads(events[-1])["data"]
+    assert complete["assistant_message"]["content"] == "Schema inspected."
+
+    traces = client.get(f"/api/debug/traces/{complete['turn_id']}").json()
+    assert [trace["kind"] for trace in traces] == [
+        "llm.request",
+        "mind.tool_call",
+        "llm.response",
+    ]
+    assert traces[2]["payload"]["stream"] is True
 
 
 def test_chat_turn_returns_404_for_missing_session(db_engine: Engine) -> None:

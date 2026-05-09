@@ -344,6 +344,126 @@ button:disabled {
   border-bottom: 1px solid #d8e1de;
 }
 
+.agent-timeline {
+  border-bottom: 1px solid #d8e1de;
+  background: #f7faf9;
+}
+
+.timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 8px;
+  color: #245c59;
+}
+
+.timeline-header h3 {
+  margin: 2px 0 0;
+  color: #1f2826;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.timeline-empty {
+  margin: 0 14px 14px;
+  padding: 14px;
+  border: 1px dashed #cdd8d5;
+  border-radius: 8px;
+  color: #74827e;
+  background: #ffffff;
+  font-size: 13px;
+  text-align: center;
+}
+
+.timeline-list {
+  display: flex;
+  max-height: 42vh;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding: 0 14px 14px;
+}
+
+.timeline-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 9px;
+  border: 1px solid #d8e1de;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.timeline-step.thinking {
+  border-color: #d9c8e2;
+}
+
+.timeline-step.tool {
+  border-color: #bfd1cf;
+}
+
+.timeline-step.result {
+  border-color: #c8d8c9;
+}
+
+.timeline-step.error {
+  border-color: #d9a6a0;
+  background: #fff7f5;
+}
+
+.step-icon {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 7px;
+  color: #ffffff;
+  background: #245c59;
+}
+
+.timeline-step.thinking .step-icon {
+  background: #6f4e7c;
+}
+
+.timeline-step.result .step-icon {
+  background: #427343;
+}
+
+.timeline-step.answer .step-icon {
+  background: #355d84;
+}
+
+.step-body {
+  min-width: 0;
+}
+
+.step-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #25312f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.step-title small {
+  color: #64736f;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.step-body pre {
+  max-height: 180px;
+  margin: 7px 0 0;
+  overflow: auto;
+  color: #2d3639;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
 .metric {
   min-width: 0;
   padding: 8px;

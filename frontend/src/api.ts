@@ -1,4 +1,11 @@
-import type { ApiError, ChatMessage, ChatSession, ChatTurn, TraceItem } from "./types";
+import type {
+  ApiError,
+  ChatMessage,
+  ChatSession,
+  ChatTurn,
+  StreamEvent,
+  TraceItem
+} from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -45,6 +52,62 @@ export function sendTurn(
       max_tokens: maxTokens || null
     })
   });
+}
+
+export async function streamTurn(
+  sessionId: string,
+  message: string,
+  maxTokens: number | undefined,
+  onEvent: (event: StreamEvent) => void
+): Promise<void> {
+  const response = await fetch(`/api/chat/sessions/${sessionId}/turn/stream`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message,
+      max_tokens: maxTokens || null
+    })
+  });
+
+  if (!response.ok) {
+    let error = `${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as ApiError;
+      error = body.detail?.message || body.detail?.code || error;
+    } catch {
+      // Keep the HTTP status fallback.
+    }
+    throw new Error(error);
+  }
+
+  if (!response.body) {
+    throw new Error("Streaming response body is unavailable.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        onEvent(JSON.parse(trimmed) as StreamEvent);
+      }
+    }
+  }
+
+  const finalLine = buffer.trim();
+  if (finalLine) {
+    onEvent(JSON.parse(finalLine) as StreamEvent);
+  }
 }
 
 export function fetchMessages(sessionId: string): Promise<ChatMessage[]> {

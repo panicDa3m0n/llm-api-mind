@@ -60,6 +60,8 @@ This project uses a practical changelog rather than a release-only log: each mea
   - persistent `tool_calls` table;
   - optional `mind.tool_call` traces linked to sessions and turns.
 - Added Phase 2B MiniMax tool-loop support for `mind_api` during persistent chat turns.
+- Added streaming chat turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Added a structured frontend agent timeline for provider thinking blocks, tool input, tool calls, tool results, and streamed final answers.
 
 ### Changed
 
@@ -78,6 +80,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Updated chat request/response traces to include tool schema, `mind.tool_call` events, normalized tool-call metadata, and raw provider tool-loop messages.
 - Updated Scarlet's bundled prompt to describe `mind_api` schema discovery as an available runtime capability.
 - Accepted EXP-0004 after a live MiniMax turn used `mind_api` and produced `llm.request`, `mind.tool_call`, and `llm.response` traces.
+- Accepted EXP-0005 after a live MiniMax streaming turn emitted intermediate agentic events and persisted the expected traces.
 
 ### Fixed
 

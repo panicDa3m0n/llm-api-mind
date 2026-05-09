@@ -343,3 +343,41 @@ Links:
 - `backend/app/llm/provider.py`
 - `backend/app/api/chat.py`
 - `backend/app/mind/dispatcher.py`
+
+## ADR-0010 - Use NDJSON Streaming For The Debug Cockpit
+
+Date: 2026-05-09
+Status: accepted
+
+Context:
+
+The frontend cockpit needs to evaluate agentic multi-step behavior without waiting for the full final answer. It must show provider-exposed thinking blocks, tool input, tool result, and final response in a clear timeline while preserving persistent traces.
+
+Decision:
+
+Add a streaming chat endpoint:
+
+```txt
+POST /api/chat/sessions/{session_id}/turn/stream
+```
+
+Use newline-delimited JSON over `fetch()` rather than WebSockets or `EventSource`. `fetch()` supports POST bodies, keeps the same request shape as the normal chat endpoint, and avoids adding infrastructure before the stream semantics prove useful.
+
+Alternatives Considered:
+
+- Server-Sent Events through `EventSource`: rejected for this slice because browser `EventSource` is GET-only and the chat turn needs a JSON body.
+- WebSockets: deferred because bidirectional transport is not yet needed.
+- Polling traces after completion: rejected because it does not evaluate live model/tool progression.
+
+Consequences:
+
+- The cockpit can render live model text, tool calls, and tool results as they happen.
+- The streaming endpoint still writes the same durable messages and traces as the non-streaming endpoint.
+- Frontend parsing remains simple and inspectable.
+- Later cancellation/backpressure behavior may need explicit handling if long-running tool loops appear.
+
+Links:
+
+- `backend/app/api/chat.py`
+- `frontend/src/api.ts`
+- `frontend/src/App.tsx`

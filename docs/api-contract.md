@@ -272,6 +272,61 @@ If the provider fails, creates:
 
 `llm.response` stores final text, usage, raw final content, normalized tool call metadata, and raw provider messages from the tool loop when tools were used.
 
+### POST /api/chat/sessions/{session_id}/turn/stream
+
+Status: implemented
+
+Purpose:
+
+Run the same persistent chat turn and `mind_api` tool loop as the non-streaming endpoint, but stream model and agent-loop events to the debug cockpit before the final response is complete.
+
+Request:
+
+```json
+{
+  "message": "Use mind_api before answering.",
+  "system": null,
+  "max_tokens": 4096
+}
+```
+
+Response:
+
+The response is newline-delimited JSON with media type `application/x-ndjson`. Each line has:
+
+```json
+{
+  "type": "text_delta",
+  "data": {}
+}
+```
+
+Current event types:
+
+- `turn_started`: persisted user message and turn identifiers are ready.
+- `model_request`: a provider request step started.
+- `thinking_start`: provider-exposed thinking block started.
+- `thinking_delta`: provider-exposed thinking text delta for debug inspection.
+- `tool_use_start`: provider tool-use block started.
+- `tool_input_delta`: partial JSON input streamed by the provider for the tool call.
+- `tool_call`: normalized tool call before backend dispatch.
+- `tool_result`: normalized result returned by the backend dispatcher.
+- `text_start`: final text block started.
+- `text_delta`: assistant response text delta.
+- `model_stop`: provider stop reason for the current model step.
+- `turn_complete`: final `ChatTurnResponse` after messages, traces, and turn status are persisted.
+- `error`: recoverable stream error object.
+
+Errors:
+
+- `404 session.not_found`: the session does not exist.
+- `503 agent.system_prompt_error`: the configured agent system prompt could not be loaded before streaming starts.
+- Provider/runtime errors after streaming starts are emitted as `error` events and persisted as failed turn traces.
+
+Trace Behavior:
+
+Creates the same persistent trace records as `POST /api/chat/sessions/{session_id}/turn`. `llm.request` and `llm.response` payloads include `"stream": true`; tool calls still create `mind.tool_call` traces and `tool_calls` rows.
+
 ### GET /api/chat/sessions/{session_id}/messages
 
 Status: implemented
@@ -361,7 +416,7 @@ Status: implemented
 
 Purpose:
 
-Exercise the internal `mind_api(method, path, body, intent)` dispatcher through HTTP while the MiniMax tool loop is still being built. This provides the Phase 2 facade and records tool calls before cognitive modules are added.
+Exercise the internal `mind_api(method, path, body, intent)` dispatcher through HTTP for manual debugging and contract tests. Chat turns use the same dispatcher through the MiniMax tool loop.
 
 Request:
 

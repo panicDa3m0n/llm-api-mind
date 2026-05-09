@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
@@ -49,6 +49,11 @@ class LLMExecutedToolCall(BaseModel):
     trace_id: str | None = None
 
 
+class LLMStreamEvent(BaseModel):
+    type: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
 LLMToolRunner = Callable[[LLMToolUse], LLMExecutedToolCall]
 
 
@@ -82,3 +87,15 @@ class LLMProvider(Protocol):
         max_tool_calls: int = 4,
     ) -> LLMTextResult:
         """Generate text from chat history with a bounded model tool loop."""
+
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> Iterator[LLMStreamEvent]:
+        """Stream chat events from a bounded model tool loop."""

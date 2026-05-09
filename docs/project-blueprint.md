@@ -1103,9 +1103,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Run and record a small Phase 2 tool-loop trace scenario.
-2. Improve trace cockpit ergonomics for `mind.tool_call` inspection if needed.
-3. Start Phase 3 memory only after tool-loop traces are easy to inspect.
+1. Use the streaming cockpit for several real multi-turn tool-loop conversations.
+2. Polish trace/timeline ergonomics only if manual use shows friction.
+3. Start Phase 3 episodic memory after the streaming tool loop remains inspectable.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

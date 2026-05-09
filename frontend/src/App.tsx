@@ -2,17 +2,20 @@ import {
   Activity,
   Bot,
   Braces,
+  BrainCircuit,
+  CheckCircle2,
   Clock3,
   Database,
   MessageSquarePlus,
   RefreshCcw,
   Send,
+  Wrench,
   UserRound
 } from "lucide-react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
-import { createSession, fetchHealth, fetchMessages, fetchTraces, sendTurn } from "./api";
-import type { ChatMessage, ChatSession, ChatTurn, TraceItem } from "./types";
+import { createSession, fetchHealth, fetchMessages, fetchTraces, streamTurn } from "./api";
+import type { AgentStep, ChatMessage, ChatSession, ChatTurn, StreamEvent, TraceItem } from "./types";
 
 type Status = {
   label: string;
@@ -29,6 +32,8 @@ export function App() {
   const [health, setHealth] = useState<string>("checking");
   const [lastTurn, setLastTurn] = useState<ChatTurn | null>(null);
   const [maxTokens, setMaxTokens] = useState("4096");
+  const [agentSteps, setAgentSteps] = useState<AgentStep[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
 
   useEffect(() => {
     fetchHealth()
@@ -52,10 +57,11 @@ export function App() {
     }
     const created = await createSession("Baseline trace");
     setSession(created);
-    setMessages([]);
-    setTraces([]);
-    setSelectedTurnId(null);
-    return created;
+      setMessages([]);
+      setTraces([]);
+      setAgentSteps([]);
+      setSelectedTurnId(null);
+      return created;
   }
 
   async function startSession() {
@@ -65,6 +71,7 @@ export function App() {
       setSession(created);
       setMessages([]);
       setTraces([]);
+      setAgentSteps([]);
       setSelectedTurnId(null);
       setLastTurn(null);
       setStatus({ label: "Session ready", tone: "ok" });
@@ -90,7 +97,9 @@ export function App() {
     setSelectedTurnId(turnId);
     setStatus({ label: "Loading traces", tone: "busy" });
     try {
-      setTraces(await fetchTraces(turnId));
+      const loaded = await fetchTraces(turnId);
+      setTraces(loaded);
+      setAgentSteps(stepsFromTraces(loaded));
       setStatus({ label: "Trace loaded", tone: "ok" });
     } catch (error) {
       setStatus({ label: errorMessage(error), tone: "error" });
@@ -104,25 +113,210 @@ export function App() {
       return;
     }
     setPrompt("");
-    setStatus({ label: "Sending", tone: "busy" });
+    setStatus({ label: "Streaming", tone: "busy" });
+    setIsStreaming(true);
+    setAgentSteps([]);
 
     try {
       const activeSession = await ensureSession();
       const tokenValue = Number(maxTokens);
-      const turn = await sendTurn(
+      await streamTurn(
         activeSession.id,
         message,
-        Number.isFinite(tokenValue) && tokenValue > 0 ? tokenValue : undefined
+        Number.isFinite(tokenValue) && tokenValue > 0 ? tokenValue : undefined,
+        (event) => handleStreamEvent(event)
       );
-      setSession(turn.session);
-      setLastTurn(turn);
-      setMessages((current) => [...current, turn.user_message, turn.assistant_message]);
-      setSelectedTurnId(turn.turn_id);
-      setTraces(await fetchTraces(turn.turn_id));
-      setStatus({ label: "Turn complete", tone: "ok" });
     } catch (error) {
       setStatus({ label: errorMessage(error), tone: "error" });
+      setAgentSteps((current) => [
+        ...current,
+        {
+          id: `error-${Date.now()}`,
+          kind: "runtime",
+          title: "Stream error",
+          body: errorMessage(error),
+          status: "error"
+        }
+      ]);
+    } finally {
+      setIsStreaming(false);
     }
+  }
+
+  function handleStreamEvent(event: StreamEvent) {
+    switch (event.type) {
+      case "turn_started": {
+        const userMessage = event.data.user_message as ChatMessage;
+        const turnId = String(event.data.turn_id);
+        setSelectedTurnId(turnId);
+        setTraces([]);
+        setMessages((current) => [
+          ...current,
+          userMessage,
+          {
+            id: `stream-assistant-${turnId}`,
+            session_id: userMessage.session_id,
+            turn_id: turnId,
+            role: "assistant",
+            content: "",
+            created_at: new Date().toISOString(),
+            metadata: { streaming: true }
+          }
+        ]);
+        upsertStep({
+          id: "runtime-start",
+          kind: "runtime",
+          title: "Turn started",
+          body: turnId,
+          status: "done"
+        });
+        break;
+      }
+      case "model_request":
+        upsertStep({
+          id: `model-${String(event.data.step ?? "1")}`,
+          kind: "runtime",
+          title: "Model request",
+          body: formatJson(event.data),
+          status: "active"
+        });
+        break;
+      case "thinking_delta":
+        appendStepText("thinking-live", {
+          kind: "thinking",
+          title: "Provider thinking block",
+          text: String(event.data.text ?? "")
+        });
+        break;
+      case "tool_input_delta":
+        appendStepText("tool-input-live", {
+          kind: "tool",
+          title: "Tool input stream",
+          text: String(event.data.partial_json ?? "")
+        });
+        break;
+      case "tool_call":
+        upsertStep({
+          id: `tool-call-${String(event.data.provider_tool_use_id ?? Date.now())}`,
+          kind: "tool",
+          title: `Tool call: ${String(event.data.tool_name ?? "tool")}`,
+          body: formatJson(event.data.arguments ?? event.data),
+          status: "done"
+        });
+        break;
+      case "tool_result":
+        upsertStep({
+          id: `tool-result-${String(event.data.tool_call_id ?? Date.now())}`,
+          kind: "result",
+          title: `Tool result: ${String(event.data.tool_name ?? "mind_api")}`,
+          body: formatJson(event.data.result ?? event.data),
+          status: event.data.status === "error" ? "error" : "done"
+        });
+        break;
+      case "text_delta": {
+        const delta = String(event.data.text ?? "");
+        setMessages((current) =>
+          current.map((message) =>
+            message.id.startsWith("stream-assistant-")
+              ? { ...message, content: `${message.content}${delta}` }
+              : message
+          )
+        );
+        appendStepText("answer-live", {
+          kind: "answer",
+          title: "Final answer stream",
+          text: delta
+        });
+        break;
+      }
+      case "model_stop":
+        upsertStep({
+          id: `model-stop-${Date.now()}`,
+          kind: "runtime",
+          title: "Model stop",
+          body: String(event.data.stop_reason ?? "unknown"),
+          status: "done"
+        });
+        break;
+      case "turn_complete": {
+        const turn = event.data as unknown as ChatTurn;
+        setSession(turn.session);
+        setLastTurn(turn);
+        setMessages((current) => [
+          ...current.filter(
+            (message) =>
+              !message.id.startsWith("stream-assistant-") &&
+              message.id !== turn.user_message.id
+          ),
+          turn.user_message,
+          turn.assistant_message
+        ]);
+        setSelectedTurnId(turn.turn_id);
+        setStatus({ label: "Turn complete", tone: "ok" });
+        setAgentSteps((current) =>
+          current.map((step) =>
+            step.status === "active" ? { ...step, status: "done" } : step
+          )
+        );
+        void fetchTraces(turn.turn_id).then((loaded) => {
+          setTraces(loaded);
+          setAgentSteps((current) => mergeSteps(current, stepsFromTraces(loaded)));
+        });
+        break;
+      }
+      case "error":
+        setStatus({ label: String(event.data.message ?? "Stream error"), tone: "error" });
+        upsertStep({
+          id: `stream-error-${Date.now()}`,
+          kind: "runtime",
+          title: String(event.data.code ?? "Stream error"),
+          body: String(event.data.message ?? ""),
+          status: "error"
+        });
+        break;
+      default:
+        upsertStep({
+          id: `event-${event.type}-${Date.now()}`,
+          kind: "runtime",
+          title: event.type,
+          body: formatJson(event.data),
+          status: "done"
+        });
+    }
+  }
+
+  function upsertStep(next: AgentStep) {
+    setAgentSteps((current) => {
+      const index = current.findIndex((step) => step.id === next.id);
+      if (index === -1) {
+        return [...current, next];
+      }
+      return current.map((step) => (step.id === next.id ? { ...step, ...next } : step));
+    });
+  }
+
+  function appendStepText(
+    id: string,
+    next: { kind: AgentStep["kind"]; title: string; text: string }
+  ) {
+    setAgentSteps((current) => {
+      const index = current.findIndex((step) => step.id === id);
+      if (index === -1) {
+        return [
+          ...current,
+          {
+            id,
+            kind: next.kind,
+            title: next.title,
+            body: next.text,
+            status: "active"
+          }
+        ];
+      }
+      return current.map((step) =>
+        step.id === id ? { ...step, body: `${step.body}${next.text}` } : step
+      );
+    });
   }
 
   return (
@@ -228,9 +422,9 @@ export function App() {
             placeholder="Message"
             rows={3}
           />
-          <button className="send-button" type="submit" disabled={!prompt.trim()}>
+          <button className="send-button" type="submit" disabled={!prompt.trim() || isStreaming}>
             <Send size={18} aria-hidden="true" />
-            <span>Send</span>
+            <span>{isStreaming ? "Live" : "Send"}</span>
           </button>
         </form>
       </section>
@@ -249,6 +443,8 @@ export function App() {
           <Metric label="Input" value={metricValue(traceSummary.usage, "input_tokens")} />
           <Metric label="Output" value={metricValue(traceSummary.usage, "output_tokens")} />
         </div>
+
+        <AgentTimeline steps={agentSteps} />
 
         <div className="trace-list">
           {traces.length === 0 ? (
@@ -277,6 +473,133 @@ function Metric({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   );
+}
+
+function AgentTimeline({ steps }: { steps: AgentStep[] }) {
+  return (
+    <section className="agent-timeline" aria-label="Agent timeline">
+      <div className="timeline-header">
+        <div>
+          <div className="section-label">Agent loop</div>
+          <h3>Streaming timeline</h3>
+        </div>
+        <CheckCircle2 size={17} aria-hidden="true" />
+      </div>
+      {steps.length === 0 ? (
+        <div className="timeline-empty">No agent events</div>
+      ) : (
+        <div className="timeline-list">
+          {steps.map((step) => (
+            <article className={`timeline-step ${step.kind} ${step.status}`} key={step.id}>
+              <div className="step-icon">{stepIcon(step.kind)}</div>
+              <div className="step-body">
+                <div className="step-title">
+                  <span>{step.title}</span>
+                  <small>{step.status}</small>
+                </div>
+                <pre>{step.body || "..."}</pre>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function stepIcon(kind: AgentStep["kind"]) {
+  if (kind === "thinking") {
+    return <BrainCircuit size={15} aria-hidden="true" />;
+  }
+  if (kind === "tool" || kind === "result") {
+    return <Wrench size={15} aria-hidden="true" />;
+  }
+  if (kind === "answer") {
+    return <Bot size={15} aria-hidden="true" />;
+  }
+  return <Activity size={15} aria-hidden="true" />;
+}
+
+function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
+  const steps: AgentStep[] = [];
+  for (const trace of traces) {
+    if (trace.kind === "mind.tool_call") {
+      steps.push({
+        id: `trace-tool-${trace.id}`,
+        kind: "tool",
+        title: `Tool call: ${String(trace.payload.tool_name ?? "mind_api")}`,
+        body: formatJson(trace.payload.arguments ?? {}),
+        status: trace.payload.status === "error" ? "error" : "done"
+      });
+      steps.push({
+        id: `trace-result-${trace.id}`,
+        kind: "result",
+        title: "Tool result",
+        body: formatJson(trace.payload.result ?? {}),
+        status: trace.payload.status === "error" ? "error" : "done"
+      });
+    }
+
+    if (trace.kind === "llm.response") {
+      for (const block of providerBlocks(trace.payload)) {
+        if (block.type === "thinking" && typeof block.thinking === "string") {
+          steps.push({
+            id: `trace-thinking-${trace.id}-${steps.length}`,
+            kind: "thinking",
+            title: "Provider thinking block",
+            body: block.thinking,
+            status: "done"
+          });
+        }
+        if (block.type === "text" && typeof block.text === "string") {
+          steps.push({
+            id: `trace-answer-${trace.id}-${steps.length}`,
+            kind: "answer",
+            title: "Final answer",
+            body: block.text,
+            status: "done"
+          });
+        }
+      }
+    }
+  }
+  return steps;
+}
+
+function providerBlocks(payload: Record<string, unknown>): Array<Record<string, unknown>> {
+  const blocks: Array<Record<string, unknown>> = [];
+  const rawMessages = payload.raw_provider_messages;
+  if (Array.isArray(rawMessages)) {
+    for (const message of rawMessages) {
+      if (message && typeof message === "object") {
+        const content = (message as Record<string, unknown>).content;
+        if (Array.isArray(content)) {
+          blocks.push(...(content.filter(isRecord) as Array<Record<string, unknown>>));
+        }
+      }
+    }
+  }
+  const rawContent = payload.raw_content;
+  if (Array.isArray(rawContent)) {
+    blocks.push(...(rawContent.filter(isRecord) as Array<Record<string, unknown>>));
+  }
+  return blocks;
+}
+
+function mergeSteps(current: AgentStep[], incoming: AgentStep[]): AgentStep[] {
+  const seen = new Set(current.map((step) => step.id));
+  return [...current, ...incoming.filter((step) => !seen.has(step.id))];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function formatJson(value: unknown): string {
+  if (typeof value === "string") {
+    return value;
+  }
+  return JSON.stringify(value ?? {}, null, 2);
 }
 
 function metricValue(source: unknown, key: string): string {

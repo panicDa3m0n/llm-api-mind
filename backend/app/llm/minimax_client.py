@@ -1,4 +1,5 @@
 import json
+from collections.abc import Iterator
 from typing import Any
 
 import anthropic
@@ -9,6 +10,7 @@ from app.llm.provider import (
     LLMExecutedToolCall,
     LLMMessage,
     LLMRequestError,
+    LLMStreamEvent,
     LLMTextResult,
     LLMToolRunner,
     LLMToolUse,
@@ -151,6 +153,119 @@ class MiniMaxProvider:
             f"MiniMax tool loop exceeded max_tool_calls={max_tool_calls}."
         )
 
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict[str, Any]],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int = 4,
+    ) -> Iterator[LLMStreamEvent]:
+        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
+        provider_messages = [self._to_anthropic_message(item) for item in messages]
+        executed_tool_calls: list[LLMExecutedToolCall] = []
+        raw_provider_messages: list[dict[str, Any]] = []
+        usage_totals: dict[str, Any] = {}
+
+        try:
+            for step in range(max_tool_calls + 1):
+                yield LLMStreamEvent(
+                    type="model_request",
+                    data={"step": step + 1, "model": self._settings.minimax_model},
+                )
+                with self._client.messages.stream(
+                    model=self._settings.minimax_model,
+                    max_tokens=effective_max_tokens,
+                    system=system or "You are a concise assistant.",
+                    messages=provider_messages,
+                    tools=tools,
+                ) as stream:
+                    for event in stream:
+                        yield from self._stream_events_from_raw_event(event)
+                    message = stream.get_final_message()
+
+                raw_content = self._extract_raw_content(message.content)
+                raw_provider_messages.append(
+                    {
+                        "id": getattr(message, "id", None),
+                        "model": getattr(message, "model", self._settings.minimax_model),
+                        "stop_reason": getattr(message, "stop_reason", None),
+                        "content": raw_content,
+                        "usage": self._extract_usage(message),
+                    }
+                )
+                usage_totals = self._merge_usage(
+                    usage_totals,
+                    self._extract_usage(message),
+                )
+                tool_uses = self._extract_tool_uses(message.content)
+                if not tool_uses:
+                    yield LLMStreamEvent(
+                        type="final_result",
+                        data={
+                            "result": LLMTextResult(
+                                model=getattr(
+                                    message,
+                                    "model",
+                                    self._settings.minimax_model,
+                                ),
+                                text=self._extract_text(message.content),
+                                usage=usage_totals,
+                                provider_message_id=getattr(message, "id", None),
+                                raw_content=raw_content,
+                                stop_reason=getattr(message, "stop_reason", None),
+                                tool_calls=executed_tool_calls,
+                                raw_provider_messages=raw_provider_messages,
+                            ).model_dump(mode="json")
+                        },
+                    )
+                    return
+
+                provider_messages.append(
+                    {
+                        "role": "assistant",
+                        "content": raw_content,
+                    }
+                )
+                tool_results: list[dict[str, Any]] = []
+                for tool_use in tool_uses:
+                    yield LLMStreamEvent(
+                        type="tool_call",
+                        data={
+                            "provider_tool_use_id": tool_use.id,
+                            "tool_name": tool_use.name,
+                            "arguments": tool_use.input,
+                        },
+                    )
+                    executed = tool_runner(tool_use)
+                    executed_tool_calls.append(executed)
+                    yield LLMStreamEvent(
+                        type="tool_result",
+                        data=executed.model_dump(mode="json"),
+                    )
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_use.id,
+                            "content": json.dumps(executed.result, ensure_ascii=True),
+                            "is_error": executed.status != "completed",
+                        }
+                    )
+                provider_messages.append(
+                    {
+                        "role": "user",
+                        "content": tool_results,
+                    }
+                )
+        except anthropic.AnthropicError as exc:
+            raise LLMRequestError(self._sanitize_error(str(exc))) from exc
+
+        raise LLMRequestError(
+            f"MiniMax tool loop exceeded max_tool_calls={max_tool_calls}."
+        )
+
     def _sanitize_error(self, message: str) -> str:
         api_key = self._settings.minimax_api_key
         if api_key:
@@ -212,6 +327,71 @@ class MiniMaxProvider:
         if isinstance(usage, dict):
             return usage
         return {}
+
+    @staticmethod
+    def _stream_events_from_raw_event(event: Any) -> Iterator[LLMStreamEvent]:
+        event_type = getattr(event, "type", "")
+        if event_type == "content_block_start":
+            block = getattr(event, "content_block", None)
+            block_type = getattr(block, "type", None)
+            if block_type == "thinking":
+                yield LLMStreamEvent(
+                    type="thinking_start",
+                    data={"index": getattr(event, "index", None)},
+                )
+            elif block_type == "tool_use":
+                yield LLMStreamEvent(
+                    type="tool_use_start",
+                    data={
+                        "index": getattr(event, "index", None),
+                        "provider_tool_use_id": getattr(block, "id", None),
+                        "tool_name": getattr(block, "name", None),
+                    },
+                )
+            elif block_type == "text":
+                yield LLMStreamEvent(
+                    type="text_start",
+                    data={"index": getattr(event, "index", None)},
+                )
+            return
+
+        if event_type == "content_block_delta":
+            delta = getattr(event, "delta", None)
+            delta_type = getattr(delta, "type", None)
+            if delta_type == "thinking_delta":
+                yield LLMStreamEvent(
+                    type="thinking_delta",
+                    data={
+                        "index": getattr(event, "index", None),
+                        "text": getattr(delta, "thinking", ""),
+                    },
+                )
+            elif delta_type == "text_delta":
+                yield LLMStreamEvent(
+                    type="text_delta",
+                    data={
+                        "index": getattr(event, "index", None),
+                        "text": getattr(delta, "text", ""),
+                    },
+                )
+            elif delta_type == "input_json_delta":
+                yield LLMStreamEvent(
+                    type="tool_input_delta",
+                    data={
+                        "index": getattr(event, "index", None),
+                        "partial_json": getattr(delta, "partial_json", ""),
+                    },
+                )
+            return
+
+        if event_type == "message_delta":
+            delta = getattr(event, "delta", None)
+            stop_reason = getattr(delta, "stop_reason", None)
+            if stop_reason:
+                yield LLMStreamEvent(
+                    type="model_stop",
+                    data={"stop_reason": stop_reason},
+                )
 
     @staticmethod
     def _merge_usage(

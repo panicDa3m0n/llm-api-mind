@@ -445,3 +445,38 @@ Open Questions:
 Next Suggested Step:
 
 Start Phase 3 memory only after confirming the frontend trace cockpit remains usable for `mind.tool_call` inspection.
+
+## 2026-05-09 - Streaming Agentic Chat Cockpit
+
+Goal:
+
+Improve the chat cockpit so agentic turns can be evaluated while they are running, not only after the final assistant response is stored.
+
+Changes:
+
+- Added `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Added NDJSON stream events for turn start, provider request steps, provider-exposed thinking deltas, tool input deltas, tool calls, tool results, final text deltas, model stop reasons, turn completion, and stream errors.
+- Kept the streaming endpoint on the same persistence path as normal chat turns: messages, `llm.request`, `mind.tool_call`, `llm.response`, and turn completion are still stored.
+- Updated the frontend chat submit flow to use the streaming endpoint.
+- Added a frontend agent timeline that separates runtime events, provider thinking blocks, tool calls, tool results, and final answer text.
+- Kept the raw JSON trace list available below the structured timeline.
+- Added backend regression coverage for streaming tool-loop events and traces.
+- Recorded ADR-0010.
+
+Verification:
+
+- Ran `pytest` from `backend`; 17 tests passed.
+- Ran `npm run build` from `frontend`; build succeeded.
+- Restarted FastAPI backend on `http://127.0.0.1:8000`.
+- Ran a live MiniMax streaming smoke. Events arrived before completion: `turn_started`, `model_request`, `thinking_start`, `thinking_delta`, `tool_use_start`, `tool_input_delta`, `model_stop`, `tool_call`, `tool_result`, second `model_request`, final `text_delta`, and `turn_complete`.
+- Live streaming smoke produced trace kinds `llm.request`, `mind.tool_call`, and `llm.response`.
+- Restarted Vite frontend on `http://127.0.0.1:5173` and verified the page responds with HTTP 200.
+
+Open Questions:
+
+- The UI currently displays provider-exposed thinking blocks directly as debug evidence. If this becomes too noisy, add a compact/expanded toggle or summary mode.
+- The streaming endpoint does not yet expose cancellation.
+
+Next Suggested Step:
+
+Use the cockpit manually for several multi-turn tool-loop conversations, then decide whether the next smallest useful slice is trace UI polish or Phase 3 episodic memory.

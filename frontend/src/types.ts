@@ -37,6 +37,19 @@ export type TraceItem = {
   created_at: string;
 };
 
+export type StreamEvent = {
+  type: string;
+  data: Record<string, unknown>;
+};
+
+export type AgentStep = {
+  id: string;
+  kind: "thinking" | "tool" | "result" | "answer" | "runtime";
+  title: string;
+  body: string;
+  status: "active" | "done" | "error";
+};
+
 export type ApiError = {
   detail?: {
     code?: string;
