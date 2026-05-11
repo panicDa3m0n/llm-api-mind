@@ -2,7 +2,7 @@
 
 Version: 0.1  
 Status: experimental foundation  
-Last updated: 2026-05-09
+Last updated: 2026-05-11
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -221,6 +221,25 @@ simple worker loop
 ```
 
 Only add external queues or worker systems when local evidence shows they are necessary.
+
+### 4.5 Laboratory State Versioning
+
+During the current private laboratory phase, runtime state is part of the experiment evidence.
+
+The SQLite database is intentionally versioned:
+
+```txt
+backend/data/app.db
+```
+
+It can contain sessions, messages, turns, traces, tool calls, and Memory v0 records. This allows the Windows and macOS development environments to share the same laboratory continuity through Git.
+
+This policy has strict boundaries:
+
+- API keys, `.env` files, and provider credentials must never be committed.
+- The database is allowed because current lab users are technical participants who know that conversations and memory records are repository artifacts.
+- A public or multi-user release must revisit the storage policy before accepting external user data.
+- SQLite is a binary file, so parallel edits across machines can create merge conflicts; the owner should treat one machine at a time as the active state writer unless a later storage strategy replaces this.
 
 ## 5. Target Repository Structure
 

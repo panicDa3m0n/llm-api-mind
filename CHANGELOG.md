@@ -73,6 +73,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added a `memory_v0_preference` evaluation scenario for memory write/search regression checks.
 - Added a visible metacognition prompt experiment with the `Metacognizione:` public self-monitoring note.
 - Added a `visible_metacognition_probe` evaluation scenario.
+- Added ADR-0015 documenting that the current laboratory SQLite state is versioned in Git while secrets remain excluded.
 
 ### Changed
 
@@ -100,6 +101,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Made Memory v0 tolerant of common model-shaped input aliases such as `pref`, `standard_preference`, `nota_operativa`, `why`, `reason`, `use`, `use_during`, qualitative confidence/salience, `limit`, and GET-style memory search.
 - Documented ADR-0014 for using concise visible metacognition instead of raw reasoning dumps.
 - Cleaned up the experiments document so Memory v0 results are recorded under EXP-0002.
+- Changed repository ignore policy so `backend/data/app.db` is an intentional cross-machine laboratory artifact.
 
 ### Fixed
 

@@ -560,3 +560,51 @@ Links:
 - `backend/app/prompts/scarlet_system.md`
 - `backend/app/evals/scenarios/visible_metacognition_probe.json`
 - `docs/experiments.md`
+
+## ADR-0015 - Version Laboratory SQLite State Except Secrets
+
+Date: 2026-05-11
+Status: accepted
+
+Context:
+
+The project is currently a controlled laboratory repository owned by the project human. Runtime sessions, traces, tool calls, and Memory v0 records are experimental evidence, not private end-user data. The project also moves between development machines, so keeping SQLite state local breaks continuity between Windows and macOS.
+
+Decision:
+
+Track the laboratory SQLite database in Git:
+
+```txt
+backend/data/app.db
+```
+
+Continue to exclude secrets:
+
+```txt
+backend/.env
+MINIMAX_API_KEY
+provider credentials
+```
+
+The database may contain chat messages, traces, tool calls, and memory records. That is intentional for the current lab phase.
+
+Alternatives Considered:
+
+- Keep all SQLite files ignored: rejected because it loses cross-machine continuity and hides experimental evidence.
+- Move immediately to a server database: deferred because it adds infrastructure before the lab has evidence that it needs it.
+- Export/import memories manually: rejected for now because the whole runtime state, not just memories, is useful evidence.
+
+Consequences:
+
+- Pulling the repository can restore laboratory state on another machine.
+- Git history can contain conversation and memory artifacts by design.
+- SQLite binary merge conflicts are possible if multiple machines write state concurrently.
+- Before public, hosted, or multi-user use, this policy must be revisited and likely replaced with a dedicated database and privacy model.
+- Secret scanning remains mandatory before committing runtime state.
+
+Links:
+
+- `.gitignore`
+- `backend/data/app.db`
+- `README.md`
+- `docs/project-blueprint.md`

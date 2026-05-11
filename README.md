@@ -24,6 +24,7 @@ The project has a working local baseline runtime:
 - streaming React cockpit with inline ordered agent-turn timeline;
 - scripted and interactive evaluation runner;
 - accepted baseline, tool-loop, streaming trace, and initial Memory v0 experiments.
+- repository-versioned laboratory SQLite state at `backend/data/app.db`.
 
 ## Key Documents
 
@@ -82,6 +83,12 @@ python -m app.evals.runner interactive --title "adaptive baseline"
 ## Secrets
 
 Do not commit real API keys.
+
+## Laboratory State
+
+The current lab policy intentionally versions `backend/data/app.db` in Git so sessions, traces, tool calls, and Memory v0 records can move across development machines.
+
+This is an experimental-lab policy, not a production privacy model. The repository must still exclude API keys, `.env` files, provider credentials, and other secrets.
 
 Expected future environment variables:
 

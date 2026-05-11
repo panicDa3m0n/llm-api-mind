@@ -36,6 +36,11 @@ test-results/
 playwright-report/
 backend/app/evals/runs/
 
+# Laboratory state intentionally versioned for cross-machine continuity.
+# Secrets remain excluded by the rules above.
+!backend/data/
+!backend/data/app.db
+
 # OS and editor noise
 .DS_Store
 Thumbs.db

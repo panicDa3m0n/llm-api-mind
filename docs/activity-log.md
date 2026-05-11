@@ -705,3 +705,31 @@ Open Questions:
 Next Suggested Step:
 
 Run one or more adaptive Memory v0 evaluation sessions, then decide whether the next implementation slice should be a memory inspection panel, memory lifecycle semantics, or attention context.
+
+## 2026-05-11 - Versioned Laboratory State Policy
+
+Goal:
+
+Make repository state match the current laboratory policy: everything except private keys and credentials can be committed, including the SQLite runtime database.
+
+Changes:
+
+- Updated `.gitignore` so `backend/data/app.db` is intentionally trackable.
+- Documented the lab-state policy in `README.md`, `docs/project-blueprint.md`, and ADR-0015.
+- Added an environment note for cross-machine SQLite continuity and merge-conflict risk.
+- Prepared the current SQLite database snapshot for version control.
+
+Verification:
+
+- Confirmed `backend/.env` remains ignored.
+- Confirmed `backend/data/app.db` contains tables for `sessions`, `messages`, `turns`, `traces`, `tool_calls`, and `memories`.
+- Confirmed the actual `MINIMAX_API_KEY` value and common secret markers are not present in `backend/data/app.db`.
+
+Open Questions:
+
+- If the Windows machine has a richer SQLite state than this macOS snapshot, that database should replace the tracked snapshot in a later commit rather than being overwritten silently.
+- A hosted or public release will need a different database and privacy policy.
+
+Next Suggested Step:
+
+Push the lab-state policy and DB snapshot, then decide whether the Windows database should replace the current tracked SQLite snapshot.

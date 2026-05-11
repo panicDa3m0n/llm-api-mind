@@ -190,6 +190,46 @@ Notes:
 
 This is an environment compatibility note, not a project bug.
 
+### ENV-0005 - Laboratory SQLite State Is Repository State
+
+Date Found: 2026-05-11  
+Status: monitoring
+
+Symptoms:
+
+SQLite state created on one development machine is not available on another machine when database files are ignored by Git.
+
+Root Cause:
+
+The default `.gitignore` treated local database files as generated artifacts. That is a common production-safe default, but it conflicts with the current laboratory policy where sessions, traces, tool calls, and Memory v0 records are experiment evidence.
+
+Fix:
+
+`backend/data/app.db` is now intentionally allowed into Git while `.env` files and provider credentials remain ignored.
+
+Regression Test:
+
+Run:
+
+```txt
+git check-ignore -v backend/data/app.db backend/.env
+```
+
+Expected result:
+
+- `backend/data/app.db` is tracked by Git, or resolves to the negative exception rule `!backend/data/app.db` before it is added.
+- `backend/.env` is ignored.
+
+Related Files:
+
+- `.gitignore`
+- `backend/data/app.db`
+- `docs/decisions.md`
+
+Notes:
+
+SQLite is a binary file. If multiple machines write state independently, Git may need a manual "which database wins" decision.
+
 ## Implementation Bugs
 
 ## BUG-0001 - Smoke Test Provider Factory None Override
