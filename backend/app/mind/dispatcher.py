@@ -1,6 +1,7 @@
+import json
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.mind.memory import (
     MemoryOperationResult,
@@ -22,6 +23,49 @@ class MindAPIRequest(BaseModel):
     path: str = Field(min_length=1, max_length=200)
     body: dict[str, Any] = Field(default_factory=dict)
     intent: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_model_tool_input(cls, value: Any) -> Any:
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError:
+                return value
+        if not isinstance(value, dict):
+            return value
+
+        normalized = dict(value)
+        raw_input = normalized.get("raw_input")
+        if isinstance(raw_input, str):
+            try:
+                raw_input = json.loads(raw_input)
+            except json.JSONDecodeError:
+                raw_input = None
+        if isinstance(raw_input, dict):
+            unwrapped = dict(raw_input)
+            for key, item in normalized.items():
+                if key != "raw_input" and key not in unwrapped:
+                    unwrapped[key] = item
+            normalized = unwrapped
+
+        body = normalized.get("body")
+        if isinstance(body, str):
+            try:
+                parsed_body = json.loads(body)
+            except json.JSONDecodeError:
+                parsed_body = None
+            if isinstance(parsed_body, dict):
+                normalized["body"] = parsed_body
+
+        body = normalized.get("body")
+        if isinstance(body, dict):
+            body = dict(body)
+            if "intent" not in normalized and isinstance(body.get("intent"), str):
+                normalized["intent"] = body.pop("intent")
+            normalized["body"] = body
+
+        return normalized
 
 
 class MindAPIResponse(BaseModel):

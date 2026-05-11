@@ -55,6 +55,7 @@ MIN_WRITE_SALIENCE = 0.25
 TYPE_ALIASES = {
     "pref": "user_preference",
     "preference": "user_preference",
+    "preferenza": "user_preference",
     "operational-preference": "user_preference",
     "operational_preference": "user_preference",
     "standard-preference": "user_preference",
@@ -73,9 +74,15 @@ TYPE_ALIASES = {
 SCORE_ALIASES = {
     "certain": 0.95,
     "high": 0.85,
+    "alta": 0.85,
+    "alto": 0.85,
     "medium": 0.6,
     "med": 0.6,
+    "media": 0.6,
+    "medio": 0.6,
     "low": 0.35,
+    "bassa": 0.35,
+    "basso": 0.35,
     "uncertain": 0.25,
 }
 

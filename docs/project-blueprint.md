@@ -1140,9 +1140,9 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Run adaptive Memory v0 sessions through the cockpit and eval runner.
-2. Probe visible metacognition during real Memory v0 conversations and compare it against traces.
-3. Decide the next memory slice: inspection panel, update/forget/conflict semantics, or attention context over retrieved memories.
+1. Add Memory v0 lifecycle support for update/deprecate/conflict resolution.
+2. Add a relevance guard for memory search so weak token overlap does not return misleading memories.
+3. Then choose between a memory inspection panel and attention context over cleaner memory results.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

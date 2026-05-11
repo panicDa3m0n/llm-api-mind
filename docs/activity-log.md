@@ -733,3 +733,39 @@ Open Questions:
 Next Suggested Step:
 
 Push the lab-state policy and DB snapshot, then decide whether the Windows database should replace the current tracked SQLite snapshot.
+
+## 2026-05-11 - Direct Adaptive Memory v0 Verification
+
+Goal:
+
+Verify Scarlet's actual Memory v0 behavior through direct chat-stream turns rather than only scripted or deterministic scenarios.
+
+Changes:
+
+- Ran direct adaptive turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Found and fixed a wrapper compatibility bug where MiniMax emitted `raw_input` and JSON-string `body` values that failed `MindAPIRequest` validation.
+- Added wrapper normalization for `raw_input`, JSON-string bodies, and body-level `intent`.
+- Added Italian compatibility aliases for `preferenza`, `alta`, `media`, and `bassa`.
+- Added regression coverage for the real MiniMax-shaped wrapper/body behavior.
+- Updated experiment and API documentation with the observed behavior.
+- Updated the immediate roadmap toward Memory v0 lifecycle and search relevance work.
+
+Verification:
+
+- Ran backend tests with the backend venv; 24 tests passed.
+- Restarted the backend on `http://127.0.0.1:8000`.
+- Direct write turn `turn_01d1ead1b76a40ffa095c797da0e0c45` stored `mem_abed5590f91b4eb8aa93d1103db024de`.
+- Cross-session recall turn `turn_839a89d5c37f4d84bbe63f6154fecda5` retrieved the stored memory with source attribution.
+- Negative-control turn `turn_2c255fdb84184f0096b149d03680b012` did not invent `protocollo Mare-Vetro`, but search returned a weakly related Zero-Luce memory.
+- Update/conflict turns `turn_c30ba6ba0b844286bcc8eb6c996e4013` and `turn_d0da056910824cd08a79773031ef2fa6` showed that v0 creates a new active memory instead of replacing the old one.
+- Capability correction turn `turn_50098ed1f35742f4a9bc25361c404633` confirmed via schema that update/delete/deprecate routes are not implemented.
+
+Open Questions:
+
+- What should the exact lifecycle API be: update existing records, deprecate by status, or append revision records with active revision selection?
+- Should memory search suppress weak lexical hits by threshold, return them as low-confidence candidates, or ask the model to classify relevance after retrieval?
+- Should the frontend get a memory panel before or after lifecycle semantics?
+
+Next Suggested Step:
+
+Implement the smallest Memory v0 lifecycle slice: deprecate/replace an existing memory with traceable conflict handling, then add a search relevance guard.

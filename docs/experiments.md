@@ -138,9 +138,31 @@ Behavioral findings:
 - Risk: MiniMax often produces non-canonical tool bodies on first attempt; Memory v0 now normalizes common aliases, but this should remain monitored.
 - Risk: when chat history contains the answer, Scarlet may answer from context unless the prompt and/or user request strongly require persistent-memory verification. The prompt now explicitly requires search for persistent-memory/source-attribution questions.
 
+Direct adaptive reset run:
+
+Run date: 2026-05-11
+
+After restarting from a zero-memory database, direct conversational turns through `POST /api/chat/sessions/{session_id}/turn/stream` found and then verified a real wrapper compatibility bug:
+
+- Initial direct write attempts produced `mind.invalid_request` because MiniMax emitted `raw_input` wrappers and JSON-string `body` values.
+- The wrapper fix accepts `raw_input`, parses JSON-string bodies, and normalizes Italian aliases such as `preferenza` and `alta`.
+- Write turn `turn_01d1ead1b76a40ffa095c797da0e0c45` stored `mem_abed5590f91b4eb8aa93d1103db024de`.
+- Cross-session recall turn `turn_839a89d5c37f4d84bbe63f6154fecda5` used `mind.memory.search`, returned the stored memory, and attributed the answer to persistent memory.
+- Negative control turn `turn_2c255fdb84184f0096b149d03680b012` searched for `protocollo Mare-Vetro`; search returned the unrelated Zero-Luce memory due weak token overlap, but Scarlet correctly rejected it as non-evidence.
+- Update turn `turn_c30ba6ba0b844286bcc8eb6c996e4013` wrote a second Zero-Luce memory `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3` instead of updating the old one, because lifecycle APIs do not exist yet.
+- Conflict recall turn `turn_d0da056910824cd08a79773031ef2fa6` retrieved both active versions and explicitly reported the conflict.
+- Capability correction turn `turn_50098ed1f35742f4a9bc25361c404633` inspected `GET /mind/schema` and corrected the earlier implied promise: Scarlet cannot currently update, delete, deprecate, or mark a memory obsolete with the implemented APIs.
+
+Additional findings:
+
+- Positive: after wrapper normalization, Scarlet can recover from model-shaped `body` JSON strings and complete real memory write/search flows.
+- Positive: Scarlet can identify a memory conflict when the user asks explicitly and when search returns both records.
+- Risk: search needs a relevance threshold or stronger scoring because a generic token such as `protocollo` can return unrelated memories.
+- Risk: Memory v0 needs lifecycle semantics before it can safely treat a new memory as replacing an older active memory.
+
 Decision:
 
-Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design. Future work should evaluate update/forget/conflict behavior, memory panels, and a stronger baseline-vs-memory comparison before adding attention.
+Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design. The next implementation slice should prioritize lifecycle semantics and relevance filtering before adding attention.
 
 ## EXP-0003 - Attention Context Pack
 

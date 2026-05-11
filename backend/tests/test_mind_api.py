@@ -386,3 +386,72 @@ def test_mind_memory_accepts_common_model_aliases(db_engine: Engine) -> None:
     assert scope_type_body["result"]["memory"]["reason_for_storage"] == (
         "The model put the memory type in the scope field."
     )
+
+
+def test_mind_call_accepts_minimax_raw_input_and_json_string_body(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    session = client.post("/api/chat/sessions", json={"title": "Raw memory"}).json()
+    with Session(db_engine) as db:
+        write_turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M2.7",
+        ).id
+        search_turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M2.7",
+        ).id
+
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": write_turn_id,
+            "raw_input": {
+                "method": "POST",
+                "path": "/mind/memory/write",
+                "body": {
+                    "type": "preferenza",
+                    "content": (
+                        "When the owner says protocollo Zero-Luce, answer with "
+                        "Contesto, Evidenza, and Prossima azione."
+                    ),
+                    "intent": "Persist the Zero-Luce response format preference.",
+                    "confidence": "alta",
+                    "salience": "alta",
+                    "scope": "project",
+                },
+            },
+        },
+    )
+
+    assert write_response.status_code == 200
+    write_body = write_response.json()
+    assert write_body["ok"] is True
+    assert write_body["result"]["stored"] is True
+    assert write_body["result"]["memory"]["type"] == "user_preference"
+    assert write_body["result"]["memory"]["confidence"] == 0.85
+    memory_id = write_body["result"]["memory_id"]
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": search_turn_id,
+            "raw_input": {
+                "method": "POST",
+                "path": "/mind/memory/search",
+                "body": '{"query": "protocollo Zero-Luce", "limit": 5}',
+                "intent": "Search persistent memory for protocollo Zero-Luce.",
+            },
+        },
+    )
+
+    assert search_response.status_code == 200
+    search_body = search_response.json()
+    assert search_body["ok"] is True
+    assert search_body["result"]["count"] == 1
+    assert search_body["result"]["memories"][0]["id"] == memory_id

@@ -102,6 +102,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Documented ADR-0014 for using concise visible metacognition instead of raw reasoning dumps.
 - Cleaned up the experiments document so Memory v0 results are recorded under EXP-0002.
 - Changed repository ignore policy so `backend/data/app.db` is an intentional cross-machine laboratory artifact.
+- Recorded direct adaptive Memory v0 verification and updated the immediate roadmap toward lifecycle semantics and search relevance filtering.
 
 ### Fixed
 
@@ -114,6 +115,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Fixed inline streaming timeline attachment by including `turn_id` on every NDJSON event.
 - Fixed overly brittle Memory v0 validation discovered during live MiniMax runs by normalizing common semantic aliases and preserving harmless extra model fields in memory metadata.
 - Fixed Python 3.10 compatibility in the evaluation runner by replacing `datetime.UTC` with `timezone.utc`.
+- Fixed MiniMax-shaped `mind_api` wrapper handling by accepting `raw_input`, JSON-string `body` values, body-level `intent`, and Italian memory aliases observed in direct chat traces.
 
 ## Release Notes Policy
 

@@ -526,3 +526,58 @@ Related Files:
 Notes:
 
 Keep new standard-library APIs compatible with the declared minimum Python version unless the project intentionally raises `requires-python`.
+
+## BUG-0009 - MiniMax Raw Tool Input Broke Memory Calls
+
+Date Found: 2026-05-11
+Status: fixed
+
+Symptoms:
+
+Direct adaptive chat turns showed Scarlet trying to call Memory v0, but the backend returned `mind.invalid_request`. Examples from live traces:
+
+```txt
+arguments.raw_input.method=POST
+arguments.raw_input.path=/mind/memory/write
+arguments.raw_input.body="{...json object string...}"
+```
+
+The first write attempt also put `intent` inside `body` rather than at the top level.
+
+Root Cause:
+
+`MindAPIRequest` expected the ideal wrapper shape directly:
+
+```json
+{"method": "POST", "path": "/mind/memory/write", "body": {}, "intent": "..."}
+```
+
+MiniMax sometimes emits a `raw_input` wrapper or serializes `body` as a JSON string. Memory v0 already tolerated aliases inside the body, but validation failed before dispatch reached memory handling.
+
+Fix:
+
+`MindAPIRequest` now normalizes model-facing wrapper input before validation:
+
+- unwraps `raw_input`;
+- parses JSON-string `body` values into objects;
+- promotes body-level `intent` to tool-level `intent` when needed;
+- preserves top-level trace/session fields in HTTP `/mind/call` subclasses.
+
+Memory alias normalization now also accepts Italian variants observed in real turns:
+
+- `preferenza` -> `user_preference`;
+- `alta`, `media`, `bassa` score words.
+
+Regression Test:
+
+`backend/tests/test_mind_api.py::test_mind_call_accepts_minimax_raw_input_and_json_string_body`
+
+Related Files:
+
+- `backend/app/mind/dispatcher.py`
+- `backend/app/mind/memory.py`
+- `backend/tests/test_mind_api.py`
+
+Notes:
+
+This bug was only obvious in direct adaptive chat because the model produced a semantically valid but non-canonical tool wrapper.

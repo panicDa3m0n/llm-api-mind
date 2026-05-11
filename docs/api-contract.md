@@ -455,6 +455,13 @@ Request:
 
 `session_id` and `turn_id` are optional. When `session_id` is supplied, it must refer to an existing chat session. `turn_id` is used only for trace linkage.
 
+Model-facing compatibility behavior:
+
+- `raw_input` wrappers are accepted and unwrapped before validation.
+- `body` may be either an object or a JSON object string.
+- if `intent` is missing at the wrapper level but present inside `body`, it is promoted to the tool-level `intent`.
+- stored tool-call arguments use the normalized `method`, `path`, `body`, and `intent` shape.
+
 Response:
 
 ```json
@@ -578,11 +585,11 @@ Compatibility normalization:
 
 Memory v0 accepts common model-shaped aliases and normalizes them before validation:
 
-- `pref`, `preference`, `standard_preference`, `operational_preference` -> `user_preference`
+- `pref`, `preference`, `preferenza`, `standard_preference`, `operational_preference` -> `user_preference`
 - `nota_operativa`, `operational_note` -> `task_context`
 - `why`, `reason`, `rationale` -> `reason_for_storage`
 - `use`, `future_use`, `use_during` -> `expected_future_use`
-- qualitative `confidence` or `salience` values such as `high`, `medium`, `low`
+- qualitative `confidence` or `salience` values such as `high`, `medium`, `low`, `alta`, `media`, `bassa`
 - model-suggested `id` -> `metadata.model_suggested_id`
 - harmless extra fields -> `metadata.model_extra`
 

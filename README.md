@@ -41,9 +41,9 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Run adaptive Memory v0 evaluation sessions with the eval runner and cockpit.
-2. Use scripted memory scenarios as regression checks, not as the main behavioral signal.
-3. Decide the next memory slice: inspection UI, update/forget/conflict semantics, or attention context.
+1. Add Memory v0 lifecycle support for update/deprecate/conflict resolution.
+2. Add a relevance guard for memory search so weak token overlap does not return misleading memories.
+3. Then choose between a memory inspection panel and attention context over cleaner memory results.
 ```
 
 ## Local Run
