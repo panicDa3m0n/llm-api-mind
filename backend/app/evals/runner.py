@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -510,7 +510,7 @@ def _append_jsonl(path: Path, item: dict[str, Any]) -> None:
 
 
 def _new_run_id(prefix: str) -> str:
-    timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     safe_prefix = "".join(character if character.isalnum() or character in {"-", "_"} else "_" for character in prefix)
     return f"{timestamp}_{safe_prefix}"
 

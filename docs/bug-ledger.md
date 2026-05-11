@@ -452,3 +452,37 @@ Related Files:
 Notes:
 
 This fix does not mean every malformed memory should be accepted. It means v0 distinguishes semantically recoverable model shape errors from low-salience or low-confidence memory candidates.
+
+## BUG-0008 - Eval Runner Used Python 3.11 datetime.UTC
+
+Date Found: 2026-05-11
+Status: fixed
+
+Symptoms:
+
+Running backend tests on the local Python 3.10 environment failed during collection:
+
+```txt
+ImportError: cannot import name 'UTC' from 'datetime'
+```
+
+Root Cause:
+
+`backend/app/evals/runner.py` imported `datetime.UTC`, which exists in newer Python versions but not in Python 3.10. The backend project declares `requires-python = ">=3.10"` and the local venv is Python 3.10.
+
+Fix:
+
+Replaced `datetime.UTC` with `datetime.timezone.utc`, matching the existing storage timestamp pattern.
+
+Regression Test:
+
+Ran backend pytest after the fix; 23 tests passed, including `backend/tests/test_eval_runner.py`.
+
+Related Files:
+
+- `backend/app/evals/runner.py`
+- `backend/tests/test_eval_runner.py`
+
+Notes:
+
+Keep new standard-library APIs compatible with the declared minimum Python version unless the project intentionally raises `requires-python`.

@@ -676,3 +676,32 @@ Open Questions:
 Next Suggested Step:
 
 Run adaptive Memory v0 conversations with explicit and implicit requests for metacognition, then compare visible notes against tool traces and final answers.
+
+## 2026-05-11 - Post-Weekend State Review And Compatibility Fix
+
+Goal:
+
+Re-sync Codex/Scarlet with the GitHub state after substantial weekend progress and evaluate the current project maturity.
+
+Changes:
+
+- Reviewed current Git history, README, changelog, project blueprint, decisions, bug ledger, API contract, experiments, backend runtime, frontend cockpit, eval runner, and tests.
+- Confirmed the repository is clean and aligned with `origin/main`.
+- Found a Python 3.10 compatibility bug in `backend/app/evals/runner.py`.
+- Replaced `datetime.UTC` with `timezone.utc`.
+- Recorded BUG-0008 and changelog entry for the compatibility fix.
+
+Verification:
+
+- Ran backend tests with the backend venv; 23 tests passed after the fix.
+- Ran frontend `npm run build`; build succeeded.
+
+Open Questions:
+
+- The next behavioral evidence should come from adaptive Memory v0 sessions rather than only scripted checks.
+- Memory v0 still lacks inspection UI, update/forget/conflict semantics, and semantic retrieval.
+- Visible metacognition needs adaptive evaluation to avoid becoming decorative or repetitive.
+
+Next Suggested Step:
+
+Run one or more adaptive Memory v0 evaluation sessions, then decide whether the next implementation slice should be a memory inspection panel, memory lifecycle semantics, or attention context.

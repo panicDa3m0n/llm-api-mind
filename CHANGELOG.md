@@ -111,6 +111,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Fixed detached SQLModel ORM usage in the new Mind API call endpoint by keeping scalar values across session boundaries.
 - Fixed inline streaming timeline attachment by including `turn_id` on every NDJSON event.
 - Fixed overly brittle Memory v0 validation discovered during live MiniMax runs by normalizing common semantic aliases and preserving harmless extra model fields in memory metadata.
+- Fixed Python 3.10 compatibility in the evaluation runner by replacing `datetime.UTC` with `timezone.utc`.
 
 ## Release Notes Policy
 
