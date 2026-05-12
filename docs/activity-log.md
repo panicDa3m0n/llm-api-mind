@@ -800,3 +800,36 @@ Open Questions:
 Next Suggested Step:
 
 Implement the smallest Memory Context Pipeline v0 slice: build `TurnFrame`, run automatic lexical retrieval on every turn, persist `memory.context`, inject selected runtime context before `llm.request`, and add regression tests for empty and weak-overlap cases.
+
+## 2026-05-12 - Memory Context Pipeline v0 Implementation
+
+Goal:
+
+Implement the first automatic per-turn memory context slice before adding more memory endpoints.
+
+Changes:
+
+- Added `backend/app/mind/context.py`.
+- Added `TurnFrame` construction from current user message, recent dialogue, session metadata, capability state, active scope, and time.
+- Added automatic `memory.context` traces before `llm.request` for normal and streaming chat turns.
+- Added backend-generated `<runtime_context>` injection into the effective system message sent to MiniMax.
+- Added lexical v0 memory ranking with `selected`, `near_miss`, `excluded`, and simple conflict detection.
+- Added streaming `memory_context` events.
+- Updated the frontend inline operation timeline and trace reconstruction to show memory context.
+- Added regression tests for empty memory context, selected relevant memory, weak-overlap exclusion, and streaming memory context.
+- Updated API, experiment, bug, roadmap, and changelog documentation.
+
+Verification:
+
+- Ran backend tests with the backend venv: `26 passed`.
+- Ran frontend build: `npm run build` succeeded.
+
+Open Questions:
+
+- Thresholds for `selected`, `near_miss`, and `excluded` need live adaptive evaluation.
+- Retrieval is lexical v0 over active memory records; SQLite FTS5/BM25 remains the next scoring improvement.
+- Post-response validation for unsupported memory claims is still pending.
+
+Next Suggested Step:
+
+Restart the local backend, run an adaptive cockpit session focused on Memory Context Pipeline v0, then tune lexical scoring or add SQLite FTS5/BM25 based on trace evidence.

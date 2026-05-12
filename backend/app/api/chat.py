@@ -30,6 +30,7 @@ from app.mind.dispatcher import (
     MindAPIResponse,
 )
 from app.mind.dispatcher import dispatch_mind_api
+from app.mind.context import build_memory_context
 from app.mind.schema import MIND_API_TOOL_SCHEMA
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.storage import repositories
@@ -178,6 +179,18 @@ def build_chat_router(
                     },
                 ) from exc
 
+            memory_context = build_memory_context(
+                db,
+                chat_session=chat_session,
+                turn_id=turn_id,
+                current_user_message=user_message,
+                history=history,
+            )
+            trace_ids.append(memory_context.trace_id)
+            effective_system = _compose_system_with_runtime_context(
+                system_prompt.content,
+                memory_context.runtime_context,
+            )
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -186,10 +199,14 @@ def build_chat_router(
                 payload={
                     "model": settings.minimax_model,
                     "max_tokens": max_tokens,
-                    "system": system_prompt.content,
+                    "system": effective_system,
+                    "base_system": system_prompt.content,
                     "system_present": True,
                     "system_source": system_prompt.source,
                     "system_path": system_prompt.path,
+                    "runtime_context_present": True,
+                    "runtime_context": memory_context.runtime_context,
+                    "memory_context_trace_id": memory_context.trace_id,
                     "messages": [
                         {
                             "id": message.id,
@@ -208,7 +225,7 @@ def build_chat_router(
             provider = provider_factory(settings)
             result = provider.generate_chat_with_tools(
                 messages=llm_messages,
-                system=system_prompt.content,
+                system=effective_system,
                 max_tokens=max_tokens,
                 tools=[MIND_API_TOOL_SCHEMA],
                 tool_runner=_build_mind_tool_runner(
@@ -316,7 +333,7 @@ def build_chat_router(
         trace_ids: list[str] = []
 
         with Session(engine) as db:
-            _require_session(db, session_id)
+            chat_session = _require_session(db, session_id)
             turn = repositories.create_turn(
                 db,
                 session_id=session_id,
@@ -369,6 +386,18 @@ def build_chat_router(
                     },
                 ) from exc
 
+            memory_context = build_memory_context(
+                db,
+                chat_session=chat_session,
+                turn_id=turn_id,
+                current_user_message=user_message,
+                history=history,
+            )
+            trace_ids.append(memory_context.trace_id)
+            effective_system = _compose_system_with_runtime_context(
+                system_prompt.content,
+                memory_context.runtime_context,
+            )
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -377,10 +406,14 @@ def build_chat_router(
                 payload={
                     "model": settings.minimax_model,
                     "max_tokens": max_tokens,
-                    "system": system_prompt.content,
+                    "system": effective_system,
+                    "base_system": system_prompt.content,
                     "system_present": True,
                     "system_source": system_prompt.source,
                     "system_path": system_prompt.path,
+                    "runtime_context_present": True,
+                    "runtime_context": memory_context.runtime_context,
+                    "memory_context_trace_id": memory_context.trace_id,
                     "messages": [
                         {
                             "id": message.id,
@@ -407,8 +440,9 @@ def build_chat_router(
                 trace_ids=trace_ids,
                 user_message_response=user_message_response,
                 llm_messages=llm_messages,
-                system=system_prompt.content,
+                system=effective_system,
                 max_tokens=max_tokens,
+                memory_context=memory_context.payload,
             ),
             media_type="application/x-ndjson",
         )
@@ -503,6 +537,7 @@ def _stream_turn_events(
     llm_messages: list[LLMMessage],
     system: str,
     max_tokens: int,
+    memory_context: dict[str, Any],
 ) -> Iterator[str]:
     sequence = 0
 
@@ -518,6 +553,20 @@ def _stream_turn_events(
             "session_id": session_id,
             "user_message": user_message_response.model_dump(mode="json"),
             "trace_ids": trace_ids,
+        },
+    )
+    yield emit(
+        "memory_context",
+        {
+            "trace_id": memory_context.get("trace_id"),
+            "searched": memory_context.get("searched"),
+            "selected_count": memory_context.get("selected_count"),
+            "candidate_count": memory_context.get("candidate_count"),
+            "selected": memory_context.get("selected", []),
+            "near_miss": memory_context.get("near_miss", []),
+            "excluded": memory_context.get("excluded", []),
+            "conflicts": memory_context.get("conflicts", []),
+            "negative_evidence": memory_context.get("negative_evidence"),
         },
     )
 
@@ -645,6 +694,13 @@ def _stream_turn_events(
 
 def _ndjson(event_type: str, data: dict[str, Any]) -> str:
     return json.dumps({"type": event_type, "data": data}, ensure_ascii=True) + "\n"
+
+
+def _compose_system_with_runtime_context(
+    base_system: str,
+    runtime_context: str,
+) -> str:
+    return f"{base_system.rstrip()}\n\n{runtime_context.strip()}"
 
 
 def _dispatch_tool_use(

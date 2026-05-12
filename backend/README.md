@@ -11,6 +11,7 @@ Current scope:
 - persistent chat sessions and turns;
 - SQLite schema for sessions, messages, turns, traces, tool calls, and memories;
 - Memory v0 write/search through `mind_api`;
+- automatic Memory Context Pipeline v0 traces before model requests;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
 

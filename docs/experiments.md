@@ -168,7 +168,7 @@ Superseding direction recorded on 2026-05-12: the next implementation slice shou
 
 ## EXP-0008 - Memory Context Pipeline v0
 
-Status: planned
+Status: active
 
 Hypothesis:
 
@@ -205,7 +205,7 @@ Metrics:
 Initial Build:
 
 - `TurnFrame` construction from current message, recent dialogue, previous memory context, session metadata, capability state, active scope, and time.
-- SQLite FTS5/BM25 lexical retrieval.
+- Lexical v0 retrieval over active memory records, with SQLite FTS5/BM25 deferred to the next scoring improvement.
 - Query expansion from recent dialogue without hard-coded protocol names.
 - Relevance guard with `selected`, `near_miss`, and `excluded`.
 - Conflict detection over active memories.
@@ -222,11 +222,40 @@ Deferred Build:
 
 Result:
 
-Pending implementation.
+Initial implementation date: 2026-05-12
+
+Implemented:
+
+- `TurnFrame` construction from current user message, recent dialogue, session metadata, capability state, active project scope, and time.
+- Automatic `memory.context` trace before `llm.request` for both normal and streaming chat turns.
+- Backend-generated `<runtime_context>` block appended to the effective system message sent to MiniMax.
+- Lexical v0 retrieval over active memory records.
+- Relevance guard with `selected`, `near_miss`, and `excluded`.
+- Simple conflict detection over selected memories.
+- Streaming `memory_context` event for the cockpit timeline.
+- Frontend trace reconstruction for persisted `memory.context` traces.
+
+Verification:
+
+- Backend tests: `26 passed`.
+- Frontend build: `npm run build` succeeded.
+- Regression coverage confirms:
+  - every successful chat turn includes `memory.context` before `llm.request`;
+  - empty memory search produces `searched=true`, `selected=[]`, and negative evidence;
+  - a relevant Zero-Luce memory is injected into runtime context as `selected`;
+  - a weak Mare-Vetro query overlap with Zero-Luce is classified as `excluded`, not `selected`;
+  - streaming emits `memory_context` before model/tool events.
+
+Remaining risks:
+
+- Retrieval is lexical v0, not SQLite FTS5/BM25 yet.
+- No dense embeddings, rank fusion, or cross-encoder reranking yet.
+- Post-response validation for unsupported memory claims is not implemented yet.
+- Thresholds need adaptive live evaluation before they should be treated as stable.
 
 Decision:
 
-Planned and accepted as the next memory architecture slice. Do not add more Memory v0 lifecycle endpoints until this pipeline has made per-turn memory evidence reliable, traceable, and understandable to the model.
+Active. The first automatic context slice is implemented and ready for live adaptive evaluation. Do not add more Memory v0 lifecycle endpoints until this pipeline has been exercised through real cockpit conversations and threshold behavior is understood.
 
 ## EXP-0003 - Attention Context Pack
 

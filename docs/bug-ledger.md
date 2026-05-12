@@ -585,7 +585,7 @@ This bug was only obvious in direct adaptive chat because the model produced a s
 ## BUG-0010 - Memory Evidence Depends On Optional Model Search
 
 Date Found: 2026-05-12
-Status: open
+Status: monitoring
 
 Symptoms:
 
@@ -602,18 +602,25 @@ Memory search is currently a model-facing optional tool action, not an automatic
 
 Fix:
 
-Planned through Memory Context Pipeline v0:
+Initial fix implemented through Memory Context Pipeline v0:
 
 - build a `TurnFrame` for every chat turn;
 - run automatic budgeted retrieval on every turn;
 - persist a `memory.context` trace even when empty;
 - inject selected memories through backend-generated runtime context;
 - trace weak candidates as `near_miss` or `excluded`;
-- add post-response validation for unsupported memory absence or presence claims.
+- stream a `memory_context` event to the cockpit;
+- reconstruct persisted `memory.context` traces in the frontend timeline.
+
+Still pending:
+
+- SQLite FTS5/BM25 retrieval;
+- dense retrieval and reranking;
+- post-response validation for unsupported memory absence or presence claims.
 
 Regression Test:
 
-Future test should verify that every normal chat turn creates a `memory.context` trace before `llm.request`, and that a weak-overlap negative control places unrelated candidates outside `selected`.
+`backend/tests/test_chat_api.py` verifies that every normal chat turn creates a `memory.context` trace before `llm.request`, that empty contexts are explicit, that a relevant Zero-Luce memory enters `selected`, and that a weak Mare-Vetro overlap places the unrelated Zero-Luce memory in `excluded`.
 
 Related Files:
 

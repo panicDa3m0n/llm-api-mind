@@ -7,7 +7,8 @@ Current scope:
 - persistent chat session creation;
 - chat turn submission;
 - message list;
-- trace panel for `llm.request` and `llm.response`;
+- trace panel for `memory.context`, `llm.request`, tool calls, and `llm.response`;
+- inline memory context operation steps for automatic retrieval;
 - usage counters from turn/trace payloads.
 
 ## Setup

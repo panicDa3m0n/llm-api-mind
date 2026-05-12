@@ -194,6 +194,27 @@ export function App() {
         });
         break;
 
+      case "memory_context":
+        upsertStep(turnId, {
+          id: `memory-context-${String(event.data.trace_id ?? "pending")}`,
+          kind: "runtime",
+          seq: eventSeq(event),
+          title: "Memory context",
+          body: formatJson({
+            trace_id: event.data.trace_id,
+            searched: event.data.searched,
+            selected_count: event.data.selected_count,
+            candidate_count: event.data.candidate_count,
+            negative_evidence: event.data.negative_evidence,
+            selected: event.data.selected,
+            near_miss: event.data.near_miss,
+            excluded: event.data.excluded,
+            conflicts: event.data.conflicts
+          }),
+          status: "done"
+        });
+        break;
+
       case "thinking_start":
         upsertStep(turnId, {
           id: `thinking-start-${String(event.data.model_step ?? "1")}-${String(
@@ -662,6 +683,25 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
   let seq = 1;
 
   for (const trace of traces) {
+    if (trace.kind === "memory.context") {
+      steps.push({
+        id: `trace-memory-context-${trace.id}`,
+        kind: "runtime",
+        seq: seq++,
+        title: "Memory context",
+        body: formatJson({
+          selected_count: trace.payload.selected_count,
+          candidate_count: trace.payload.candidate_count,
+          negative_evidence: trace.payload.negative_evidence,
+          selected: trace.payload.selected,
+          near_miss: trace.payload.near_miss,
+          excluded: trace.payload.excluded,
+          conflicts: trace.payload.conflicts
+        }),
+        status: "done"
+      });
+    }
+
     if (trace.kind === "llm.request") {
       steps.push({
         id: `trace-request-${trace.id}`,

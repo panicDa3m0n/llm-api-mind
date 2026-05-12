@@ -40,9 +40,9 @@ Error responses should be structured and recoverable when possible:
 GET  /api/debug/state/{session_id}
 ```
 
-## Planned Internal Runtime Context
+## Implemented Internal Runtime Context
 
-Status: planned
+Status: implemented
 
 Purpose:
 
@@ -88,25 +88,22 @@ Model-facing runtime context shape:
 
 ```txt
 <runtime_context>
-  <memory_context searched="true" trace_id="trace_...">
-    <selected>
-      - id: mem_...
-        type: user_preference
-        content: ...
-        source_turn_id: turn_...
-        confidence: 0.95
-        salience: 0.8
-    </selected>
-    <near_miss>...</near_miss>
-    <excluded>...</excluded>
-    <conflicts>...</conflicts>
-    <negative_evidence>none</negative_evidence>
-  </memory_context>
-  <capabilities>
-    memory.write: implemented
-    memory.search: implemented
-    memory.update: unavailable
-  </capabilities>
+{
+  "memory_context": {
+    "searched": true,
+    "trace_id": "trace_...",
+    "selected": [],
+    "near_miss": [],
+    "excluded": [],
+    "conflicts": [],
+    "negative_evidence": "none"
+  },
+  "capabilities": {
+    "memory.write": "implemented",
+    "memory.search": "implemented",
+    "memory.update": "unavailable"
+  }
+}
 </runtime_context>
 ```
 
@@ -150,12 +147,13 @@ Required behavior:
 
 Initial retrieval plan:
 
-1. SQLite FTS5/BM25 lexical retrieval for exact names and rare terms.
-2. Relevance guard that separates `selected`, `near_miss`, and `excluded`.
-3. Conflict grouping over active memories that appear to describe the same subject.
+1. Implemented: lexical v0 retrieval over active memory records.
+2. Implemented: relevance guard that separates `selected`, `near_miss`, and `excluded`.
+3. Implemented: simple conflict grouping over selected active memories that appear to describe the same subject.
 
 Deferred retrieval plan:
 
+- SQLite FTS5/BM25 retrieval for stronger local lexical scoring.
 - Dense embeddings for paraphrases.
 - Hybrid sparse+dense rank fusion.
 - Cross-encoder reranking.
@@ -355,7 +353,7 @@ Response:
     "role": "assistant",
     "content": "pong"
   },
-  "trace_ids": ["trace_...", "trace_..."],
+  "trace_ids": ["trace_...", "trace_...", "trace_..."],
   "model": "MiniMax-M2.7",
   "latency_ms": 1104,
   "usage": {
@@ -376,7 +374,7 @@ Trace Behavior:
 
 Creates at least:
 
-- planned: `memory.context` before `llm.request`
+- `memory.context`
 - `llm.request`
 - `llm.response`
 
@@ -392,6 +390,9 @@ When the model uses Memory v0 through `mind_api`, the turn also creates:
 - `system_present`
 - `system_source`: `bundled`, `environment`, `configured_path`, or `request`
 - `system_path` when loaded from a file
+- `base_system`: the stable configured system prompt before runtime context injection
+- `runtime_context`: the backend-generated runtime context block passed to the model
+- `memory_context_trace_id`: the associated `memory.context` trace row
 - `tools`: currently the single `mind_api` tool schema
 
 If the provider fails, creates:
@@ -438,6 +439,7 @@ Every streamed event includes `data.seq`, a monotonically increasing turn-local 
 Current event types:
 
 - `turn_started`: persisted user message and turn identifiers are ready.
+- `memory_context`: automatic memory context was built and traced before the model request.
 - `model_request`: a provider request step started.
 - `thinking_start`: provider-exposed thinking block started.
 - `thinking_delta`: provider-exposed thinking text delta for debug inspection.

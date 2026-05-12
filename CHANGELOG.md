@@ -75,6 +75,11 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added a `visible_metacognition_probe` evaluation scenario.
 - Added ADR-0015 documenting that the current laboratory SQLite state is versioned in Git while secrets remain excluded.
 - Added ADR-0016 and EXP-0008 for Memory Context Pipeline v0, the planned automatic per-turn memory retrieval and runtime-context phase.
+- Added the first Memory Context Pipeline v0 runtime slice:
+  - automatic `memory.context` traces before `llm.request`;
+  - backend-generated `<runtime_context>` injection;
+  - lexical v0 relevance guard with `selected`, `near_miss`, `excluded`, and conflicts;
+  - streaming `memory_context` events for the cockpit.
 
 ### Changed
 
@@ -106,6 +111,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Recorded direct adaptive Memory v0 verification and updated the immediate roadmap toward lifecycle semantics and search relevance filtering.
 - Updated the immediate roadmap to prioritize automatic memory context evidence before adding more memory lifecycle endpoints.
 - Updated Scarlet's prompt with a runtime-context contract for future backend-provided memory context and capability state.
+- Updated the frontend operation timeline to show automatic memory context from streams and persisted traces.
 
 ### Fixed
 

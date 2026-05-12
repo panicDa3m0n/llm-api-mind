@@ -20,7 +20,7 @@ The project has a working local baseline runtime:
 - SQLite persistence for sessions, messages, turns, and traces;
 - traceable `mind_api` schema tool loop;
 - Memory v0 write/search with sourceable records and dedicated traces;
-- planned Memory Context Pipeline v0 so every turn receives automatic, traced memory evidence before the LLM call;
+- Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
 - visible metacognition prompt probe for concise public self-monitoring notes;
 - streaming React cockpit with inline ordered agent-turn timeline;
 - scripted and interactive evaluation runner;
@@ -42,8 +42,8 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Implement Memory Context Pipeline v0 as an automatic per-turn runtime phase.
-2. Add lexical retrieval plus a relevance guard that produces selected, near_miss, excluded, and conflicts.
+1. Run a live adaptive Memory Context Pipeline v0 evaluation through the cockpit.
+2. Upgrade lexical retrieval toward SQLite FTS5/BM25 and tune relevance thresholds.
 3. Then revisit memory lifecycle APIs, memory inspection UI, and attention context on top of reliable memory evidence.
 ```
 
