@@ -608,3 +608,73 @@ Links:
 - `backend/data/app.db`
 - `README.md`
 - `docs/project-blueprint.md`
+
+## ADR-0016 - Make Memory Context A Runtime Perceptual Phase
+
+Date: 2026-05-12
+Status: accepted
+
+Context:
+
+Memory v0 currently depends on Scarlet deciding to call `mind_api` search during the turn. Direct adaptive checks showed that this is not the right long-term architecture: the model can answer from chat history, skip search, or make claims about missing memory without a runtime proof that memory was actually searched. The Mare-Vetro negative control also showed that weak lexical overlap can return an unrelated Zero-Luce memory candidate. Scarlet handled that case in the answer, but the backend should own candidate selection instead of relying on the model to reject weak evidence.
+
+Decision:
+
+Introduce **Memory Context Pipeline v0** as an automatic chat-runtime phase. Every chat turn should build a `TurnFrame`, run budgeted memory retrieval, rank and filter candidates, detect conflicts where possible, and emit a traced `memory.context` pack before the LLM call.
+
+Target flow:
+
+```txt
+user message
+-> TurnFrame
+-> automatic memory retrieval
+-> ranking, exclusions, conflicts
+-> memory.context trace
+-> runtime_context injected into the model request
+-> answer
+-> optional post-turn consolidation
+```
+
+The model should receive selected memory evidence through backend-generated runtime context, not only through optional tool calls. The runtime context is operational evidence, separate from the stable system prompt and separate from user-authored text.
+
+The first implementation should stay local and observable:
+
+- always run retrieval on every turn;
+- retrieve a small internal candidate set;
+- pass only zero to five selected memories to the model;
+- trace selected, near-miss, excluded, and conflicting candidates;
+- preserve source IDs, confidence, salience, usage, and ranking reasons;
+- start with SQLite FTS5/BM25 plus a relevance guard;
+- defer dense embeddings, hybrid rank fusion, and cross-encoder reranking until the automatic lexical pipeline is proven.
+
+Do not add more memory lifecycle endpoints before this pipeline demonstrates that each turn receives reliable, traceable memory evidence.
+
+Alternatives Considered:
+
+- Keep prompting Scarlet to remember to search: rejected because it keeps memory under model discretion and cannot prove negative memory claims.
+- Add an intelligent gate that decides when to search: rejected for v0 because the robust invariant is simpler: every turn produces a searched memory context, even if empty.
+- Implement dense/vector retrieval first: deferred because exact names and rare tokens need lexical strength, and the first missing piece is automatic traceable context rather than semantic breadth.
+- Add update/deprecate memory endpoints first: deferred because lifecycle semantics should build on reliable retrieval and context evidence.
+
+Consequences:
+
+- Memory becomes a perceptual runtime input rather than only a model-facing tool action.
+- `memory.context` traces become required evidence for answers that claim relevant memory exists or does not exist.
+- Prompt guidance can stay general: use runtime context, source memory claims, declare conflicts, and do not promise unavailable capabilities.
+- API surface can remain small while the backend improves retrieval quality internally.
+- Future implementation should add a post-response validator that flags memory absence claims when no `memory.context` trace or explicit memory search supports them.
+
+References:
+
+- Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks: `https://arxiv.org/abs/2005.11401`
+- SQLite FTS5 Extension: `https://www.sqlite.org/fts5.html`
+- Sentence Transformers Cross-Encoder reranking examples: `https://sbert.net/examples/cross_encoder/applications/README.html`
+- Qdrant hybrid queries: `https://qdrant.tech/documentation/search/hybrid-queries/`
+- Reciprocal Rank Fusion paper entry: `https://research.google/pubs/reciprocal-rank-fusion-outperforms-condorcet-and-individual-rank-learning-methods/`
+
+Links:
+
+- `docs/project-blueprint.md`
+- `docs/api-contract.md`
+- `docs/experiments.md`
+- `backend/app/prompts/scarlet_system.md`

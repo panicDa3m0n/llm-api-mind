@@ -769,3 +769,34 @@ Open Questions:
 Next Suggested Step:
 
 Implement the smallest Memory v0 lifecycle slice: deprecate/replace an existing memory with traceable conflict handling, then add a search relevance guard.
+
+## 2026-05-12 - Memory Context Pipeline v0 Design
+
+Goal:
+
+Move memory retrieval out of optional model discretion and formalize it as an automatic runtime context phase.
+
+Changes:
+
+- Added Memory Context Pipeline v0 to the project blueprint.
+- Added ADR-0016 documenting automatic per-turn memory context as the accepted architecture.
+- Added EXP-0008 for validating automatic memory context against optional model-driven search.
+- Documented the planned internal `memory.context` trace and `<runtime_context>` shape in the API contract.
+- Updated Scarlet's prompt with a runtime-context contract for backend-provided memory evidence and capability state.
+- Updated the immediate roadmap to prioritize automatic memory evidence before additional memory lifecycle endpoints.
+- Recorded BUG-0010 for the current optional-search memory evidence risk.
+
+Verification:
+
+- Documentation and prompt changes only; runtime implementation was not changed in this slice.
+- Verified the design against the referenced RAG, SQLite FTS5, reranking, hybrid search, and rank-fusion source material.
+
+Open Questions:
+
+- What exact relevance thresholds should separate `selected`, `near_miss`, and `excluded` in the first lexical-only implementation?
+- Should `memory.context` be stored only as traces at first, or also get a dedicated table after the trace shape stabilizes?
+- How strict should the post-response validator be before it starts blocking or warning on unsupported memory claims?
+
+Next Suggested Step:
+
+Implement the smallest Memory Context Pipeline v0 slice: build `TurnFrame`, run automatic lexical retrieval on every turn, persist `memory.context`, inject selected runtime context before `llm.request`, and add regression tests for empty and weak-overlap cases.

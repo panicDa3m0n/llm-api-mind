@@ -40,6 +40,127 @@ Error responses should be structured and recoverable when possible:
 GET  /api/debug/state/{session_id}
 ```
 
+## Planned Internal Runtime Context
+
+Status: planned
+
+Purpose:
+
+Build backend-owned operational context before each LLM call. This is not a public user-facing endpoint. It is an internal chat-runtime phase that makes memory evidence perceptual and traceable instead of depending only on optional model tool calls.
+
+Target turn flow:
+
+```txt
+POST /api/chat/sessions/{session_id}/turn
+-> build TurnFrame
+-> automatic memory retrieval
+-> ranking, exclusions, conflicts
+-> persist memory.context trace
+-> inject <runtime_context> into the model request
+-> run MiniMax tool loop
+-> persist answer and traces
+```
+
+TurnFrame shape:
+
+```json
+{
+  "current_user_message": "...",
+  "recent_dialogue": [
+    {
+      "role": "user",
+      "content": "..."
+    }
+  ],
+  "previous_memory_context": {},
+  "session_metadata": {},
+  "active_project_scope": "project",
+  "available_capabilities": {
+    "memory.write": "implemented",
+    "memory.search": "implemented",
+    "memory.update": "unavailable"
+  },
+  "time": "2026-05-12T00:00:00Z"
+}
+```
+
+Model-facing runtime context shape:
+
+```txt
+<runtime_context>
+  <memory_context searched="true" trace_id="trace_...">
+    <selected>
+      - id: mem_...
+        type: user_preference
+        content: ...
+        source_turn_id: turn_...
+        confidence: 0.95
+        salience: 0.8
+    </selected>
+    <near_miss>...</near_miss>
+    <excluded>...</excluded>
+    <conflicts>...</conflicts>
+    <negative_evidence>none</negative_evidence>
+  </memory_context>
+  <capabilities>
+    memory.write: implemented
+    memory.search: implemented
+    memory.update: unavailable
+  </capabilities>
+</runtime_context>
+```
+
+Trace shape:
+
+```json
+{
+  "kind": "memory.context",
+  "payload": {
+    "operation": "memory.context",
+    "searched": true,
+    "turn_frame": {
+      "current_user_message": "..."
+    },
+    "query_plan": {
+      "lexical_queries": ["..."],
+      "semantic_queries": []
+    },
+    "selected": [],
+    "near_miss": [],
+    "excluded": [],
+    "conflicts": [],
+    "candidate_count": 0,
+    "selected_count": 0,
+    "budget": {
+      "internal_candidates": 20,
+      "model_selected": 5
+    }
+  }
+}
+```
+
+Required behavior:
+
+- Every chat turn creates `memory.context`, even when no memory is selected.
+- The backend may inspect more candidates internally than it injects into the model request.
+- Selected candidates are the only memory records that should be treated as evidence by the model.
+- Near misses and exclusions remain trace evidence for debugging and evaluation.
+- Missing memory claims should be considered verified only when `memory.context.searched=true` or an explicit memory search result supports them.
+- Capability state in runtime context is the source of truth for implemented and unavailable memory actions.
+
+Initial retrieval plan:
+
+1. SQLite FTS5/BM25 lexical retrieval for exact names and rare terms.
+2. Relevance guard that separates `selected`, `near_miss`, and `excluded`.
+3. Conflict grouping over active memories that appear to describe the same subject.
+
+Deferred retrieval plan:
+
+- Dense embeddings for paraphrases.
+- Hybrid sparse+dense rank fusion.
+- Cross-encoder reranking.
+- Post-response validator for unverifiable memory claims.
+
 ## Implemented System API
 
 ### GET /health
@@ -255,6 +376,7 @@ Trace Behavior:
 
 Creates at least:
 
+- planned: `memory.context` before `llm.request`
 - `llm.request`
 - `llm.response`
 

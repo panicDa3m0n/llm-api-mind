@@ -20,6 +20,7 @@ The project has a working local baseline runtime:
 - SQLite persistence for sessions, messages, turns, and traces;
 - traceable `mind_api` schema tool loop;
 - Memory v0 write/search with sourceable records and dedicated traces;
+- planned Memory Context Pipeline v0 so every turn receives automatic, traced memory evidence before the LLM call;
 - visible metacognition prompt probe for concise public self-monitoring notes;
 - streaming React cockpit with inline ordered agent-turn timeline;
 - scripted and interactive evaluation runner;
@@ -41,9 +42,9 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Add Memory v0 lifecycle support for update/deprecate/conflict resolution.
-2. Add a relevance guard for memory search so weak token overlap does not return misleading memories.
-3. Then choose between a memory inspection panel and attention context over cleaner memory results.
+1. Implement Memory Context Pipeline v0 as an automatic per-turn runtime phase.
+2. Add lexical retrieval plus a relevance guard that produces selected, near_miss, excluded, and conflicts.
+3. Then revisit memory lifecycle APIs, memory inspection UI, and attention context on top of reliable memory evidence.
 ```
 
 ## Local Run

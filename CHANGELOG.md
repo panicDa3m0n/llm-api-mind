@@ -74,6 +74,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Added a visible metacognition prompt experiment with the `Metacognizione:` public self-monitoring note.
 - Added a `visible_metacognition_probe` evaluation scenario.
 - Added ADR-0015 documenting that the current laboratory SQLite state is versioned in Git while secrets remain excluded.
+- Added ADR-0016 and EXP-0008 for Memory Context Pipeline v0, the planned automatic per-turn memory retrieval and runtime-context phase.
 
 ### Changed
 
@@ -103,6 +104,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Cleaned up the experiments document so Memory v0 results are recorded under EXP-0002.
 - Changed repository ignore policy so `backend/data/app.db` is an intentional cross-machine laboratory artifact.
 - Recorded direct adaptive Memory v0 verification and updated the immediate roadmap toward lifecycle semantics and search relevance filtering.
+- Updated the immediate roadmap to prioritize automatic memory context evidence before adding more memory lifecycle endpoints.
+- Updated Scarlet's prompt with a runtime-context contract for future backend-provided memory context and capability state.
 
 ### Fixed
 

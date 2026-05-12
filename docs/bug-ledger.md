@@ -581,3 +581,48 @@ Related Files:
 Notes:
 
 This bug was only obvious in direct adaptive chat because the model produced a semantically valid but non-canonical tool wrapper.
+
+## BUG-0010 - Memory Evidence Depends On Optional Model Search
+
+Date Found: 2026-05-12
+Status: open
+
+Symptoms:
+
+Current Memory v0 retrieval depends on Scarlet deciding to call `mind_api` search during the turn. This creates two observable risks:
+
+- the model may answer a continuity question from chat history or inference without checking persistent memory;
+- the model may claim that no relevant memory exists without a trace proving memory was searched.
+
+The Mare-Vetro negative control also showed that weak lexical overlap can retrieve an unrelated Zero-Luce memory candidate. Scarlet rejected it correctly in that run, but the backend should classify weak candidates before they reach the model as usable evidence.
+
+Root Cause:
+
+Memory search is currently a model-facing optional tool action, not an automatic runtime context phase. Candidate relevance is also handled by simple lexical scoring without a backend-level selected/near-miss/excluded separation.
+
+Fix:
+
+Planned through Memory Context Pipeline v0:
+
+- build a `TurnFrame` for every chat turn;
+- run automatic budgeted retrieval on every turn;
+- persist a `memory.context` trace even when empty;
+- inject selected memories through backend-generated runtime context;
+- trace weak candidates as `near_miss` or `excluded`;
+- add post-response validation for unsupported memory absence or presence claims.
+
+Regression Test:
+
+Future test should verify that every normal chat turn creates a `memory.context` trace before `llm.request`, and that a weak-overlap negative control places unrelated candidates outside `selected`.
+
+Related Files:
+
+- `docs/project-blueprint.md`
+- `docs/decisions.md`
+- `docs/experiments.md`
+- `docs/api-contract.md`
+- `backend/app/prompts/scarlet_system.md`
+
+Notes:
+
+Do not treat this as a prompt-only problem. Prompt discipline remains useful, but the architectural fix is to move memory evidence into the backend runtime frame.

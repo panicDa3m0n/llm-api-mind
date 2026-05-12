@@ -162,7 +162,71 @@ Additional findings:
 
 Decision:
 
-Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design. The next implementation slice should prioritize lifecycle semantics and relevance filtering before adding attention.
+Memory v0 is accepted as the experimental substrate for real memory evaluation. It is not accepted as the final memory design.
+
+Superseding direction recorded on 2026-05-12: the next implementation slice should prioritize Memory Context Pipeline v0 before adding more memory endpoints. Lifecycle semantics still matter, but the stronger architectural need is that every turn receives traceable memory evidence automatically, with weak candidates filtered into `near_miss` or `excluded` instead of relying on Scarlet to decide whether to search.
+
+## EXP-0008 - Memory Context Pipeline v0
+
+Status: planned
+
+Hypothesis:
+
+An automatic per-turn memory context phase improves recall reliability and source discipline more than asking the model to decide when to search memory.
+
+Baseline:
+
+Current Memory v0 behavior: Scarlet may call `POST /mind/memory/search` through `mind_api` when prompted or when the system prompt makes search salient.
+
+Variant:
+
+Chat runtime builds a `TurnFrame`, runs automatic budgeted memory retrieval on every turn, persists a `memory.context` trace, and injects selected memory evidence into backend-generated `<runtime_context>` before the LLM call.
+
+Scenario:
+
+Use multi-turn and cross-session probes involving rare protocol names, short elliptical follow-ups, and negative controls:
+
+- ask what Scarlet knows about a stored protocol;
+- ask a follow-up such as "E invece Zero-Luce?" after another protocol was mentioned;
+- ask about a nonexistent protocol with weak token overlap to stored memories;
+- introduce conflicting memories and verify that conflicts appear in the context pack.
+
+Metrics:
+
+- Every chat turn has a `memory.context` trace.
+- `memory.context.searched` is true for every normal chat turn.
+- Relevant stored memories appear in `selected`.
+- Weak lexical overlaps appear in `near_miss` or `excluded`, not `selected`.
+- The LLM receives at most five selected memory items.
+- Answers that claim no relevant memory exists are backed by `memory.context` or explicit memory search.
+- Conflict cases are surfaced in the runtime context and answer.
+- Latency and token overhead stay within an acceptable local-debug budget.
+
+Initial Build:
+
+- `TurnFrame` construction from current message, recent dialogue, previous memory context, session metadata, capability state, active scope, and time.
+- SQLite FTS5/BM25 lexical retrieval.
+- Query expansion from recent dialogue without hard-coded protocol names.
+- Relevance guard with `selected`, `near_miss`, and `excluded`.
+- Conflict detection over active memories.
+- `memory.context` trace before `llm.request`.
+- Runtime context injection separate from the stable system prompt and user text.
+
+Deferred Build:
+
+- Dense embeddings.
+- Hybrid sparse+dense rank fusion.
+- Cross-encoder reranking.
+- Post-response validator for unverified memory absence or presence claims.
+- Dedicated frontend memory-context inspection panel.
+
+Result:
+
+Pending implementation.
+
+Decision:
+
+Planned and accepted as the next memory architecture slice. Do not add more Memory v0 lifecycle endpoints until this pipeline has made per-turn memory evidence reliable, traceable, and understandable to the model.
 
 ## EXP-0003 - Attention Context Pack
 
