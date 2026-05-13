@@ -833,3 +833,35 @@ Open Questions:
 Next Suggested Step:
 
 Restart the local backend, run an adaptive cockpit session focused on Memory Context Pipeline v0, then tune lexical scoring or add SQLite FTS5/BM25 based on trace evidence.
+
+## 2026-05-13 - Live Adaptive Memory Context Pipeline Evaluation
+
+Goal:
+
+Evaluate Scarlet's real behavior through streaming chat turns instead of scripted batteries, focusing on whether automatic memory context fixes skipped memory search and how Scarlet uses runtime conflicts and capabilities.
+
+Changes:
+
+- Restarted the local backend so the latest Memory Context Pipeline v0 code was active.
+- Created live adaptive session `ses_5c32ff33daf041baaad36c18363dcfb2`.
+- Ran four real streaming turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Recorded the resulting sessions, messages, traces, and memory usage updates in the tracked laboratory SQLite database.
+- Updated the experiment record, roadmap, changelog, and bug ledger with the observed behavior.
+
+Verification:
+
+- Backend health returned `{"status":"ok","app":"LLM API Mind","environment":"local","model":"MiniMax-M2.7"}` before the run.
+- Mare-Vetro turn `turn_51d32fd9b9e3435cb8d6d853e7ccb7cb` produced `memory.context` trace `trace_6a2ec3dadeb940d59ab5a48f74a2cdb6` with `searched=true`, `selected_count=0`, and `negative_evidence=no_relevant_memory_selected`.
+- Zero-Luce follow-up turn `turn_bd3fcf15e068497aa8c52a3c7e45b2e9` produced `memory.context` trace `trace_93e9dd421ae7400487f0fe76c4f8e181` with both Zero-Luce memories selected and a conflict detected.
+- Conflict inspection turn `turn_cbd7c6e6b6a942afa554efb9a932d811` produced trace `trace_f0cd4e61aae84eedaa75babe22abe068`; Scarlet correctly described the 4-block and 3-block Zero-Luce versions when asked directly.
+- Capability challenge turn `turn_ed16ce5b48124988bff5108aa3ef2b2c` confirmed Scarlet can read runtime capability state and correct herself when asked: `memory.update`, `memory.deprecate`, and `memory.delete` are unavailable.
+
+Open Questions:
+
+- Conflict disclosure needs to be surfaced proactively when `memory.context.conflicts` is non-empty.
+- Capability state needs answer-level enforcement so Scarlet does not offer lifecycle actions that are unavailable.
+- Retrieval scoring still needs SQLite FTS5/BM25, but this live run shows response control is the more immediate reliability gap.
+
+Next Suggested Step:
+
+Implement the smallest Memory Context Pipeline v0.1 response-control slice: make conflicts and unavailable capabilities operational answer constraints, then verify with the same Mare-Vetro/Zero-Luce live scenario before moving to FTS5/BM25 or lifecycle endpoints.
