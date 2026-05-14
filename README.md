@@ -42,8 +42,8 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Run a live adaptive Memory Context Pipeline v0 evaluation through the cockpit.
-2. Upgrade lexical retrieval toward SQLite FTS5/BM25 and tune relevance thresholds.
+1. Add a Memory Context Pipeline v0.1 response-control slice for conflicts and unavailable capability claims.
+2. Upgrade lexical retrieval toward SQLite FTS5/BM25 and tune relevance thresholds using the live trace evidence.
 3. Then revisit memory lifecycle APIs, memory inspection UI, and attention context on top of reliable memory evidence.
 ```
 

@@ -633,3 +633,48 @@ Related Files:
 Notes:
 
 Do not treat this as a prompt-only problem. Prompt discipline remains useful, but the architectural fix is to move memory evidence into the backend runtime frame.
+
+## BUG-0011 - Runtime Context Conflicts And Capabilities Are Not Enforced In Answers
+
+Date Found: 2026-05-13
+Status: monitoring
+
+Symptoms:
+
+In live Memory Context Pipeline v0 evaluation:
+
+- `trace_93e9dd421ae7400487f0fe76c4f8e181` selected both active Zero-Luce memories and detected a conflict, but Scarlet's first Zero-Luce answer did not proactively mention the conflict.
+- When explicitly asked about conflicts, Scarlet correctly used `trace_f0cd4e61aae84eedaa75babe22abe068` and identified the 4-block and 3-block versions.
+- In that same answer, Scarlet proposed update/consolidation even though runtime capabilities list `memory.update`, `memory.deprecate`, and `memory.delete` as unavailable.
+- When challenged directly, Scarlet inspected the capability state and corrected herself.
+
+Root Cause:
+
+`memory.context` currently injects evidence and capability state, but the backend does not yet convert conflicts or unavailable capabilities into enforced answer constraints or post-response validation. The model can use the context when it is salient, but it can also under-report conflicts or imply actions that the runtime cannot perform.
+
+Fix:
+
+Pending. Recommended first slice:
+
+- Add runtime answer obligations when `memory_context.conflicts` is non-empty.
+- Add a small response-control or post-response validation step for unsupported lifecycle-action claims.
+- Keep lifecycle endpoint design deferred until conflict/capability discipline is reliable.
+
+Regression Test:
+
+Pending. Re-run the live Mare-Vetro/Zero-Luce sequence after the fix and verify:
+
+- conflict is disclosed without the user asking a second time;
+- Scarlet does not offer update/deprecate/delete/consolidation as executable actions while those capabilities are unavailable;
+- capability correction does not require the user to challenge the answer.
+
+Related Files:
+
+- `backend/app/mind/context.py`
+- `backend/app/api/chat.py`
+- `backend/app/prompts/scarlet_system.md`
+- `docs/experiments.md`
+
+Notes:
+
+This is not a retrieval miss. Retrieval found the relevant memories and conflict; the gap is how final answers are constrained by runtime evidence.

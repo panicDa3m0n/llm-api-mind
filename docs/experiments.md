@@ -246,16 +246,50 @@ Verification:
   - a weak Mare-Vetro query overlap with Zero-Luce is classified as `excluded`, not `selected`;
   - streaming emits `memory_context` before model/tool events.
 
+Live adaptive evaluation:
+
+Run date: 2026-05-13
+
+Environment:
+
+- FastAPI backend on `http://127.0.0.1:8000`.
+- MiniMax M2.7 through `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Session: `ses_5c32ff33daf041baaad36c18363dcfb2`.
+- Focus metadata: `memory_context_pipeline_v0`.
+
+Scenario run:
+
+- Turn `turn_51d32fd9b9e3435cb8d6d853e7ccb7cb`: prompt `Ciao Scarlet, cosa sai di Mare-Vetro?`.
+- Trace `trace_6a2ec3dadeb940d59ab5a48f74a2cdb6`: `searched=true`, `candidate_count=2`, `selected_count=0`, `negative_evidence=no_relevant_memory_selected`.
+- Result: Scarlet correctly said she had no available memory for Mare-Vetro. No model memory-search tool call was needed because the automatic runtime context carried the negative evidence.
+- Turn `turn_bd3fcf15e068497aa8c52a3c7e45b2e9`: prompt `E invece Zero-Luce?`.
+- Trace `trace_93e9dd421ae7400487f0fe76c4f8e181`: `searched=true`, `candidate_count=2`, `selected_count=2`; selected memories were `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3` and `mem_abed5590f91b4eb8aa93d1103db024de`.
+- Result: Scarlet answered from persistent memory in an elliptical follow-up where earlier Memory v0 could have skipped search. This confirms the core value of automatic context.
+- The same trace also detected a conflict between the two active Zero-Luce memories, but Scarlet did not surface that conflict in the first Zero-Luce answer.
+- Turn `turn_cbd7c6e6b6a942afa554efb9a932d811`: when asked directly about conflicts, trace `trace_f0cd4e61aae84eedaa75babe22abe068` again selected both memories and Scarlet correctly identified the 4-block and 3-block versions.
+- In that answer Scarlet proposed update/consolidation despite `memory.update`, `memory.deprecate`, and `memory.delete` being unavailable.
+- Turn `turn_ed16ce5b48124988bff5108aa3ef2b2c`: when challenged to inspect capabilities, trace `trace_774e9df16efe4464a9ee03f203419521` carried no selected memory but the runtime capability block was enough for Scarlet to correct herself and state that lifecycle operations are unavailable.
+
+Live findings:
+
+- Positive: automatic memory context solved the observed "Zero-Luce follow-up skipped search" failure mode.
+- Positive: negative memory claims can now be backed by `memory.context` rather than by model confidence alone.
+- Positive: conflicts are detected in runtime context and can be used by Scarlet when made salient.
+- Risk: conflict disclosure is not yet reliable unless the user asks directly.
+- Risk: capability state is understood when explicitly inspected, but not yet strong enough to prevent unsupported lifecycle-action proposals.
+- Risk: the next fragile layer is response control over runtime evidence, not only retrieval scoring.
+
 Remaining risks:
 
 - Retrieval is lexical v0, not SQLite FTS5/BM25 yet.
 - No dense embeddings, rank fusion, or cross-encoder reranking yet.
 - Post-response validation for unsupported memory claims is not implemented yet.
 - Thresholds need adaptive live evaluation before they should be treated as stable.
+- Runtime-context conflicts and unavailable capability state need stronger answer-level enforcement before memory lifecycle APIs are added.
 
 Decision:
 
-Active. The first automatic context slice is implemented and ready for live adaptive evaluation. Do not add more Memory v0 lifecycle endpoints until this pipeline has been exercised through real cockpit conversations and threshold behavior is understood.
+Active. The first automatic context slice passed the main live recall and negative-evidence checks. Do not add more Memory v0 lifecycle endpoints yet; first add a small response-control/validation slice so conflicts and unavailable capabilities are surfaced reliably when runtime context already knows about them.
 
 ## EXP-0003 - Attention Context Pack
 

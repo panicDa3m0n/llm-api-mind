@@ -112,6 +112,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Updated the immediate roadmap to prioritize automatic memory context evidence before adding more memory lifecycle endpoints.
 - Updated Scarlet's prompt with a runtime-context contract for future backend-provided memory context and capability state.
 - Updated the frontend operation timeline to show automatic memory context from streams and persisted traces.
+- Recorded the first live adaptive Memory Context Pipeline v0 evaluation, confirming automatic memory context fixes the Zero-Luce follow-up recall case while exposing a new answer-control risk around memory conflicts and unavailable lifecycle capabilities.
+- Updated the immediate roadmap toward a Memory Context Pipeline v0.1 response-control slice before additional memory lifecycle endpoints.
 
 ### Fixed
 
