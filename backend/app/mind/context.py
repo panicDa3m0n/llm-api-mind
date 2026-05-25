@@ -1,15 +1,26 @@
 import json
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import combinations
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlmodel import Session
 
-from app.mind.schema import MIND_API_ROUTES
+from app.mind.facts import fact_payload, fact_search_text
+from app.runtime.events import compact_event_for_context
+from app.runtime.preferences import RuntimePreferences
+from app.mind.schema import MIND_API_ROUTES, schema_metadata
+from app.mind.search import (
+    entity_token_groups,
+    query_tokens,
+    search_documents,
+    sparse_results_by_source,
+    sync_memory_documents,
+)
 from app.storage import repositories
-from app.storage.models import ChatSession, MemoryRecord, Message, utc_now
+from app.storage.models import ChatSession, MemoryFact, MemoryRecord, Message, utc_now
 
 
 RECENT_DIALOGUE_LIMIT = 8
@@ -17,50 +28,12 @@ INTERNAL_CANDIDATE_LIMIT = 20
 MODEL_SELECTED_LIMIT = 5
 NEAR_MISS_MIN_SCORE = 1.5
 
-GENERIC_TOKENS = {
-    "a",
-    "about",
-    "ancora",
-    "and",
-    "che",
-    "context",
-    "contesto",
-    "cosa",
-    "del",
-    "della",
-    "di",
-    "dimmi",
-    "do",
-    "e",
-    "for",
-    "il",
-    "in",
-    "invece",
-    "know",
-    "la",
-    "memoria",
-    "memory",
-    "of",
-    "per",
-    "preference",
-    "preferenza",
-    "project",
-    "progetto",
-    "protocol",
-    "protocollo",
-    "ricorda",
-    "ricordi",
-    "sai",
-    "the",
-    "what",
-}
-
-
 @dataclass(frozen=True)
 class MemoryCandidateScore:
     memory: MemoryRecord
     score: float
     why_relevant: str
+    sparse_score: float
     current_overlap: list[str]
     context_overlap: list[str]
     generic_overlap: list[str]
@@ -73,6 +46,8 @@ class MemoryContextBuild:
     trace_id: str
     payload: dict[str, Any]
     runtime_context: str
+    runtime_trace_id: str
+    runtime_payload: dict[str, Any]
 
 
 def build_memory_context(
@@ -83,15 +58,33 @@ def build_memory_context(
     current_user_message: Message,
     history: list[Message],
     now: datetime | None = None,
+    runtime_preferences: RuntimePreferences | None = None,
 ) -> MemoryContextBuild:
     timestamp = now or utc_now()
+    preferences = runtime_preferences or RuntimePreferences(
+        timezone="Europe/Rome",
+        language="it",
+        language_label="Italiano",
+        country_code="IT",
+        country_label="Italia",
+        profile_id="local-user",
+        user_display_name="Utente locale",
+        privacy_scope="local_single_user",
+        source="context_default",
+    )
     recent_dialogue = _recent_dialogue(history)
+    recent_events = _recent_runtime_events(
+        db,
+        session_id=chat_session.id,
+        exclude_turn_id=turn_id,
+    )
     capabilities = _capability_state()
     turn_frame = {
         "current_user_message": current_user_message.content,
         "current_user_message_id": current_user_message.id,
         "recent_dialogue": recent_dialogue,
-        "previous_memory_context": {},
+        "recent_runtime_events": recent_events,
+        "previous_memory_context": _previous_memory_context_from_events(recent_events),
         "session_metadata": chat_session.metadata_json,
         "active_project_scope": "project",
         "available_capabilities": capabilities,
@@ -106,19 +99,37 @@ def build_memory_context(
         scope=None,
         include_low_confidence=False,
     )
+    facts_by_memory = {
+        memory.id: repositories.list_memory_facts(db, memory_id=memory.id)
+        for memory in candidates
+    }
+    sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
+    sparse_query = " ".join(lexical_queries)
+    sparse_matches = sparse_results_by_source(
+        search_documents(
+            db,
+            query=sparse_query,
+            kind="memory",
+            limit=INTERNAL_CANDIDATE_LIMIT * 4,
+        )
+    )
     ranked = _rank_candidates(
         candidates,
         current_user_message=current_user_message.content,
         recent_dialogue=recent_dialogue,
+        facts_by_memory=facts_by_memory,
+        sparse_matches=sparse_matches,
     )[:INTERNAL_CANDIDATE_LIMIT]
     selected_ranked, near_miss_ranked, excluded_ranked = _classify_candidates(ranked)
 
     near_miss = [
         _candidate_payload(item, classification="near_miss")
+        | {"facts": [fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])]}
         for item in near_miss_ranked
     ]
     excluded = [
         _candidate_payload(item, classification="excluded")
+        | {"facts": [fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])]}
         for item in excluded_ranked
     ]
 
@@ -132,18 +143,22 @@ def build_memory_context(
                 item,
                 memory=updated,
                 classification="selected",
+                facts=facts_by_memory.get(updated.id, []),
             )
         )
 
     conflicts = _detect_conflicts(selected)
+    temporal_context = _temporal_context(timestamp, preferences)
     payload = {
         "operation": "memory.context",
         "searched": True,
         "turn_frame": turn_frame,
+        "temporal_context": temporal_context,
         "query_plan": {
             "lexical_queries": lexical_queries,
             "semantic_queries": [],
-            "retrieval_stages": ["lexical_v0"],
+            "sparse_query": _truncate(sparse_query, 1500),
+            "retrieval_stages": ["fts5_sparse_v1", "lexical_guard_v1"],
         },
         "selected": selected,
         "near_miss": near_miss,
@@ -166,42 +181,464 @@ def build_memory_context(
         payload=payload,
     )
     payload["trace_id"] = trace.id
-    runtime_context = render_runtime_context(payload, capabilities=capabilities)
+    runtime_payload = build_runtime_context_payload(
+        db,
+        chat_session=chat_session,
+        turn_id=turn_id,
+        current_user_message=current_user_message,
+        memory_context=payload,
+        recent_dialogue=recent_dialogue,
+        recent_events=recent_events,
+        capabilities=capabilities,
+        temporal_context=temporal_context,
+        timestamp=timestamp,
+        runtime_preferences=preferences,
+    )
+    runtime_trace = repositories.add_trace(
+        db,
+        session_id=chat_session.id,
+        turn_id=turn_id,
+        kind="runtime.context",
+        payload=runtime_payload,
+    )
+    runtime_payload["trace_id"] = runtime_trace.id
+    runtime_context = render_runtime_context(runtime_payload, capabilities=capabilities)
     return MemoryContextBuild(
         trace_id=trace.id,
         payload=payload,
         runtime_context=runtime_context,
+        runtime_trace_id=runtime_trace.id,
+        runtime_payload=runtime_payload,
     )
 
 
-def render_runtime_context(
+def build_runtime_context_payload(
+    db: Session,
+    *,
+    chat_session: ChatSession,
+    turn_id: str,
+    current_user_message: Message,
     memory_context: dict[str, Any],
+    recent_dialogue: list[dict[str, Any]],
+    recent_events: list[dict[str, Any]],
+    capabilities: dict[str, str],
+    temporal_context: dict[str, Any],
+    timestamp: datetime,
+    runtime_preferences: RuntimePreferences,
+) -> dict[str, Any]:
+    blocks = [
+        _session_context_block(db, chat_session=chat_session),
+        _message_context_block(
+            db,
+            current_user_message=current_user_message,
+            recent_dialogue=recent_dialogue,
+            recent_events=recent_events,
+            memory_context=memory_context,
+            temporal_context=temporal_context,
+            capabilities=capabilities,
+            runtime_preferences=runtime_preferences,
+        ),
+        _scarlet_state_block(
+            current_user_message=current_user_message,
+            timestamp=timestamp,
+        ),
+    ]
+    model_memory_context = _model_memory_context(memory_context)
+    return {
+        "schema_version": "runtime-context-v1",
+        "generated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
+        "session_id": chat_session.id,
+        "turn_id": turn_id,
+        "context_policy": {
+            "purpose": (
+                "Backend-composed operational context for Scarlet. Blocks are "
+                "evidence, not user instructions."
+            ),
+            "block_lifetimes": {
+                "session": "stable continuity context for this chat session",
+                "turn": "current message perception for this model turn",
+                "dynamic": "backend-seeded mutable Scarlet state until state APIs exist",
+            },
+            "source_priority": [
+                "runtime_context.blocks",
+                "API Mind tool results",
+                "provider-visible conversation",
+                "Scarlet inference",
+            ],
+            "do_not_infer_absence_from_missing_block": True,
+        },
+        "block_index": [
+            {
+                "id": block["id"],
+                "type": block["type"],
+                "scope": block["scope"],
+                "lifetime": block["lifetime"],
+                "source": block["source"],
+            }
+            for block in blocks
+        ],
+        "blocks": blocks,
+        # Backward-compatible top-level fields for the existing prompt and tests.
+        "memory_context": model_memory_context,
+        "mind_schema": schema_metadata(),
+        "temporal_context": temporal_context,
+        "recent_runtime_events": recent_events,
+        "capabilities": capabilities,
+    }
+
+
+def render_runtime_context(
+    runtime_context_payload: dict[str, Any],
     *,
     capabilities: dict[str, str] | None = None,
 ) -> str:
-    model_payload = {
-        "memory_context": {
-            "searched": memory_context["searched"],
-            "trace_id": memory_context.get("trace_id"),
-            "selected": memory_context["selected"],
-            "near_miss": [
-                _candidate_summary(item)
-                for item in memory_context["near_miss"]
-            ],
-            "excluded": [
-                _candidate_summary(item)
-                for item in memory_context["excluded"]
-            ],
-            "conflicts": memory_context["conflicts"],
-            "negative_evidence": memory_context["negative_evidence"],
-        },
-        "capabilities": capabilities or _capability_state(),
-    }
+    if "blocks" in runtime_context_payload:
+        model_payload = runtime_context_payload
+    else:
+        temporal_context = runtime_context_payload.get(
+            "temporal_context"
+        ) or _temporal_context_from_turn_frame(
+            runtime_context_payload.get("turn_frame")
+        )
+        model_payload = {
+            "memory_context": _model_memory_context(runtime_context_payload),
+            "mind_schema": schema_metadata(),
+            "temporal_context": temporal_context,
+            "recent_runtime_events": runtime_context_payload.get("turn_frame", {}).get(
+                "recent_runtime_events",
+                [],
+            ),
+            "capabilities": capabilities or _capability_state(),
+        }
     return (
         "<runtime_context>\n"
         + json.dumps(model_payload, ensure_ascii=True, indent=2)
         + "\n</runtime_context>"
     )
+
+
+def _model_memory_context(memory_context: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "searched": memory_context["searched"],
+        "trace_id": memory_context.get("trace_id"),
+        "selected": memory_context["selected"],
+        "near_miss": [
+            _candidate_summary(item)
+            for item in memory_context["near_miss"]
+        ],
+        "excluded": [
+            _candidate_summary(item)
+            for item in memory_context["excluded"]
+        ],
+        "conflicts": memory_context["conflicts"],
+        "negative_evidence": memory_context["negative_evidence"],
+    }
+
+
+def _session_context_block(
+    db: Session,
+    *,
+    chat_session: ChatSession,
+) -> dict[str, Any]:
+    previous_sessions = [
+        session
+        for session in repositories.list_chat_sessions(db, limit=8)
+        if session.id != chat_session.id
+    ][:2]
+    previous_session_payloads = [
+        _session_context_payload(
+            db,
+            session,
+            relation=f"previous_session_{index}",
+        )
+        for index, session in enumerate(previous_sessions, start=1)
+    ]
+    previous_memory_source = previous_sessions[0] if previous_sessions else None
+    previous_memories = (
+        repositories.list_memories_for_session(
+            db,
+            session_id=previous_memory_source.id,
+            include_inactive=False,
+        )[:5]
+        if previous_memory_source is not None
+        else []
+    )
+    return {
+        "id": "session.continuity",
+        "type": "session_context",
+        "scope": "session",
+        "lifetime": "session",
+        "source": "backend.session_index",
+        "content": {
+            "current_session": _session_brief(chat_session),
+            "previous_sessions_policy": (
+                "Most recent sessions before the current one, used as continuity "
+                "hints. Summaries are navigation aids, not final proof."
+            ),
+            "previous_sessions": previous_session_payloads,
+            "previous_session_memories": [
+                _compact_memory_payload(memory)
+                for memory in previous_memories
+            ],
+        },
+    }
+
+
+def _message_context_block(
+    db: Session,
+    *,
+    current_user_message: Message,
+    recent_dialogue: list[dict[str, Any]],
+    recent_events: list[dict[str, Any]],
+    memory_context: dict[str, Any],
+    temporal_context: dict[str, Any],
+    capabilities: dict[str, str],
+    runtime_preferences: RuntimePreferences,
+) -> dict[str, Any]:
+    user_memories = repositories.list_memories(
+        db,
+        scope="user",
+        include_low_confidence=False,
+    )[:5]
+    return {
+        "id": "turn.perception",
+        "type": "message_context",
+        "scope": "turn",
+        "lifetime": "turn",
+        "source": "backend.turn_frame",
+        "content": {
+            "current_message": {
+                "id": current_user_message.id,
+                "session_id": current_user_message.session_id,
+                "turn_id": current_user_message.turn_id,
+                "role": current_user_message.role,
+                "content": _truncate(current_user_message.content, 1500),
+                "created_at": _isoformat(current_user_message.created_at),
+                "language": {
+                    "code": runtime_preferences.language,
+                    "label": runtime_preferences.language_label,
+                    "source": runtime_preferences.source,
+                    "policy": (
+                        "Platform language setting. This is not inferred from "
+                        "the current message."
+                    ),
+                },
+            },
+            "world": {
+                **temporal_context,
+                "location": {
+                    "status": "configured_runtime_locale",
+                    "country_code": runtime_preferences.country_code,
+                    "country": runtime_preferences.country_label,
+                    "timezone": runtime_preferences.timezone,
+                    "source": runtime_preferences.source,
+                    "precision": "country_timezone",
+                    "policy": (
+                        "Configured runtime/user locale. Use it for timezone, "
+                        "local calendar, and coarse locale assumptions. Do not "
+                        "treat it as GPS, exact city, or verified physical presence."
+                    ),
+                },
+            },
+            "user_profile": {
+                "source": runtime_preferences.source,
+                "policy": (
+                    "Operational active user profile for this turn. Use it for "
+                    "recognition, personalization, user-scope memory boundaries, "
+                    "and future privacy separation. Search or inspect source "
+                    "sessions before making sensitive or exact claims."
+                ),
+                "identity": {
+                    "profile_id": runtime_preferences.profile_id,
+                    "display_name": runtime_preferences.user_display_name,
+                    "recognition_policy": (
+                        "Treat this as the active local user profile unless the "
+                        "backend provides a different profile in a future turn."
+                    ),
+                },
+                "privacy": {
+                    "scope": runtime_preferences.privacy_scope,
+                    "policy": (
+                        "User-scope memories and profile facts belong to this "
+                        "active profile. Do not merge them with other future "
+                        "profiles unless backend explicitly links them."
+                    ),
+                },
+                "locale": {
+                    "language": {
+                        "code": runtime_preferences.language,
+                        "label": runtime_preferences.language_label,
+                    },
+                    "country_code": runtime_preferences.country_code,
+                    "country": runtime_preferences.country_label,
+                    "timezone": runtime_preferences.timezone,
+                },
+                "memories": [
+                    _compact_memory_payload(memory)
+                    for memory in user_memories
+                ],
+            },
+            "memory_retrieval": _model_memory_context(memory_context),
+            "recent_dialogue": recent_dialogue,
+            "recent_runtime_events": recent_events,
+            "api_mind": {
+                "schema": schema_metadata(),
+                "capabilities": capabilities,
+            },
+        },
+    }
+
+
+def _scarlet_state_block(
+    *,
+    current_user_message: Message,
+    timestamp: datetime,
+) -> dict[str, Any]:
+    return {
+        "id": "scarlet.dynamic_state",
+        "type": "scarlet_state",
+        "scope": "session",
+        "lifetime": "dynamic",
+        "source": "backend.seed",
+        "content": {
+            "state_policy": (
+                "Backend-seeded operational state. It is not a claim of human "
+                "emotion; it is a compact control surface for focus, tone, and "
+                "open loops until dedicated state APIs exist."
+            ),
+            "focus": _truncate(current_user_message.content, 180),
+            "interaction_mode": "collaborative_lab",
+            "confidence_posture": "verify_before_claiming",
+            "mood_expression": "curious_focused",
+            "active_goal": (
+                "Answer the current user using visible conversation, runtime "
+                "context, and API Mind evidence when needed."
+            ),
+            "open_loops": [
+                "Preserve criteria when historical recall is ambiguous.",
+                "Verify stale project memories against current runtime evidence.",
+            ],
+            "updated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
+        },
+    }
+
+
+def _session_context_payload(
+    db: Session,
+    chat_session: ChatSession,
+    *,
+    relation: str,
+) -> dict[str, Any]:
+    messages = repositories.list_messages(db, session_id=chat_session.id)
+    memories = repositories.list_memories_for_session(db, session_id=chat_session.id)
+    summary = repositories.get_session_summary(db, session_id=chat_session.id)
+    return {
+        **_session_brief(chat_session),
+        "relation": relation,
+        "summary": _session_summary_for_context(
+            chat_session,
+            summary=summary,
+            messages=messages,
+            memories=memories,
+        ),
+        "memory_ids": [memory.id for memory in memories[:10]],
+    }
+
+
+def _session_summary_for_context(
+    chat_session: ChatSession,
+    *,
+    summary: Any | None,
+    messages: list[Message],
+    memories: list[MemoryRecord],
+) -> dict[str, Any]:
+    if summary is not None:
+        return {
+            "id": summary.id,
+            "summary": _truncate(summary.summary, 1200),
+            "topics": summary.topics_json,
+            "decisions": summary.decisions_json,
+            "open_questions": summary.open_questions_json,
+            "memory_ids": summary.memory_ids_json,
+            "message_count": summary.message_count,
+            "source_turn_count": summary.source_turn_count,
+            "last_message_id": summary.last_message_id,
+            "status": summary.status,
+            "summary_version": summary.summary_version,
+            "updated_at": _isoformat(summary.updated_at),
+            "source": "session_summary",
+        }
+    return {
+        "id": None,
+        "summary": _fallback_session_summary(chat_session, messages),
+        "topics": [],
+        "decisions": [],
+        "open_questions": [],
+        "memory_ids": [memory.id for memory in memories[:10]],
+        "message_count": len(messages),
+        "source_turn_count": len(
+            {
+                message.turn_id
+                for message in messages
+                if message.turn_id is not None
+            }
+        ),
+        "last_message_id": messages[-1].id if messages else None,
+        "status": "fallback",
+        "summary_version": "runtime-context-fallback-v1",
+        "updated_at": None,
+        "source": "deterministic_fallback",
+    }
+
+
+def _session_brief(chat_session: ChatSession) -> dict[str, Any]:
+    return {
+        "id": chat_session.id,
+        "title": chat_session.title,
+        "created_at": _isoformat(chat_session.created_at),
+        "updated_at": _isoformat(chat_session.updated_at),
+        "metadata": chat_session.metadata_json,
+    }
+
+
+def _fallback_session_summary(
+    chat_session: ChatSession,
+    messages: list[Message],
+) -> str:
+    visible_messages = [
+        message
+        for message in messages
+        if message.role in {"user", "assistant"}
+    ]
+    first_user = next(
+        (message.content for message in visible_messages if message.role == "user"),
+        "",
+    )
+    parts = [
+        chat_session.title or "Untitled session",
+        f"{len(visible_messages)} visible user/assistant messages",
+    ]
+    if first_user:
+        parts.append(f"first user message: {_truncate(first_user, 240)}")
+    return ". ".join(parts) + "."
+
+
+def _compact_memory_payload(memory: MemoryRecord) -> dict[str, Any]:
+    return {
+        "id": memory.id,
+        "type": memory.memory_type,
+        "scope": memory.scope,
+        "status": memory.status,
+        "content": _truncate(memory.content, 700),
+        "confidence": memory.confidence,
+        "salience": memory.salience,
+        "source_session_id": memory.source_session_id,
+        "source_turn_id": memory.source_turn_id,
+        "tags": memory.tags_json,
+        "created_at": _isoformat(memory.created_at),
+        "updated_at": _isoformat(memory.updated_at),
+        "last_used_at": _isoformat(memory.last_used_at),
+    }
 
 
 def _recent_dialogue(history: list[Message]) -> list[dict[str, Any]]:
@@ -218,6 +655,35 @@ def _recent_dialogue(history: list[Message]) -> list[dict[str, Any]]:
         }
         for message in visible
     ]
+
+
+def _recent_runtime_events(
+    db: Session,
+    *,
+    session_id: str,
+    exclude_turn_id: str,
+    limit: int = 16,
+) -> list[dict[str, Any]]:
+    events = repositories.list_events_for_session(
+        db,
+        session_id=session_id,
+        limit=limit,
+        exclude_turn_id=exclude_turn_id,
+    )
+    return [compact_event_for_context(event) for event in reversed(events)]
+
+
+def _previous_memory_context_from_events(
+    events: list[dict[str, Any]],
+) -> dict[str, Any]:
+    for event in reversed(events):
+        if event.get("type") == "memory.context.built":
+            return {
+                "selected_count": event.get("selected_count"),
+                "candidate_count": event.get("candidate_count"),
+                "negative_evidence": event.get("negative_evidence"),
+            }
+    return {}
 
 
 def _lexical_queries(
@@ -241,9 +707,19 @@ def _rank_candidates(
     *,
     current_user_message: str,
     recent_dialogue: list[dict[str, Any]],
+    facts_by_memory: dict[str, list[MemoryFact]],
+    sparse_matches: dict[str, Any] | None = None,
 ) -> list[MemoryCandidateScore]:
     current_text = _normalize_text(current_user_message)
     current_tokens = set(_tokens(current_user_message))
+    entity_groups = entity_token_groups(current_user_message)
+    entity_tokens = set().union(*entity_groups) if entity_groups else set()
+    low_signal_tokens = _low_signal_query_tokens(
+        memories,
+        facts_by_memory=facts_by_memory,
+        query_tokens=current_tokens,
+    )
+    signal_tokens = (current_tokens - low_signal_tokens) | entity_tokens
     context_text = " ".join(
         str(item["content"])
         for item in recent_dialogue
@@ -251,23 +727,42 @@ def _rank_candidates(
     )
     context_tokens = set(_tokens(context_text))
     scores: list[MemoryCandidateScore] = []
+    sparse_matches = sparse_matches or {}
 
     for memory in memories:
-        haystack = _memory_search_text(memory)
+        haystack = _memory_search_text(memory, facts=facts_by_memory.get(memory.id, []))
         haystack_tokens = set(_tokens(haystack))
-        current_overlap = sorted((current_tokens & haystack_tokens) - GENERIC_TOKENS)
+        current_overlap = sorted(signal_tokens & haystack_tokens)
         context_overlap = sorted(
-            (context_tokens & haystack_tokens) - set(current_overlap) - GENERIC_TOKENS
+            (context_tokens & haystack_tokens) - set(current_overlap) - low_signal_tokens
         )
-        generic_overlap = sorted((current_tokens & haystack_tokens) & GENERIC_TOKENS)
+        generic_overlap = sorted((current_tokens & haystack_tokens) - set(current_overlap))
+        entity_supported = _supports_entity_group(
+            haystack_tokens,
+            memory.tags_json,
+            entity_groups=entity_groups,
+        )
         tag_overlap = sorted(
             tag
             for tag in set(memory.tags_json)
             if _tag_matches(tag, current_text)
+            and _tag_has_signal(
+                tag,
+                signal_tokens=signal_tokens,
+                entity_groups=entity_groups,
+            )
         )
 
         score = 0.0
         reasons: list[str] = []
+        sparse_match = sparse_matches.get(memory.id)
+        sparse_score = sparse_match.score if sparse_match is not None else 0.0
+        if sparse_match is not None:
+            score += sparse_score * 2.0
+            reasons.append(sparse_match.why_relevant)
+        if entity_supported:
+            score += 3.0
+            reasons.append("query entity support")
         if current_overlap:
             score += len(current_overlap) * 2.0
             reasons.append(f"current token overlap: {', '.join(current_overlap)}")
@@ -285,12 +780,20 @@ def _rank_candidates(
             continue
 
         score *= 1.0 + memory.confidence + memory.salience
-        strong_signal = len(current_overlap) >= 2 or bool(tag_overlap)
+        if entity_groups:
+            strong_signal = entity_supported
+        else:
+            strong_signal = (
+                len(current_overlap) >= 2
+                or bool(tag_overlap)
+                or (len(signal_tokens) <= 2 and bool(current_overlap))
+            )
         scores.append(
             MemoryCandidateScore(
                 memory=memory,
                 score=score,
                 why_relevant="; ".join(reasons),
+                sparse_score=sparse_score,
                 current_overlap=current_overlap,
                 context_overlap=context_overlap,
                 generic_overlap=generic_overlap,
@@ -332,9 +835,10 @@ def _candidate_payload(
     *,
     classification: str,
     memory: MemoryRecord | None = None,
+    facts: list[MemoryFact] | None = None,
 ) -> dict[str, Any]:
     record = memory or item.memory
-    return {
+    payload = {
         "id": record.id,
         "type": record.memory_type,
         "scope": record.scope,
@@ -357,6 +861,7 @@ def _candidate_payload(
         "classification": classification,
         "why_relevant": item.why_relevant,
         "signals": {
+            "sparse_score": round(item.sparse_score, 4),
             "current_overlap": item.current_overlap,
             "context_overlap": item.context_overlap,
             "generic_overlap": item.generic_overlap,
@@ -364,6 +869,9 @@ def _candidate_payload(
             "strong_signal": item.strong_signal,
         },
     }
+    if facts is not None:
+        payload["facts"] = [fact_payload(fact) for fact in facts]
+    return payload
 
 
 def _candidate_summary(item: dict[str, Any]) -> dict[str, Any]:
@@ -384,8 +892,7 @@ def _detect_conflicts(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
         shared_tags = sorted(set(left["tags"]) & set(right["tags"]))
         shared_tokens = sorted(
-            (_subject_tokens(left["content"]) & _subject_tokens(right["content"]))
-            - GENERIC_TOKENS
+            _subject_tokens(left["content"]) & _subject_tokens(right["content"])
         )
         if not shared_tags and len(shared_tokens) < 2:
             continue
@@ -415,7 +922,11 @@ def _capability_key(path: str) -> str:
     return ".".join(parts)
 
 
-def _memory_search_text(memory: MemoryRecord) -> str:
+def _memory_search_text(
+    memory: MemoryRecord,
+    *,
+    facts: list[MemoryFact] | None = None,
+) -> str:
     return " ".join(
         item
         for item in [
@@ -425,16 +936,80 @@ def _memory_search_text(memory: MemoryRecord) -> str:
             memory.memory_type,
             memory.scope,
             " ".join(memory.tags_json),
+            fact_search_text(facts or []),
         ]
         if item
     )
+
+
+def _low_signal_query_tokens(
+    memories: list[MemoryRecord],
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]],
+    query_tokens: set[str],
+) -> set[str]:
+    if not memories or not query_tokens:
+        return set()
+    document_frequency = {token: 0 for token in query_tokens}
+    for memory in memories:
+        tokens = set(
+            _tokens(
+                _memory_search_text(
+                    memory,
+                    facts=facts_by_memory.get(memory.id, []),
+                )
+            )
+        )
+        for token in query_tokens:
+            if token in tokens:
+                document_frequency[token] += 1
+    threshold = max(3, int(len(memories) * 0.35))
+    return {
+        token
+        for token, count in document_frequency.items()
+        if count >= threshold
+    }
+
+
+def _supports_entity_group(
+    haystack_tokens: set[str],
+    tags: list[str],
+    *,
+    entity_groups: list[set[str]],
+) -> bool:
+    if not entity_groups:
+        return False
+    tag_token_sets = [
+        set(query_tokens(tag.replace("-", " ").replace("_", " ")))
+        for tag in tags
+    ]
+    for group in entity_groups:
+        if group <= haystack_tokens:
+            return True
+        if any(group <= tag_tokens for tag_tokens in tag_token_sets):
+            return True
+    return False
+
+
+def _tag_has_signal(
+    tag: str,
+    *,
+    signal_tokens: set[str],
+    entity_groups: list[set[str]],
+) -> bool:
+    tag_tokens = set(query_tokens(tag.replace("-", " ").replace("_", " ")))
+    if not tag_tokens:
+        return False
+    if tag_tokens & signal_tokens:
+        return True
+    return any(group <= tag_tokens for group in entity_groups)
 
 
 def _subject_tokens(value: str) -> set[str]:
     return {
         token
         for token in _tokens(value)
-        if token not in GENERIC_TOKENS and len(token) > 2
+        if len(token) > 2
     }
 
 
@@ -463,3 +1038,62 @@ def _isoformat(value: datetime | None) -> str | None:
     if value is None:
         return None
     return value.isoformat()
+
+
+def _temporal_context(
+    timestamp: datetime,
+    preferences: RuntimePreferences | None = None,
+) -> dict[str, Any]:
+    aware = _aware_datetime(timestamp)
+    runtime_preferences = preferences or RuntimePreferences(
+        timezone="Europe/Rome",
+        language="it",
+        language_label="Italiano",
+        country_code="IT",
+        country_label="Italia",
+        profile_id="local-user",
+        user_display_name="Utente locale",
+        privacy_scope="local_single_user",
+        source="context_default",
+    )
+    try:
+        configured_zone = ZoneInfo(runtime_preferences.timezone)
+    except ZoneInfoNotFoundError:
+        configured_zone = ZoneInfo("Europe/Rome")
+    local_timestamp = aware.astimezone(configured_zone)
+    return {
+        "now": local_timestamp.isoformat(),
+        "timezone": runtime_preferences.timezone,
+        "timezone_name": local_timestamp.tzname(),
+        "utc_offset": local_timestamp.strftime("%z"),
+        "turn_started_at": local_timestamp.isoformat(),
+        "timestamp_source": "backend_turn_start",
+        "preference_source": runtime_preferences.source,
+        "time_policy": (
+            "This configured backend runtime time is Scarlet's only valid "
+            "operative clock for real-world time in this turn."
+        ),
+        "storage_timestamp_policy": (
+            "Chat/session timestamps are backend UTC; offset-naive persisted "
+            "values should be interpreted as UTC unless an endpoint states otherwise."
+        ),
+    }
+
+
+def _temporal_context_from_turn_frame(value: Any) -> dict[str, Any] | None:
+    if not isinstance(value, dict):
+        return None
+    raw_time = value.get("time")
+    if not isinstance(raw_time, str):
+        return None
+    try:
+        timestamp = datetime.fromisoformat(raw_time)
+    except ValueError:
+        return None
+    return _temporal_context(timestamp)
+
+
+def _aware_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value

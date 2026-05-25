@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
 
 from app.config import Settings
+from app.llm.factory import active_provider_model
 from app.llm.provider import LLMMessage, LLMTextResult
 from app.main import create_app
 
@@ -18,7 +19,7 @@ class FakeProvider:
         max_tokens: int | None = None,
     ) -> LLMTextResult:
         return LLMTextResult(
-            model=self.settings.minimax_model,
+            model=active_provider_model(self.settings),
             text=f"fake:{prompt}:{max_tokens}",
             usage={"input_tokens": 1, "output_tokens": 1},
         )
@@ -31,7 +32,7 @@ class FakeProvider:
         max_tokens: int | None = None,
     ) -> LLMTextResult:
         return LLMTextResult(
-            model=self.settings.minimax_model,
+            model=active_provider_model(self.settings),
             text=f"fake:{messages[-1].content}:{max_tokens}",
             usage={"input_tokens": 1, "output_tokens": 1},
         )
@@ -93,6 +94,34 @@ def test_llm_smoke_test_uses_configured_default_token_budget(
     assert body["max_tokens"] == 4096
 
 
+def test_llm_smoke_test_uses_qwen_default_token_budget(
+    db_engine: Engine,
+) -> None:
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        llm_provider="qwen",
+        qwen_api_key="test-key",
+        qwen_model="qwen3.7-max",
+        qwen_max_tokens=8192,
+    )
+    client = TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda settings: FakeProvider(settings),
+            db_engine=db_engine,
+        )
+    )
+
+    response = client.post("/api/debug/llm-smoke-test", json={"prompt": "ping"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["model"] == "qwen3.7-max"
+    assert body["text"] == "fake:ping:8192"
+    assert body["max_tokens"] == 8192
+
+
 def test_llm_smoke_test_requires_minimax_key(db_engine: Engine) -> None:
     settings = Settings(
         app_name="Test Mind",
@@ -108,5 +137,25 @@ def test_llm_smoke_test_requires_minimax_key(db_engine: Engine) -> None:
     assert response.json()["detail"] == {
         "code": "llm.not_configured",
         "message": "MINIMAX_API_KEY is not configured.",
+        "recoverable": True,
+    }
+
+
+def test_llm_smoke_test_requires_qwen_key(db_engine: Engine) -> None:
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        llm_provider="qwen",
+        qwen_api_key=None,
+        qwen_model="qwen3.7-max",
+    )
+    client = TestClient(create_app(settings, db_engine=db_engine))
+
+    response = client.post("/api/debug/llm-smoke-test", json={"prompt": "ping"})
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == {
+        "code": "llm.not_configured",
+        "message": "QWEN_API_KEY is not configured.",
         "recoverable": True,
     }

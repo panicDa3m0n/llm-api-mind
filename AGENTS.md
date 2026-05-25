@@ -15,7 +15,14 @@ Before any non-trivial change:
 5. Read `docs/bug-ledger.md` when touching existing behavior.
 6. Read `docs/api-contract.md` when adding or changing API behavior.
 7. Read `docs/experiments.md` when adding or evaluating cognitive features.
-8. Identify the smallest useful implementation slice.
+8. Read `docs/project-documentation.md` and the relevant
+   `docs/branches/*` file when changing Scarlet's agentic behavior.
+9. Identify the smallest useful implementation slice.
+
+From V1.0.1 onward, before any repository change, declare the work area,
+branch, type (`Fix`, `Implementazione`, or `Major release`), target version,
+scope, out-of-scope items, verification, and docs to update. The full protocol
+lives in `docs/development-process.md`.
 
 If persistent project memory tooling is available in the environment, query it before relying on conversational memory for past decisions, conventions, or architecture.
 
@@ -38,6 +45,9 @@ Before closing a task:
 - Keep the model-facing tool surface small, ideally `mind_api`.
 - Prefer small, testable, observable changes.
 - Do not add large abstractions without an experiment or a current need.
+- Work only inside the declared scope. Fix only issues directly caused by the
+  current implementation; report unrelated or pre-existing problems before
+  changing them.
 - Treat prompts, schemas, traces, and docs as part of the system behavior.
 - No silent mutation of cognitive state: state changes need traces or events.
 - Never commit real API keys or secrets.
@@ -63,5 +73,7 @@ docs -> FastAPI backend -> MiniMax provider -> SQLite trace store -> chat endpoi
 ## Commit And Release Memory
 
 Read `docs/release-process.md` before release, branch, commit, or changelog work.
+
+Read `docs/development-process.md` before versioned implementation work.
 
 Meaningful commits should use `.gitmessage` format and should not leave `CHANGELOG.md` behind.

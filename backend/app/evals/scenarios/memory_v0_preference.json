@@ -2,7 +2,7 @@
   "id": "memory_v0_preference",
   "title": "Memory v0 Preference Write/Search",
   "description": "Checks that Scarlet can autonomously write a stable project preference and later retrieve it through Memory v0. This is a regression floor, not a substitute for adaptive live evaluation.",
-  "max_tokens": 4096,
+  "max_tokens": 131072,
   "turns": [
     {
       "id": "write_preference",

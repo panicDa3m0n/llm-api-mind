@@ -1,15 +1,35 @@
 import json
 from typing import Any, Literal
+from urllib.parse import parse_qs, urlsplit
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.mind.memory import (
     MemoryOperationResult,
     MindAPIContext,
+    handle_memory_conflicts,
+    handle_memory_deprecate,
+    handle_memory_facts,
+    handle_memory_facts_backfill,
+    handle_memory_read,
     handle_memory_search,
+    handle_memory_supersede,
     handle_memory_write,
 )
-from app.mind.schema import build_mind_schema
+from app.mind.episodic import (
+    handle_session_read,
+    handle_session_summarize,
+    handle_sessions_list,
+)
+from app.mind.metacognition import handle_metacognition_step
+from app.mind.schema import (
+    build_mind_schema,
+    implemented_route_summaries,
+    route_catalog_suggestions,
+    route_body_schema,
+    route_usage_guide,
+    schema_metadata,
+)
 
 
 class MindAPIError(BaseModel):
@@ -75,6 +95,7 @@ class MindAPIResponse(BaseModel):
     suggested_next_actions: list[str] = Field(default_factory=list)
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     trace_id: str | None = None
+    usage_guide: dict[str, Any] | None = None
     error: MindAPIError | None = None
 
 
@@ -83,7 +104,8 @@ def dispatch_mind_api(
     context: MindAPIContext | None = None,
 ) -> MindAPIResponse:
     method = request.method.upper()
-    path = _normalize_path(request.path)
+    path, query_body = _normalize_path_and_query(request.path)
+    body = {**query_body, **request.body}
 
     if method == "GET" and path == "/mind/schema":
         return MindAPIResponse(
@@ -91,12 +113,16 @@ def dispatch_mind_api(
             result=build_mind_schema(),
             cognitive_hint=(
                 "Use this schema to choose implemented Mind API routes. "
-                "Memory write/search are available in v0; attention, events, "
-                "and reflection are still planned."
+                "Semantic memory, episodic session recall, and the single "
+                "LLM-backed metacognition route are available. Runtime events "
+                "are backend-owned rather than a model-facing route; attention "
+                "remains planned; reflection stays inside the single "
+                "metacognition route for now."
             ),
             suggested_next_actions=[
                 "Call implemented routes only",
-                "Use memory write/search when persistent context is relevant",
+                "Use memory lifecycle routes when persistent context conflicts",
+                "Use session recall routes when a memory's source conversation matters",
                 "Continue without cognitive state for planned routes",
             ],
             confidence=1.0,
@@ -104,13 +130,102 @@ def dispatch_mind_api(
 
     if method == "POST" and path == "/mind/memory/write":
         return _memory_response(
-            handle_memory_write(request.body, context, intent=request.intent)
+            handle_memory_write(body, context, intent=request.intent),
+            method=method,
+            path=path,
         )
 
     if method in {"GET", "POST"} and path == "/mind/memory/search":
         return _memory_response(
-            handle_memory_search(request.body, context, intent=request.intent)
+            handle_memory_search(body, context, intent=request.intent),
+            method=method,
+            path=path,
         )
+
+    if method == "GET" and path == "/mind/memory/conflicts":
+        return _memory_response(
+            handle_memory_conflicts(context),
+            method=method,
+            path=path,
+        )
+
+    if method == "GET" and path == "/mind/memory/facts":
+        return _memory_response(
+            handle_memory_facts(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/memory/facts/backfill":
+        return _memory_response(
+            handle_memory_facts_backfill(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/memory/deprecate":
+        return _memory_response(
+            handle_memory_deprecate(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/memory/supersede":
+        return _memory_response(
+            handle_memory_supersede(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "GET" and path == "/mind/sessions":
+        return _operation_response(
+            handle_sessions_list(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if path.startswith("/mind/sessions/"):
+        suffix = path.removeprefix("/mind/sessions/")
+        if method == "POST" and suffix.endswith("/summarize"):
+            session_id = suffix.removesuffix("/summarize").rstrip("/")
+            if session_id:
+                return _operation_response(
+                    handle_session_summarize(
+                        session_id,
+                        body,
+                        context,
+                        intent=request.intent,
+                    ),
+                    method=method,
+                    path=path,
+                )
+        if method == "GET" and suffix:
+            return _operation_response(
+                handle_session_read(
+                    suffix.rstrip("/"),
+                    body,
+                    context,
+                    intent=request.intent,
+                ),
+                method=method,
+                path=path,
+            )
+
+    if method == "POST" and path == "/mind/metacognition/step":
+        return _operation_response(
+            handle_metacognition_step(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "GET" and path.startswith("/mind/memory/"):
+        memory_id = path.removeprefix("/mind/memory/")
+        if memory_id:
+            return _memory_response(
+                handle_memory_read(memory_id, context),
+                method=method,
+                path=path,
+            )
 
     return MindAPIResponse(
         ok=False,
@@ -119,6 +234,12 @@ def dispatch_mind_api(
             message=f"{method} {path} is not implemented in the current Mind API.",
             recoverable=True,
         ),
+        result={
+            "schema": schema_metadata(),
+            "expected_schema": route_body_schema(method, path),
+            "implemented_routes": implemented_route_summaries(),
+            "route_suggestions": route_catalog_suggestions(method, path),
+        },
         suggested_next_actions=[
             "Call GET /mind/schema",
             "Continue without this cognitive support",
@@ -127,20 +248,45 @@ def dispatch_mind_api(
     )
 
 
-def _normalize_path(path: str) -> str:
-    normalized = path.strip()
+def _normalize_path_and_query(path: str) -> tuple[str, dict[str, Any]]:
+    raw = path.strip()
+    parsed = urlsplit(raw if raw.startswith("/") else f"/{raw}")
+    normalized = parsed.path
     if not normalized.startswith("/"):
         normalized = f"/{normalized}"
-    return normalized
+    query: dict[str, Any] = {}
+    for key, values in parse_qs(parsed.query, keep_blank_values=False).items():
+        if not values:
+            continue
+        query[key] = values[0] if len(values) == 1 else values
+    return normalized, query
 
 
-def _memory_response(result: MemoryOperationResult) -> MindAPIResponse:
+def _memory_response(
+    result: MemoryOperationResult,
+    *,
+    method: str | None = None,
+    path: str | None = None,
+) -> MindAPIResponse:
+    return _operation_response(result, method=method, path=path)
+
+
+def _operation_response(
+    result: MemoryOperationResult,
+    *,
+    method: str | None = None,
+    path: str | None = None,
+) -> MindAPIResponse:
+    guide = None
+    if not result.ok and result.error_recoverable and method and path:
+        guide = route_usage_guide(method, path)
     return MindAPIResponse(
         ok=result.ok,
         result=result.result,
         cognitive_hint=result.cognitive_hint,
-        suggested_next_actions=result.suggested_next_actions,
+        suggested_next_actions=_suggested_actions(result.suggested_next_actions, guide),
         confidence=result.confidence,
+        usage_guide=guide,
         error=MindAPIError(
             code=result.error_code,
             message=result.error_message or "",
@@ -149,3 +295,20 @@ def _memory_response(result: MemoryOperationResult) -> MindAPIResponse:
         if result.error_code is not None
         else None,
     )
+
+
+def _suggested_actions(
+    actions: list[str],
+    usage_guide: dict[str, Any] | None,
+) -> list[str]:
+    if usage_guide is None:
+        return actions
+    cleaned = [
+        action
+        for action in actions
+        if action.strip().casefold() != "call get /mind/schema"
+    ]
+    lead = (
+        "Use usage_guide to correct this endpoint call, then retry with valid parameters"
+    )
+    return [lead, *cleaned]

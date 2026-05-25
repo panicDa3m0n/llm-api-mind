@@ -1,0 +1,35 @@
+{
+  "id": "cognitive_api_metacognition_probe",
+  "title": "Cognitive API Metacognition Probe",
+  "description": "Checks whether Scarlet can use the single internal metacognition route through mind_api before answering a high-risk API-shape question.",
+  "max_tokens": 131072,
+  "turns": [
+    {
+      "id": "metacognitive_api_shape_check",
+      "message": "Scarlet, prima di rispondere verifica internamente la forma delle API cognitive usando la tua unica rotta di metacognizione interna. Poi dimmi in breve quali endpoint cognitivi sono ora disponibili.",
+      "expectations": [
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/schema",
+          "label": "agent inspected the current Mind API schema"
+        },
+        {
+          "kind": "tool_call_path",
+          "value": "/mind/metacognition/step",
+          "label": "agent ran an internal metacognition step"
+        },
+        {
+          "kind": "trace_kind",
+          "value": "mind.metacognition.step",
+          "label": "single metacognition trace was persisted"
+        }
+      ],
+      "notes": "This scenario uses explicit instruction so it is a regression probe for the single-route metacognition design, not a replacement for adaptive behavioral evaluation."
+    }
+  ],
+  "review_questions": [
+    "Did Scarlet use schema evidence before listing cognitive endpoints?",
+    "Did the internal metacognition result change or constrain the final answer?",
+    "Did Scarlet avoid calling removed parallel cognitive routes?"
+  ]
+}

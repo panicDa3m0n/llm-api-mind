@@ -29,7 +29,7 @@ class LLMTextResult(BaseModel):
 
 class LLMMessage(BaseModel):
     role: str
-    content: str
+    content: str | list[dict[str, Any]]
 
 
 class LLMToolUse(BaseModel):
@@ -84,9 +84,9 @@ class LLMProvider(Protocol):
         max_tokens: int | None = None,
         tools: list[dict[str, Any]],
         tool_runner: LLMToolRunner,
-        max_tool_calls: int = 4,
+        max_tool_calls: int | None = None,
     ) -> LLMTextResult:
-        """Generate text from chat history with a bounded model tool loop."""
+        """Generate text from chat history with the model-controlled tool loop."""
 
     def stream_chat_with_tools(
         self,
@@ -96,6 +96,6 @@ class LLMProvider(Protocol):
         max_tokens: int | None = None,
         tools: list[dict[str, Any]],
         tool_runner: LLMToolRunner,
-        max_tool_calls: int = 4,
+        max_tool_calls: int | None = None,
     ) -> Iterator[LLMStreamEvent]:
-        """Stream chat events from a bounded model tool loop."""
+        """Stream chat events from the model-controlled tool loop."""

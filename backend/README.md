@@ -2,16 +2,29 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
+App baseline: V1.0.1.
+
 Current scope:
 
 - typed environment configuration;
 - `/health` endpoint;
-- MiniMax M2.7 provider smoke test;
+- switchable MiniMax/Qwen LLM provider smoke test;
 - configurable Scarlet agent system prompt;
 - persistent chat sessions and turns;
-- SQLite schema for sessions, messages, turns, traces, tool calls, and memories;
-- Memory v0 write/search through `mind_api`;
+- dashboard-ready recent session listing, session message reload, runtime
+  settings, memory panel data, and profile readout;
+- SQLite schema for sessions, messages, turns, traces, ordered runtime events,
+  maintenance jobs, tool calls, memories, memory facts, session summaries, and
+  app settings;
+- model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
+- schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
+- Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;
+- episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
 - automatic Memory Context Pipeline v0 traces before model requests;
+- runtime event control plane for UI activity blocks, next-turn context, and
+  background maintenance triggers;
+- per-session idle maintenance that schedules summary refresh plus report-only
+  missed-memory review after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
 
@@ -27,11 +40,51 @@ python3 -m pip install -e ".[dev]"
 cp .env.example .env
 ```
 
-Add your MiniMax key to `backend/.env`:
+Add your MiniMax key to `backend/.env` for the default provider:
 
 ```txt
+LLM_PROVIDER=minimax
 MINIMAX_API_KEY=...
-MINIMAX_MAX_TOKENS=4096
+MINIMAX_MAX_TOKENS=131072
+```
+
+Idle maintenance defaults to a 15-minute per-session timer:
+
+```txt
+MAINTENANCE_ENABLED=true
+MAINTENANCE_IDLE_SECONDS=900
+MAINTENANCE_WORKER_INTERVAL_SECONDS=5
+MAINTENANCE_JOB_BATCH_SIZE=5
+```
+
+Dashboard runtime defaults:
+
+```txt
+RUNTIME_TIMEZONE=Europe/Rome
+RUNTIME_LANGUAGE=it
+RUNTIME_LANGUAGE_LABEL=Italiano
+RUNTIME_COUNTRY_CODE=IT
+RUNTIME_COUNTRY_LABEL=Italia
+USER_PROFILE_ID=local-user
+USER_DISPLAY_NAME=Utente locale
+USER_PRIVACY_SCOPE=local_single_user
+```
+
+Persisted `/api/dashboard/settings` values override these defaults for future
+runtime-context turns.
+
+If the same session receives another user turn before the timer expires, the
+older pending job is superseded. Jobs for other sessions continue independently.
+
+To compare the same Scarlet/API Mind system against Qwen through Alibaba Model
+Studio's Anthropic-compatible endpoint, switch only the provider settings:
+
+```txt
+LLM_PROVIDER=qwen
+QWEN_API_KEY=...
+QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/apps/anthropic
+QWEN_MODEL=qwen3.7-max
+QWEN_MAX_TOKENS=4096
 ```
 
 The default chat identity is loaded from:
@@ -60,9 +113,9 @@ http://127.0.0.1:8000/health
 http://127.0.0.1:8000/docs
 ```
 
-## MiniMax Smoke Test
+## LLM Smoke Test
 
-After adding `MINIMAX_API_KEY` to `backend/.env`, run:
+After configuring the selected provider key in `backend/.env`, run:
 
 ```bash
 python3 - <<'PY'
@@ -106,6 +159,7 @@ Scripted regression scenario:
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
 python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
 python -m app.evals.runner scripted app/evals/scenarios/visible_metacognition_probe.json
+python -m app.evals.runner scripted app/evals/scenarios/cognitive_api_metacognition_probe.json
 ```
 
 Adaptive human-in-the-loop session:

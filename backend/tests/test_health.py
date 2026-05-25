@@ -20,5 +20,6 @@ def test_health_returns_runtime_status(db_engine: Engine) -> None:
         "status": "ok",
         "app": "Test Mind",
         "environment": "test",
+        "provider": "minimax",
         "model": "MiniMax-M2.7",
     }

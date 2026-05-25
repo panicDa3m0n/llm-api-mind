@@ -3,8 +3,12 @@ import type {
   ChatMessage,
   ChatSession,
   ChatTurn,
+  CognitiveEvent,
+  DashboardMemories,
+  RuntimeSettings,
   StreamEvent,
-  TraceItem
+  TraceItem,
+  UserProfile
 } from "./types";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -38,6 +42,10 @@ export function createSession(title?: string): Promise<ChatSession> {
       metadata: { client: "frontend" }
     })
   });
+}
+
+export function fetchSessions(limit = 30): Promise<ChatSession[]> {
+  return request<ChatSession[]>(`/api/chat/sessions?limit=${limit}`);
 }
 
 export function sendTurn(
@@ -116,6 +124,60 @@ export function fetchMessages(sessionId: string): Promise<ChatMessage[]> {
 
 export function fetchTraces(turnId: string): Promise<TraceItem[]> {
   return request<TraceItem[]>(`/api/debug/traces/${turnId}`);
+}
+
+export function fetchEvents(params: {
+  sessionId?: string;
+  turnId?: string;
+  limit?: number;
+}): Promise<CognitiveEvent[]> {
+  const query = new URLSearchParams();
+  if (params.sessionId) {
+    query.set("session_id", params.sessionId);
+  }
+  if (params.turnId) {
+    query.set("turn_id", params.turnId);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  return request<CognitiveEvent[]>(`/api/debug/events?${query.toString()}`);
+}
+
+export function fetchRuntimeSettings(): Promise<RuntimeSettings> {
+  return request<RuntimeSettings>("/api/dashboard/settings");
+}
+
+export function updateRuntimeSettings(payload: {
+  timezone?: string;
+  language?: string;
+  country_code?: string;
+  profile_id?: string;
+  user_display_name?: string;
+  privacy_scope?: string;
+}): Promise<RuntimeSettings> {
+  return request<RuntimeSettings>("/api/dashboard/settings", {
+    method: "PUT",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function fetchDashboardMemories(params: {
+  scope?: "user" | "project";
+  limit?: number;
+} = {}): Promise<DashboardMemories> {
+  const query = new URLSearchParams();
+  if (params.scope) {
+    query.set("scope", params.scope);
+  }
+  if (params.limit) {
+    query.set("limit", String(params.limit));
+  }
+  return request<DashboardMemories>(`/api/dashboard/memories?${query.toString()}`);
+}
+
+export function fetchUserProfile(): Promise<UserProfile> {
+  return request<UserProfile>("/api/dashboard/profile");
 }
 
 export function fetchHealth(): Promise<{ status: string; app: string; model: string }> {

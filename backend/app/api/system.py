@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.config import Settings
+from app.llm.factory import active_provider_model, active_provider_name
 
 
 def build_system_router(settings: Settings) -> APIRouter:
@@ -12,7 +13,8 @@ def build_system_router(settings: Settings) -> APIRouter:
             "status": "ok",
             "app": settings.app_name,
             "environment": settings.environment,
-            "model": settings.minimax_model,
+            "provider": active_provider_name(settings),
+            "model": active_provider_model(settings),
         }
 
     return router

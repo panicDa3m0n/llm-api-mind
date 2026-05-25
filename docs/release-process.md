@@ -2,6 +2,9 @@
 
 This project uses Git history, `CHANGELOG.md`, and roadmap documentation together. The goal is that commit analysis always maps back to concrete project progress.
 
+From V1.0.1 onward, version selection and scope discipline are governed by
+`docs/development-process.md`.
+
 ## Commit Identity
 
 Local commits made by Codex/Scarlet should use a distinct repository-local Git author:
@@ -97,15 +100,25 @@ Expected mapping:
 
 ## Branch And Release Strategy
 
-Initial strategy:
+Current strategy:
 
 ```txt
 main: stable project history
 feature branches: optional for larger slices
-tags: v0.x milestones once runnable slices exist
+tags: v1.x milestones for verified baseline and later branch releases
 ```
 
-Early commits may go directly to `main` while the project is still foundation-only. Once backend implementation starts, prefer focused commits by slice.
+Commits may go directly to `main` while the project remains local-lab oriented,
+but they must be focused by declared scope. Larger slices may use feature
+branches.
+
+Version impact:
+
+```txt
+Fix             -> patch increment: 0.0.X
+Implementazione -> minor increment: 0.X.0
+Major release   -> major increment: X.0.0
+```
 
 ## GitHub Remote Plan
 

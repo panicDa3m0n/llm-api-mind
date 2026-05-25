@@ -1,15 +1,21 @@
 # Frontend
 
-Minimal React debug cockpit for the LLM API Mind baseline runtime.
+Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
+
+App baseline: V1.0.1.
 
 Current scope:
 
-- persistent chat session creation;
-- chat turn submission;
-- message list;
-- trace panel for `memory.context`, `llm.request`, tool calls, and `llm.response`;
-- inline memory context operation steps for automatic retrieval;
-- usage counters from turn/trace payloads.
+- persistent chat session creation, history, and reload;
+- central chat surface with streamed Scarlet turns;
+- live Agent Stream panel for runtime events, notes, thinking, tool calls,
+  tool results, memory retrieval, and final answers;
+- semantic memory panel through `/api/dashboard/memories`;
+- operational user profile panel through `/api/dashboard/profile`;
+- runtime settings panel through `/api/dashboard/settings`, including active
+  profile id, privacy scope, configured country/locale, timezone, and platform
+  language;
+- Tailwind component styling with raw JSON hidden behind detail drawers.
 
 ## Setup
 

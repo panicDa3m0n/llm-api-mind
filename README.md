@@ -12,40 +12,72 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
+Current app baseline: **V1.0.1**.
+
 The project has a working local baseline runtime:
 
 - FastAPI backend;
-- MiniMax M2.7 provider integration;
+- MiniMax M2.7 baseline provider with optional Qwen provider comparison;
 - configurable Scarlet system prompt for the agent identity;
-- SQLite persistence for sessions, messages, turns, and traces;
+- SQLite persistence for sessions, messages, turns, traces, and ordered runtime
+  events;
 - traceable `mind_api` schema tool loop;
-- Memory v0 write/search with sourceable records and dedicated traces;
+- model-controlled, unbounded API Mind cognitive loop during chat turns;
+- cognitive API support for schema discipline and a single LLM-backed internal
+  metacognition route;
+- Memory v0 write/search/read/conflicts/deprecate/supersede with sourceable records and dedicated traces;
+- atomic `memory_facts` linked to memories, with canonical entity/predicate/value, lifecycle status, provenance, and backfill;
+- episodic recall through session summaries plus full transcript retrieval by session id;
 - Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
+- runtime event control plane feeding the cockpit timeline and compact
+  next-turn operational context;
+- backend-owned per-session idle maintenance for session summary refresh and
+  report-only missed-memory review;
 - visible metacognition prompt probe for concise public self-monitoring notes;
-- streaming React cockpit with inline ordered agent-turn timeline;
+- streaming React cockpit with inline ordered agent-turn timeline and recent
+  session sidebar for reopening persisted conversations by title;
 - scripted and interactive evaluation runner;
-- accepted baseline, tool-loop, streaming trace, and initial Memory v0 experiments.
+- accepted baseline, tool-loop, streaming trace, runtime-event, and initial
+  Memory v0 experiments.
 - repository-versioned laboratory SQLite state at `backend/data/app.db`.
+- active memory robustness roadmap for response-control, lifecycle, atomic facts, retrieval quality, compaction, CLI/API inspection, and evals.
 
 ## Key Documents
 
 - `AGENTS.md`: operating protocol for Codex/Scarlet as IDE agent.
+- `docs/project-documentation.md`: main documentation index and branch map.
+- `docs/development-process.md`: V1.0.1+ scoped implementation and versioning
+  protocol.
+- `docs/branches/README.md`: canonical agentic branch index.
+- `docs/project-state.md`: current integrated system map and convergent
+  roadmap.
 - `docs/project-blueprint.md`: main project blueprint.
 - `docs/activity-log.md`: continuity log.
 - `docs/decisions.md`: architectural decisions.
 - `docs/bug-ledger.md`: known bugs, fixes, and environment notes.
 - `docs/experiments.md`: hypotheses, baselines, metrics, and results.
 - `docs/api-contract.md`: planned and implemented API contracts.
+- `docs/memory-roadmap.md`: detailed roadmap for a robust API/CLI-first memory system.
+- `docs/cognitive-api-roadmap.md`: roadmap for schema discipline and the
+  single-route internal metacognition experiment.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: concrete history of meaningful changes.
 
 ## Immediate Roadmap
 
 ```txt
-1. Add a Memory Context Pipeline v0.1 response-control slice for conflicts and unavailable capability claims.
-2. Upgrade lexical retrieval toward SQLite FTS5/BM25 and tune relevance thresholds using the live trace evidence.
-3. Then revisit memory lifecycle APIs, memory inspection UI, and attention context on top of reliable memory evidence.
+1. Evaluate idle-maintenance traces from real sessions and decide proposal vs
+   auto-write behavior.
+2. Retrieval quality and memory health.
+3. Source-sensitive answer validation.
+4. Metacognition deepening inside the single route.
+5. Human operator surfaces: CLI and cockpit memory views.
+6. Broader behavioral evals for memory, metacognition, and runtime events.
 ```
+
+See `docs/project-state.md` for the integrated current-state map and the
+priority rationale. The older response-control M1 remains intentionally on hold
+until retrieval, maintenance, and evidence receipts are stronger.
 
 ## Local Run
 
@@ -71,6 +103,12 @@ Open:
 http://127.0.0.1:5173
 ```
 
+The local UI is a Tailwind-based Scarlet dashboard with recent sessions,
+conversation, live agent stream, semantic memories, user profile, and runtime
+settings. Default runtime settings are Italian language, Italy as configured
+locale, `Europe/Rome` timezone, and a local active user profile; changes saved
+in the dashboard apply to future turns.
+
 Evaluation runner:
 
 ```bash
@@ -78,6 +116,7 @@ cd backend
 python -m app.evals.runner scripted app/evals/scenarios/baseline_tool_schema.json
 python -m app.evals.runner scripted app/evals/scenarios/memory_v0_preference.json
 python -m app.evals.runner scripted app/evals/scenarios/visible_metacognition_probe.json
+python -m app.evals.runner scripted app/evals/scenarios/cognitive_api_metacognition_probe.json
 python -m app.evals.runner interactive --title "adaptive baseline"
 ```
 
@@ -87,16 +126,26 @@ Do not commit real API keys.
 
 ## Laboratory State
 
-The current lab policy intentionally versions `backend/data/app.db` in Git so sessions, traces, tool calls, and Memory v0 records can move across development machines.
+The current lab policy intentionally versions `backend/data/app.db` in Git so sessions, traces, runtime events, tool calls, and Memory v0 records can move across development machines.
 
 This is an experimental-lab policy, not a production privacy model. The repository must still exclude API keys, `.env` files, provider credentials, and other secrets.
 
 Expected future environment variables:
 
 ```txt
+LLM_PROVIDER=minimax
 MINIMAX_API_KEY=
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic
 MINIMAX_MODEL=MiniMax-M2.7
+MINIMAX_MAX_TOKENS=131072
+QWEN_API_KEY=
+QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/apps/anthropic
+QWEN_MODEL=qwen3.7-max
+QWEN_MAX_TOKENS=4096
+MAINTENANCE_ENABLED=true
+MAINTENANCE_IDLE_SECONDS=900
+MAINTENANCE_WORKER_INTERVAL_SECONDS=5
+MAINTENANCE_JOB_BATCH_SIZE=5
 AGENT_SYSTEM_PROMPT_PATH=
 DATABASE_URL=sqlite:///./data/app.db
 ```

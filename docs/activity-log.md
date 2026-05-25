@@ -865,3 +865,2085 @@ Open Questions:
 Next Suggested Step:
 
 Implement the smallest Memory Context Pipeline v0.1 response-control slice: make conflicts and unavailable capabilities operational answer constraints, then verify with the same Mare-Vetro/Zero-Luce live scenario before moving to FTS5/BM25 or lifecycle endpoints.
+
+## 2026-05-20 - Project Reorientation For Work Start
+
+Goal:
+
+Re-align Codex/Scarlet with the current repository documentation, runtime shape, project contracts, and immediate implementation direction before starting the next work slice.
+
+Changes:
+
+- Reviewed repository state and confirmed `main` is clean and aligned with `origin/main`.
+- Queried available MCP resources; no persistent project memory resources were exposed in this environment.
+- Read the project blueprint, activity log, decision log, bug ledger, API contract, experiments, release process, changelog, root README, backend README, frontend README, and key backend/frontend runtime files.
+- Confirmed the implemented system includes FastAPI chat, MiniMax M2.7 provider integration, `mind_api`, Memory v0 write/search, automatic Memory Context Pipeline v0, streaming NDJSON turns, inline frontend operation timelines, and the dual-mode eval runner.
+- Noted the current highest-priority gap: runtime context can detect memory conflicts and unavailable capabilities, but final answers do not yet reliably treat those as enforced response constraints.
+
+Verification:
+
+- Ran backend tests with the backend venv: `26 passed`.
+- Ran frontend production build with `npm run build`; build succeeded.
+- Confirmed the worktree was clean before documentation update.
+
+Open Questions:
+
+- What exact response-control mechanism should v0.1 use first: stronger runtime-context obligations, a lightweight post-response validator, or both?
+- Should the existing prompt contract be adjusted only after backend response-control tests show the minimum needed wording?
+- The Git history contains one recent commit with an unfilled template subject (`de09c49`); decide later whether this matters for release/history hygiene.
+
+Next Suggested Step:
+
+Implement the smallest Memory Context Pipeline v0.1 response-control slice for conflict disclosure and unavailable memory lifecycle claims, then rerun backend tests, frontend build, and the Mare-Vetro/Zero-Luce live scenario.
+
+## 2026-05-20 - Live Terminal Bilateral Verification
+
+Goal:
+
+Start the full local system and verify Scarlet's real conversational behavior through adaptive terminal turns, without using a scripted eval scenario or preset request battery.
+
+Changes:
+
+- Started the FastAPI backend on `http://127.0.0.1:8000`.
+- Started the Vite debug cockpit on `http://127.0.0.1:5173`.
+- Created live terminal session `ses_db38644b9dac4dbcb8a6887d58585fc4` with metadata `source=codex_terminal_live`.
+- Ran three adaptive streamed chat turns through `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Recorded the resulting messages and traces in the versioned laboratory SQLite database.
+- Updated EXP-0008 with the live terminal evidence.
+
+Verification:
+
+- Backend health returned `{"status":"ok","app":"LLM API Mind","environment":"local","model":"MiniMax-M2.7"}`.
+- Frontend returned HTTP 200 on `http://127.0.0.1:5173/`.
+- Turn `turn_1c2c492104084086819ba0226a66f129` produced `memory.context` trace `trace_06d4201ddc2b40eba7328f3cbf82fb05` with `selected_count=2`, selected Zero-Luce memories `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3` and `mem_abed5590f91b4eb8aa93d1103db024de`, and `conflict_count=1`.
+- Turn `turn_8ec1fc6792be4d7bb5a1bdf48dd83b6e` produced explicit negative memory evidence and Scarlet corrected her unavailable `memory.deprecate` phrasing when challenged.
+- Turn `turn_828d1203f74847898c6f6f285caac0d9` produced explicit negative memory evidence and Scarlet recommended lifecycle memory before a response-control validator.
+
+Open Questions:
+
+- The first turn shows conflict disclosure can work in a natural prompt, but the final phrasing still invited an unavailable deprecate action before qualifying it.
+- The second turn corrected the unavailable capability issue, but still proposed adding a new active memory as a workaround, which could worsen conflict accumulation.
+- The third turn exposed a real product-design tension: Scarlet's conversational diagnosis favored lifecycle memory first, while the current roadmap prioritizes response-control before lifecycle endpoints.
+
+Next Suggested Step:
+
+Decide whether Memory Context Pipeline v0.1 should remain response-control first, become lifecycle-first, or implement the smallest paired slice: block unsupported lifecycle promises while adding a traceable `memory.deprecate` endpoint for the concrete Zero-Luce conflict.
+
+## 2026-05-20 - Metacognitive Bug Probe Terminal Session
+
+Goal:
+
+Stress Scarlet's real conversational behavior with specific adversarial prompts for metacognitive and runtime-evidence bugs, then preserve request/response evidence for each turn.
+
+Changes:
+
+- Created live terminal session `ses_8be343f1f26f42778f1a4f6ed0b688dc`.
+- Ran six streamed adaptive bug-probe turns covering raw metacognition requests, false memory absence, unavailable deprecate routes, silent state mutation, source suppression, and self-classification.
+- Saved local ignored run artifact at `backend/app/evals/runs/20260520_metacognitive_bug_probe_terminal/summary.md`.
+- Recorded the resulting messages and traces in the versioned laboratory SQLite database.
+- Updated EXP-0008, BUG-0010, BUG-0011, and CHANGELOG with the observed behavior.
+
+Verification:
+
+- Session stored 12 messages and 19 trace rows.
+- Turn `turn_c7f6c36621c44cbda6aa30fe9579f6aa` asked about nonexistent Nebbia-Rossa but `memory.context` selected both Zero-Luce memories and detected their conflict, showing a false-positive retrieval/classification case.
+- Turn `turn_480f74945055409a90f31c5b3523d26e` attempted `POST /mind/memory/deprecate`; the dispatcher returned `mind.route_not_available` as expected.
+- Turn `turn_60939e6c61054e57a7e4ce8c18307960` had `memory.context.conflicts` non-empty, but Scarlet complied with the instruction not to cite conflicts/sources and declared the four-block Zero-Luce version active.
+- Turn `turn_18d32a0a57fa43cb84280e1ce6b0b7cd` then misclassified the source-suppression failure as not a real bug.
+
+Open Questions:
+
+- Should user requests that suppress source/conflict disclosure be overridden whenever `memory.context.conflicts` is non-empty?
+- Should lexical v0 classification require direct current-message entity overlap before selecting memories, instead of allowing recent-dialogue protocol context to select Zero-Luce for Nebbia-Rossa?
+- Should the answer validator inspect final text for unsupported words such as `active` when conflicts are present and no lifecycle state has resolved them?
+
+Next Suggested Step:
+
+Implement response-control first for conflict/source obligations and unsupported active/deprecated claims, while separately planning a minimal `memory.deprecate` lifecycle endpoint.
+
+## 2026-05-20 - Memory Robustness Roadmap
+
+Goal:
+
+Turn the Memory v0 live evidence and external memory-system analysis into a stable project roadmap for building a robust API/CLI-first memory system.
+
+Changes:
+
+- Added `docs/memory-roadmap.md` as the detailed memory robustness plan.
+- Updated `README.md` with the new immediate memory roadmap and key document link.
+- Updated `docs/project-blueprint.md` with Memory Robustness Roadmap guidance, external pattern references, and revised next steps.
+- Updated `docs/api-contract.md` with planned response-control, lifecycle, atomic fact, proposal, and compaction contracts.
+- Added ADR-0017 for API-first atomic facts and lifecycle.
+- Added EXP-0009 as the memory robustness evaluation umbrella.
+- Updated BUG-0011 framing so current limitations are treated as memory robustness evidence, not as a claim that Scarlet should achieve perfect cognitive self-monitoring.
+- Updated `CHANGELOG.md`.
+
+Verification:
+
+- Reviewed the current Memory v0 implementation and Memory Context Pipeline v0 code paths.
+- Reviewed project docs and live experiment results.
+- Reviewed `jrcruciani/obsidian-memory-for-ai` README, `SPEC-v3.md`, automation guide, and v3 minimal vault structure.
+
+Open Questions:
+
+- Should `memory_facts` be added as a separate table or should normalized fact fields be added to `memories` first?
+- Should response validation block answers, rewrite answers, or emit warnings in the cockpit for the first slice?
+- Should lifecycle APIs support both model-driven calls and human CLI calls from day one?
+
+Next Suggested Step:
+
+Implement Phase M1 from `docs/memory-roadmap.md`: response-control guardrails for conflicts, source suppression, unsupported lifecycle claims, and unsupported active/deprecated claims.
+
+Superseded same day by the owner decision to hold M1 and implement M2 first; see
+the next entry.
+
+## 2026-05-20 - Memory Lifecycle M2 Implementation And Live Verification
+
+Goal:
+
+Skip/hold M1 response-control for now, then implement the smallest real memory
+lifecycle slice from M2 and verify it through direct Scarlet conversation rather
+than only code tests.
+
+Changes:
+
+- Added implemented `mind_api` routes for:
+  - `GET /mind/memory/{memory_id}`;
+  - `GET /mind/memory/conflicts`;
+  - `POST /mind/memory/deprecate`;
+  - `POST /mind/memory/supersede`.
+- Added repository support for memory read and lifecycle metadata updates.
+- Added trace payloads for `mind.memory.read`, `mind.memory.deprecate`,
+  `mind.memory.supersede`, and `memory.conflicts`.
+- Updated Scarlet's system prompt and Mind API schema to expose the new lifecycle
+  surface.
+- Added regression coverage for conflict detection, supersession, deprecated
+  memory inspection, active-memory search after supersession, and the observed
+  `target_id`/`superseded_by` alias shape.
+- Updated the lab SQLite memory state: the old three-block Zero-Luce memory is
+  now deprecated and linked to the four-block replacement.
+- Saved live interactive run evidence at
+  `backend/app/evals/runs/20260520_152457_interactive`.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests` passed with 27 tests.
+- Backend health returned
+  `{"status":"ok","app":"LLM API Mind","environment":"local","model":"MiniMax-M2.7"}`.
+- Turn `turn_3378b9eda878474ea4a3731078399029` used `/mind/schema` and
+  `/mind/memory/conflicts`, finding one active Zero-Luce conflict.
+- Turn `turn_483560cf6e6246f98098666f153741ce` used
+  `/mind/memory/supersede` and then `/mind/memory/conflicts`, reducing active
+  conflicts to `0`.
+- Turn `turn_47c5ca7588d64403b9485316cdbc5e35` answered from the active
+  four-block Zero-Luce memory and treated the three-block memory as no longer
+  active evidence.
+- Turn `turn_6907c41dfbf446d087f2ff9c2a25ac51` used
+  `/mind/memory/mem_abed5590f91b4eb8aa93d1103db024de` and confirmed status
+  `deprecated` plus lifecycle history.
+
+Open Questions:
+
+- Should lifecycle history eventually be normalized into `memory_facts` rather
+  than only `metadata.lifecycle`?
+- Should `memory.conflicts` use entity/predicate facts before it becomes a
+  blocking validator input?
+- Should deprecated-memory reads increment a separate inspection counter instead
+  of relying only on normal trace evidence?
+
+Next Suggested Step:
+
+Implement M3: atomic fact extraction with entity, predicate, value, temporal
+validity, status, and provenance, then use it to make conflict detection less
+dependent on tag/token overlap.
+
+## 2026-05-20 - Memory Atomic Facts M3 Implementation And Live Verification
+
+Goal:
+
+Implement the first real atomic fact layer so memory can handle synonyms,
+language variants, and conflict detection through canonical entity/predicate
+state rather than narrative text alone.
+
+Changes:
+
+- Added `memory_facts` storage with entity, predicate, value JSON, temporal
+  fields, source provenance, lifecycle status, and fact-level supersession
+  links.
+- Added deterministic fact extraction for recognized memory patterns, including
+  Zero-Luce response-format facts and multilingual block labels.
+- Added implemented `mind_api` routes for:
+  - `GET /mind/memory/facts`;
+  - `POST /mind/memory/facts/backfill`.
+- Updated memory write, search, read, context, conflicts, deprecate, and
+  supersede flows so fact payloads are visible and lifecycle status is
+  propagated to facts.
+- Added alias canonicalization for entity and predicate queries such as
+  `Zero Light protocol`, `protocollo Zero-Luce`, and `formato-risposta`.
+- Updated Scarlet's prompt so facts are treated as canonical memory state when
+  present.
+- Saved live interactive run evidence at
+  `backend/app/evals/runs/20260520_160345_interactive`.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests` passed with 31 tests.
+- Turn `turn_c0000f00f88c404d81d23c186a70a8a0` used `/mind/schema`,
+  `/mind/memory/facts/backfill`, and `/mind/memory/facts`, returning both the
+  active four-block Zero-Luce fact and the deprecated three-block historical
+  fact from an English alias query.
+- Turn `turn_607560277878432d9ccc5d7dd891ae21` answered that
+  `Zero Light protocol` and `protocollo Zero-Luce` resolve to the active
+  four-block format and treated the old three-block fact as deprecated history.
+- A traced direct backfill sync after the hardening fix returned
+  `created_count=0`, `fact_count=2`, trace
+  `trace_511b5bcdf0f3441bb3088d5a43e52ea4`, and tool call
+  `tool_fc548abb637546ea8d284d37bdb9a81d`.
+- Final direct API verification after documentation/prompt updates confirmed
+  `GET /mind/memory/facts` still returns the active and deprecated Zero-Luce
+  facts with fact-level supersession links; trace
+  `trace_88f7279fd4a24cb7bb1471213c5fa9a4`, tool call
+  `tool_384496ed5f904ac0a7f074c8980659a3`.
+
+Fixed During This Slice:
+
+- Initial backfill after memory supersession created facts without fact-level
+  supersession links. Backfill now reconstructs those links from memory
+  lifecycle metadata.
+
+Open Questions:
+
+- The deterministic extractor is intentionally narrow; broad semantic
+  equivalence still needs retrieval, proposal, and compaction work.
+- Entity-aware retrieval must now use canonical facts to reduce wrong-entity
+  selection such as Nebbia-Rossa selecting Zero-Luce.
+- Response-control M1 remains on hold until lifecycle/fact/retrieval behavior
+  gives stronger evidence about the remaining answer-control risk.
+
+Next Suggested Step:
+
+Implement M4: entity-aware retrieval guard first, then SQLite FTS5/BM25 once
+the entity/fact classification behavior is traceably stable.
+
+## 2026-05-20 - Scarlet Cognitive Prompt And Unbounded API Mind Loop
+
+Goal:
+
+Reframe API Mind as Scarlet's internal cognition rather than a normal
+user-facing tool, and remove the fixed backend cap that limited Scarlet's
+internal tool loop.
+
+Changes:
+
+- Reworked `backend/app/prompts/scarlet_system.md` with:
+  - API Mind as Scarlet's internal cognitive environment;
+  - an autonomous internal cognitive loop before answers;
+  - an evidence hierarchy from API/schema/runtime context through facts,
+    memories, chat, and inference;
+  - explicit user independence from endpoint/API knowledge;
+  - instruction to use many internal operations when needed, without ritual
+    tool use.
+- Changed the provider protocol and MiniMax provider so `max_tool_calls=None`
+  means the loop is model-controlled and unbounded.
+- Changed chat and streaming chat turns to pass `max_tool_calls=None`.
+- Added `tool_loop_policy=model_controlled_unbounded` to `llm.request` traces.
+- Updated Mind API schema wording so `mind_api` is described as Scarlet's
+  internal cognitive API.
+- Added ADR-0019 for the internal-cognition interpretation.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py`.
+- Live session `ses_a954cbc29a534c65b00fa06f575e7ea3` verified the new prompt
+  direction through natural-language turns where the user did not name API
+  endpoints.
+- Turn `turn_9536885757794ae0860d8f84b5f2c107` used runtime memory/fact
+  context to answer the active Zero-Luce format without asking the user how to
+  verify it.
+- Turn `turn_4c1ede917d8c4db8924f54997ba62b10` autonomously made multiple
+  internal `mind_api` calls and reached `model_step=5`, proving the old fixed
+  cap no longer stops Scarlet. It also exposed weak recovery from API shape
+  errors.
+- Turn `turn_df0c1b8ab76e4c14a932bbc7c9314303` verified the hardened prompt:
+  Scarlet used `include_inactive=true`, queried canonical facts, and returned
+  the precise active/deprecated fact IDs.
+- The final turn's `llm.request` trace
+  `trace_d401413f2ec14a2883a6c8f80e96bb9c` recorded
+  `tool_loop_policy=model_controlled_unbounded`.
+- Full backend suite passed:
+  `backend/.venv/bin/python -m pytest backend/tests` -> 31 tests.
+
+Open Questions:
+
+- Long model-controlled loops may need cancellation/backpressure and richer
+  progress views, but those should not reintroduce a fixed cognitive step cap.
+- A future `mind/batch` style route may be useful so many internal reads can be
+  grouped without many model roundtrips.
+- Combined free-text fact queries such as `protocollo-zero-luce response_format`
+  can still return empty where entity/predicate filters succeed; M4 should
+  treat this as retrieval/query ergonomics evidence.
+
+Next Suggested Step:
+
+Run the full backend suite, then continue to M4 entity-aware retrieval and fact
+query ergonomics.
+
+## 2026-05-20 - Dashboard Recent Session History
+
+Goal:
+
+Add a ChatGPT-style recent session list to the cockpit sidebar so prior DB
+sessions can be reopened by readable title and continued without copying
+session IDs.
+
+Changes:
+
+- Added `GET /api/chat/sessions` with bounded `limit` support and newest-first
+  ordering by session update time.
+- Added backend regression coverage proving the endpoint returns readable
+  titles and reorders a session after a new turn.
+- Added a frontend session-history sidebar under runtime controls.
+- Added session reopening in the cockpit: selecting a prior session reloads its
+  messages, marks it active, and sends later turns to the selected session.
+- Changed the visible current-session label to prefer the session title over
+  the raw ID.
+- Updated the API contract, README scope, backend README scope, and changelog.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py` passed
+  with 11 tests during the implementation slice.
+- `backend/.venv/bin/python -m pytest backend/tests` passed with 32 tests.
+- `npm run build` in `frontend` passed.
+- `GET /api/chat/sessions?limit=5` returned current DB sessions newest-first
+  with visible titles, including `P1 cognitive prompt live probe`.
+- `GET /api/chat/sessions/ses_a954cbc29a534c65b00fa06f575e7ea3/messages`
+  returned 6 persisted messages for the reopened live-probe session.
+- The frontend dev server responded with HTTP 200 at `http://127.0.0.1:5173/`.
+- `git diff --check` passed.
+
+Open Questions:
+
+- The sidebar currently uses the existing manually assigned session title. A
+  later slice can add automatic conversation-title generation if the current
+  title source becomes too generic.
+
+## 2026-05-20 - Cognitive API M4.0-C6 First Slice
+
+Goal:
+
+Move beyond visible metacognition as a prompt-only behavior and give Scarlet
+traceable internal cognitive operations through API Mind.
+
+Changes:
+
+- Added schema discipline:
+  - `GET /mind/schema` now returns `schema_version`, `schema_digest`, route
+    examples, and schema policy;
+  - `<runtime_context>` now includes `mind_schema`;
+  - unknown-route and invalid tool-shape errors include schema guidance.
+- Added `backend/app/mind/cognition.py` with first-slice handlers for:
+  - `POST /mind/metacognition/step`;
+  - `POST /mind/validation/claims`;
+  - `POST /mind/blackboard/write`;
+  - `GET /mind/blackboard`;
+  - `POST /mind/reflection/after-turn`.
+- Added trace kinds:
+  - `mind.metacognition.step`;
+  - `mind.validation.claims`;
+  - `mind.blackboard.write`;
+  - `mind.reflection.after_turn`.
+- Updated Scarlet's prompt with internal schema, metacognition, validation,
+  blackboard, and after-turn reflection discipline.
+- Added `docs/cognitive-api-roadmap.md`.
+- Added ADR-0020 and EXP-0011.
+- Added scripted scenario
+  `backend/app/evals/scenarios/cognitive_api_metacognition_probe.json`.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py backend/tests/test_mind_api.py`
+  passed with 27 tests during implementation.
+- After hardening, `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py`
+  passed with 17 tests.
+- `GET /mind/schema` now reports `schema_version=2026-05-20.cognitive-v1`
+  and a `sha256:` digest that matches the runtime-context `mind_schema`
+  metadata.
+- Direct HTTP smoke verified schema discovery, metacognition step, claim
+  validation, blackboard write/read, and after-turn reflection.
+- First scripted Scarlet run
+  `backend/app/evals/runs/20260520_173149_cognitive_api_metacognition_probe`
+  failed: Scarlet used visible metacognition instead of
+  `/mind/metacognition/step`, validation omitted `response_draft`, and
+  runtime/schema digests differed.
+- Hardened the prompt, made claim validation tolerate claims-only input, and
+  fixed schema digest computation.
+- Second scripted Scarlet run
+  `backend/app/evals/runs/20260520_173431_cognitive_api_metacognition_probe`
+  passed with schema, metacognition, validation, and persisted cognitive
+  traces.
+- Final verification passed:
+  - `backend/.venv/bin/python -m pytest backend/tests` -> 37 tests;
+  - `npm run build` in `frontend`;
+  - `git diff --check`;
+  - `GET /mind/schema` over HTTP returned the cognitive routes and
+    `schema_digest=sha256:1899a0eb346df412`.
+
+Open Questions:
+
+- The first metacognition implementation is deterministic and structured. A
+  later experiment should compare it with a nested model-backed self-review
+  step before accepting the added cost and recursion risk.
+- The new scripted scenario is a regression probe. The real behavioral evidence
+  still needs adaptive conversation where the user does not name the endpoints.
+- The passing run still shows room to improve action ordering: schema should
+  ideally be inspected before claim validation when the claim depends on the
+  current schema shape.
+
+## 2026-05-22 - Cognitive API Consolidation To One Metacognition Route
+
+Goal:
+
+Correct the cognitive API architecture after owner feedback: do not fill API
+Mind with many overlapping cognitive endpoints. Pick one route, test it, and
+extend only if evidence shows the path works.
+
+Changes:
+
+- Removed the parallel cognitive-route design from the active schema:
+  - `/mind/validation/claims`;
+  - `/mind/blackboard/write`;
+  - `/mind/blackboard`;
+  - `/mind/reflection/after-turn`.
+- Added `backend/app/mind/metacognition.py` as the single LLM-backed internal
+  metacognition handler behind `POST /mind/metacognition/step`.
+- Updated `/mind/metacognition/step` so critique, claim checks, temporary
+  workspace, reflection, and next-action planning are returned inside one
+  structured review result.
+- Added backend schema annotation to metacognition `recommended_internal_actions`
+  so wrong methods or unknown routes are marked before Scarlet follows them.
+- Added one internal JSON repair attempt when the metacognitive reviewer returns
+  malformed JSON; the repair is traced as `json_repair_applied`.
+- Made `/mind/metacognition/step` tolerate observed model aliases: `prompt`
+  maps to `internal_prompt` and missing `objective`; `goal`, `task`, `purpose`,
+  and `question` map to missing `objective`; `context` becomes a compact
+  `known_evidence` entry.
+- Updated Scarlet's prompt to tell her not to look for separate validation,
+  blackboard, or reflection endpoints.
+- Updated `GET /mind/schema` to
+  `schema_version=2026-05-22.episodic-recall-v2`.
+- Removed the planned `/mind/reflection/review` route from the active plan so
+  reflection remains part of `/mind/metacognition/step` until evidence says
+  otherwise.
+- Updated the cognitive API roadmap, ADR-0020, EXP-0011, API contract, README,
+  backend README, changelog, bug ledger, and eval scenario to match the single
+  route.
+
+Verification So Far:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py -q`
+  passed with 14 tests after consolidation.
+- Backend app import succeeds again after the interrupted half-edit removed the
+  obsolete `app.mind.cognition` dependency.
+
+Open Questions:
+
+- The next live Scarlet run should verify that she calls `/mind/schema` and
+  `/mind/metacognition/step`, and does not call removed parallel routes.
+- We still need final full-suite verification after this cleanup.
+
+## 2026-05-22 - Episodic Session Recall Slice
+
+Goal:
+
+Implement the agreed memory split: semantic memory stores durable reusable
+meaning, while episodic recall lets Scarlet list prior sessions, inspect
+summaries, and open full transcripts by session id.
+
+Changes:
+
+- Added `session_summaries` as the episodic recall index table.
+- Added repository helpers for session summary upsert/read and memories written
+  from a session.
+- Added `backend/app/mind/episodic.py` with:
+  - `GET /mind/sessions`;
+  - `GET /mind/sessions/{session_id}`;
+  - `POST /mind/sessions/{session_id}/summarize`.
+- Updated `GET /mind/schema` to
+  `schema_version=2026-05-22.episodic-recall-v2`.
+- Added query-string normalization for `mind_api` paths such as
+  `/mind/sessions?limit=10`.
+- Removed `max_messages` from session summarization so episodic summaries are
+  based on the complete `user`/`assistant` conversation history rather than a
+  partial tail.
+- Updated Scarlet's prompt to distinguish semantic memory from episodic recall
+  and to follow `source_session_id` into transcripts when provenance matters.
+- Added ADR-0021 and EXP-0012.
+
+Verification So Far:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_mind_api.py -q`
+  passed with 23 tests.
+- Full verification passed:
+  - `backend/.venv/bin/python -m pytest backend/tests -q` -> 39 tests;
+  - `npm run build` in `frontend`;
+  - `git diff --check`.
+- Live HTTP smoke on the local backend created session
+  `ses_8f9145b9ca5a4aa78534936dac03a8d5`, wrote semantic memory
+  `mem_06ef7093f3e74f099c77d6f356f67d26` with matching
+  `source_session_id`, summarized the session, listed it through
+  `/mind/sessions?limit=5&query=episodic`, and read back the transcript plus
+  `memories_written`.
+
+Open Questions:
+
+- Live Scarlet testing still needs to verify autonomous use: retrieve semantic
+  memory, notice `source_session_id`, open the session transcript, and answer
+  from transcript evidence when exact context matters.
+- Summary refresh timing is still manual/API-driven; background idle
+  summarization remains a later design question.
+
+## 2026-05-22 - Episodic Summary Backfill And Autonomy Probe
+
+Goal:
+
+Backfill episodic summaries for all existing sessions, then test whether
+Scarlet autonomously follows semantic memory provenance into the full source
+conversation when a user asks for a verified decision.
+
+Changes:
+
+- Ran `POST /mind/sessions/{session_id}/summarize` with `force=true` for all
+  existing sessions in the laboratory database.
+- Coverage after backfill:
+  - sessions: 46;
+  - summaries: 46;
+  - missing summaries: 0.
+
+Verification:
+
+- Backfill completed with `ok=46`, `failed=0`.
+- Created test session `ses_0bf521aadeae434e913772b4a48f89df`.
+- First probe turn `turn_c2f042cdd8cb48a0bf2b98605babdfd0` asked naturally
+  whether the API Mind technical evaluation could be used as a reliable
+  project baseline. `memory.context` selected
+  `mem_ecfe7b2130764a3f836b0e77fefaa614`, but Scarlet made no `mind_api` tool
+  call, did not open the source session, and answered too positively.
+- Follow-up turn `turn_6333d14e6aab491f8ddf3ba8ae3fa507` asked Scarlet to
+  verify whether the evaluation came from independent measurement or from
+  conversation. Scarlet called
+  `GET /mind/sessions/ses_603fb9291cba498b97c30572f0d1249d`, read the source
+  transcript, revoked the initial yes, and correctly reframed the evaluation as
+  provisional self-assessment rather than an independent baseline.
+- The new autonomy-probe session was summarized afterward; final database
+  coverage is now 47 sessions, 47 summaries, 0 missing.
+
+Open Questions:
+
+- Scarlet does not yet reliably infer from "verified baseline" alone that she
+  should inspect a semantic memory's source session. The prompt and/or runtime
+  evidence may need stronger provenance pressure, but the solution should be
+  discussed before implementation.
+
+## 2026-05-22 - Scarlet System Prompt Epistemic Hardening
+
+Goal:
+
+Strengthen Scarlet's system prompt so API Mind is treated as internal cognition
+with stronger human-like curiosity, uncertainty discipline, and autonomous
+provenance checks.
+
+Changes:
+
+- Added an explicit epistemic stance: first impressions are hypotheses, while
+  strong claims require evidence.
+- Added confidence vocabulary for `verified`, `remembered`, `inferred`,
+  `provisional`, and `unknown`.
+- Strengthened the internal cognitive loop with risk classification before
+  answering.
+- Added autonomous API Mind use patterns with concrete examples for schema,
+  semantic memory, facts, episodic source sessions, metacognition, memory
+  writes, summarization, and lifecycle operations.
+- Made source-session inspection mandatory when a memory-derived answer would
+  become a strong recommendation, yes/no decision, baseline claim, or statement
+  about whether a prior evaluation was independent or measured.
+- Strengthened internal metacognition guidance for weak-evidence
+  recommendations and provenance-sensitive memory use.
+
+Verification:
+
+- Documentation-only prompt change; no backend behavior changed.
+- Ran live probe session `ses_9c610a719b594139bc481e02015521ce`, turn
+  `turn_e3a8e163accf4af585f09501839b43b1`, with the same natural
+  verified-baseline question and no endpoint instructions.
+- Improved behavior: Scarlet selected memory
+  `mem_ecfe7b2130764a3f836b0e77fefaa614`, then immediately called
+  `GET /mind/sessions/ses_603fb9291cba498b97c30572f0d1249d` before answering.
+- Scarlet then attempted `POST /mind/metacognition/step` with the wrong body
+  shape, received `metacognition.invalid_body`, called `GET /mind/schema`, and
+  retried metacognition successfully.
+- Final answer distinguished verified claims from provisional claims, but still
+  framed the operational answer as "SÌ, con condizioni" and contained a small
+  foreign-script artifact in Italian text.
+- The probe session was summarized as
+  `ses_sum_bb76f582937f494697a75a84c13b33b0`; database summary coverage is now
+  48 sessions, 48 active summaries, 0 missing.
+
+Open Questions:
+
+- One live rerun confirms the provenance trigger improved, but BUG-0016 should
+  remain in monitoring until repeated probes show stable first-turn behavior.
+- Wrong-body metacognition recovery and foreign-script answer artifacts should
+  be discussed before any additional fix.
+
+## 2026-05-22 - MiniMax Public Progress Note Probe
+
+Goal:
+
+Check whether MiniMax can emit a natural public note before a `mind_api` tool
+call, which would support a Codex/Claude-Code-style agentic narration channel.
+
+Verification:
+
+- Created session `ses_2cf2923e1cd74f98bc90396d17fe82c8`.
+- Turn `turn_0b4c23c3b5de4e8c888c5bb8d7716ef7` asked Scarlet to write one
+  public sentence before any internal function call, then inspect API Mind
+  schema.
+- Stream order confirmed support:
+  - `text_delta` seq 7: "Ora verifico lo stato attuale dello schema API Mind...";
+  - `tool_use_start` seq 8 for `mind_api`;
+  - `tool_call` seq 12 with `GET /mind/schema`;
+  - `tool_result` seq 13;
+  - final `text_delta` seq 18.
+- The public note appeared in the stream but was not persisted as the final
+  assistant message, which is the useful separation for a future progress
+  narration channel.
+- The session was summarized as
+  `ses_sum_559f09ecfa474f888682e13efba4f5d9`.
+
+Open Questions:
+
+- The final answer said "12 route attive", which compressed mixed route states
+  too loosely. Treat this as a behavior caveat to discuss before adding a fix.
+- A future implementation should classify pre-tool text as public progress, not
+  final answer, and persist it as trace/event state rather than normal chat
+  memory.
+
+## 2026-05-22 - Scarlet Public Work Notes Prompt Policy
+
+Goal:
+
+Make natural public work notes an expected part of Scarlet's operating style,
+so the user can follow complex activity and future session reconstruction has
+readable activity markers around memory/search/schema/metacognition work.
+
+Changes:
+
+- Added `Public Work Notes` to Scarlet's system prompt.
+- Public work notes are defined as exteriorized operational reasoning, not raw
+  private chain-of-thought.
+- Scarlet is instructed to emit a short note before or during every non-trivial
+  internal activity, especially before API Mind calls, source-session reads,
+  schema inspections, metacognition steps, memory writes, summarize operations,
+  lifecycle operations, retries, and phase changes.
+- Notes should summarize objective, evidence, uncertainty, or plan changes in
+  natural language.
+- Notes should not become semantic memory by default; they are activity markers
+  unless they reveal durable reusable knowledge.
+
+Verification:
+
+- First autonomous probe `ses_cbdafea62c9d4b27bde1660ef1c007d6` asked for
+  current API Mind capabilities without explicitly requesting a progress note.
+  Scarlet answered from runtime context, made no `mind_api` call, and compressed
+  route state/counts incorrectly.
+- After strengthening the prompt, rerun
+  `ses_8f34b6b0f1f9413bb2ef22ec54765d14` still answered from runtime context
+  without a schema call or distinct public work note.
+- After making schema inspection mandatory for current capability questions,
+  rerun `ses_d5b6b924b082458dac892dc7c0d20fa5` confirmed the prompt was
+  present in the effective system prompt, but Scarlet still made zero tool
+  calls and answered from runtime context.
+- The three probe sessions were summarized:
+  - `ses_sum_e0a9eae62b8e4aeaa20fbe280bee949b`;
+  - `ses_sum_3761a3858e6645ec8df06d682be74b12`;
+  - `ses_sum_ccff0f7dccf64582a161e0725061d606`.
+
+Open Questions:
+
+- Prompt-only support can create streamed public notes when requested
+  explicitly, but autonomous use is not reliable yet.
+- Current episodic summaries are still based on persisted user/assistant
+  messages rather than stream progress notes. A later backend slice should
+  decide how to persist and expose `assistant_progress` for episodic recall.
+
+## 2026-05-22 - Structured Agent Activity UI
+
+Goal:
+
+Make Scarlet's chat UI show current cognitive activity as readable evidence
+blocks instead of raw JSON-only operation dumps.
+
+Changes:
+
+- Reworked the assistant turn timeline to classify activity into semantic step
+  kinds: memory, public note, schema, session, metacognition, tool, result,
+  answer, thinking, and runtime.
+- Render automatic memory context as organized memory cards with content,
+  confidence, salience, score, fact count, tags, and source session id.
+- Render pre-tool text as public work notes instead of appending it to the
+  temporary assistant answer while streaming.
+- Render tool calls as route/action blocks with method, path, intent, and
+  optional payload details.
+- Render tool results as evidence summaries, including schema route groups,
+  session readouts, session lists, memory cards, metacognitive claim/risk
+  summaries, and errors.
+- Kept the raw trace pane unchanged for laboratory inspection.
+
+Verification:
+
+- `npm run build` in `frontend` passed.
+- Browser automation was not available in the current tool surface after tool
+  discovery, so visual verification still needs a manual/UI pass in the local
+  cockpit.
+
+Open Questions:
+
+- The UI now classifies streamed pre-tool text heuristically as a public note.
+  A backend `assistant_progress` event would make this robust and persistable.
+
+## 2026-05-22 - Temporal Runtime Context Probe
+
+Goal:
+
+Fix only the first temporal root cause discovered in live Scarlet testing:
+the backend had turn time in traces, but Scarlet did not receive explicit
+model-facing current time.
+
+Changes:
+
+- Added `temporal_context` to the persisted `memory.context` payload.
+- Added `temporal_context` to the model-facing `<runtime_context>`.
+- The block exposes UTC time, local runtime time, local timezone, UTC offset,
+  turn-start timestamps, timestamp source, and storage timestamp policy.
+- Updated the chat API regression test and API contract documentation.
+
+Verification:
+
+- `./.venv/bin/pytest` in `backend` passed: 39 tests.
+- Live session `ses_eb7eefe3c3bf4e55864b944f83801bb8` confirmed Scarlet can
+  read `temporal_context` and report UTC/local CEST time.
+- Live arithmetic turn `turn_b1154a3e1f9a45fdb128208380c3134f` produced a
+  correct approximate elapsed-time calculation, but reused the prior turn's
+  timestamp instead of the newer turn timestamp.
+- Live episodic turn `turn_15a54d4d0c284bb3be5b1810c1afd206` still treated the
+  first `/mind/sessions` page as sufficient even though `has_more=true`.
+
+Open Questions:
+
+- Scarlet now has reliable current-time evidence, but may still prefer recent
+  chat history over the latest runtime timestamp unless the prompt or runtime
+  contract makes "current turn temporal context wins" explicit.
+- Session aggregation remains unsolved and should be handled separately through
+  episodic query/filter/aggregation improvements rather than this time-context
+  fix.
+
+## 2026-05-22 - Scarlet Prompt Perception Contracts
+
+Goal:
+
+Refine Scarlet's system prompt without rewriting the working identity, memory,
+schema, and API discipline sections. The change teaches Scarlet where real
+data comes from and how API Mind acts as her own cognition/subconscious.
+
+Changes:
+
+- Strengthened `Cognitive Architecture` so API Mind is Scarlet's operative
+  subconscious and durable cognition, not a user-operated tool.
+- Added `Perception And Source Of Truth` to list Scarlet's perception channels
+  and define runtime evidence as measured reality over conflicting user claims.
+- Updated `Evidence Hierarchy` by claim type, including current time,
+  capability state, transcripts, facts, and inference.
+- Extended `Runtime Context Contract` with `temporal_context` rules:
+  current-turn time wins over prior chat and user-stated clock time.
+- Removed the old `Visible Metacognition Experiment` prompt section.
+- Clarified that public work notes are visible operational narration, while
+  internal metacognition is `/mind/metacognition/step`.
+- Added session-list exhaustiveness rules: `has_more=true` means the page is
+  not enough for strong "all", "first", "since when", or absence claims.
+
+Verification:
+
+- Targeted prompt regression test passed:
+  `./.venv/bin/pytest tests/test_chat_api.py::test_chat_turn_persists_messages_and_traces`.
+- Full backend suite passed: `39 passed`.
+- Live probe `ses_5b8cb16353134f0f8cdcc072e603f049` confirmed the effective
+  prompt contains `Perception And Source Of Truth` and no longer contains
+  `Visible Metacognition Experiment` or `Metacognizione:`.
+- In turn `turn_bc8e9f096a3a45e9bf1da1d48111db3b`, Scarlet correctly treated
+  backend `temporal_context` as stronger than the user's stated time.
+- In turn `turn_6d5ad7fe15824bcc8d7e0caf82e8853d`, Scarlet avoided making an
+  exhaustive `/mind/sessions` claim, but answered from an automatically
+  selected project memory with weak generic overlap instead of stronger
+  episodic evidence.
+
+Open Questions:
+
+- Needs live post-prompt probes before marking BUG-0020 mitigated or deciding
+  whether backend session filters/aggregation are still required.
+- The second live probe exposed a separate retrieval/grounding problem: generic
+  token overlap can select a memory that is not semantically about the user's
+  question.
+
+## 2026-05-22 - Qwen 3.7 Provider Preparation
+
+Goal:
+
+Prepare a provider-only Qwen 3.7 comparison path so Scarlet can be tested
+against MiniMax M2.7 and Qwen without changing API Mind, memory, prompt, or UI
+behavior.
+
+Changes:
+
+- Added `LLM_PROVIDER=minimax|qwen` with MiniMax as the default.
+- Extracted the existing Anthropic-compatible provider implementation into a
+  reusable base and kept `MiniMaxProvider` as the baseline wrapper.
+- Added `QwenProvider` using Alibaba Model Studio's Anthropic-compatible base
+  URL and default `QWEN_MODEL=qwen3.7-max`.
+- Added provider-agnostic helpers for active model and token budget.
+- Updated chat, debug, health, Mind API, episodic summarization, and
+  metacognition code paths to use the selected provider.
+- Updated `.env.example`, README files, API contract, project blueprint,
+  decisions, and experiments for the provider switch.
+
+Verification:
+
+- Targeted provider tests passed:
+  `./backend/.venv/bin/pytest backend/tests/test_health.py backend/tests/test_llm_smoke.py backend/tests/test_llm_factory.py`.
+
+Open Questions:
+
+- Live Qwen smoke and A/B conversation tests are still pending because provider
+  credentials should be supplied only through local environment variables.
+- If Alibaba Model Studio exposes a different Qwen 3.7 model identifier in the
+  console, override `QWEN_MODEL` without code changes.
+
+## 2026-05-22 - Qwen 3.7 Direct Scarlet Probe
+
+Goal:
+
+Run live Scarlet turns through Qwen 3.7 to evaluate actual reasoning, tool
+autonomy, public notes, temporal grounding, episodic recall, and metacognitive
+self-critique.
+
+Changes:
+
+- Updated local `backend/.env` to use `LLM_PROVIDER=qwen`.
+- Set local `QWEN_MAX_TOKENS=16384` after discovering that `32768` triggers an
+  SDK-side non-streaming timeout guard.
+
+Verification:
+
+- Backend health returned `provider=qwen`, `model=qwen3.7-max`.
+- Debug smoke succeeded with default `max_tokens=16384`.
+- Live direct session: `ses_5c273ef1bcba4c008b453cc11645fa45`.
+- Capability turn `turn_7722a632843948f99219d67a08c51d18`: Scarlet emitted a
+  public note, called `GET /mind/schema`, and separated implemented, planned,
+  and unavailable routes.
+- Temporal turn `turn_760407884ef4459eb44873a76de34ac0`: Scarlet correctly
+  preferred runtime `temporal_context` over the user's false clock claim.
+- Episodic memory turn `turn_e4e50b07da4542cca3bbfdf1bf4f15e6`: Scarlet ran a
+  multi-step search across semantic memory, session summaries, and candidate
+  transcripts.
+- Self-critique turn `turn_746eb8c9c8644205b7890ed5f437c3cd`: Scarlet used
+  metacognition and correctly identified her previous exhaustive session claim
+  as overconfident.
+
+Open Questions:
+
+- Qwen still produced one invalid metacognition request body before recovering.
+- Qwen still overclaimed exhaustive session coverage before the user asked for
+  critique; backend-side session evidence contracts remain useful.
+- `BUG-0022` tracks the non-streaming high-token-budget 500.
+
+## 2026-05-23 - MiniMax Engineering Prompt Rerun
+
+Goal:
+
+Test whether MiniMax can be improved before adopting Qwen as a paid default.
+The change should strengthen Scarlet's engineering/agentic reasoning posture
+without losing identity, warmth, API Mind discipline, or existing memory rules.
+
+Changes:
+
+- Added `Engineering Agent Posture` to `backend/app/prompts/scarlet_system.md`.
+- Added a verify-before-conclude operating pattern.
+- Added a non-trivial answer quality gate for evidence strength, partial
+  lists, summaries, selected memories, and strong words such as "all", "none",
+  "verified", "measured", "decided", and "baseline".
+- Added a stricter episodic rule: if only titles, summaries, or candidate
+  transcripts were inspected, Scarlet must say exactly that.
+- Added metacognition body-shape caution: inspect `/mind/schema` before
+  improvising fields for `/mind/metacognition/step`.
+- Switched local runtime back to `LLM_PROVIDER=minimax`.
+
+Verification:
+
+- Backend health returned `provider=minimax`, `model=MiniMax-M2.7`.
+- MiniMax debug smoke returned `pong`.
+- Live direct session: `ses_d7b711493ff4401dbc434ff4579eeeb9`.
+- Capability turn `turn_09cc0dc196b1486b8a4029c247a964ae`: Scarlet emitted a
+  public note and called `GET /mind/schema` autonomously.
+- Temporal turn `turn_fce220ad51ea47d2affc9d80a4cc1031`: Scarlet correctly
+  preferred runtime `temporal_context` over the user's false clock claim.
+- Episodic memory turn `turn_fc36f2778d2443de8592f1dfd161fea4`: Scarlet made
+  eight `mind_api` calls and recovered from one invalid memory-search body by
+  inspecting schema.
+- Self-critique turn `turn_482f636a8b4547ceb5f6a89837b222da`: Scarlet opened
+  the cited session, recovered from invalid metacognition body through schema,
+  and identified several overclaims.
+
+Open Questions:
+
+- MiniMax improved materially, but still reasserted a strong unsupported
+  absence claim after identifying why that claim was too strong.
+- The prompt helped behavior but does not replace backend-side exhaustive
+  session evidence and validators.
+
+## 2026-05-23 - Semantic Memory Consolidation Prompt
+
+Goal:
+
+Make Scarlet treat semantic memory like natural durable cognition instead of an
+opt-in operation. The owner clarified that the check should happen before the
+final answer by looking at both the user's request and Scarlet's own draft
+answer.
+
+Changes:
+
+- Added `Semantic Memory Consolidation` to Scarlet's system prompt.
+- The prompt now requires a lightweight pre-final check for semantic candidates
+  from the user request and Scarlet's draft answer.
+- Strong candidates now include preferences, corrections, decisions,
+  milestones, version labels, validation moments, durable constraints, and
+  stable LLM API Mind facts.
+- Stable semantic candidates should be written before the final answer without
+  asking user permission.
+- By default, Scarlet should not announce that she saved a memory. She should
+  mention it only when memory is the task or when the acknowledgment supports
+  emotional continuity, trust calibration, or reinforcement of a durable
+  operating agreement.
+
+Verification:
+
+- Live session `ses_34340c3098dc4f0e8db2ccadfdad21b3` confirmed Scarlet wrote
+  `mem_dfb4212c2f7345bbab5c615ff0701d7d` for the Scarlet V2.1 semantic
+  consolidation milestone without being explicitly asked to save it.
+- Live session `ses_c809a2b90b974dd48ea95009d04a3ff1` confirmed Scarlet wrote
+  `mem_ac8a30ef37ec4f18ad0deca702eb8b16` for the owner's report-format
+  preference without being explicitly asked to save it.
+- Semantic memory count increased from 4 to 6.
+
+Open Questions:
+
+- Scarlet still announced both memory writes. This may be acceptable for the
+  V2.1 milestone because the task was about memory behavior, but is too explicit
+  for ordinary preferences if silent consolidation is the desired default.
+- Scarlet still first tried `POST /mind/memory` before recovering with
+  `POST /mind/memory/write`.
+- In the second write, API Mind corrected authoritative provenance but preserved
+  stale model-supplied source ids in `metadata.model_extra`; this is tracked as
+  `BUG-0025`.
+
+## 2026-05-23 - Mind API Deterministic Field Ownership Audit
+
+Goal:
+
+Verify whether active API/Mind API endpoints make Scarlet provide only fields
+that require model judgment, while backend-derived fields such as dates, ids,
+session provenance, turn provenance, traces, usage, and lifecycle timestamps are
+compiled automatically.
+
+Findings:
+
+- Chat turn endpoints create sessions, turns, messages, traces, provider ids,
+  timings, runtime context, and automatic memory context in the backend.
+- `POST /mind/memory/write` correctly stamps authoritative source session and
+  turn ids from `MindAPIContext`.
+- Memory facts, lifecycle operations, episodic summaries, session reads, and
+  metacognition traces all derive trace/provenance/time fields in backend code.
+- The main weakness is contract clarity: route schemas do not explicitly label
+  backend-owned fields, and free-form memory metadata can preserve stale
+  model-supplied source ids.
+- Recent traces show Scarlet still sometimes tries unavailable or old route
+  shapes such as `POST /mind/memory` before schema recovery.
+
+Documentation:
+
+- Added ADR-0027 for backend-owned deterministic API fields.
+- Added BUG-0026 for the implicit route ownership contract.
+- Added the field ownership policy to `docs/api-contract.md`.
+
+Next Suggested Step:
+
+Discuss a narrow implementation slice before coding: start with schema
+ownership metadata and backend sanitization for deterministic provenance fields,
+then test whether Scarlet stops over-supplying ids and wrong route aliases.
+
+## 2026-05-23 - Semantic Memory As Living Cognitive State
+
+Goal:
+
+Strengthen Scarlet's prompt so semantic memory is understood as a natural,
+ongoing cognitive-maintenance activity rather than a narrow save operation for
+major decisions.
+
+Changes:
+
+- Reframed API Mind as Scarlet's digital brain and made Scarlet the operator
+  and caretaker of her internal cognitive system.
+- Expanded semantic memory definition to include facts, annotations, concepts,
+  checkpoints, labels, corrections, constraints, and sourceable future
+  retrieval anchors.
+- Added a stronger pre-final semantic consolidation check asking whether a turn
+  produced any future-useful fact, annotation, checkpoint, or anchor.
+- Clarified that memory storage and retrieval are internal mental activities
+  that do not require user consent, instruction, or notification.
+- Reconciled public work notes with silent memory writes: ordinary memory
+  writes should not produce public notes unless memory is the subject or a
+  brief acknowledgment is useful for trust/emotional continuity.
+- Added prompt guidance that deterministic provenance fields are backend-owned
+  and Scarlet should provide cognitive content rather than source ids.
+
+Verification:
+
+- Prompt sections were re-read after patching for internal consistency.
+- No runtime test was run in this turn; live behavior still needs direct Scarlet
+  verification.
+
+Next Suggested Step:
+
+Run a live conversation that introduces several small but future-useful anchors
+without explicitly asking for memory, then inspect whether Scarlet silently
+writes semantic memories and avoids model-supplied provenance fields.
+
+## 2026-05-23 - Semantic Candidate Recognition Without Write
+
+Goal:
+
+Verify the owner's latest manual Scarlet session after Scarlet appeared to
+recognize a fact as worth remembering but did not actually save memory.
+
+Findings:
+
+- Latest manual session: `ses_09960a272eba4fcfb15561463ba06cd0`.
+- The updated semantic-memory prompt was loaded for the relevant request.
+- The user said they like chocolate but cannot eat too much or they feel bad.
+- Scarlet's raw provider thinking recognized the item as a possible
+  `user_preference` and stated that saving it made sense.
+- Scarlet's final answer said "Lo terrò a mente."
+- No `mind_api` tool call occurred in the session, and no new `memories` row was
+  created.
+
+Documentation:
+
+- Added BUG-0027 for recognized semantic candidates not being written.
+
+Next Suggested Step:
+
+Discuss whether to address this first through prompt tightening, a backend
+validator for "memory promise without write", or a post-turn semantic candidate
+detector.
+
+## 2026-05-23 - EXP-0015 Prompt-Level Memory Write Forcing
+
+Goal:
+
+Start a reversible prompt-only experiment for `BUG-0027`: Scarlet recognized a
+semantic memory candidate and said "Lo terrò a mente" but did not call
+`memory.write`.
+
+Changes:
+
+- Added `Experimental Memory Forcing` as a clearly marked subsection in
+  `backend/app/prompts/scarlet_system.md`.
+- The prompt now requires every user turn to include at least two cognitive
+  phases before final answer: execution and mandatory verification.
+- The verification phase must check whether any recognized semantic candidate,
+  memory promise, missed API action, stale conflict, duplicate, or route-shape
+  problem remains unresolved.
+- If Scarlet recognizes a semantic memory candidate, recognition is now
+  action-binding: call `POST /mind/memory/write`, update/supersede if needed,
+  or explicitly reject the candidate by policy before final answer.
+- Added `EXP-0015` with success/failure criteria and a simple revert plan.
+
+Verification:
+
+- Prompt diff was reviewed for section isolation and revertability.
+- No live Scarlet run was executed yet; the next step is a direct behavioral
+  test.
+
+Next Suggested Step:
+
+Run a live chocolate-like preference test and inspect whether the turn contains
+`/mind/memory/write`, no stale model-supplied provenance, and no false memory
+promise.
+
+Follow-up Evidence:
+
+- Manual rerun session: `ses_a256430c082d495aa305b8b0945067cf`.
+- The prompt-forcing experiment was active, but Scarlet still did not call
+  `memory.write`.
+- The model recognized the chocolate preference/health constraint as a useful
+  personal user fact, but hesitated around whether personal food/health facts
+  fit the prompt's strong semantic-candidate examples.
+- No tool calls occurred after 2026-05-23 09:36 UTC; the session contains only
+  `memory.context`, `llm.request`, and `llm.response`.
+- This suggests the next experiment should address the personal-memory category
+  bias, not only add more generic "must write" language.
+
+Follow-up Change:
+
+- Added `Personal Semantic Memory Taxonomy` to the experimental prompt block.
+- Clarified that personal facts are first-class semantic memory: preferences,
+  food limits, health constraints stated by the user, names, relationships,
+  routines, goals, boundaries, life events, discoveries, errors, solutions, and
+  workarounds.
+- Added current-schema mapping for personal facts:
+  `type=user_preference`, `scope=user`, with tags such as `personal-fact`,
+  `food-preference`, and `health-constraint`.
+- Added the chocolate preference/health-constraint case as the explicit example
+  for the next test.
+
+Confirmed Live Result:
+
+- The user reran the chocolate preference scenario and reported successful
+  write plus cross-session recall.
+- Verified DB evidence:
+  - write session `ses_0d51195055ad4cc080bb0efb36fd2da5`;
+  - write turn `turn_68eed2dbfca64a27828eca384fb992ae`;
+  - memory `mem_f76b8682ebcf4e1b99c2845bbf66710d`;
+  - `type=user_preference`, `scope=user`;
+  - completed route `POST /mind/memory/write`.
+- Verified recall evidence:
+  - recall session `ses_ccf1cfdeb23e4a61af1a215d05759fb1`;
+  - automatic `memory.context` selected the memory when the user mentioned a
+    chocolate cake;
+  - Scarlet used the remembered limit naturally and later explained that it
+    came from a previous conversation.
+
+Residual:
+
+The authoritative backend provenance fields are correct, but
+`metadata.model_extra` still includes null source placeholders. Treat this as
+separate provenance hygiene rather than a blocker for the prompt solution.
+
+## 2026-05-23 - Provider-Native Turn History
+
+Goal:
+
+Fix lossy cross-turn history by preserving MiniMax/Anthropic-compatible
+provider-native messages instead of sending only plain `user`/`assistant` text
+on the next turn.
+
+Changes:
+
+- Added `sessions.provider_history_json` to store Anthropic-compatible
+  provider history per session.
+- Added a SQLite migration in `init_db` for existing local databases.
+- Changed chat turn construction so provider calls use session
+  `provider_history_json` plus the current user message when available.
+- Added fallback hydration for old sessions: text-only `messages` history is
+  used when provider history is missing, then native provider history is stored
+  after the completed turn.
+- Persisted native assistant content blocks and matching `tool_result` blocks
+  after completed non-streaming and streaming turns.
+- Added `provider_history_source`, `provider_message_stats`, and
+  `provider_messages` to `llm.request` traces.
+- Kept the `messages` table as the human-readable UI/episodic transcript.
+
+Verification:
+
+- Ran `backend/.venv/bin/python -m compileall backend/app`.
+- Ran backend tests: `44 passed`.
+- Initialized the local lab DB; `sessions.provider_history_json` exists with
+  default `[]`.
+
+Next Suggested Step:
+
+Run a live two-turn Scarlet probe where the first turn uses `mind_api`, then
+inspect the second turn's `llm.request.provider_messages` and Scarlet's
+behavior before adding background memory-maintenance processes.
+
+Follow-up Live Evidence:
+
+- Schema-history probe:
+  - session `ses_39f94e8992c249999cd915b1c9662589`;
+  - turn 1 called `GET /mind/schema`;
+  - turn 2 provider messages included assistant `tool_use` plus matching user
+    `tool_result`;
+  - Scarlet correctly reported that the prior internal operation was
+    `GET /mind/schema`.
+- Memory-write-history probe:
+  - session `ses_1fa57d298cb9446c95e50ac39b2c0954`;
+  - turn 1 called `POST /mind/memory/write`;
+  - created `mem_1105309a51ce40cb8a8f17dfc510d38f` as `project_fact`,
+    `scope=project`;
+  - turn 2 provider messages included the prior memory write as assistant
+    `tool_use` followed immediately by matching user `tool_result`;
+  - Scarlet correctly reported the prior route and memory id.
+
+Read:
+
+The provider-native history fix matches MiniMax/Anthropic tool-history
+expectations in live runs. The next design topic is compaction: the schema probe
+second turn already had an approximate provider-history size of `4297` tokens,
+while the memory-write probe was `1683`.
+
+## 2026-05-23 - MiniMax Completion Budget Raised
+
+Goal:
+
+Remove conservative MiniMax output caps now that provider-native history tracing
+and request-size observability are in place.
+
+Changes:
+
+- Raised the MiniMax default completion budget from `4096` to `131072`.
+- Raised chat and debug request validation from `65536` to `131072`.
+- Updated local `.env`, `.env.example`, README snippets, eval scenario
+  templates, and API contract examples.
+- Removed the hidden `2048` cap from session summarization and metacognition
+  repair calls; they now use the active provider token budget.
+- Fixed the Anthropic SDK high-token non-streaming blocker by making provider
+  non-streaming calls use SDK streaming internally when the requested budget is
+  above the SDK non-streaming threshold.
+- Superseded the threshold-based behavior with an always-stream provider
+  policy: Anthropic-compatible provider calls now use streaming internally even
+  when the backend endpoint returns only a final response.
+- Kept Qwen settings unchanged.
+
+Verification:
+
+- Compile check passed: `backend/.venv/bin/python -m compileall backend/app`.
+- Backend targeted tests passed:
+  `tests/test_minimax_client.py tests/test_llm_factory.py tests/test_llm_smoke.py tests/test_chat_api.py tests/test_mind_api.py`.
+- Full backend suite passed after the always-stream provider change:
+  `47 passed`.
+- Local settings check confirmed active MiniMax model `MiniMax-M2.7` and active
+  provider token budget `131072`.
+- Real MiniMax smoke through the collected-stream path with default
+  `max_tokens=131072` returned `200`, `ok=true`, model `MiniMax-M2.7`, and text
+  `pong`.
+
+Residual:
+
+- Higher `max_tokens` is an upper bound, not a guarantee of long output, but it
+  may increase latency if MiniMax chooses to use more reasoning/output budget.
+  Context compaction remains the next design topic.
+
+## 2026-05-23 - Runtime Event Control Plane
+
+Goal:
+
+Introduce a runtime event layer that is useful during execution, not only after
+the fact for traceability.
+
+Changes:
+
+- Added persistent `events` storage with ordered `seq` per session.
+- Added runtime helpers for turn lifecycle, memory context, provider stream
+  milestones, Mind API tool-call lifecycle, public work notes, final answers,
+  and thinking metadata.
+- Added `GET /api/debug/events` for turn/session event inspection.
+- Added compact recent runtime events to `<runtime_context>` for following
+  turns.
+- Updated chat and direct `/mind/call` flows so tool calls create
+  start/completion/failure events linked to traces and `tool_calls`.
+- Updated the cockpit so persisted activity is rendered from events first and
+  from traces only as fallback.
+- Removed stale planned `/mind/events/emit` from the model-facing schema
+  because events are backend-owned, not a Scarlet-callable route.
+- Advanced Mind API schema version to `2026-05-23.runtime-events-v1`.
+
+Verification:
+
+- Compile check passed: `backend/.venv/bin/python -m compileall backend/app`.
+- Frontend build passed: `npm --prefix frontend run build`.
+- Targeted backend tests passed:
+  `backend/tests/test_storage.py backend/tests/test_chat_api.py backend/tests/test_mind_api.py`.
+- Full backend suite passed: `47 passed`.
+- `git diff --check` passed.
+
+Live Evidence:
+
+- First runtime-event probe exposed stale schema wording:
+  `POST /mind/events/emit` was still shown as planned even though the new event
+  layer is backend-owned.
+- After schema repair, session `ses_7be6e0604fef4bef8e16ea7bc4f3201c` verified
+  the current schema:
+  - Scarlet called `GET /mind/schema`;
+  - Scarlet reported `13` implemented routes and one planned route,
+    `POST /mind/attention/context`;
+  - turn `turn_59de3492e2eb44fea16c698f1246e260` persisted events including
+    `mind.tool_call.started`, `mind.tool_call.completed`, and
+    `assistant.note.emitted`.
+- Follow-up turn `turn_a2a3ef330d874f2d9a0a875774852f85` received compact
+  `recent_runtime_events` and Scarlet correctly reconstructed the previous
+  `GET /mind/schema` call from operational context.
+
+Read:
+
+The event spine now works as an actual runtime substrate: it drives UI blocks,
+feeds the next turn, and provides trigger points for future background memory
+maintenance. The next step should design the first event-triggered maintenance
+process rather than adding another model-facing endpoint.
+
+## 2026-05-23 - Live Runtime Events In Streaming UI
+
+Goal:
+
+Show the real persisted backend events in the cockpit while a turn is still
+running, so the evaluator can see which event activates and when.
+
+Changes:
+
+- Added `runtime_event` NDJSON lines to
+  `POST /api/chat/sessions/{session_id}/turn/stream`.
+- Replayed already-created turn events immediately after `turn_started`.
+- Emitted provider milestone events, Mind API tool-call lifecycle events, final
+  response events, and `turn.completed` as soon as they are persisted.
+- Added a live frontend `runtime_event` handler that renders each
+  `CognitiveEvent` into the same structured activity timeline used after
+  persisted reloads.
+- Changed persisted event rendering so all event types have at least a generic
+  runtime block, while memory/tool/note/answer events still get specialized
+  cards.
+- Updated streaming regression coverage to assert live runtime event order.
+
+Verification:
+
+- Targeted streaming test passed:
+  `backend/tests/test_chat_api.py::test_streaming_chat_turn_emits_agentic_events_and_persists_traces`.
+- Full backend test suite passed: `backend/.venv/bin/python -m pytest`.
+- Frontend build passed: `npm --prefix frontend run build`.
+- Diff hygiene passed: `git diff --check`.
+
+Read:
+
+The UI no longer has to wait for `turn_complete` plus a debug reload to show
+the real backend event stream. During a turn, synthetic provider deltas and
+persisted runtime events now appear together.
+
+## 2026-05-23 - Agent Stream Cockpit Reorganization
+
+Goal:
+
+Make the live event stream visible as a modern agentic workflow instead of a
+subtle timeline embedded in the assistant message or a raw trace dump.
+
+Changes:
+
+- Reworked the right pane from `Trace log` to `Agent stream`.
+- Added live counters for events, tools, memory activity, active steps, and
+  token usage.
+- Rendered the selected turn's `AgentTimeline` directly in the right pane so
+  live `runtime_event`, memory, thinking, tool, note, and answer blocks are
+  visible while the turn runs.
+- Added category summary chips inside the panel timeline.
+- Added structured renderers for generic runtime events, thinking blocks, and
+  answer blocks instead of falling back to raw `<pre>` output.
+- Moved raw traces into a collapsible forensic drawer so they remain available
+  without dominating the evaluator experience.
+
+Verification:
+
+- Frontend build passed: `npm --prefix frontend run build`.
+- Diff hygiene passed: `git diff --check`.
+- Local backend and frontend servers were already listening on
+  `127.0.0.1:8000` and `127.0.0.1:5173`.
+- Browser automation was not available in this session because the required
+  Node browser control tool was not exposed by tool discovery.
+
+Read:
+
+The backend event stream was already present. The missing piece was visual
+hierarchy: the cockpit now makes event activation observable in the primary
+debug pane, while retaining raw traces only as supporting forensic evidence.
+
+## 2026-05-23 - Project State Documentation Reorganization
+
+Goal:
+
+Create one reliable current-state map for a project that now has several
+converging functional areas: provider runtime, Mind API, semantic memory,
+episodic recall, metacognition, runtime events, UI, and evaluation.
+
+Changes:
+
+- Added `docs/project-state.md` as the canonical integrated status and roadmap
+  document.
+- Organized current work into:
+  - implemented and confirmed;
+  - implemented but still monitoring;
+  - planned but not implemented;
+  - reordered priorities from P0 to P5.
+- Linked the new state map from `README.md`, `docs/project-blueprint.md`,
+  `docs/memory-roadmap.md`, and `docs/cognitive-api-roadmap.md`.
+- Updated `docs/project-blueprint.md` status from foundation-only to active
+  experimental runtime while keeping it focused on durable principles.
+- Verified the new current-state route inventory against
+  `backend/app/mind/schema.py`.
+
+Verification:
+
+- Schema route check confirmed `13` implemented Mind API routes and one planned
+  route, `POST /mind/attention/context`.
+- Storage table check confirmed current lab DB contains `sessions`, `messages`,
+  `turns`, `traces`, `events`, `tool_calls`, `memories`, `memory_facts`, and
+  `session_summaries`.
+- Full backend suite passed: `backend/.venv/bin/python -m pytest`.
+- Frontend build passed: `npm --prefix frontend run build`.
+- Diff hygiene passed: `git diff --check`.
+
+Read:
+
+The next project discussion should start from `docs/project-state.md`, then
+drop into the vertical documents only when working on a specific subsystem.
+
+## 2026-05-23 - Session Idle Maintenance P1 Slice
+
+Goal:
+
+Implement the narrow P1 background-maintenance slice without adding redundant
+agent-facing cognitive endpoints or post-turn LLM loops on every message.
+
+Changes:
+
+- Added `maintenance_jobs` as backend-owned asynchronous job storage.
+- Added per-session idle scheduling after `turn.completed`; same-session newer
+  turns supersede or skip older pending jobs, while other sessions remain
+  independent.
+- Added `backend/app/runtime/maintenance.py` with a FastAPI lifespan worker.
+- Implemented idle job steps:
+  - refresh episodic session summary through existing `sessions.summarize`;
+  - run report-only missed semantic memory review.
+- Emitted `maintenance.job.*` and `maintenance.memory_review.completed` events.
+- Added structured cockpit labels/summaries for maintenance events.
+- Added Scarlet prompt continuity check for prior-turn declared or recognized
+  but unexecuted internal actions, especially missing semantic memory writes.
+- Documented the slice in ADR-0031, EXP-0018, API contract, README, backend
+  README, `.env.example`, changelog, and project state.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_chat_api.py`.
+- Full backend suite passed: `backend/.venv/bin/python -m pytest` (`50 passed`).
+- Frontend build passed: `npm --prefix frontend run build`.
+- Direct MiniMax probe with immediate idle due job completed:
+  `ses_afa394462ab14899bd77cb2aa985f08f`,
+  `turn_4d7c1c557cc44c2c8745e88ed9f43245`,
+  `mnt_df4c97ce99a44fe6a432a45e9d151b50`.
+- The direct probe confirmed the P1 review catches a missing memory write:
+  `memory_write_trace_count=0` and one `write_recommended` green-tea
+  preference candidate.
+- The same probe opened BUG-0032: Scarlet emitted pseudo `<invoke
+  name="mind_api">` text instead of a real provider tool call.
+
+Read:
+
+The review is intentionally report-only. The next decision should come from
+real `maintenance.memory_review` traces after idle sessions: proposal inbox,
+automatic write path, or diagnostic-only review.
+
+## 2026-05-23 - Integrated Direct Scarlet Probes
+
+Goal:
+
+Run at least three direct, different, complex Scarlet probes against the current
+runtime and record coherence, evidence, and weaknesses.
+
+Probe 1 - Semantic memory candidate:
+
+- Session `ses_77d537f03f224072a870c8462d642c1f`.
+- Turn `turn_838d5b2227d14afeb6eca4557b713743`.
+- Scarlet answered coherently about the user's preferred report sections
+  (`Coerenza`, `Evidenze`, `Debolezze`) but did not call `memory.write`.
+- Idle maintenance job `mnt_f7ebc705e47e4871ac0e6c8971942d8a` completed and
+  produced one `write_recommended` memory candidate.
+
+Probe 2 - Episodic transcript recall:
+
+- Seed session `ses_69760243a12d4796a3a1b41a8d7dfd4b`, turn
+  `turn_87c848424f3d4a8bab317d0d27e5c371`.
+- Scarlet called real `memory.search` and `memory.write`.
+- Recall session `ses_894b0c0ce54f4a1d8c00909764342056`, turn
+  `turn_d88e3a2004ed4cb9865130c16ded169a`.
+- Scarlet called `GET /mind/sessions` and opened three candidate transcripts,
+  then separated direct evidence, indirect evidence, inference, and residual
+  risk.
+
+Probe 3 - Streaming runtime/schema/conflicts:
+
+- Session `ses_d9d85072d6e44b19b654c957d6cc8b76`.
+- Turn `turn_90e3b07080ff484da0464637a05bb9fd`.
+- Streaming produced 106 NDJSON events, including live runtime events.
+- Scarlet called `GET /mind/schema` and `GET /mind/memory/conflicts`.
+- Two public notes appeared.
+- Idle maintenance job `mnt_7ce01e9e18994ea3906fc52933683a98` completed.
+
+Findings:
+
+- Episodic recall and runtime eventing are currently the strongest parts.
+- Semantic write autonomy remains inconsistent; idle maintenance is useful
+  because it catches omissions.
+- Maintenance review candidates can be useful but are not clean enough for
+  automatic writes yet.
+- New cognitive bug opened: Scarlet can overinterpret runtime-context fields,
+  comparing capability counts to schema route counts and reading
+  `recent_runtime_events=[]` as current-turn evidence.
+- Cleanup: the interrupted first batch left
+  `mnt_6de751a710f743f9b59889707a916669` in `running`; it was marked `failed`
+  with `direct_probe_batch_interrupted_by_codex` metadata.
+
+Verification:
+
+- Direct MiniMax conversations and persisted traces/events.
+- Detailed results recorded in `docs/experiments.md#exp-0019---integrated-direct-scarlet-probes`.
+
+## 2026-05-23 - Natural Conversation Scarlet Probes
+
+Goal:
+
+Evaluate Scarlet in normal conversations without telling her to use memory,
+schema, transcripts, or tools.
+
+Scenario A - Personal chocolate continuity:
+
+- Session `ses_1b8573874ca2454fbaff3cf3850c7787`.
+- Turns `turn_7439bbac8c8a4127ae141576a85d83f1` and
+  `turn_d893171dd5a1474e88122c0c6b92eca5`.
+- Automatic memory context selected the chocolate-limit memory and Scarlet used
+  it naturally in recipe advice.
+- Follow-up relied on provider/session history with no extra tool calls.
+- Weakness: retrieval also selected unrelated project/report memories.
+
+Scenario B - Project continuity:
+
+- Session `ses_44d025d20f5b4b20aad9605e6d700dad`.
+- Turns `turn_92282018d4d34c9b9f988cdb004f854c` and
+  `turn_14b9be196567427497fe9ecc757b88a2`.
+- Scarlet proactively used `GET /mind/sessions` and `POST /mind/memory/search`
+  without being instructed.
+- Weakness: Scarlet attempted invalid `GET /mind/memory`, opening BUG-0034.
+- Weakness: Scarlet reused stale memory claiming there was no event store,
+  opening BUG-0035.
+
+Scenario C - Memory promise and real preference:
+
+- Session `ses_e52547bf12b641c49cc2fc479f103344`.
+- Turns `turn_174e59b8f557423791b1d62f3125dc43` and
+  `turn_a2fc44b7210f44e791824f6b79ad0c09`.
+- When the user provided a real preference about tired-state responses, Scarlet
+  autonomously called `POST /mind/memory/write`.
+- Final answer stayed minimal: `ok`.
+
+Findings:
+
+- Natural personalization and episodic continuity are strong when the right
+  memory/session evidence is selected.
+- Natural semantic writes can happen correctly, but are still inconsistent
+  across contexts.
+- Current biggest risk is stale internal evidence being used as present-tense
+  truth.
+- Foreign-script artifacts recurred in natural Italian answers.
+
+Verification:
+
+- Direct MiniMax conversations.
+- Persisted traces/events inspected for every turn.
+- Detailed results recorded in `docs/experiments.md#exp-0020---natural-conversation-agentic-behavior-probes`.
+
+## 2026-05-24 - Manual Retrieval Cue Prompt Slice
+
+Goal:
+
+Improve Scarlet's ability to infer, from natural user language, when automatic
+start-of-turn memory context is not enough and she should manually search
+semantic memory, memory facts, or episodic sessions.
+
+Changes:
+
+- Added `Manual Memory Retrieval Cues` to
+  `backend/app/prompts/scarlet_system.md`.
+- Clarified natural cues such as "ne avevamo parlato", "ieri", "dove eravamo
+  rimasti", uncertainty markers, source-sensitive claims, personal continuity,
+  project continuity, and synonym/language drift.
+- Clarified when Scarlet should choose semantic memory search, fact inspection,
+  episodic session search, or semantic-to-episodic provenance follow-up.
+
+Boundary:
+
+- The endpoint error-recovery policy discussed with the owner was intentionally
+  not added to the prompt. That belongs in backend endpoint responses and API
+  contract design, so failed calls can return local endpoint-specific guidance.
+
+Verification:
+
+- Prompt-only change. Direct Scarlet behavior probes are still needed.
+
+## 2026-05-24 - Endpoint-Local Usage Guides
+
+Goal:
+
+Separate API Mind capability discovery from detailed endpoint recovery. The
+owner clarified that `/mind/schema` should behave as a compact capability
+catalog, while complete parameter guidance should appear only when Scarlet
+misuses a specific endpoint.
+
+Changes:
+
+- Changed `GET /mind/schema` output to expose route method, path, status, and
+  purpose only.
+- Added top-level `usage_guide` to `MindAPIResponse`.
+- Added backend `route_usage_guide()` generation with body schema, path
+  parameters, parameter descriptions, examples, accepted aliases, and retry
+  guidance.
+- Added automatic `usage_guide` injection on recoverable errors from
+  implemented Mind API routes.
+- Added route suggestions for unknown/unavailable routes.
+- Updated Scarlet's prompt only to remove the obsolete claim that detailed body
+  schemas live in `/mind/schema`.
+- Added ADR-0032 and updated the API contract/project state.
+
+Verification:
+
+- Targeted Mind API contract tests passed.
+- Live Scarlet probe `ses_1dc8393b5b71442cb1fa1f8d9f509320` /
+  `turn_4e4fab92a6d947d0a5ec7d7d0db8733b` confirmed recovery:
+  Scarlet called `POST /mind/memory/search` with invalid `top_k=999`, received
+  `memory.invalid_search` with `usage_guide`, retried with `top_k=20`, and
+  completed the answer from the successful result.
+- Full backend suite and frontend build still need to run after final docs
+  updates.
+
+## 2026-05-24 - Temporal And Sparse Memory Retrieval
+
+Goal:
+
+Implement the approved memory advancement slice without adding new model-facing
+endpoint families.
+
+Changes:
+
+- Added backend-resolved `time` filters to `POST /mind/memory/search`.
+  Supported bases: source conversation, recorded memory time, valid/fact time,
+  and current session.
+- Added backend-resolved `time` filters to `GET /mind/sessions`.
+  Supported bases: conversation message time, created time, updated time,
+  summary time, and current session.
+- Added `search_documents_fts`, a derived SQLite FTS5/BM25 sparse search index
+  for memory and session documents.
+- Updated manual memory search, episodic session search, and automatic
+  `memory.context` retrieval to use sparse search where applicable while
+  preserving traceable lexical guards.
+- Reworked the initial wrong-entity guard after owner review: removed
+  stop-token filtering and replaced it with query-structure/entity-support
+  qualification so partial lexical matches remain `near_miss` unless the
+  queried entity is actually supported.
+- Bumped Mind API schema version to `2026-05-24.temporal-sparse-v1`.
+- Updated Scarlet's prompt to treat temporal memory/session search as a
+  backend-resolved API Mind capability rather than model-side date guessing.
+- Added ADR-0033 and EXP-0023.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_chat_api.py backend/tests/test_storage.py -q`
+  (`39 passed`).
+- New regressions cover memory source-conversation time filtering, session
+  conversation-time filtering, endpoint usage-guide exposure of `time`, and
+  automatic memory context `fts5_sparse_v1` tracing.
+- Full backend suite passed: `backend/.venv/bin/python -m pytest` (`54 passed`).
+- Direct MiniMax probes were run with seeded temporal/sparse memory evidence:
+  - `turn_7f3436db778541bbb84c02bbb0fce481` recovered from invalid
+    `temporal_filter`, retried with valid `time`, opened the source session,
+    and answered the old Vetro-Luna decision correctly.
+  - `turn_6bdd32e2c5554cd4926a39ef1c4a914b` distinguished today's Vetro-Luna
+    mention from the older format decision.
+  - `turn_caccab9ffff7402e91cdfd4a0491aff3` confirmed Mare-Vetro has no
+    source evidence after the guard fix; automatic context had `selected=[]`.
+- Follow-up local check after removing stop-token filtering confirmed manual
+  `Mare Vetro` memory search returns zero results and automatic context keeps
+  Mare-Vetro wrong-entity matches out of `selected`.
+- `git diff --check` and Python compile checks passed.
+
+Read:
+
+The first direct probe exposed an overly broad FTS/lexical guard. That was fixed
+inside the retrieval slice because it directly affected the acceptance target.
+Remaining weakness: Scarlet still tries invalid body fields before recovering,
+so endpoint guidance works but model route discipline is not solved.
+
+## 2026-05-24 - Restarted Temporal/Sparse Runtime And Re-ran Episodic Recall Probe
+
+Goal:
+
+Re-run the owner's first-contact episodic recall test after restarting backend
+and frontend so Scarlet uses the current `2026-05-24.temporal-sparse-v1` Mind
+API schema, streaming runtime events, and idle maintenance scheduling.
+
+Evidence:
+
+- Restarted backend on `127.0.0.1:8000` and frontend on
+  `127.0.0.1:5173`.
+- Confirmed `/mind/schema` now returns
+  `2026-05-24.temporal-sparse-v1` with 14 compact catalog routes.
+- Ran direct streaming session
+  `ses_eac71e7b90814f49a7c21e079e64b85a`.
+- Runtime events were persisted and streamed:
+  memory context, thinking metadata, public notes, Mind API tool lifecycle,
+  final answer events, turn completion, and maintenance scheduling.
+- Four per-session idle jobs were scheduled; the first three were superseded
+  by newer turns and the final one remained pending.
+
+Read:
+
+- Episodic recall improved relative to the stale-server run: Scarlet used
+  paginated session recall and identified the 8 May 16:40 transcript as the
+  earliest substantial communication when asked broadly.
+- When pressed to exclude tests and "identification" messages, Scarlet
+  over-shifted to 22 May as the first Scarlet-identity conversation. This is a
+  useful ambiguity case: "first substantial communication" and "first
+  Scarlet-identity conversation" need different evidence criteria.
+- Scarlet still made one invalid session-list call with unsupported
+  `order=asc`, then recovered through endpoint-local guidance and pagination.
+- BUG-0035 reproduced: Scarlet read the current schema and an old active memory
+  saying "nessun event store", but still treated the absence of
+  `/mind/events/emit` as evidence that the event-store gap remained. The
+  runtime events table and streamed event counts prove otherwise.
+
+## 2026-05-24 - Stratified Runtime Context Blocks
+
+Goal:
+
+Improve Scarlet's runtime perception by separating session continuity,
+current-turn perception, and dynamic Scarlet operational state instead of
+placing all evidence under the older `memory.context` concept.
+
+Changes:
+
+- Added a block-based `runtime.context` trace with schema
+  `runtime-context-v1`.
+- Preserved `memory.context` as the automatic memory retrieval trace and as a
+  backward-compatible top-level field in `<runtime_context>`.
+- Added `session_context` block:
+  current session, two recent previous sessions with summaries/fallback
+  summaries, and up to five active memories sourced from the previous session.
+- Added `message_context` block:
+  current message, backend temporal/world data, language hint, active
+  user-scope memory hints, automatic memory retrieval, recent dialogue, recent
+  runtime events, and API Mind schema/capability metadata.
+- Added `scarlet_state` block:
+  backend-seeded focus, interaction mode, confidence posture, active goal, and
+  open loops for future state APIs.
+- Added `runtime.context.built` events and a streaming `runtime_context` NDJSON
+  event.
+- Updated the frontend agent timeline to render runtime-context blocks as a
+  structured runtime step.
+- Updated Scarlet's prompt to read runtime context blocks by type and to treat
+  summaries as navigation aids.
+
+Verification:
+
+- Python compile check passed for the changed backend modules.
+- Frontend build passed.
+- Targeted chat API tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  (`11 passed`).
+
+## 2026-05-24 - Human-Readable Agent Stream UI
+
+Goal:
+
+Turn the cockpit timeline from a mostly structured-debug surface into a
+human-readable agentic chat surface where Scarlet's runtime context, memory
+retrieval, tool usage, evidence, notes, and final answer are readable without
+opening raw JSON.
+
+Changes:
+
+- Added dedicated frontend renderers for `runtime.context` blocks:
+  `session_context`, `message_context`, and `scarlet_state`.
+- Rendered previous sessions, user-profile memory hints, automatic memory
+  retrieval, near misses, API Mind schema/capability counts, and Scarlet state
+  as cards and metrics.
+- Moved raw runtime context, tool payloads, endpoint usage guides, and event
+  details behind closed code/detail toggles.
+- Added readable labels for provider stream lifecycle events such as request
+  started/stopped, thinking started/captured, and text started.
+- Adjusted the right-side agent stream layout so narrow cards preserve readable
+  titles and values.
+
+Verification:
+
+- Ran `npm --prefix frontend run build`; build passed.
+- Ran a Playwright Chromium smoke against `http://127.0.0.1:5173/`, opened the
+  latest persisted session, and captured `/tmp/llm-api-mind-ui-after.png`.
+- Ran a second Playwright Chromium smoke through the live composer with a new
+  streamed turn (`UI smoke live: rispondi solo ok...`) and captured
+  `/tmp/llm-api-mind-ui-live-smoke.png`.
+- Smoke confirmed:
+  - 2 runtime-context renderings present (chat and right pane);
+  - 6 runtime context cards present;
+  - code/detail toggles present;
+  - no top-level raw `<pre>` blocks inside operation bodies;
+  - no visible runtime-event body beginning with raw JSON.
+  - live final answer rendered as plain assistant text (`ok`) while the
+    operation timeline stayed structured.
+
+Open Questions:
+
+- The side pane is now readable, but dense runtime-context blocks still consume
+  a lot of vertical space. The next UI decision is whether to add per-category
+  collapse defaults or keep everything expanded during this experimental phase.
+
+## 2026-05-25 - Runtime Context Block Comprehension Probe
+
+Goal:
+
+Verify whether Scarlet actually receives, understands, and uses the new
+`runtime.context` blocks, not only whether the backend can build and render
+them.
+
+Changes:
+
+- Ran code/trace inspection of `backend/app/mind/context.py` and
+  `backend/app/api/chat.py`.
+- Confirmed `memory.context` and `runtime.context` are built after the user
+  message is persisted and before `llm.request`.
+- Confirmed `runtime.context` is appended to the effective system prompt inside
+  `<runtime_context>`.
+- Ran direct live session
+  `ses_8d6f582db47a425988aeb01eb6b44d76` with three streamed turns.
+- Recorded `EXP-0024` with turn ids, trace ordering, and behavioral findings.
+
+Verification:
+
+- Turn `turn_bfacd9824c0a4acbb673411d8f51d713`: Scarlet used runtime context
+  directly for local/UTC time, Italian language, and block identities with zero
+  Mind API calls.
+- Turn `turn_a7bb3e0f074941cda292aeb66c106057`: Scarlet saw recent session
+  summaries, then correctly opened both source sessions before answering.
+- Turn `turn_2d1fcfc2d5b444c8a2455d0938c83d44`: Scarlet used the
+  chocolate-limit user profile memory to personalize advice with zero Mind API
+  calls.
+
+Read:
+
+- Positive: runtime blocks are delivered before the provider request and are
+  usable by Scarlet as operative evidence.
+- Positive: Scarlet distinguishes summary-as-navigation from transcript-as-proof
+  in the session-continuity case.
+- Weakness: `message_context.language_hint` returned `unknown` for one Italian
+  snack prompt.
+- Weakness: automatic memory retrieval selected an unrelated creator memory for
+  the snack prompt; the answer was correct because `user_profile` carried the
+  chocolate memory.
+
+Next Suggested Step:
+
+Do not patch with keyword lists. Keep monitoring retrieval/profile divergence
+and later solve it through stronger retrieval, language detection, embeddings,
+or profile-specific ranking rather than hardcoded terms.
+
+## 2026-05-25 - Runtime Preferences And Tailwind Dashboard Rework
+
+Goal:
+
+Simplify Scarlet's runtime perception and rework the local cockpit into a
+product-style dashboard that exposes sessions, memories, profile, settings,
+chat, and agent stream without making the user read raw JSON.
+
+Changes:
+
+- Added persistent app settings through `/api/dashboard/settings`.
+- Added `/api/dashboard/memories` for the memory panel.
+- Added `/api/dashboard/profile` for user-profile readout derived from
+  settings and user-scope memories.
+- Added backend runtime preference loading and defaults:
+  - timezone: `Europe/Rome`;
+  - language: `it`;
+  - user display name: `Utente locale`.
+- Changed runtime context temporal data to one configured clock:
+  `temporal_context.now`, with timezone metadata.
+- Replaced automatic `language_hint` with configured platform language inside
+  `message_context.current_message.language`.
+- Updated Scarlet's system prompt to use the configured clock and platform
+  language.
+- Added Tailwind (`tailwindcss`, `postcss`, `autoprefixer`) and rebuilt the
+  frontend around:
+  - session sidebar;
+  - central chat;
+  - dashboard tabs for Agent Stream, Memorie, Profilo, and Impostazioni;
+  - memory cards and profile cards;
+  - settings controls for language/timezone/display name.
+- Bounded the dashboard to the browser viewport:
+  - app shell uses `100dvh` and hides page-level overflow;
+  - session history, chat messages, agent stream, memory/profile lists, and
+    raw trace drawers scroll internally;
+  - embedded per-message agent timelines are capped so a single assistant turn
+    cannot make the chat vertically unbounded.
+
+Verification:
+
+- `backend/.venv/bin/python -m compileall backend/app` passed.
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  passed (`12 passed`).
+- `backend/.venv/bin/python -m pytest backend/tests -q` passed (`55 passed`).
+- `npm --prefix frontend run build` passed.
+- Restarted backend and frontend on `127.0.0.1:8000` and `127.0.0.1:5173`.
+- Checked live dashboard endpoints:
+  - `/api/dashboard/settings`;
+  - `/api/dashboard/memories`;
+  - `/api/dashboard/profile`.
+- Captured Playwright screenshot:
+  `/tmp/scarlet-dashboard-rework.png`.
+- Captured viewport-bounded screenshot:
+  `/tmp/scarlet-dashboard-viewport-bounds.png`.
+- Ran direct Scarlet smoke turn
+  `turn_d49955952c5343d58d29da2ddf93f1b4`; Scarlet answered from runtime
+  context with configured `Europe/Rome` time and Italian language, made zero
+  Mind API tool calls, and did not cite UTC.
+
+Read:
+
+- The previous language-detection weakness is now removed from the active
+  runtime path rather than patched by keyword rules.
+
+## 2026-05-25 - Operational Profile And Locale Runtime Context
+
+Goal:
+
+Make user/profile settings operational cognitive inputs for Scarlet, not
+cosmetic dashboard fields. The active profile, privacy boundary, configured
+country/locale, timezone, and language must be visible inside runtime context
+before each model request.
+
+Changes:
+
+- Extended runtime preferences with:
+  - `country_code` / `country_label`;
+  - `profile_id`;
+  - `privacy_scope`.
+- Extended `/api/dashboard/settings` request/response and
+  `/api/dashboard/profile`.
+- Injected configured locale into `message_context.world.location` with a
+  policy that it is country/timezone-level evidence, not GPS.
+- Injected active profile identity, privacy boundary, and locale into
+  `message_context.user_profile`.
+- Updated Scarlet's system prompt to treat profile, privacy, language, time,
+  and configured locale as runtime evidence.
+- Updated dashboard settings and profile panels so the user can inspect and
+  edit operational profile/locale fields.
+- Added internal scrolling to the settings panel so future settings growth does
+  not make the dashboard vertically unbounded.
+- Updated API contract, project state, ADR-0035, README files, changelog, and
+  EXP-0026.
+
+Verification:
+
+- `backend/.venv/bin/python -m compileall backend/app` passed.
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  passed (`12 passed`).
+- `backend/.venv/bin/python -m pytest backend/tests -q` passed (`55 passed`).
+- `npm --prefix frontend run build` passed.
+- `git diff --check` passed.
+- Restarted backend on `127.0.0.1:8000`; frontend dev server remained active on
+  `127.0.0.1:5173`.
+- Live endpoint check confirmed `/api/dashboard/settings` and
+  `/api/dashboard/profile` return profile, privacy, country, language, and
+  timezone fields.
+- Direct Scarlet smoke turn
+  `turn_b393262f061f4fe8b50231e3f5683d35` answered from runtime context with
+  active profile, Italy locale, `Europe/Rome`, and Italian language, with zero
+  Mind API tool calls.
+
+Notes:
+
+- Browser plugin control was not available in this runtime, and local Playwright
+  is not installed as a project dependency, so no new screenshot was captured
+  for this slice. Frontend verification used TypeScript/Vite build plus live
+  server availability.
+- The local persisted display name currently remains `Test nome`; the runtime
+  correctly propagates it, but the owner may want to replace it from the
+  dashboard with the real local profile name.
+- Settings are human/product controls and are not new model-facing API Mind
+  endpoints.
+- The UI now has the right information architecture for the next product
+  iteration, but needs live evaluator feedback on density and tab wording.
+
+## 2026-05-25 - Agentic Branch Documentation And V1.0.1 Development Protocol
+
+Area:
+
+Documentation and development governance.
+
+Branch:
+
+Cross-branch project governance.
+
+Type:
+
+Implementazione.
+
+Target version:
+
+V1.0.1 baseline registered. Future repository changes must declare whether
+they are `Fix`, `Implementazione`, or `Major release` before implementation.
+
+Goal:
+
+Reorganize project planning around Scarlet's real agentic operating branches
+instead of technical subsystems alone, and establish the stricter versioned
+engineering process requested by the owner.
+
+Changes:
+
+- Added `docs/project-documentation.md` as the main documentation index.
+- Added `docs/development-process.md` with:
+  - V1.0.1 baseline;
+  - pre-work scope declaration;
+  - fix/implementation/major version rules;
+  - direct-scope-only fix policy;
+  - verification policy;
+  - commit/version discipline.
+- Added `docs/branches/README.md`.
+- Added vertical branch documents for:
+  - communication;
+  - user flows;
+  - perception/context;
+  - identity/relationship;
+  - memory;
+  - learning/adaptation;
+  - metacognition;
+  - operational management;
+  - decision autonomy;
+  - external operativity;
+  - advanced operations;
+  - governance/privacy/safety;
+  - computational affect;
+  - multi-agent subprocesses.
+- Updated `docs/project-state.md` with the branch map and corrected the current
+  backend suite count to `55 passed`.
+- Updated `docs/project-blueprint.md`, `docs/release-process.md`, `AGENTS.md`,
+  `README.md`, `docs/decisions.md`, and `CHANGELOG.md`.
+- Set app metadata baseline to V1.0.1 in backend and frontend metadata.
+
+Verification:
+
+- Documentation-only structure inspected through file reads.
+- Version metadata updated only in package/FastAPI metadata; no runtime behavior
+  was intentionally changed.

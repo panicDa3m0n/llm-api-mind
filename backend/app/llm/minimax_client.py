@@ -17,17 +17,29 @@ from app.llm.provider import (
 )
 
 
-class MiniMaxProvider:
-    """MiniMax M2 provider through the Anthropic-compatible API."""
+class AnthropicCompatibleProvider:
+    """Provider implementation for Anthropic-compatible Messages APIs."""
 
-    def __init__(self, settings: Settings) -> None:
-        if not settings.minimax_api_key:
-            raise LLMConfigurationError("MINIMAX_API_KEY is not configured.")
+    def __init__(
+        self,
+        *,
+        api_key: str | None,
+        api_key_name: str,
+        base_url: str,
+        model: str,
+        max_tokens: int,
+        provider_name: str,
+    ) -> None:
+        if not api_key:
+            raise LLMConfigurationError(f"{api_key_name} is not configured.")
 
-        self._settings = settings
+        self._api_key = api_key
+        self._model = model
+        self._max_tokens = max_tokens
+        self._provider_name = provider_name
         self._client = anthropic.Anthropic(
-            api_key=settings.minimax_api_key,
-            base_url=settings.minimax_base_url,
+            api_key=api_key,
+            base_url=base_url,
         )
 
     def generate_text(
@@ -50,24 +62,11 @@ class MiniMaxProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
-        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
-        try:
-            message = self._client.messages.create(
-                model=self._settings.minimax_model,
-                max_tokens=effective_max_tokens,
-                system=system or "You are a concise assistant.",
-                messages=[self._to_anthropic_message(item) for item in messages],
-            )
-        except anthropic.AnthropicError as exc:
-            raise LLMRequestError(self._sanitize_error(str(exc))) from exc
-
-        return LLMTextResult(
-            model=getattr(message, "model", self._settings.minimax_model),
-            text=self._extract_text(message.content),
-            usage=self._extract_usage(message),
-            provider_message_id=getattr(message, "id", None),
-            raw_content=self._extract_raw_content(message.content),
-            stop_reason=getattr(message, "stop_reason", None),
+        effective_max_tokens = max_tokens or self._max_tokens
+        return self._generate_chat_via_stream(
+            messages=messages,
+            system=system,
+            max_tokens=effective_max_tokens,
         )
 
     def generate_chat_with_tools(
@@ -78,80 +77,67 @@ class MiniMaxProvider:
         max_tokens: int | None = None,
         tools: list[dict[str, Any]],
         tool_runner: LLMToolRunner,
-        max_tool_calls: int = 4,
+        max_tool_calls: int | None = None,
     ) -> LLMTextResult:
-        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
+        effective_max_tokens = max_tokens or self._max_tokens
+        return self._collect_final_stream_result(
+            self.stream_chat_with_tools(
+                messages=messages,
+                system=system,
+                max_tokens=effective_max_tokens,
+                tools=tools,
+                tool_runner=tool_runner,
+                max_tool_calls=max_tool_calls,
+            )
+        )
+
+    def _generate_chat_via_stream(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None,
+        max_tokens: int,
+    ) -> LLMTextResult:
         provider_messages = [self._to_anthropic_message(item) for item in messages]
-        executed_tool_calls: list[LLMExecutedToolCall] = []
-        raw_provider_messages: list[dict[str, Any]] = []
-        usage_totals: dict[str, Any] = {}
-
         try:
-            for _ in range(max_tool_calls + 1):
-                message = self._client.messages.create(
-                    model=self._settings.minimax_model,
-                    max_tokens=effective_max_tokens,
-                    system=system or "You are a concise assistant.",
-                    messages=provider_messages,
-                    tools=tools,
-                )
-                raw_content = self._extract_raw_content(message.content)
-                raw_provider_messages.append(
-                    {
-                        "id": getattr(message, "id", None),
-                        "model": getattr(message, "model", self._settings.minimax_model),
-                        "stop_reason": getattr(message, "stop_reason", None),
-                        "content": raw_content,
-                        "usage": self._extract_usage(message),
-                    }
-                )
-                usage_totals = self._merge_usage(
-                    usage_totals,
-                    self._extract_usage(message),
-                )
-                tool_uses = self._extract_tool_uses(message.content)
-                if not tool_uses:
-                    return LLMTextResult(
-                        model=getattr(message, "model", self._settings.minimax_model),
-                        text=self._extract_text(message.content),
-                        usage=usage_totals,
-                        provider_message_id=getattr(message, "id", None),
-                        raw_content=raw_content,
-                        stop_reason=getattr(message, "stop_reason", None),
-                        tool_calls=executed_tool_calls,
-                        raw_provider_messages=raw_provider_messages,
-                    )
-
-                provider_messages.append(
-                    {
-                        "role": "assistant",
-                        "content": raw_content,
-                    }
-                )
-                tool_results: list[dict[str, Any]] = []
-                for tool_use in tool_uses:
-                    executed = tool_runner(tool_use)
-                    executed_tool_calls.append(executed)
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": json.dumps(executed.result, ensure_ascii=True),
-                            "is_error": executed.status != "completed",
-                        }
-                    )
-                provider_messages.append(
-                    {
-                        "role": "user",
-                        "content": tool_results,
-                    }
-                )
+            with self._client.messages.stream(
+                model=self._model,
+                max_tokens=max_tokens,
+                system=system or "You are a concise assistant.",
+                messages=provider_messages,
+            ) as stream:
+                for _event in stream:
+                    pass
+                message = stream.get_final_message()
         except anthropic.AnthropicError as exc:
             raise LLMRequestError(self._sanitize_error(str(exc))) from exc
 
-        raise LLMRequestError(
-            f"MiniMax tool loop exceeded max_tool_calls={max_tool_calls}."
+        raw_content = self._extract_raw_content(message.content)
+        return LLMTextResult(
+            model=getattr(message, "model", self._model),
+            text=self._extract_text(message.content),
+            usage=self._extract_usage(message),
+            provider_message_id=getattr(message, "id", None),
+            raw_content=raw_content,
+            stop_reason=getattr(message, "stop_reason", None),
+            raw_provider_messages=[
+                {
+                    "id": getattr(message, "id", None),
+                    "model": getattr(message, "model", self._model),
+                    "stop_reason": getattr(message, "stop_reason", None),
+                    "content": raw_content,
+                    "usage": self._extract_usage(message),
+                }
+            ],
         )
+
+    @staticmethod
+    def _collect_final_stream_result(events: Iterator[LLMStreamEvent]) -> LLMTextResult:
+        for event in events:
+            if event.type != "final_result":
+                continue
+            return LLMTextResult.model_validate(event.data["result"])
+        raise LLMRequestError("Provider stream ended without a final_result event.")
 
     def stream_chat_with_tools(
         self,
@@ -161,22 +147,24 @@ class MiniMaxProvider:
         max_tokens: int | None = None,
         tools: list[dict[str, Any]],
         tool_runner: LLMToolRunner,
-        max_tool_calls: int = 4,
+        max_tool_calls: int | None = None,
     ) -> Iterator[LLMStreamEvent]:
-        effective_max_tokens = max_tokens or self._settings.minimax_max_tokens
+        effective_max_tokens = max_tokens or self._max_tokens
         provider_messages = [self._to_anthropic_message(item) for item in messages]
         executed_tool_calls: list[LLMExecutedToolCall] = []
         raw_provider_messages: list[dict[str, Any]] = []
         usage_totals: dict[str, Any] = {}
 
         try:
-            for step in range(max_tool_calls + 1):
+            step = 0
+            while max_tool_calls is None or step <= max_tool_calls:
+                step += 1
                 yield LLMStreamEvent(
                     type="model_request",
-                    data={"step": step + 1, "model": self._settings.minimax_model},
+                    data={"step": step, "model": self._model},
                 )
                 with self._client.messages.stream(
-                    model=self._settings.minimax_model,
+                    model=self._model,
                     max_tokens=effective_max_tokens,
                     system=system or "You are a concise assistant.",
                     messages=provider_messages,
@@ -184,7 +172,7 @@ class MiniMaxProvider:
                 ) as stream:
                     for event in stream:
                         for stream_event in self._stream_events_from_raw_event(event):
-                            stream_event.data["model_step"] = step + 1
+                            stream_event.data["model_step"] = step
                             yield stream_event
                     message = stream.get_final_message()
 
@@ -192,7 +180,7 @@ class MiniMaxProvider:
                 raw_provider_messages.append(
                     {
                         "id": getattr(message, "id", None),
-                        "model": getattr(message, "model", self._settings.minimax_model),
+                        "model": getattr(message, "model", self._model),
                         "stop_reason": getattr(message, "stop_reason", None),
                         "content": raw_content,
                         "usage": self._extract_usage(message),
@@ -211,7 +199,7 @@ class MiniMaxProvider:
                                 model=getattr(
                                     message,
                                     "model",
-                                    self._settings.minimax_model,
+                                    self._model,
                                 ),
                                 text=self._extract_text(message.content),
                                 usage=usage_totals,
@@ -236,7 +224,7 @@ class MiniMaxProvider:
                     yield LLMStreamEvent(
                         type="tool_call",
                         data={
-                            "model_step": step + 1,
+                            "model_step": step,
                             "provider_tool_use_id": tool_use.id,
                             "tool_name": tool_use.name,
                             "arguments": tool_use.input,
@@ -247,7 +235,7 @@ class MiniMaxProvider:
                     yield LLMStreamEvent(
                         type="tool_result",
                         data={
-                            "model_step": step + 1,
+                            "model_step": step,
                             **executed.model_dump(mode="json"),
                         },
                     )
@@ -269,13 +257,12 @@ class MiniMaxProvider:
             raise LLMRequestError(self._sanitize_error(str(exc))) from exc
 
         raise LLMRequestError(
-            f"MiniMax tool loop exceeded max_tool_calls={max_tool_calls}."
+            f"{self._provider_name} tool loop exceeded max_tool_calls={max_tool_calls}."
         )
 
     def _sanitize_error(self, message: str) -> str:
-        api_key = self._settings.minimax_api_key
-        if api_key:
-            return message.replace(api_key, "***")
+        if self._api_key:
+            return message.replace(self._api_key, "***")
         return message
 
     @staticmethod
@@ -290,6 +277,11 @@ class MiniMaxProvider:
 
     @staticmethod
     def _to_anthropic_message(message: LLMMessage) -> dict[str, Any]:
+        if isinstance(message.content, list):
+            return {
+                "role": message.role,
+                "content": message.content,
+            }
         return {
             "role": message.role,
             "content": [{"type": "text", "text": message.content}],
@@ -413,3 +405,17 @@ class MiniMaxProvider:
             elif key not in merged:
                 merged[key] = value
         return merged
+
+
+class MiniMaxProvider(AnthropicCompatibleProvider):
+    """MiniMax provider through the Anthropic-compatible API."""
+
+    def __init__(self, settings: Settings) -> None:
+        super().__init__(
+            api_key=settings.minimax_api_key,
+            api_key_name="MINIMAX_API_KEY",
+            base_url=settings.minimax_base_url,
+            model=settings.minimax_model,
+            max_tokens=settings.minimax_max_tokens,
+            provider_name="MiniMax",
+        )

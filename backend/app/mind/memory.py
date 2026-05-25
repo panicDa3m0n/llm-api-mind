@@ -1,6 +1,8 @@
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
+from itertools import combinations
 from typing import Any, Literal
 
 from pydantic import (
@@ -14,8 +16,23 @@ from pydantic import (
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
+from app.mind.facts import (
+    canonicalize_entity,
+    canonicalize_predicate,
+    extract_memory_facts,
+    fact_payload,
+    fact_search_text,
+)
+from app.mind.search import (
+    entity_token_groups,
+    query_tokens,
+    search_documents,
+    sparse_results_by_source,
+    sync_memory_documents,
+)
+from app.mind.time_filters import TimeFilter, interval_contains, resolve_interval, time_filter_payload
 from app.storage import repositories
-from app.storage.models import MemoryRecord
+from app.storage.models import MemoryFact, MemoryRecord, utc_now
 
 
 MemoryType = Literal[
@@ -92,6 +109,8 @@ class MindAPIContext:
     engine: Engine
     session_id: str | None = None
     turn_id: str | None = None
+    settings: Any | None = None
+    provider_factory: Callable[[Any], Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -217,6 +236,7 @@ class MemorySearchBody(BaseModel):
     scope: MemoryScope | None = "project"
     top_k: int = Field(default=5, ge=1, le=20)
     include_low_confidence: bool = False
+    time: TimeFilter | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -236,11 +256,166 @@ class MemorySearchBody(BaseModel):
                 TYPE_ALIASES.get(item.casefold(), item) if isinstance(item, str) else item
                 for item in memory_types
             ]
+        if "time" not in normalized:
+            for alias in ("when", "period", "date_range"):
+                if alias in normalized:
+                    normalized["time"] = normalized.pop(alias)
+                    break
         return normalized
+
+    @model_validator(mode="after")
+    def validate_time_basis(self) -> "MemorySearchBody":
+        if self.time is not None:
+            basis = self.time.basis or "source_conversation"
+            if basis not in {"source_conversation", "recorded", "valid"}:
+                raise ValueError(
+                    "time.basis must be source_conversation, recorded, or valid"
+                )
+            self.time.basis = basis
+        return self
 
     @field_validator("query")
     @classmethod
     def normalize_query(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class MemoryFactsQueryBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    memory_id: str | None = Field(default=None, max_length=80)
+    entity: str | None = Field(default=None, max_length=120)
+    predicate: str | None = Field(default=None, max_length=80)
+    query: str | None = Field(default=None, max_length=1000)
+    status: str = Field(default="active", max_length=40)
+    include_inactive: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_common_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "memory_id" not in normalized:
+            for alias in ("id", "target_id"):
+                if alias in normalized:
+                    normalized["memory_id"] = normalized.pop(alias)
+                    break
+        if "query" not in normalized:
+            for alias in ("q", "text", "subject"):
+                if alias in normalized:
+                    normalized["query"] = normalized.pop(alias)
+                    break
+        return normalized
+
+    @model_validator(mode="after")
+    def canonicalize_filters(self) -> "MemoryFactsQueryBody":
+        if self.entity is None and self.query is not None:
+            self.entity = canonicalize_entity(self.query)
+        elif self.entity is not None:
+            self.entity = canonicalize_entity(self.entity)
+        if self.predicate is not None:
+            self.predicate = canonicalize_predicate(self.predicate)
+        return self
+
+
+class MemoryFactsBackfillBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    memory_id: str | None = Field(default=None, max_length=80)
+    include_inactive: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_common_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "memory_id" not in normalized:
+            for alias in ("id", "target_id"):
+                if alias in normalized:
+                    normalized["memory_id"] = normalized.pop(alias)
+                    break
+        return normalized
+
+
+class MemoryDeprecateBody(BaseModel):
+    memory_id: str = Field(min_length=1, max_length=80)
+    reason: str = Field(min_length=8, max_length=1000)
+    superseded_by: str | None = Field(default=None, max_length=80)
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_common_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "memory_id" not in normalized:
+            for alias in (
+                "id",
+                "target_id",
+                "target_memory_id",
+                "deprecated_memory_id",
+            ):
+                if alias in normalized:
+                    normalized["memory_id"] = normalized.pop(alias)
+                    break
+        if "superseded_by" not in normalized:
+            for alias in ("replacement_memory_id", "new_memory_id", "supersedes_to"):
+                if alias in normalized:
+                    normalized["superseded_by"] = normalized.pop(alias)
+                    break
+        if "reason" not in normalized:
+            for alias in ("why", "rationale"):
+                if alias in normalized:
+                    normalized["reason"] = normalized.pop(alias)
+                    break
+        return normalized
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class MemorySupersedeBody(BaseModel):
+    old_memory_id: str = Field(min_length=1, max_length=80)
+    new_memory_id: str = Field(min_length=1, max_length=80)
+    reason: str = Field(min_length=8, max_length=1000)
+    deprecate_old: bool = True
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_common_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "old_memory_id" not in normalized:
+            for alias in (
+                "memory_id",
+                "target_id",
+                "old_id",
+                "deprecated_memory_id",
+                "superseded_memory_id",
+            ):
+                if alias in normalized:
+                    normalized["old_memory_id"] = normalized.pop(alias)
+                    break
+        if "new_memory_id" not in normalized:
+            for alias in ("replacement_memory_id", "superseded_by", "active_memory_id"):
+                if alias in normalized:
+                    normalized["new_memory_id"] = normalized.pop(alias)
+                    break
+        if "reason" not in normalized:
+            for alias in ("why", "rationale"):
+                if alias in normalized:
+                    normalized["reason"] = normalized.pop(alias)
+                    break
+        return normalized
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
         return " ".join(value.split())
 
 
@@ -312,6 +487,11 @@ def handle_memory_write(
 
         duplicate = _find_duplicate(db, request)
         if duplicate is not None:
+            duplicate_facts = repositories.list_memory_facts(
+                db,
+                memory_id=duplicate.id,
+                include_inactive=True,
+            )
             trace = _trace_memory_write(
                 db,
                 context=context,
@@ -327,7 +507,7 @@ def handle_memory_write(
                     "operation": "memory.write",
                     "stored": False,
                     "policy_decision": "deduplicated",
-                    "existing_memory": _memory_payload(duplicate),
+                    "existing_memory": _memory_payload(duplicate, facts=duplicate_facts),
                     "memory_id": duplicate.id,
                     "trace_ids": [trace.id],
                 },
@@ -362,14 +542,20 @@ def handle_memory_write(
             stored=True,
             decision="accepted",
         )
+        facts, created_facts = _ensure_memory_facts(
+            db,
+            memory,
+            source_trace_id=trace.id,
+        )
         return MemoryOperationResult(
             ok=True,
             result={
                 "operation": "memory.write",
                 "stored": True,
                 "policy_decision": "accepted",
-                "memory": _memory_payload(memory),
+                "memory": _memory_payload(memory, facts=facts),
                 "memory_id": memory.id,
+                "facts_created": len(created_facts),
                 "trace_ids": [trace.id],
             },
             cognitive_hint=(
@@ -415,7 +601,35 @@ def handle_memory_search(
             scope=request.scope,
             include_low_confidence=request.include_low_confidence,
         )
-        scored = _score_memories(candidates, request.query)
+        facts_by_memory = _facts_by_memory(db, candidates)
+        resolved_time = resolve_interval(request.time)
+        candidates = _filter_memories_by_time(
+            db,
+            candidates,
+            facts_by_memory=facts_by_memory,
+            time_filter=request.time,
+            resolved_time=resolved_time,
+            context=context,
+        )
+        facts_by_memory = {
+            memory.id: facts_by_memory.get(memory.id, [])
+            for memory in candidates
+        }
+        sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
+        sparse_matches = sparse_results_by_source(
+            search_documents(
+                db,
+                query=request.query,
+                kind="memory",
+                limit=max(50, request.top_k * 8),
+            )
+        )
+        scored = _score_memories(
+            candidates,
+            request.query,
+            facts_by_memory=facts_by_memory,
+            sparse_matches=sparse_matches,
+        )
         selected = scored[: request.top_k]
         refreshed: list[tuple[MemoryRecord, float, str]] = []
         for memory, score, reason in selected:
@@ -433,14 +647,23 @@ def handle_memory_search(
                 "types": list(request.memory_types),
                 "scope": request.scope,
                 "top_k": request.top_k,
+                "time": time_filter_payload(request.time, resolved_time),
                 "returned_memory_ids": [memory.id for memory, _, _ in refreshed],
                 "candidate_count": len(candidates),
+                "fact_candidate_count": sum(
+                    len(facts) for facts in facts_by_memory.values()
+                ),
+                "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
             },
         )
 
         memories = [
             {
                 **_memory_payload(memory),
+                "facts": [
+                    fact_payload(fact)
+                    for fact in facts_by_memory.get(memory.id, [])
+                ],
                 "score": round(score, 4),
                 "why_relevant": reason,
             }
@@ -452,6 +675,8 @@ def handle_memory_search(
         result={
             "operation": "memory.search",
             "query": request.query,
+            "time": time_filter_payload(request.time, resolved_time),
+            "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
             "memories": memories,
             "count": len(memories),
             "trace_ids": [trace.id],
@@ -468,6 +693,551 @@ def handle_memory_search(
     )
 
 
+def handle_memory_facts(
+    body: dict[str, Any],
+    context: MindAPIContext | None,
+    *,
+    intent: str | None = None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("facts")
+
+    body_with_intent = dict(body)
+    if "query" not in body_with_intent and intent:
+        body_with_intent["query"] = intent
+
+    try:
+        request = MemoryFactsQueryBody.model_validate(body_with_intent)
+    except ValidationError as exc:
+        return MemoryOperationResult(
+            ok=False,
+            error_code="memory.invalid_facts_query",
+            error_message=str(exc),
+            suggested_next_actions=[
+                "Call GET /mind/schema",
+                "Retry with entity, predicate, memory_id, or query",
+            ],
+            confidence=1.0,
+        )
+
+    with Session(context.engine) as db:
+        facts = repositories.list_memory_facts(
+            db,
+            memory_id=request.memory_id,
+            entity=request.entity,
+            predicate=request.predicate,
+            status=request.status,
+            include_inactive=request.include_inactive,
+        )
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.facts",
+            payload={
+                "operation": "memory.facts",
+                "memory_id": request.memory_id,
+                "entity": request.entity,
+                "predicate": request.predicate,
+                "status": request.status,
+                "include_inactive": request.include_inactive,
+                "count": len(facts),
+            },
+        )
+        fact_payloads = [fact_payload(fact) for fact in facts]
+        trace_id = trace.id
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.facts",
+            "facts": fact_payloads,
+            "count": len(fact_payloads),
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "Use facts as canonical memory state. Natural-language memories "
+            "remain source text, while facts provide entity/predicate/value."
+        ),
+        suggested_next_actions=[
+            "Use fact entity and predicate for conflict reasoning",
+            "Treat deprecated facts as history, not active evidence",
+        ],
+        confidence=0.95,
+    )
+
+
+def handle_memory_facts_backfill(
+    body: dict[str, Any],
+    context: MindAPIContext | None,
+    *,
+    intent: str | None = None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("facts.backfill")
+
+    body_with_intent = dict(body)
+    if "memory_id" not in body_with_intent and intent and "mem_" in intent:
+        match = re.search(r"mem_[a-f0-9]+", intent)
+        if match:
+            body_with_intent["memory_id"] = match.group(0)
+
+    try:
+        request = MemoryFactsBackfillBody.model_validate(body_with_intent)
+    except ValidationError as exc:
+        return MemoryOperationResult(
+            ok=False,
+            error_code="memory.invalid_facts_backfill",
+            error_message=str(exc),
+            suggested_next_actions=[
+                "Call GET /mind/schema",
+                "Retry with optional memory_id",
+            ],
+            confidence=1.0,
+        )
+
+    with Session(context.engine) as db:
+        if request.memory_id is not None:
+            memory = repositories.get_memory(db, request.memory_id)
+            if memory is None:
+                return _memory_not_found(request.memory_id)
+            memories = [memory]
+        elif request.include_inactive:
+            memories = repositories.list_all_memories(db, include_low_confidence=False)
+        else:
+            memories = repositories.list_memories(db, scope=None)
+
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.facts.backfill",
+            payload={
+                "operation": "memory.facts.backfill",
+                "memory_id": request.memory_id,
+                "include_inactive": request.include_inactive,
+                "candidate_count": len(memories),
+            },
+        )
+        all_facts: list[MemoryFact] = []
+        created: list[MemoryFact] = []
+        for memory in memories:
+            facts, created_facts = _ensure_memory_facts(
+                db,
+                memory,
+                source_trace_id=trace.id,
+            )
+            all_facts.extend(facts)
+            created.extend(created_facts)
+        _sync_fact_lifecycle_from_memory_metadata(db, memories)
+        all_facts = [
+            fact
+            for memory in memories
+            for fact in repositories.list_memory_facts(
+                db,
+                memory_id=memory.id,
+                include_inactive=True,
+            )
+        ]
+
+        fact_payloads = [fact_payload(fact) for fact in all_facts]
+        created_ids = [fact.id for fact in created]
+        trace_id = trace.id
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.facts.backfill",
+            "memories_checked": len(memories),
+            "facts": fact_payloads,
+            "fact_count": len(fact_payloads),
+            "created_fact_ids": created_ids,
+            "created_count": len(created_ids),
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "Canonical facts are now available for inspected memories. Use "
+            "them before relying on tag or token similarity."
+        ),
+        suggested_next_actions=[
+            "Inspect facts by entity or predicate",
+            "Use memory conflicts to check unresolved active fact conflicts",
+        ],
+        confidence=1.0,
+    )
+
+
+def handle_memory_read(
+    memory_id: str,
+    context: MindAPIContext | None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("read")
+
+    with Session(context.engine) as db:
+        memory = repositories.get_memory(db, memory_id)
+        if memory is None:
+            return _memory_not_found(memory_id)
+        facts = repositories.list_memory_facts(
+            db,
+            memory_id=memory.id,
+            include_inactive=True,
+        )
+        trace_ids: list[str] = []
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.read",
+            payload={
+                "operation": "memory.read",
+                "memory_id": memory.id,
+                "status": memory.status,
+            },
+        )
+        trace_ids.append(trace.id)
+        return MemoryOperationResult(
+            ok=True,
+            result={
+                "operation": "memory.read",
+                "memory": _memory_payload(memory, facts=facts),
+                "trace_ids": trace_ids,
+            },
+            cognitive_hint=(
+                "Use this memory with its status and provenance. Deprecated "
+                "records are inspectable history, not active evidence."
+            ),
+            suggested_next_actions=["Use active memories for answers"],
+            confidence=1.0,
+        )
+
+
+def handle_memory_deprecate(
+    body: dict[str, Any],
+    context: MindAPIContext | None,
+    *,
+    intent: str | None = None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("deprecate")
+
+    body_with_intent = dict(body)
+    if "reason" not in body_with_intent and intent:
+        body_with_intent["reason"] = intent
+
+    try:
+        request = MemoryDeprecateBody.model_validate(body_with_intent)
+    except ValidationError as exc:
+        return MemoryOperationResult(
+            ok=False,
+            error_code="memory.invalid_deprecate",
+            error_message=str(exc),
+            suggested_next_actions=[
+                "Call GET /mind/schema",
+                "Retry with memory_id and reason",
+            ],
+            confidence=1.0,
+        )
+
+    with Session(context.engine) as db:
+        memory = repositories.get_memory(db, request.memory_id)
+        if memory is None:
+            return _memory_not_found(request.memory_id)
+        replacement: MemoryRecord | None = None
+        if request.superseded_by is not None:
+            if request.superseded_by == request.memory_id:
+                return _invalid_lifecycle("A memory cannot supersede itself.")
+            replacement = repositories.get_memory(db, request.superseded_by)
+            if replacement is None:
+                return _memory_not_found(request.superseded_by)
+
+        previous_status = memory.status
+        updated_metadata = _with_lifecycle_event(
+            memory.metadata_json,
+            event={
+                "operation": "deprecate",
+                "reason": request.reason,
+                "previous_status": previous_status,
+                "superseded_by": request.superseded_by,
+                "source_session_id": context.session_id,
+                "source_turn_id": context.turn_id,
+            },
+        )
+        updated = repositories.update_memory_lifecycle(
+            db,
+            memory_id=memory.id,
+            status="deprecated",
+            metadata=updated_metadata,
+        )
+        assert updated is not None
+
+        if replacement is not None:
+            replacement_metadata = _append_supersedes(
+                replacement.metadata_json,
+                old_memory_id=memory.id,
+                reason=request.reason,
+                context=context,
+            )
+            replacement = repositories.update_memory_lifecycle(
+                db,
+                memory_id=replacement.id,
+                metadata=replacement_metadata,
+            )
+
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.deprecate",
+            payload={
+                "operation": "memory.deprecate",
+                "memory_id": updated.id,
+                "previous_status": previous_status,
+                "status": updated.status,
+                "reason": request.reason,
+                "superseded_by": request.superseded_by,
+            },
+        )
+        facts, _ = _ensure_memory_facts(
+            db,
+            updated,
+            source_trace_id=trace.id,
+        )
+        replacement_facts: list[MemoryFact] = []
+        if replacement is not None:
+            replacement_facts, _ = _ensure_memory_facts(
+                db,
+                replacement,
+                source_trace_id=trace.id,
+            )
+        updated_facts = repositories.update_memory_facts_status(
+            db,
+            memory_id=updated.id,
+            status="deprecated",
+            superseded_by_memory_id=request.superseded_by,
+        )
+        memory_id = updated.id
+        trace_id = trace.id
+        memory_payload = _memory_payload(updated, facts=updated_facts or facts)
+        replacement_payload = (
+            _memory_payload(replacement, facts=replacement_facts)
+            if replacement is not None
+            else None
+        )
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.deprecate",
+            "deprecated": True,
+            "memory_id": memory_id,
+            "memory": memory_payload,
+            "superseded_by": request.superseded_by,
+            "replacement": replacement_payload,
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "The deprecated memory remains inspectable but should no longer be "
+            "treated as active evidence in normal memory context."
+        ),
+        suggested_next_actions=[
+            "Inspect conflicts to confirm the active set is now clean",
+            "Use the replacement memory when relevant",
+        ],
+        confidence=1.0,
+    )
+
+
+def handle_memory_supersede(
+    body: dict[str, Any],
+    context: MindAPIContext | None,
+    *,
+    intent: str | None = None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("supersede")
+
+    body_with_intent = dict(body)
+    if "reason" not in body_with_intent and intent:
+        body_with_intent["reason"] = intent
+
+    try:
+        request = MemorySupersedeBody.model_validate(body_with_intent)
+    except ValidationError as exc:
+        return MemoryOperationResult(
+            ok=False,
+            error_code="memory.invalid_supersede",
+            error_message=str(exc),
+            suggested_next_actions=[
+                "Call GET /mind/schema",
+                "Retry with old_memory_id, new_memory_id, and reason",
+            ],
+            confidence=1.0,
+        )
+
+    if request.old_memory_id == request.new_memory_id:
+        return _invalid_lifecycle("A memory cannot supersede itself.")
+
+    with Session(context.engine) as db:
+        old_memory = repositories.get_memory(db, request.old_memory_id)
+        if old_memory is None:
+            return _memory_not_found(request.old_memory_id)
+        new_memory = repositories.get_memory(db, request.new_memory_id)
+        if new_memory is None:
+            return _memory_not_found(request.new_memory_id)
+
+        previous_status = old_memory.status
+        old_metadata = _with_lifecycle_event(
+            old_memory.metadata_json,
+            event={
+                "operation": "supersede",
+                "reason": request.reason,
+                "previous_status": previous_status,
+                "superseded_by": new_memory.id,
+                "source_session_id": context.session_id,
+                "source_turn_id": context.turn_id,
+            },
+        )
+        new_metadata = _append_supersedes(
+            new_memory.metadata_json,
+            old_memory_id=old_memory.id,
+            reason=request.reason,
+            context=context,
+        )
+        updated_old = repositories.update_memory_lifecycle(
+            db,
+            memory_id=old_memory.id,
+            status="deprecated" if request.deprecate_old else old_memory.status,
+            metadata=old_metadata,
+        )
+        updated_new = repositories.update_memory_lifecycle(
+            db,
+            memory_id=new_memory.id,
+            metadata=new_metadata,
+        )
+        assert updated_old is not None
+        assert updated_new is not None
+
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.supersede",
+            payload={
+                "operation": "memory.supersede",
+                "old_memory_id": updated_old.id,
+                "new_memory_id": updated_new.id,
+                "old_previous_status": previous_status,
+                "old_status": updated_old.status,
+                "reason": request.reason,
+                "deprecate_old": request.deprecate_old,
+            },
+        )
+        old_facts, _ = _ensure_memory_facts(
+            db,
+            updated_old,
+            source_trace_id=trace.id,
+        )
+        new_facts, _ = _ensure_memory_facts(
+            db,
+            updated_new,
+            source_trace_id=trace.id,
+        )
+        if request.deprecate_old:
+            old_facts = repositories.update_memory_facts_status(
+                db,
+                memory_id=updated_old.id,
+                status="deprecated",
+                superseded_by_memory_id=updated_new.id,
+            )
+            new_facts = repositories.list_memory_facts(
+                db,
+                memory_id=updated_new.id,
+                include_inactive=True,
+            )
+        old_memory_payload = _memory_payload(updated_old, facts=old_facts)
+        new_memory_payload = _memory_payload(updated_new, facts=new_facts)
+        old_memory_id = updated_old.id
+        new_memory_id = updated_new.id
+        trace_id = trace.id
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.supersede",
+            "superseded": True,
+            "old_memory": old_memory_payload,
+            "new_memory": new_memory_payload,
+            "old_memory_id": old_memory_id,
+            "new_memory_id": new_memory_id,
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "The old memory is linked to its replacement. If deprecated, it "
+            "will no longer appear in normal active-memory context."
+        ),
+        suggested_next_actions=[
+            "Inspect memory conflicts",
+            "Use the new memory as active evidence",
+        ],
+        confidence=1.0,
+    )
+
+
+def handle_memory_conflicts(
+    context: MindAPIContext | None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("conflicts")
+
+    with Session(context.engine) as db:
+        memories = repositories.list_memories(db, scope=None, include_low_confidence=False)
+        facts_by_memory = _facts_by_memory(db, memories)
+        conflicts = _detect_active_conflicts(
+            memories,
+            facts_by_memory=facts_by_memory,
+        )
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="memory.conflicts",
+            payload={
+                "operation": "memory.conflicts",
+                "count": len(conflicts),
+                "active_memory_count": len(memories),
+                "active_fact_count": sum(
+                    len(facts) for facts in facts_by_memory.values()
+                ),
+                "conflicts": conflicts,
+            },
+        )
+        trace_id = trace.id
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.conflicts",
+            "count": len(conflicts),
+            "conflicts": conflicts,
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "Unresolved conflicts should be named before using any conflicting "
+            "memory as active evidence."
+        )
+        if conflicts
+        else "No active memory conflicts were detected by the v0 lifecycle view.",
+        suggested_next_actions=[
+            "Supersede or deprecate obsolete memories",
+            "Continue with active memory context",
+        ]
+        if conflicts
+        else ["Continue with active memories"],
+        confidence=0.95,
+    )
+
+
 def _context_required(operation: str) -> MemoryOperationResult:
     return MemoryOperationResult(
         ok=False,
@@ -479,6 +1249,32 @@ def _context_required(operation: str) -> MemoryOperationResult:
         suggested_next_actions=[
             "Call memory routes during a chat turn",
             "Provide session_id when using POST /mind/call",
+        ],
+        confidence=1.0,
+    )
+
+
+def _memory_not_found(memory_id: str) -> MemoryOperationResult:
+    return MemoryOperationResult(
+        ok=False,
+        error_code="memory.not_found",
+        error_message=f"Memory {memory_id} was not found.",
+        suggested_next_actions=[
+            "Call GET /mind/memory/conflicts",
+            "Search memory before lifecycle operations",
+        ],
+        confidence=1.0,
+    )
+
+
+def _invalid_lifecycle(message: str) -> MemoryOperationResult:
+    return MemoryOperationResult(
+        ok=False,
+        error_code="memory.invalid_lifecycle",
+        error_message=message,
+        suggested_next_actions=[
+            "Call GET /mind/schema",
+            "Retry with distinct valid memory IDs",
         ],
         confidence=1.0,
     )
@@ -529,10 +1325,16 @@ def _find_duplicate(db: Session, request: MemoryWriteBody) -> MemoryRecord | Non
 def _score_memories(
     memories: list[MemoryRecord],
     query: str,
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]] | None = None,
+    sparse_matches: dict[str, Any] | None = None,
 ) -> list[tuple[MemoryRecord, float, str]]:
     query_text = query.lower()
-    query_tokens = set(_tokens(query))
+    tokens = set(query_tokens(query))
+    entity_groups = entity_token_groups(query)
     scored: list[tuple[MemoryRecord, float, str]] = []
+    facts_by_memory = facts_by_memory or {}
+    sparse_matches = sparse_matches or {}
 
     for memory in memories:
         haystack = " ".join(
@@ -543,21 +1345,46 @@ def _score_memories(
                 memory.expected_future_use or "",
                 memory.memory_type,
                 " ".join(memory.tags_json),
+                fact_search_text(facts_by_memory.get(memory.id, [])),
             ]
             if item
         ).lower()
         haystack_tokens = set(_tokens(haystack))
-        overlap = query_tokens & haystack_tokens
+        overlap = tokens & haystack_tokens
+        tag_overlap = tokens & set(memory.tags_json)
+        entity_supported = _supports_query_entity(
+            haystack_tokens,
+            memory.tags_json,
+            entity_groups=entity_groups,
+        )
         score = 0.0
         reasons: list[str] = []
+        sparse_match = sparse_matches.get(memory.id)
+        if sparse_match is not None:
+            score += sparse_match.score * 2.5
+            reasons.append(sparse_match.why_relevant)
+        if entity_supported:
+            score += 3.0
+            reasons.append("query entity support")
         if query_text in haystack:
             score += 3.0
             reasons.append("query substring match")
         if overlap:
-            token_score = len(overlap) / max(len(query_tokens), 1)
+            if (
+                entity_groups
+                and not entity_supported
+            ):
+                continue
+            if (
+                sparse_match is None
+                and len(tokens) >= 2
+                and len(overlap) < min(2, len(tokens))
+                and not tag_overlap
+            ):
+                continue
+            token_score = len(overlap) / max(len(tokens), 1)
             score += token_score
             reasons.append(f"token overlap: {', '.join(sorted(overlap))}")
-        tag_overlap = query_tokens & set(memory.tags_json)
         if tag_overlap:
             score += 0.5
             reasons.append(f"tag overlap: {', '.join(sorted(tag_overlap))}")
@@ -571,6 +1398,91 @@ def _score_memories(
         scored,
         key=lambda item: (item[1], item[0].salience, item[0].created_at),
         reverse=True,
+    )
+
+
+def _supports_query_entity(
+    haystack_tokens: set[str],
+    tags: list[str],
+    *,
+    entity_groups: list[set[str]],
+) -> bool:
+    if not entity_groups:
+        return False
+    tag_token_sets = [
+        set(query_tokens(tag.replace("-", " ").replace("_", " ")))
+        for tag in tags
+    ]
+    for group in entity_groups:
+        if group <= haystack_tokens:
+            return True
+        if any(group <= tag_tokens for tag_tokens in tag_token_sets):
+            return True
+    return False
+
+
+def _filter_memories_by_time(
+    db: Session,
+    memories: list[MemoryRecord],
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]],
+    time_filter: TimeFilter | None,
+    resolved_time: dict[str, Any] | None,
+    context: MindAPIContext,
+) -> list[MemoryRecord]:
+    if time_filter is None:
+        return memories
+    if time_filter.preset == "this_session":
+        return [
+            memory
+            for memory in memories
+            if memory.source_session_id == context.session_id
+        ]
+    basis = time_filter.basis or "source_conversation"
+    return [
+        memory
+        for memory in memories
+        if _memory_matches_time(
+            db,
+            memory,
+            facts=facts_by_memory.get(memory.id, []),
+            basis=basis,
+            resolved_time=resolved_time,
+        )
+    ]
+
+
+def _memory_matches_time(
+    db: Session,
+    memory: MemoryRecord,
+    *,
+    facts: list[MemoryFact],
+    basis: str,
+    resolved_time: dict[str, Any] | None,
+) -> bool:
+    if basis == "recorded":
+        return interval_contains(memory.created_at, resolved=resolved_time)
+    if basis == "valid":
+        if not facts:
+            return interval_contains(memory.created_at, resolved=resolved_time)
+        return any(
+            interval_contains(fact.valid_from or fact.recorded_at, resolved=resolved_time)
+            or interval_contains(fact.valid_to, resolved=resolved_time)
+            for fact in facts
+        )
+    if memory.source_session_id is None:
+        return interval_contains(memory.created_at, resolved=resolved_time)
+    messages = repositories.list_messages(db, session_id=memory.source_session_id)
+    conversation_messages = [
+        message
+        for message in messages
+        if message.role in {"user", "assistant"}
+    ]
+    if not conversation_messages:
+        return interval_contains(memory.created_at, resolved=resolved_time)
+    return any(
+        interval_contains(message.created_at, resolved=resolved_time)
+        for message in conversation_messages
     )
 
 
@@ -599,9 +1511,12 @@ def _trace_memory_write(
         },
     )
 
-
-def _memory_payload(memory: MemoryRecord) -> dict[str, Any]:
-    return {
+def _memory_payload(
+    memory: MemoryRecord,
+    *,
+    facts: list[MemoryFact] | None = None,
+) -> dict[str, Any]:
+    payload = {
         "id": memory.id,
         "type": memory.memory_type,
         "scope": memory.scope,
@@ -621,6 +1536,263 @@ def _memory_payload(memory: MemoryRecord) -> dict[str, Any]:
         "created_at": _isoformat(memory.created_at),
         "updated_at": _isoformat(memory.updated_at),
         "last_used_at": _isoformat(memory.last_used_at),
+    }
+    if facts is not None:
+        payload["facts"] = [fact_payload(fact) for fact in facts]
+    return payload
+
+
+def _ensure_memory_facts(
+    db: Session,
+    memory: MemoryRecord,
+    *,
+    source_trace_id: str | None = None,
+) -> tuple[list[MemoryFact], list[MemoryFact]]:
+    extracted = extract_memory_facts(memory)
+    created: list[MemoryFact] = []
+    for candidate in extracted:
+        existing = repositories.find_memory_fact(
+            db,
+            memory_id=memory.id,
+            entity=candidate.entity,
+            predicate=candidate.predicate,
+            value=candidate.value,
+        )
+        if existing is not None:
+            continue
+        created.append(
+            repositories.add_memory_fact(
+                db,
+                memory_id=memory.id,
+                entity=candidate.entity,
+                predicate=candidate.predicate,
+                value=candidate.value,
+                source_trace_id=source_trace_id,
+                source_session_id=memory.source_session_id,
+                source_turn_id=memory.source_turn_id,
+                confidence=candidate.confidence,
+                salience=candidate.salience,
+                status=memory.status,
+                metadata=candidate.metadata,
+            )
+        )
+    facts = repositories.list_memory_facts(
+        db,
+        memory_id=memory.id,
+        include_inactive=True,
+    )
+    return facts, created
+
+
+def _facts_by_memory(
+    db: Session,
+    memories: list[MemoryRecord],
+    *,
+    include_inactive: bool = False,
+) -> dict[str, list[MemoryFact]]:
+    return {
+        memory.id: repositories.list_memory_facts(
+            db,
+            memory_id=memory.id,
+            include_inactive=include_inactive,
+        )
+        for memory in memories
+    }
+
+
+def _sync_fact_lifecycle_from_memory_metadata(
+    db: Session,
+    memories: list[MemoryRecord],
+) -> None:
+    memory_ids = {memory.id for memory in memories}
+    for memory in memories:
+        lifecycle = (memory.metadata_json or {}).get("lifecycle")
+        if not isinstance(lifecycle, dict):
+            continue
+        superseded_by = lifecycle.get("superseded_by")
+        if not isinstance(superseded_by, str):
+            continue
+        if superseded_by not in memory_ids and repositories.get_memory(db, superseded_by) is None:
+            continue
+        repositories.update_memory_facts_status(
+            db,
+            memory_id=memory.id,
+            status="deprecated",
+            superseded_by_memory_id=superseded_by,
+        )
+
+
+def _with_lifecycle_event(
+    metadata: dict[str, Any],
+    *,
+    event: dict[str, Any],
+) -> dict[str, Any]:
+    updated = dict(metadata)
+    lifecycle = dict(updated.get("lifecycle") or {})
+    event_payload = {
+        **event,
+        "recorded_at": _isoformat(utc_now()),
+    }
+    history = list(lifecycle.get("history") or [])
+    history.append(event_payload)
+    lifecycle["last_event"] = event_payload
+    lifecycle["history"] = history
+    if event.get("operation") in {"deprecate", "supersede"}:
+        lifecycle["deprecated_reason"] = event.get("reason")
+        lifecycle["superseded_by"] = event.get("superseded_by")
+    updated["lifecycle"] = lifecycle
+    return updated
+
+
+def _append_supersedes(
+    metadata: dict[str, Any],
+    *,
+    old_memory_id: str,
+    reason: str,
+    context: MindAPIContext,
+) -> dict[str, Any]:
+    updated = dict(metadata)
+    lifecycle = dict(updated.get("lifecycle") or {})
+    supersedes = list(lifecycle.get("supersedes") or [])
+    if old_memory_id not in supersedes:
+        supersedes.append(old_memory_id)
+    event_payload = {
+        "operation": "supersedes",
+        "old_memory_id": old_memory_id,
+        "reason": reason,
+        "source_session_id": context.session_id,
+        "source_turn_id": context.turn_id,
+        "recorded_at": _isoformat(utc_now()),
+    }
+    history = list(lifecycle.get("history") or [])
+    history.append(event_payload)
+    lifecycle["supersedes"] = supersedes
+    lifecycle["last_event"] = event_payload
+    lifecycle["history"] = history
+    updated["lifecycle"] = lifecycle
+    return updated
+
+
+def _detect_active_conflicts(
+    memories: list[MemoryRecord],
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]] | None = None,
+) -> list[dict[str, Any]]:
+    conflicts: list[dict[str, Any]] = []
+    facts_by_memory = facts_by_memory or {}
+    fact_conflicts = _detect_fact_conflicts(memories, facts_by_memory)
+    conflicts.extend(fact_conflicts)
+
+    conflict_memory_sets = {
+        frozenset(conflict["memory_ids"])
+        for conflict in fact_conflicts
+    }
+    payloads = [
+        _memory_payload(memory, facts=facts_by_memory.get(memory.id, []))
+        for memory in memories
+    ]
+    for left, right in combinations(payloads, 2):
+        if frozenset([left["id"], right["id"]]) in conflict_memory_sets:
+            continue
+        if _normalize_memory_text(left["content"]) == _normalize_memory_text(
+            right["content"]
+        ):
+            continue
+        shared_tags = sorted(set(left["tags"]) & set(right["tags"]))
+        shared_tokens = sorted(
+            (_subject_tokens(left["content"]) & _subject_tokens(right["content"]))
+            - _generic_conflict_tokens()
+        )
+        if not shared_tags and len(shared_tokens) < 2:
+            continue
+        conflicts.append(
+            {
+                "basis": "tag_token",
+                "memory_ids": [left["id"], right["id"]],
+                "memories": [left, right],
+                "shared_tags": shared_tags,
+                "shared_tokens": shared_tokens[:12],
+                "reason": "active memories appear to describe the same subject",
+            }
+        )
+    return conflicts
+
+
+def _detect_fact_conflicts(
+    memories: list[MemoryRecord],
+    facts_by_memory: dict[str, list[MemoryFact]],
+) -> list[dict[str, Any]]:
+    memories_by_id = {memory.id: memory for memory in memories}
+    active_facts = [
+        fact
+        for facts in facts_by_memory.values()
+        for fact in facts
+        if fact.status == "active"
+    ]
+    conflicts: list[dict[str, Any]] = []
+    grouped: dict[tuple[str, str], list[MemoryFact]] = {}
+    for fact in active_facts:
+        grouped.setdefault((fact.entity, fact.predicate), []).append(fact)
+
+    for (entity, predicate), facts in grouped.items():
+        memory_ids = sorted({fact.memory_id for fact in facts})
+        values = { _normalize_fact_value(fact.value_json) for fact in facts }
+        if len(memory_ids) < 2 or len(values) < 2:
+            continue
+        memory_payloads = [
+            _memory_payload(
+                memories_by_id[memory_id],
+                facts=facts_by_memory.get(memory_id, []),
+            )
+            for memory_id in memory_ids
+            if memory_id in memories_by_id
+        ]
+        conflicts.append(
+            {
+                "basis": "atomic_fact",
+                "entity": entity,
+                "predicate": predicate,
+                "fact_ids": [fact.id for fact in facts],
+                "memory_ids": memory_ids,
+                "memories": memory_payloads,
+                "values": [fact.value_json for fact in facts],
+                "reason": (
+                    "active facts share entity and predicate but have "
+                    "different values"
+                ),
+            }
+        )
+    return conflicts
+
+
+def _normalize_fact_value(value: dict[str, Any]) -> str:
+    return repr(sorted(value.items()))
+
+
+def _subject_tokens(value: str) -> set[str]:
+    return {
+        token
+        for token in _tokens(value)
+        if token not in _generic_conflict_tokens() and len(token) > 2
+    }
+
+
+def _generic_conflict_tokens() -> set[str]:
+    return {
+        "a",
+        "and",
+        "che",
+        "con",
+        "di",
+        "e",
+        "il",
+        "in",
+        "la",
+        "memoria",
+        "memory",
+        "protocol",
+        "protocollo",
+        "the",
     }
 
 

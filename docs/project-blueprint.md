@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Version: 0.1  
-Status: experimental foundation  
-Last updated: 2026-05-13
+Version: 1.0.1
+Status: active experimental runtime
+Last updated: 2026-05-25
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -27,6 +27,31 @@ How do we measure it?
 What baseline are we comparing against?
 What traces prove what happened?
 ```
+
+## 1.1 Current State Map
+
+The original foundation milestone has been reached and extended. The current
+runtime now includes persistent provider-native chat history, API Mind,
+semantic memory, atomic facts, episodic session recall, one metacognition
+route, runtime events, and a live React cockpit.
+
+The canonical integrated status and convergent roadmap now live in:
+
+```txt
+docs/project-state.md
+```
+
+The canonical documentation index and branch map now live in:
+
+```txt
+docs/project-documentation.md
+docs/branches/README.md
+```
+
+Use this blueprint for durable philosophy and architecture constraints. Use
+`docs/project-state.md` for the current implementation map, confirmed evidence,
+planned-but-unimplemented ideas, and priority ordering across converging
+functional areas.
 
 ## 2. Operating Philosophy
 
@@ -57,12 +82,14 @@ The API is not only a technical backend. It is the agent's external cognitive en
 It should provide:
 
 - schemas the agent can inspect;
+- schema version and digest signals so route-shape drift is visible;
 - structured cognitive hints;
 - useful errors;
 - trace identifiers;
 - suggested next actions when appropriate;
 - state summaries;
 - memory and attention support;
+- internal metacognition through one traceable route;
 - event handling;
 - asynchronous background processes.
 
@@ -175,6 +202,15 @@ MiniMax M2.7
 Anthropic-compatible API
 base_url: https://api.minimax.io/anthropic
 model: MiniMax-M2.7
+```
+
+Comparison provider:
+
+```txt
+Qwen 3.7 via Alibaba Model Studio
+Anthropic-compatible API
+base_url: https://dashscope-intl.aliyuncs.com/apps/anthropic
+model: qwen3.7-max
 ```
 
 Provider abstraction should exist early, but stay thin:
@@ -330,9 +366,9 @@ User
   -> agent runtime
   -> attention/context preparation
   -> MiniMax M2.7
-  -> optional mind_api tool calls
+  -> autonomous mind_api cognitive operations
   -> mind API dispatcher
-  -> storage/events/memory/state
+  -> storage/events/memory/metacognition/state
   -> tool result back to model
   -> final assistant response
   -> trace + eval hooks
@@ -341,12 +377,12 @@ User
 
 ### 6.2 Agent Visible Tool
 
-The LLM should see one primary tool:
+The LLM should see one primary cognitive interface:
 
 ```json
 {
   "name": "mind_api",
-  "description": "Primary interface to the agent's cognitive API. Use it to inspect available schemas, retrieve memory, emit events, update state, and request cognitive support.",
+  "description": "Scarlet's internal cognitive API. Use it autonomously for schema awareness, memory, facts, traceable state inspection, and cognitive support before answering when that improves correctness.",
   "input_schema": {
     "type": "object",
     "properties": {
@@ -385,6 +421,23 @@ Mind API responses should be structured for both machine use and model interpret
 }
 ```
 
+### 6.4 Cognitive API Autonomy
+
+API Mind is Scarlet's internal cognitive environment, not a user-operated
+feature. The user should be able to speak in natural language without knowing
+which routes, schemas, memories, or fact stores exist.
+
+Scarlet decides autonomously when to inspect schema, search memory, read facts,
+resolve conflicts, or mutate cognitive state through traceable operations. A
+normal answer should expose the result and source discipline, not require the
+user to instruct tool usage.
+
+The chat runtime should not impose an artificial fixed tool-call cap. Scarlet's
+internal loop ends when she has enough evidence to answer or when only human
+judgment can resolve the next step. Long-running loops still need normal
+engineering observability through traces, streaming events, and eventual
+cancellation/backpressure work.
+
 Errors should be equally structured:
 
 ```json
@@ -403,6 +456,42 @@ Errors should be equally structured:
   "trace_id": "trace_..."
 }
 ```
+
+### 6.4.1 Schema Discipline And Internal Cognition
+
+`GET /mind/schema` is the machine-readable capability catalog for the current
+API Mind surface. The system prompt should teach Scarlet when to inspect route
+availability, while detailed body schemas, examples, and retry guidance are
+returned as endpoint-local `usage_guide` on recoverable endpoint errors.
+
+The runtime context should include a compact schema reference:
+
+```json
+{
+  "mind_schema": {
+    "schema_version": "2026-05-24.schema-catalog-v1",
+    "schema_digest": "sha256:...",
+    "schema_route": "GET /mind/schema"
+  }
+}
+```
+
+First implemented cognitive route:
+
+```txt
+POST /mind/metacognition/step
+```
+
+This route gives Scarlet one traceable internal cognitive operation:
+
+- metacognitive review;
+- claim checks;
+- temporary workspace notes;
+- reflection;
+- next-action planning.
+
+Visible metacognition remains only the public summary layer. Internal
+metacognition should be structured and traceable, not raw reasoning text.
 
 ### 6.4 Memory Context Pipeline v0
 
@@ -454,6 +543,10 @@ The model-facing runtime context should be generated by the backend and kept sep
   "capabilities": {
     "memory.write": "implemented",
     "memory.search": "implemented",
+    "memory.{memory_id}": "implemented",
+    "memory.conflicts": "implemented",
+    "memory.deprecate": "implemented",
+    "memory.supersede": "implemented",
     "memory.update": "unavailable"
   }
 }
@@ -491,6 +584,82 @@ Prompt contract:
 
 A later post-response validator should flag unverifiable memory claims, especially answers that say something is or is not in memory when no `memory.context` trace or explicit memory search exists for the turn.
 
+### 6.5 Memory Robustness Roadmap
+
+The current Memory v0 implementation is accepted as an experimental substrate,
+not as the final memory design. Live probes show that the system is strong at
+traceability but still needs robustness work before memory can support deeper
+cognitive modules.
+
+Detailed roadmap:
+
+```txt
+docs/memory-roadmap.md
+```
+
+The roadmap incorporates lessons from the project's own live traces and from
+the external `obsidian-memory-for-ai` v3 pattern:
+
+```txt
+https://github.com/jrcruciani/obsidian-memory-for-ai
+```
+
+Useful external ideas to adapt, not copy directly:
+
+- atomic facts;
+- controlled predicates;
+- entity/predicate/value/provenance as the durable memory unit;
+- bi-temporal validity fields;
+- lint/health checks;
+- generated operational views;
+- inbox/proposal and compaction workflows;
+- reflect-after-session maintenance.
+
+Project-specific adaptation:
+
+LLM API Mind remains API/CLI-first. Markdown vaults are useful inspiration, but
+the source of truth should be backend tables, `mind_api` contracts, CLI wrappers,
+traces, and debug views. The model should still primarily see one tool.
+
+Updated memory implementation order:
+
+```txt
+1. Entity-aware retrieval guard, then SQLite FTS5/BM25.
+2. Proposal inbox and compaction.
+3. CLI/debug memory views and expanded evals.
+4. Re-test response-control guardrails after lifecycle/retrieval evidence is stronger.
+```
+
+The next slices should avoid treating a prompt change as a substitute for memory
+semantics. Prompt discipline is useful, but robust memory needs backend state,
+contracts, validation, and traceable lifecycle operations.
+
+Status update 2026-05-20:
+
+The owner put response-control M1 on hold because the observed behavior may be a
+false bug while lifecycle/conflict management is missing. M2 is now implemented:
+`GET /mind/memory/{memory_id}`, `GET /mind/memory/conflicts`,
+`POST /mind/memory/deprecate`, and `POST /mind/memory/supersede` are available
+through the single `mind_api` surface and were live-verified against the
+Zero-Luce memory conflict.
+
+M3 is also initially implemented: `memory_facts` stores canonical
+entity/predicate/value facts linked to memory records, memory writes and
+backfills create facts, lifecycle operations propagate fact status, and
+Zero-Luce multilingual aliases resolve to the same `protocollo-zero-luce` +
+`response_format` fact layer. The next memory slice should use these facts to
+improve entity-aware retrieval and reduce wrong-entity selected evidence.
+
+Status update 2026-05-22:
+
+The memory architecture now explicitly separates semantic memory from episodic
+recall. Semantic memory remains the durable reusable layer in `memories` and
+`memory_facts`. Episodic recall is implemented through `session_summaries` plus
+`GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and
+`POST /mind/sessions/{session_id}/summarize`. A semantic memory's
+`source_session_id` is the bridge back to the exact prior conversation when
+Scarlet needs provenance, wording, or surrounding context.
+
 ## 7. Initial API Surface
 
 ### 7.1 Chat And Debug API
@@ -502,6 +671,7 @@ POST /api/chat/sessions
 POST /api/chat/sessions/{session_id}/turn
 GET  /api/chat/sessions/{session_id}/messages
 GET  /api/debug/traces/{turn_id}
+GET  /api/debug/events
 GET  /api/debug/state/{session_id}
 ```
 
@@ -512,11 +682,17 @@ Initial cognitive API:
 ```txt
 GET  /mind/schema
 GET  /mind/state
-POST /mind/events/emit
 POST /mind/memory/write
 POST /mind/memory/search
+GET  /mind/memory/{memory_id}
+GET  /mind/memory/conflicts
+POST /mind/memory/deprecate
+POST /mind/memory/supersede
+GET  /mind/sessions
+GET  /mind/sessions/{session_id}
+POST /mind/sessions/{session_id}/summarize
 POST /mind/attention/context
-POST /mind/reflection/review
+POST /mind/metacognition/step
 ```
 
 The first implementation can be simple. The important part is stable contracts and traceability.
@@ -529,9 +705,12 @@ Initial tables:
 sessions
 messages
 turns
+traces
 tool_calls
 events
 memories
+memory_facts
+session_summaries
 agent_state
 eval_runs
 eval_results
@@ -677,6 +856,10 @@ What background jobs ran afterward?
 What changed in memory or state?
 ```
 
+Events are separate from deep traces: traces explain a turn in full detail,
+while ordered `events` rows are the compact runtime control plane for UI
+activity, next-turn context, and future background maintenance triggers.
+
 Minimum trace object:
 
 ```json
@@ -789,7 +972,7 @@ Structured reflection after failure reduces repeated mistakes across similar tas
 
 Build:
 
-- `/mind/reflection/review`;
+- reflection mode inside `/mind/metacognition/step`;
 - failure event types;
 - reflection records;
 - optional rule suggestions;
@@ -905,7 +1088,7 @@ Exit criteria:
 
 Deliverables:
 
-- memory write/search;
+- memory write/search/read and minimal lifecycle;
 - attention context pack;
 - debug panels for memory and context;
 - first baseline eval scenarios.
@@ -978,6 +1161,7 @@ docs/activity-log.md
 docs/bug-ledger.md
 docs/experiments.md
 docs/api-contract.md
+docs/memory-roadmap.md
 docs/release-process.md
 ```
 
@@ -1151,9 +1335,15 @@ Never commit real API keys.
 Expected environment variables:
 
 ```txt
+LLM_PROVIDER=minimax
 MINIMAX_API_KEY=
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic
 MINIMAX_MODEL=MiniMax-M2.7
+MINIMAX_MAX_TOKENS=131072
+QWEN_API_KEY=
+QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/apps/anthropic
+QWEN_MODEL=qwen3.7-max
+QWEN_MAX_TOKENS=4096
 DATABASE_URL=sqlite:///./data/app.db
 ```
 
@@ -1239,14 +1429,17 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Add a Memory Context Pipeline v0.1 response-control slice for conflicts and unavailable capability claims.
-2. Upgrade lexical retrieval toward SQLite FTS5/BM25 and tune relevance thresholds using the live trace evidence.
-3. Then revisit memory lifecycle APIs, memory inspection UI, and attention context on top of reliable memory evidence.
+1. Verify episodic recall through live Scarlet conversations that follow memory source_session_id into full transcripts.
+2. Use runtime events to design the first background memory-maintenance trigger without adding model-facing endpoints.
+3. Improve retrieval with entity-aware guards, then SQLite FTS5/BM25.
+4. Add proposal inbox and compaction.
+5. Add CLI/debug memory views and broader memory evals.
+6. Re-test response-control guardrails after lifecycle/retrieval/episodic evidence is stronger.
 ```
 
 The first milestone is not "digital mind". The first milestone is:
 
 ```txt
 A local chat agent using MiniMax M2.7 where every turn is inspectable, reproducible,
-and now able to run traceable Memory v0 experiments.
+and now able to run traceable semantic memory, episodic recall, and metacognition experiments.
 ```
