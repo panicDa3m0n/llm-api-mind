@@ -2621,7 +2621,7 @@ Verification:
 
 - Targeted tests passed:
   `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_mind_api.py`
-  (`33 passed`).
+  (`33 passed`) for the initial V1.1.0 inbox.
 - Full backend suite passed from `backend`: `.venv/bin/python -m pytest`
   (`58 passed`).
 - Storage test confirms proposal idempotency.
@@ -2629,11 +2629,17 @@ Verification:
   `create_new`.
 - Duplicate test confirms an exact existing memory becomes
   `noop_duplicate`, not a second active memory.
-- Mind API test confirms `GET /mind/memory/proposals` returns pending proposal
-  data and warns that proposals are not active memory.
+- V1.1.1 correction keeps proposal inspection out of `mind_api`. Targeted
+  tests confirm `/mind/memory/proposals` is not model-facing, while
+  `GET /api/maintenance/memory/proposals` returns paged pending proposals and
+  `POST /api/maintenance/memory/proposals/{proposal_id}/archive` removes
+  handled proposals from the default pending queue.
+- V1.1.1 full backend suite passed with `60 passed`; frontend build passed.
 
 Assessment:
 
 Accepted as the next safe P1 memory-maintenance slice. It turns diagnostic
 review into inspectable maintenance state while preserving the core rule that
 only explicit memory lifecycle operations mutate active semantic memory.
+Proposal inspection is intentionally internal to maintenance processes, not an
+autonomous Scarlet `mind_api` capability.

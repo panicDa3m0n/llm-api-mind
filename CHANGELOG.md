@@ -6,6 +6,20 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Fixed
+
+- Added V1.1.1 maintenance-only proposal inbox separation:
+  - removed `GET /mind/memory/proposals` from Scarlet's model-facing
+    `mind_api` dispatcher and schema;
+  - added `GET /api/maintenance/memory/proposals` with bounded pagination for
+    background LLM maintenance reviewers;
+  - added `POST /api/maintenance/memory/proposals/{proposal_id}/archive` so
+    handled proposals leave the default pending queue;
+  - restricted dynamic memory reads to real `mem_...` ids so retired child
+    paths do not masquerade as memory ids;
+  - Mind API schema version advanced to
+    `2026-05-25.maintenance-proposals-v1`.
+
 ### Added
 
 - Added V1.1.0 memory proposal inbox:

@@ -341,30 +341,6 @@ class MemoryFactsBackfillBody(BaseModel):
         return normalized
 
 
-class MemoryProposalsQueryBody(BaseModel):
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    status: str | None = Field(default="pending", max_length=40)
-    source_session_id: str | None = Field(default=None, max_length=80)
-    limit: int = Field(default=20, ge=1, le=100)
-    offset: int = Field(default=0, ge=0)
-
-    @model_validator(mode="before")
-    @classmethod
-    def normalize_common_aliases(cls, value: Any) -> Any:
-        if not isinstance(value, dict):
-            return value
-        normalized = dict(value)
-        if "source_session_id" not in normalized:
-            for alias in ("session_id", "source_session", "session"):
-                if alias in normalized:
-                    normalized["source_session_id"] = normalized.pop(alias)
-                    break
-        if normalized.get("status") in {"all", "any", "*"}:
-            normalized["status"] = None
-        return normalized
-
-
 class MemoryDeprecateBody(BaseModel):
     memory_id: str = Field(min_length=1, max_length=80)
     reason: str = Field(min_length=8, max_length=1000)
@@ -890,80 +866,6 @@ def handle_memory_facts_backfill(
             "Use memory conflicts to check unresolved active fact conflicts",
         ],
         confidence=1.0,
-    )
-
-
-def handle_memory_proposals(
-    body: dict[str, Any],
-    context: MindAPIContext | None,
-    *,
-    intent: str | None = None,
-) -> MemoryOperationResult:
-    if context is None or context.session_id is None:
-        return _context_required("proposals")
-
-    body_with_intent = dict(body)
-    if "source_session_id" not in body_with_intent and intent and "ses_" in intent:
-        match = re.search(r"ses_[a-f0-9]+", intent)
-        if match:
-            body_with_intent["source_session_id"] = match.group(0)
-
-    try:
-        request = MemoryProposalsQueryBody.model_validate(body_with_intent)
-    except ValidationError as exc:
-        return MemoryOperationResult(
-            ok=False,
-            error_code="memory.invalid_proposals_query",
-            error_message=str(exc),
-            suggested_next_actions=[
-                "Call GET /mind/schema",
-                "Retry with status, source_session_id, limit, or offset",
-            ],
-            confidence=1.0,
-        )
-
-    with Session(context.engine) as db:
-        proposals = repositories.list_memory_proposals(
-            db,
-            status=request.status,
-            source_session_id=request.source_session_id,
-            limit=request.limit,
-            offset=request.offset,
-        )
-        trace = repositories.add_trace(
-            db,
-            session_id=context.session_id,
-            turn_id=context.turn_id,
-            kind="mind.memory.proposals",
-            payload={
-                "operation": "memory.proposals",
-                "status": request.status,
-                "source_session_id": request.source_session_id,
-                "limit": request.limit,
-                "offset": request.offset,
-                "count": len(proposals),
-            },
-        )
-        proposal_payloads = [_memory_proposal_payload(item) for item in proposals]
-        trace_id = trace.id
-
-    return MemoryOperationResult(
-        ok=True,
-        result={
-            "operation": "memory.proposals",
-            "proposals": proposal_payloads,
-            "count": len(proposal_payloads),
-            "trace_ids": [trace_id],
-        },
-        cognitive_hint=(
-            "Memory proposals are maintenance candidates, not active memories. "
-            "Use them as evidence for review or later lifecycle action."
-        ),
-        suggested_next_actions=[
-            "Inspect similar_memory_ids before applying a proposal",
-            "Do not treat pending proposals as active memory",
-        ],
-        confidence=0.95,
     )
 
 
@@ -1972,7 +1874,7 @@ def _memory_payload(
     return payload
 
 
-def _memory_proposal_payload(proposal: MemoryProposal) -> dict[str, Any]:
+def memory_proposal_payload(proposal: MemoryProposal) -> dict[str, Any]:
     return {
         "id": proposal.id,
         "status": proposal.status,

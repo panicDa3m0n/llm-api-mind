@@ -6,6 +6,7 @@ from sqlalchemy.engine import Engine
 from app.api.chat import build_chat_router, build_trace_router
 from app.api.dashboard import build_dashboard_router
 from app.api.debug import ProviderFactory, build_debug_router
+from app.api.maintenance import build_maintenance_router
 from app.api.mind import build_mind_router
 from app.api.system import build_system_router
 from app.config import Settings, get_settings
@@ -41,7 +42,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.0.1",
+        version="1.1.1",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -62,6 +63,7 @@ def create_app(
             provider_factory=provider_factory,
         )
     )
+    app.include_router(build_maintenance_router(engine))
     app.include_router(build_trace_router(engine))
     app.include_router(
         build_mind_router(

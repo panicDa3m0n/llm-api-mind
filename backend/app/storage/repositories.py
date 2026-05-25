@@ -749,6 +749,29 @@ def list_memory_proposals(
     return list(db.exec(statement).all())
 
 
+def archive_memory_proposal(
+    db: Session,
+    *,
+    proposal_id: str,
+    result: dict[str, Any] | None = None,
+) -> MemoryProposal | None:
+    proposal = get_memory_proposal(db, proposal_id)
+    if proposal is None:
+        return None
+
+    now = utc_now()
+    proposal.status = "archived"
+    proposal.result_json = result or {}
+    proposal.applied_at = now
+    proposal.updated_at = now
+    if proposal.source_session_id is not None:
+        _touch_session(db, proposal.source_session_id, at=now)
+    db.add(proposal)
+    db.commit()
+    db.refresh(proposal)
+    return proposal
+
+
 def update_memory_facts_status(
     db: Session,
     *,

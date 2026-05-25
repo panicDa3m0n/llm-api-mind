@@ -1897,8 +1897,20 @@ proposals containing:
 - decision metadata with current retrieval stages and future-ready placeholders
   for embeddings and graph nodes.
 
-Expose `GET /mind/memory/proposals` so Scarlet and evaluators can inspect the
-proposal inbox without treating proposals as active memories.
+Keep proposal inspection out of Scarlet's model-facing `mind_api`. Proposals
+belong to maintenance, not to Scarlet's autonomous cognitive API.
+
+Expose maintenance routes instead:
+
+```txt
+GET  /api/maintenance/memory/proposals
+POST /api/maintenance/memory/proposals/{proposal_id}/archive
+```
+
+The list route returns a bounded page of proposals (`limit`/`offset`) so a
+maintenance LLM can process N pending items without saturating context. Once a
+proposal is handled, the maintenance process archives it; later iterations see
+only still-pending proposals by default.
 
 Consequences:
 
@@ -1906,6 +1918,8 @@ Consequences:
   memory application.
 - Active memory remains protected from automatic pollution while review quality
   is evaluated.
+- Scarlet's `mind_api` surface remains smaller and avoids exposing an internal
+  maintenance queue as a direct cognitive endpoint.
 - Existing Memory v0 primitives remain the source of truth: write policy,
   sparse retrieval, atomic facts, and lifecycle routes are reused instead of
   duplicated.

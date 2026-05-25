@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-05-25  
-System version assessed: V1.1.0
+System version assessed: V1.1.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -22,8 +22,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 - Memoria episodica con session summary, transcript e ricerca sessioni.
 - Automatic memory context a inizio turno.
 - Filtri temporali e sparse retrieval FTS5/BM25.
-- Proposal inbox per candidati memoria generati da idle review, con preflight
-  su duplicati, memorie simili e fatti canonici.
+- Proposal inbox interno per candidati memoria generati da idle review, con
+  preflight su duplicati, memorie simili e fatti canonici. La inbox non e
+  esposta a Scarlet tramite `mind_api`; viene letta e archiviata solo da API di
+  manutenzione.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
@@ -38,7 +40,7 @@ diagnostico, senza ancora auto-scrivere memorie attive. Non e L5 perche mancano
 applicazione controllata delle proposal, compaction, embedding, knowledge
 graph, pesi emotivi, staleness scoring e privacy multiutente vera.
 
-Sistema valutato: V1.1.0.
+Sistema valutato: V1.1.1.
 
 ## Sviluppi precedenti
 
@@ -51,9 +53,14 @@ Sistema valutato: V1.1.0.
 - Idle maintenance missed-memory review.
 - V1.1.0 memory proposal inbox: l'idle review genera proposal persistenti con
   evidenza, azione suggerita, similarita e slot futuri embedding/graph.
+- V1.1.1 proposal inbox separation: la consultazione passa alle API di
+  manutenzione con paginazione e archiviazione, fuori dalla superficie
+  model-facing di Scarlet.
 
 ## Evolutive
 
+- Processo LLM manutentivo che consuma N proposal pending, le valuta, applica
+  o scarta le operazioni future e poi le archivia.
 - Applicazione controllata delle proposal: approva/rifiuta/applica/merge.
 - Compaction semantica e merge duplicati.
 - Stale-memory detection e deprecazione assistita.

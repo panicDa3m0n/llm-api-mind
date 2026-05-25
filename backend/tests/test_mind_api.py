@@ -179,7 +179,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == "2026-05-25.memory-proposals-v1"
+    assert body["result"]["schema_version"] == "2026-05-25.maintenance-proposals-v1"
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"
@@ -198,7 +198,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
     assert route_status[("GET", "/mind/memory/facts")] == "implemented"
     assert route_status[("POST", "/mind/memory/facts/backfill")] == "implemented"
     assert route_status[("GET", "/mind/memory/conflicts")] == "implemented"
-    assert route_status[("GET", "/mind/memory/proposals")] == "implemented"
+    assert ("GET", "/mind/memory/proposals") not in route_status
     assert route_status[("POST", "/mind/memory/deprecate")] == "implemented"
     assert route_status[("POST", "/mind/memory/supersede")] == "implemented"
     assert route_status[("GET", "/mind/sessions")] == "implemented"
@@ -261,26 +261,9 @@ def test_mind_error_includes_endpoint_usage_guide(db_engine: Engine) -> None:
     assert "Call GET /mind/schema" not in body["suggested_next_actions"]
 
 
-def test_mind_memory_proposals_lists_pending_items(db_engine: Engine) -> None:
+def test_mind_memory_proposals_are_not_model_facing(db_engine: Engine) -> None:
     client = make_client(db_engine)
-    session = client.post("/api/chat/sessions", json={"title": "Proposal list"}).json()
-    with Session(db_engine) as db:
-        repositories.upsert_memory_proposal(
-            db,
-            idempotency_key="memory_proposal:test_mind_api",
-            source="maintenance.memory_review",
-            proposed_action="review_similar",
-            action_confidence=0.75,
-            risk="medium",
-            candidate_type="user_preference",
-            candidate_scope="user",
-            content="The user prefers concise answers when tired.",
-            reason_for_storage="Useful preference candidate.",
-            source_session_id=session["id"],
-            tags=["communication"],
-            similar_memory_ids=["mem_existing"],
-            decision={"proposed_action": "review_similar"},
-        )
+    session = client.post("/api/chat/sessions", json={"title": "Hidden proposal"}).json()
 
     response = client.post(
         "/mind/call",
@@ -295,14 +278,9 @@ def test_mind_memory_proposals_lists_pending_items(db_engine: Engine) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["ok"] is True
-    assert body["result"]["operation"] == "memory.proposals"
-    assert body["result"]["count"] == 1
-    proposal = body["result"]["proposals"][0]
-    assert proposal["proposed_action"] == "review_similar"
-    assert proposal["candidate"]["content"] == "The user prefers concise answers when tired."
-    assert proposal["similar_memory_ids"] == ["mem_existing"]
-    assert body["cognitive_hint"].startswith("Memory proposals are maintenance candidates")
+    assert body["ok"] is False
+    assert body["error"]["code"] == "mind.route_not_available"
+    assert "memory/proposals" not in json.dumps(body["result"])
 
 
 def test_mind_call_records_tool_call_and_session_trace(db_engine: Engine) -> None:

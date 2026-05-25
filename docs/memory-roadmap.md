@@ -566,6 +566,11 @@ Implemented:
 - Idle job runs missed semantic memory review, stores
   `maintenance.memory_review` traces, and creates pending `memory_proposals`
   for write-recommended candidates.
+- Proposal inspection is maintenance-only in V1.1.1:
+  `GET /api/maintenance/memory/proposals` returns bounded pages of pending
+  work, and
+  `POST /api/maintenance/memory/proposals/{proposal_id}/archive` removes
+  handled proposals from the default queue.
 - Maintenance emits `maintenance.job.*` and
   `maintenance.memory_review.completed` events for UI and inspection.
 - Scarlet prompt now starts later turns with a previous-turn continuity check,
@@ -627,16 +632,19 @@ Add:
 
 ```txt
 POST /mind/memory/propose
-POST /mind/memory/proposals/apply
-GET  /mind/memory/proposals
 POST /mind/memory/compact
+GET  /api/maintenance/memory/proposals
+POST /api/maintenance/memory/proposals/{proposal_id}/archive
 ```
 
 Behavior:
 
-- Model can propose memory operations.
+- A future experiment may let the model propose memory operations only if it
+  needs that model-facing primitive.
 - Backend validates proposals.
-- Human or trusted policy applies them.
+- Maintenance workers inspect bounded pending proposal batches.
+- Human, trusted policy, or future maintenance LLM applies/rejects/merges them.
+- Handled proposals are archived.
 - Compaction can merge duplicates, suggest supersession, and flag stale records.
 
 Acceptance:

@@ -11,7 +11,6 @@ from app.mind.memory import (
     handle_memory_deprecate,
     handle_memory_facts,
     handle_memory_facts_backfill,
-    handle_memory_proposals,
     handle_memory_read,
     handle_memory_search,
     handle_memory_supersede,
@@ -150,13 +149,6 @@ def dispatch_mind_api(
             path=path,
         )
 
-    if method == "GET" and path == "/mind/memory/proposals":
-        return _memory_response(
-            handle_memory_proposals(body, context, intent=request.intent),
-            method=method,
-            path=path,
-        )
-
     if method == "GET" and path == "/mind/memory/facts":
         return _memory_response(
             handle_memory_facts(body, context, intent=request.intent),
@@ -228,7 +220,7 @@ def dispatch_mind_api(
 
     if method == "GET" and path.startswith("/mind/memory/"):
         memory_id = path.removeprefix("/mind/memory/")
-        if memory_id:
+        if memory_id.startswith("mem_"):
             return _memory_response(
                 handle_memory_read(memory_id, context),
                 method=method,

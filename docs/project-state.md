@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-05-25  
-App baseline: V1.1.0
+App baseline: V1.1.1
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -49,6 +49,7 @@ Core code evidence:
 - Chat/session/runtime flow: `backend/app/api/chat.py`
 - Mind API facade and dispatcher: `backend/app/api/mind.py`,
   `backend/app/mind/dispatcher.py`
+- Maintenance API: `backend/app/api/maintenance.py`
 - Model-facing Mind API schema: `backend/app/mind/schema.py`
 - Storage models: `backend/app/storage/models.py`
 - Runtime events: `backend/app/runtime/events.py`
@@ -180,7 +181,7 @@ mind_api(method, path, body, intent)
 ```
 
 Implemented routes in current schema version
-`2026-05-25.memory-proposals-v1`:
+`2026-05-25.maintenance-proposals-v1`:
 
 - `GET /mind/schema`
 - `POST /mind/memory/write`
@@ -189,7 +190,6 @@ Implemented routes in current schema version
 - `GET /mind/memory/facts`
 - `POST /mind/memory/facts/backfill`
 - `GET /mind/memory/conflicts`
-- `GET /mind/memory/proposals`
 - `POST /mind/memory/deprecate`
 - `POST /mind/memory/supersede`
 - `GET /mind/sessions`
@@ -537,6 +537,10 @@ Confirmed:
 - The review deliberately does not write semantic memories automatically.
   Instead, it now creates pending memory proposals so future apply/merge
   decisions can be evaluated without polluting active memory.
+- Pending memory proposals are not a Scarlet-facing `mind_api` capability.
+  They are consumed through maintenance APIs:
+  `GET /api/maintenance/memory/proposals` and
+  `POST /api/maintenance/memory/proposals/{proposal_id}/archive`.
 
 Still monitoring:
 
@@ -583,8 +587,8 @@ Primary docs:
 
 Need:
 
-- decide how pending memory proposals should be applied, rejected, merged, or
-  escalated to Scarlet/human review;
+- decide how internal maintenance workers should apply, reject, merge, or
+  escalate pending memory proposals after reading them in paged batches;
 - stale-memory detection and lifecycle repair for old technical baselines that
   conflict with current runtime state;
 - memory promise detection, e.g. final answer says "I will remember" without a
@@ -624,9 +628,9 @@ Key acceptance:
 
 Need:
 
-- `POST /mind/memory/propose`
-- `GET /mind/memory/proposals`
-- `POST /mind/memory/proposals/apply`
+- maintenance-worker apply/reject/merge policy for pending proposals;
+- `POST /mind/memory/propose` only if a later experiment proves Scarlet needs a
+  model-facing proposal primitive;
 - `POST /mind/memory/compact`
 
 Purpose:

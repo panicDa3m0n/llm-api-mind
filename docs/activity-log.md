@@ -3004,3 +3004,55 @@ Notes:
 - No auto-apply route was added in this slice.
 - Next useful work is proposal application policy and UI/evaluator inspection,
   not embedding or graph infrastructure yet.
+
+## 2026-05-25 - V1.1.1 Maintenance-Only Proposal Inbox
+
+Area:
+
+Memoria / manutenzione semantica.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Fix.
+
+Target version:
+
+V1.1.1.
+
+Goal:
+
+Move proposal inspection out of Scarlet's autonomous `mind_api` surface and
+into maintenance-only APIs that can be consumed by background LLM reviewers in
+bounded batches.
+
+Changes:
+
+- Removed `GET /mind/memory/proposals` from the Mind API dispatcher and schema.
+- Added `GET /api/maintenance/memory/proposals` with `status`,
+  `source_session_id`, `limit`, `offset`, `has_more`, and `next_offset`.
+- Added `POST /api/maintenance/memory/proposals/{proposal_id}/archive` so
+  handled proposals leave the default pending queue while remaining auditable.
+- Added repository archival support for `memory_proposals`.
+- Restricted dynamic memory reads to real `mem_...` ids so retired child paths
+  do not masquerade as missing memory records.
+- Advanced the Mind API schema version to
+  `2026-05-25.maintenance-proposals-v1`.
+- Updated API contract, decision, experiment, project state, branch docs,
+  changelog, and V1.1.1 version metadata.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_maintenance_api.py`
+  (`25 passed`).
+- Memory/storage maintenance regression tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_mind_api.py backend/tests/test_maintenance_api.py`
+  (`35 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest -q`
+  (`60 passed`).
+- Frontend production build passed:
+  `npm --prefix frontend run build`.

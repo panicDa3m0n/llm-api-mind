@@ -118,7 +118,6 @@ TurnFrame shape:
     "memory.facts": "implemented",
     "memory.facts.backfill": "implemented",
     "memory.conflicts": "implemented",
-    "memory.proposals": "implemented",
     "memory.deprecate": "implemented",
     "memory.supersede": "implemented",
     "memory.update": "unavailable"
@@ -252,7 +251,6 @@ Model-facing runtime context shape:
     "memory.facts": "implemented",
     "memory.facts.backfill": "implemented",
     "memory.conflicts": "implemented",
-    "memory.proposals": "implemented",
     "memory.deprecate": "implemented",
     "memory.supersede": "implemented",
     "memory.update": "unavailable"
@@ -880,7 +878,6 @@ When the model uses Memory v0 through `mind_api`, the turn also creates:
 - `mind.memory.read`
 - `mind.memory.facts`
 - `mind.memory.facts.backfill`
-- `mind.memory.proposals`
 - `mind.memory.deprecate`
 - `mind.memory.supersede`
 - `memory.conflicts`
@@ -1058,7 +1055,7 @@ Response:
 {
   "ok": true,
   "result": {
-    "schema_version": "2026-05-25.memory-proposals-v1",
+    "schema_version": "2026-05-25.maintenance-proposals-v1",
     "schema_digest": "sha256:...",
     "tool": {
       "name": "mind_api",
@@ -1104,11 +1101,6 @@ Response:
       {
         "method": "GET",
         "path": "/mind/memory/conflicts",
-        "status": "implemented"
-      },
-      {
-        "method": "GET",
-        "path": "/mind/memory/proposals",
         "status": "implemented"
       },
       {
@@ -1232,7 +1224,7 @@ Structured route errors return `200` with `ok=false` so the model can recover fr
   "ok": false,
   "result": {
     "schema": {
-      "schema_version": "2026-05-25.memory-proposals-v1",
+      "schema_version": "2026-05-25.maintenance-proposals-v1",
       "schema_digest": "sha256:...",
       "schema_route": "GET /mind/schema"
     },
@@ -2041,7 +2033,7 @@ Trace Behavior:
 
 Creates `memory.conflicts` and the model-facing `mind.tool_call`.
 
-### GET /mind/memory/proposals through mind_api
+### GET /api/maintenance/memory/proposals
 
 Status: implemented
 
@@ -2052,28 +2044,31 @@ These records are not active semantic memories. They are an observable inbox
 for candidate creation, duplicate detection, similar-memory review, conflict
 review, and later lifecycle application.
 
-Model-facing call shape:
+This route is not part of `mind_api` and is not visible through
+`GET /mind/schema`. It is for backend maintenance workers, LLM review
+processes, and evaluator tooling.
 
-```json
-{
-  "method": "GET",
-  "path": "/mind/memory/proposals",
-  "intent": "Inspect pending memory maintenance proposals.",
-  "body": {
-    "status": "pending",
-    "source_session_id": "ses_...",
-    "limit": 20,
-    "offset": 0
-  }
-}
+Query parameters:
+
+```txt
+status=pending              proposal status filter; all/any/* disables it
+source_session_id=ses_...   optional source session filter
+limit=20                    number of proposals returned, 1..100
+offset=0                    pagination offset
 ```
 
 Response result:
 
 ```json
 {
-  "operation": "memory.proposals",
-  "count": 1,
+  "operation": "maintenance.memory.proposals.list",
+  "status": "pending",
+  "source_session_id": "ses_...",
+  "limit": 20,
+  "offset": 0,
+  "returned": 1,
+  "has_more": false,
+  "next_offset": null,
   "proposals": [
     {
       "id": "prop_...",
@@ -2103,8 +2098,7 @@ Response result:
         }
       }
     }
-  ],
-  "trace_ids": ["trace_..."]
+  ]
 }
 ```
 
@@ -2118,7 +2112,46 @@ Current proposed actions:
 
 Trace Behavior:
 
-Creates `mind.memory.proposals` and the model-facing `mind.tool_call`.
+Does not create a model-facing `mind.tool_call`. Proposal creation remains
+observable through idle-maintenance traces and events.
+
+### POST /api/maintenance/memory/proposals/{proposal_id}/archive
+
+Status: implemented
+
+Purpose:
+
+Archive a proposal after a maintenance process has handled it. Archived
+proposals remain stored for audit, but no longer appear in the default pending
+proposal queue.
+
+Request body:
+
+```json
+{
+  "reason": "Reviewed by maintenance evaluator.",
+  "result": {
+    "outcome": "deferred"
+  }
+}
+```
+
+Response result:
+
+```json
+{
+  "operation": "maintenance.memory.proposals.archive",
+  "proposal": {
+    "id": "prop_...",
+    "status": "archived",
+    "result": {
+      "outcome": "deferred",
+      "reason": "Reviewed by maintenance evaluator."
+    },
+    "applied_at": "2026-05-25T..."
+  }
+}
+```
 
 ### POST /mind/memory/deprecate through mind_api
 
@@ -2358,9 +2391,9 @@ Current and planned routes:
 
 ```txt
 POST /mind/memory/propose
-GET  /mind/memory/proposals        implemented
-POST /mind/memory/proposals/apply
 POST /mind/memory/compact
+GET  /api/maintenance/memory/proposals                         implemented
+POST /api/maintenance/memory/proposals/{proposal_id}/archive    implemented
 ```
 
 ## Planned Mind API
@@ -2368,8 +2401,6 @@ POST /mind/memory/compact
 ```txt
 GET  /mind/state
 POST /mind/memory/propose
-GET  /mind/memory/proposals
-POST /mind/memory/proposals/apply
 POST /mind/memory/compact
 POST /mind/attention/context
 ```

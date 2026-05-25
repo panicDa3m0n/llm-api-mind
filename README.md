@@ -12,7 +12,7 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.1.0**.
+Current app baseline: **V1.1.1**.
 
 The project has a working local baseline runtime:
 

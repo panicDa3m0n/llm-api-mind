@@ -1979,3 +1979,34 @@ Scarlet can confuse "not exposed as a model-facing route" with "does not exist
 in the backend/runtime." Stale memories become especially dangerous when the
 current evidence surface does not expose the exact backend capability being
 claimed.
+
+## BUG-0036 - Maintenance Proposal Queue Was Exposed Through Mind API
+
+Date Found: 2026-05-25
+Status: fixed in V1.1.1
+
+Symptoms:
+
+The V1.1.0 proposal inbox added `GET /mind/memory/proposals`, making an
+internal maintenance queue visible to Scarlet as an autonomous cognitive
+endpoint.
+
+Root Cause:
+
+The implementation treated proposal inspection as a Mind API capability,
+instead of distinguishing Scarlet-facing cognition from background maintenance
+operations.
+
+Fix:
+
+- Removed `GET /mind/memory/proposals` from `mind_api` dispatcher and schema.
+- Added maintenance-only endpoints:
+  `GET /api/maintenance/memory/proposals` and
+  `POST /api/maintenance/memory/proposals/{proposal_id}/archive`.
+- Restricted dynamic memory reads to real `mem_...` ids so removed child paths
+  no longer appear as missing memory records.
+
+Verification:
+
+`backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_maintenance_api.py`
+passed with `25 passed`.
