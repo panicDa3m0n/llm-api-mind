@@ -563,8 +563,9 @@ Implemented:
 - Maintenance worker runs through FastAPI lifespan.
 - Idle job refreshes the episodic session summary with the existing
   `sessions.summarize` flow.
-- Idle job runs report-only missed semantic memory review and stores
-  `maintenance.memory_review` traces.
+- Idle job runs missed semantic memory review, stores
+  `maintenance.memory_review` traces, and creates pending `memory_proposals`
+  for write-recommended candidates.
 - Maintenance emits `maintenance.job.*` and
   `maintenance.memory_review.completed` events for UI and inspection.
 - Scarlet prompt now starts later turns with a previous-turn continuity check,
@@ -573,15 +574,15 @@ Implemented:
 
 Current policy:
 
-The missed-memory review is diagnostic/report-only. It does not write memories
-automatically. This avoids creating a second writer that might compete with
-Scarlet's in-turn semantic consolidation.
+The missed-memory review does not write active memories automatically. It
+creates inspectable proposals first, avoiding a second active writer that might
+compete with Scarlet's in-turn semantic consolidation.
 
 Next evidence needed:
 
-- Inspect real `maintenance.memory_review` traces after live idle sessions.
-- Decide whether candidates should become a proposal inbox, an automatic write
-  path, or remain evaluator diagnostics.
+- Inspect real `maintenance.memory_review` traces and pending
+  `memory_proposals` after live idle sessions.
+- Decide how proposals should be applied, rejected, merged, or escalated.
 - Check whether prompt-level previous-turn continuity reduces repeated
   missed-memory cases before adding stronger backend enforcement.
 

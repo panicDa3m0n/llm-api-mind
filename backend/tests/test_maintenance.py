@@ -6,6 +6,10 @@ from sqlmodel import Session, create_engine
 
 from app.config import Settings
 from app.llm.provider import LLMTextResult
+from app.mind.memory import (
+    MindAPIContext,
+    create_memory_proposal_from_review_candidate,
+)
 from app.runtime.maintenance import (
     run_due_maintenance_jobs,
     schedule_session_idle_maintenance,
@@ -161,6 +165,11 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
             session_id=session_id,
             limit=20,
         )
+        proposals = repositories.list_memory_proposals(
+            db,
+            source_session_id=session_id,
+            status="pending",
+        )
         events = repositories.list_events_for_turn(db, turn_id=turn_id)
         completed_job = repositories.get_maintenance_job(db, job_id)
 
@@ -185,7 +194,81 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
         review_trace.payload_json["review"]["candidates"][0]["content"]
         == "The user likes chocolate but feels bad if they eat too much."
     )
+    assert len(proposals) == 1
+    assert proposals[0].content == "The user likes chocolate but feels bad if they eat too much."
+    assert proposals[0].proposed_action == "create_new"
+    completed_event = next(
+        event for event in events if event.type == "maintenance.memory_review.completed"
+    )
+    assert completed_event.payload_json["proposal_count"] == 1
+    assert completed_event.payload_json["proposal_created_count"] == 1
     assert len(FakeMaintenanceProvider.calls) == 2
+
+
+def test_memory_review_proposal_detects_exact_duplicate() -> None:
+    engine = make_test_engine()
+    init_db(engine)
+    settings = make_settings()
+
+    with Session(engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Duplicate review")
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model=settings.minimax_model,
+        )
+        existing = repositories.add_memory(
+            db,
+            memory_type="user_preference",
+            scope="user",
+            content="The user likes chocolate but feels bad if they eat too much.",
+            reason_for_storage="Future food recommendations.",
+            expected_future_use="Avoid over-recommending chocolate.",
+            confidence=0.9,
+            salience=0.8,
+            source_session_id=chat_session.id,
+            source_turn_id=turn.id,
+            tags=["personal-fact", "food-preference"],
+        )
+        existing_id = existing.id
+        trace = repositories.add_trace(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            kind="maintenance.memory_review",
+            payload={"operation": "maintenance.memory_review"},
+        )
+        proposal, created = create_memory_proposal_from_review_candidate(
+            db,
+            candidate={
+                "type": "user_preference",
+                "scope": "user",
+                "content": (
+                    "The user likes chocolate but feels bad if they eat too much."
+                ),
+                "reason_for_storage": "Future food recommendations.",
+                "expected_future_use": "Avoid over-recommending chocolate.",
+                "confidence": 0.9,
+                "salience": 0.8,
+                "tags": ["personal-fact", "food-preference"],
+                "evidence": "User stated the fact directly.",
+                "write_recommended": True,
+            },
+            context=MindAPIContext(
+                engine=engine,
+                session_id=chat_session.id,
+                turn_id=turn.id,
+                settings=settings,
+            ),
+            source_trace_id=trace.id,
+            maintenance_job_id=None,
+            candidate_index=0,
+        )
+
+    assert created is True
+    assert proposal.proposed_action == "noop_duplicate"
+    assert proposal.similar_memory_ids_json[0] == existing_id
+    assert proposal.decision_json["reason"].startswith("equivalent active memory")
 
 
 def test_idle_maintenance_skips_when_a_newer_turn_exists() -> None:

@@ -8,6 +8,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.1.0 memory proposal inbox:
+  - `memory_proposals` storage for missed-memory review candidates;
+  - idle maintenance now creates pending proposals instead of only diagnostic
+    review traces;
+  - proposal preflight reuses Memory v0 write policy, sparse retrieval, lexical
+    scoring, and canonical facts to suggest `create_new`, `noop_duplicate`,
+    `review_similar`, `needs_review`, or `reject_candidate`;
+  - `GET /mind/memory/proposals` exposes pending proposals through `mind_api`;
+  - Mind API schema version advanced to `2026-05-25.memory-proposals-v1`.
 - Added V1.0.1 project governance:
   - `docs/project-documentation.md` as the main documentation index;
   - `docs/development-process.md` for scoped versioned implementation;

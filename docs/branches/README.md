@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-05-25  
-App baseline: V1.0.1  
+App baseline: V1.1.0
 Status: canonical branch map
 
 This directory tracks Scarlet's real branches of development. A branch is not a

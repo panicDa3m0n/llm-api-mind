@@ -16,6 +16,7 @@ from app.storage.repositories import (
     get_session_summary,
     list_memory_facts,
     list_memories,
+    list_memory_proposals,
     list_messages,
     list_events_for_turn,
     list_due_maintenance_jobs,
@@ -25,6 +26,7 @@ from app.storage.repositories import (
     start_maintenance_job,
     complete_maintenance_job,
     upsert_session_summary,
+    upsert_memory_proposal,
 )
 from app.storage.models import utc_now
 
@@ -52,6 +54,7 @@ def test_init_db_creates_core_tables() -> None:
         "tool_calls",
         "memories",
         "memory_facts",
+        "memory_proposals",
         "session_summaries",
         "maintenance_jobs",
         "search_documents_fts",
@@ -199,6 +202,59 @@ def test_memory_fact_round_trip() -> None:
     assert fact.id.startswith("fact_")
     assert [item.id for item in facts] == [fact.id]
     assert facts[0].metadata_json["aliases"] == ["zero light protocol"]
+
+
+def test_memory_proposal_round_trip_is_idempotent() -> None:
+    engine = make_test_engine()
+    init_db(engine)
+
+    with Session(engine) as db:
+        chat_session = create_chat_session(db, title="Memory proposal test")
+        turn = create_turn(db, session_id=chat_session.id, model="MiniMax-M2.7")
+        first, first_created = upsert_memory_proposal(
+            db,
+            idempotency_key="memory_proposal:test",
+            source="maintenance.memory_review",
+            proposed_action="create_new",
+            action_confidence=0.8,
+            risk="medium",
+            candidate_type="user_preference",
+            candidate_scope="user",
+            content="The user prefers dry status reports when tired.",
+            reason_for_storage="Useful communication preference.",
+            expected_future_use="Adapt future reports.",
+            confidence=0.9,
+            salience=0.8,
+            evidence="User stated this directly.",
+            source_session_id=chat_session.id,
+            source_turn_id=turn.id,
+            tags=["communication"],
+            similar_memory_ids=["mem_existing"],
+            related_fact_ids=["fact_existing"],
+            candidate_facts=[{"entity": "user", "predicate": "user_preference"}],
+            decision={"proposed_action": "create_new"},
+        )
+        second, second_created = upsert_memory_proposal(
+            db,
+            idempotency_key="memory_proposal:test",
+            source="maintenance.memory_review",
+            proposed_action="create_new",
+            action_confidence=0.8,
+            risk="medium",
+            candidate_type="user_preference",
+            candidate_scope="user",
+            content="Duplicate insert should not create a second proposal.",
+            reason_for_storage="Idempotency check.",
+        )
+        proposals = list_memory_proposals(db, status="pending")
+
+    assert first_created is True
+    assert second_created is False
+    assert first.id == second.id
+    assert first.id.startswith("prop_")
+    assert [item.id for item in proposals] == [first.id]
+    assert proposals[0].similar_memory_ids_json == ["mem_existing"]
+    assert proposals[0].related_fact_ids_json == ["fact_existing"]
 
 
 def test_session_summary_round_trip() -> None:

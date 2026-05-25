@@ -1864,3 +1864,58 @@ Links:
 - `docs/development-process.md`
 - `docs/branches/README.md`
 - `AGENTS.md`
+
+## ADR-0037 - Memory Proposal Inbox Before Automatic Memory Writes
+
+Date: 2026-05-25
+Status: accepted
+
+Context:
+
+Idle maintenance can detect semantic memory candidates that Scarlet missed
+during the live turn, but writing those candidates directly would create a
+second active memory writer. The owner clarified that the next memory step must
+validate candidate quality, duplicate risk, update/deprecation semantics,
+temporal lifecycle, and future embedding/knowledge-graph needs before changing
+active memory state.
+
+Decision:
+
+Add a `memory_proposals` inbox as the next maintenance layer.
+
+The idle missed-memory review still does not write active semantic memories.
+For write-recommended review candidates it now creates idempotent pending
+proposals containing:
+
+- source session/turn/trace/job provenance;
+- candidate content, evidence, tags, confidence, salience, and future use;
+- current proposed action such as `create_new`, `noop_duplicate`,
+  `review_similar`, `needs_review`, or `reject_candidate`;
+- similar memory ids from the existing sparse/lexical retrieval stack;
+- related canonical fact ids and candidate fact payloads when extraction can
+  identify entity/predicate/value;
+- decision metadata with current retrieval stages and future-ready placeholders
+  for embeddings and graph nodes.
+
+Expose `GET /mind/memory/proposals` so Scarlet and evaluators can inspect the
+proposal inbox without treating proposals as active memories.
+
+Consequences:
+
+- The system gains an observable bridge between diagnostic review and future
+  memory application.
+- Active memory remains protected from automatic pollution while review quality
+  is evaluated.
+- Existing Memory v0 primitives remain the source of truth: write policy,
+  sparse retrieval, atomic facts, and lifecycle routes are reused instead of
+  duplicated.
+- The next decision can focus on proposal application policy: human approval,
+  Scarlet-assisted apply, deterministic safe auto-apply thresholds, merge, or
+  deprecation workflows.
+
+Links:
+
+- `backend/app/storage/models.py`
+- `backend/app/mind/memory.py`
+- `backend/app/runtime/maintenance.py`
+- `docs/branches/memory.md`

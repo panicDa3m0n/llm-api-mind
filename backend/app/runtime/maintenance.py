@@ -13,7 +13,10 @@ from app.config import Settings
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMProvider, LLMRequestError
 from app.mind.episodic import handle_session_summarize
-from app.mind.memory import MindAPIContext
+from app.mind.memory import (
+    MindAPIContext,
+    create_memory_proposal_from_review_candidate,
+)
 from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import MaintenanceJob, utc_now
@@ -409,6 +412,40 @@ def _run_memory_review(
                 "mode": "report_only",
             },
         )
+        proposal_payloads: list[dict[str, Any]] = []
+        proposal_created_count = 0
+        if ok:
+            proposal_context = MindAPIContext(
+                engine=engine,
+                session_id=job.session_id,
+                turn_id=job.trigger_turn_id,
+                settings=settings,
+                provider_factory=provider_factory,
+            )
+            for index, candidate in enumerate(parsed.get("candidates", [])):
+                if not isinstance(candidate, dict) or not candidate.get(
+                    "write_recommended"
+                ):
+                    continue
+                proposal, created = create_memory_proposal_from_review_candidate(
+                    db,
+                    candidate=candidate,
+                    context=proposal_context,
+                    source_trace_id=trace.id,
+                    maintenance_job_id=job.id,
+                    candidate_index=index,
+                )
+                proposal_payloads.append(
+                    {
+                        "id": proposal.id,
+                        "status": proposal.status,
+                        "proposed_action": proposal.proposed_action,
+                        "risk": proposal.risk,
+                        "created": created,
+                    }
+                )
+                if created:
+                    proposal_created_count += 1
         event = record_event(
             db,
             session_id=job.session_id,
@@ -424,6 +461,9 @@ def _run_memory_review(
                     if isinstance(item, dict) and item.get("write_recommended")
                 ),
                 "mode": "report_only",
+                "proposal_count": len(proposal_payloads),
+                "proposal_created_count": proposal_created_count,
+                "proposal_ids": [item["id"] for item in proposal_payloads],
             },
             source="maintenance",
             actor="backend",
@@ -437,6 +477,7 @@ def _run_memory_review(
     return {
         "ok": ok,
         "review": parsed,
+        "proposals": proposal_payloads,
         "trace_id": trace_id,
         "event_id": event_id,
     }

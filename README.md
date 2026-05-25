@@ -12,7 +12,7 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.0.1**.
+Current app baseline: **V1.1.0**.
 
 The project has a working local baseline runtime:
 
@@ -31,8 +31,8 @@ The project has a working local baseline runtime:
 - Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
 - runtime event control plane feeding the cockpit timeline and compact
   next-turn operational context;
-- backend-owned per-session idle maintenance for session summary refresh and
-  report-only missed-memory review;
+- backend-owned per-session idle maintenance for session summary refresh,
+  missed-memory review, and memory proposal generation;
 - visible metacognition prompt probe for concise public self-monitoring notes;
 - streaming React cockpit with inline ordered agent-turn timeline and recent
   session sidebar for reopening persisted conversations by title;

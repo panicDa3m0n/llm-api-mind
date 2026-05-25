@@ -306,3 +306,81 @@ class MemoryFact(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON, nullable=False),
     )
+
+
+class MemoryProposal(SQLModel, table=True):
+    __tablename__ = "memory_proposals"
+    __table_args__ = (
+        UniqueConstraint("idempotency_key", name="uq_memory_proposals_idempotency_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("prop"), primary_key=True)
+    status: str = Field(default="pending", index=True)
+    source: str = Field(default="maintenance.memory_review", index=True)
+    proposed_action: str = Field(default="create_new", index=True)
+    action_confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    risk: str = Field(default="medium", index=True)
+    candidate_type: str = Field(index=True)
+    candidate_scope: str = Field(default="project", index=True)
+    content: str
+    reason_for_storage: str
+    expected_future_use: str | None = None
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    salience: float = Field(default=0.7, ge=0.0, le=1.0)
+    evidence: str | None = None
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_trace_id: str | None = Field(
+        default=None,
+        foreign_key="traces.id",
+        index=True,
+    )
+    maintenance_job_id: str | None = Field(
+        default=None,
+        foreign_key="maintenance_jobs.id",
+        index=True,
+    )
+    source_message_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    tags_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    similar_memory_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    related_fact_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    candidate_facts_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    decision_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    result_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    idempotency_key: str = Field(index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    applied_at: datetime | None = Field(default=None, index=True)

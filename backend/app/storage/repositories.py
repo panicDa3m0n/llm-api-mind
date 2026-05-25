@@ -10,6 +10,7 @@ from app.storage.models import (
     CognitiveEvent,
     MaintenanceJob,
     MemoryFact,
+    MemoryProposal,
     MemoryRecord,
     Message,
     SessionSummary,
@@ -631,6 +632,119 @@ def list_memory_facts(
         MemoryFact.salience.desc(),
         MemoryFact.recorded_at.desc(),
         MemoryFact.id,
+    )
+    return list(db.exec(statement).all())
+
+
+def upsert_memory_proposal(
+    db: Session,
+    *,
+    idempotency_key: str,
+    source: str,
+    proposed_action: str,
+    action_confidence: float,
+    risk: str,
+    candidate_type: str,
+    candidate_scope: str,
+    content: str,
+    reason_for_storage: str,
+    expected_future_use: str | None = None,
+    confidence: float = 0.7,
+    salience: float = 0.7,
+    evidence: str | None = None,
+    source_session_id: str | None = None,
+    source_turn_id: str | None = None,
+    source_trace_id: str | None = None,
+    maintenance_job_id: str | None = None,
+    source_message_ids: list[str] | None = None,
+    tags: list[str] | None = None,
+    similar_memory_ids: list[str] | None = None,
+    related_fact_ids: list[str] | None = None,
+    candidate_facts: list[dict[str, Any]] | None = None,
+    decision: dict[str, Any] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> tuple[MemoryProposal, bool]:
+    existing = get_memory_proposal_by_idempotency_key(
+        db,
+        idempotency_key=idempotency_key,
+    )
+    if existing is not None:
+        return existing, False
+
+    proposal = MemoryProposal(
+        idempotency_key=idempotency_key,
+        source=source,
+        proposed_action=proposed_action,
+        action_confidence=action_confidence,
+        risk=risk,
+        candidate_type=candidate_type,
+        candidate_scope=candidate_scope,
+        content=content,
+        reason_for_storage=reason_for_storage,
+        expected_future_use=expected_future_use,
+        confidence=confidence,
+        salience=salience,
+        evidence=evidence,
+        source_session_id=source_session_id,
+        source_turn_id=source_turn_id,
+        source_trace_id=source_trace_id,
+        maintenance_job_id=maintenance_job_id,
+        source_message_ids_json=source_message_ids or [],
+        tags_json=tags or [],
+        similar_memory_ids_json=similar_memory_ids or [],
+        related_fact_ids_json=related_fact_ids or [],
+        candidate_facts_json=candidate_facts or [],
+        decision_json=decision or {},
+        metadata_json=metadata or {},
+    )
+    db.add(proposal)
+    if source_session_id is not None:
+        _touch_session(db, source_session_id)
+    db.commit()
+    db.refresh(proposal)
+    return proposal, True
+
+
+def get_memory_proposal(
+    db: Session,
+    proposal_id: str,
+) -> MemoryProposal | None:
+    return db.get(MemoryProposal, proposal_id)
+
+
+def get_memory_proposal_by_idempotency_key(
+    db: Session,
+    *,
+    idempotency_key: str,
+) -> MemoryProposal | None:
+    statement = select(MemoryProposal).where(
+        MemoryProposal.idempotency_key == idempotency_key
+    )
+    return db.exec(statement).first()
+
+
+def list_memory_proposals(
+    db: Session,
+    *,
+    status: str | None = "pending",
+    source_session_id: str | None = None,
+    limit: int = 20,
+    offset: int = 0,
+) -> list[MemoryProposal]:
+    statement = select(MemoryProposal)
+    if status is not None:
+        statement = statement.where(MemoryProposal.status == status)
+    if source_session_id is not None:
+        statement = statement.where(
+            MemoryProposal.source_session_id == source_session_id
+        )
+    statement = (
+        statement.order_by(
+            MemoryProposal.created_at.desc(),
+            MemoryProposal.id,
+        )
+        .offset(offset)
+        .limit(limit)
     )
     return list(db.exec(statement).all())
 

@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.0.1.
+App baseline: V1.1.0.
 
 Current scope:
 
@@ -14,17 +14,17 @@ Current scope:
 - dashboard-ready recent session listing, session message reload, runtime
   settings, memory panel data, and profile readout;
 - SQLite schema for sessions, messages, turns, traces, ordered runtime events,
-  maintenance jobs, tool calls, memories, memory facts, session summaries, and
-  app settings;
+  maintenance jobs, tool calls, memories, memory facts, memory proposals,
+  session summaries, and app settings;
 - model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
-- Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;
+- Memory v0 write/search/read/conflicts/proposals/deprecate/supersede/facts/backfill through `mind_api`;
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
 - automatic Memory Context Pipeline v0 traces before model requests;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
-- per-session idle maintenance that schedules summary refresh plus report-only
-  missed-memory review after completed turns;
+- per-session idle maintenance that schedules summary refresh, missed-memory
+  review, and pending memory proposal creation after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
 

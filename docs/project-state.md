@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-05-25  
-App baseline: V1.0.1  
+App baseline: V1.1.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -180,7 +180,7 @@ mind_api(method, path, body, intent)
 ```
 
 Implemented routes in current schema version
-`2026-05-24.temporal-sparse-v1`:
+`2026-05-25.memory-proposals-v1`:
 
 - `GET /mind/schema`
 - `POST /mind/memory/write`
@@ -189,6 +189,7 @@ Implemented routes in current schema version
 - `GET /mind/memory/facts`
 - `POST /mind/memory/facts/backfill`
 - `GET /mind/memory/conflicts`
+- `GET /mind/memory/proposals`
 - `POST /mind/memory/deprecate`
 - `POST /mind/memory/supersede`
 - `GET /mind/sessions`
@@ -235,6 +236,9 @@ Implemented:
   session.
 - SQLite FTS5/BM25 sparse retrieval over derived memory search documents.
 - Prompt policy for autonomous semantic memory consolidation.
+- Memory proposal inbox for missed-memory review candidates, with candidate
+  evidence, similar-memory preflight, suggested lifecycle action, and future
+  embedding/graph slots.
 
 Confirmed:
 
@@ -244,7 +248,8 @@ Confirmed:
   preference/health limit and retrieve them in another session.
 - Integrated direct probes show memory write remains inconsistent: Scarlet can
   adopt a durable preference in the answer while not calling `memory.write`;
-  idle maintenance catches the omission as a report-only candidate.
+  idle maintenance catches the omission as a proposal candidate without writing
+  active memory automatically.
 
 Still monitoring:
 
@@ -501,6 +506,7 @@ Primary docs:
 Implemented:
 
 - `maintenance_jobs` storage for backend-owned asynchronous work.
+- `memory_proposals` storage for review candidates that are not active memories.
 - A per-session idle job is scheduled after `turn.completed`.
 - The job due time defaults to `900` seconds through
   `MAINTENANCE_IDLE_SECONDS`.
@@ -510,31 +516,33 @@ Implemented:
   batches.
 - The current job performs:
   - `sessions.summarize` to refresh the episodic summary only when stale;
-  - report-only missed semantic memory review over the full user/assistant
-    transcript and memories already written from that session.
+  - missed semantic memory review over the full user/assistant transcript and
+    memories already written from that session;
+  - proposal creation for write-recommended review candidates, with duplicate,
+    similar-memory, and canonical-fact preflight.
 - Maintenance emits `maintenance.job.*` and
   `maintenance.memory_review.completed` events, and writes a
-  `maintenance.memory_review` trace.
+  `maintenance.memory_review` trace. The review event reports proposal counts.
 
 Confirmed:
 
 - Targeted backend tests verify job scheduling, supersession, idle skip when a
-  newer turn exists, summary refresh, report-only review output, and live chat
+  newer turn exists, summary refresh, review/proposal output, and live chat
   event emission.
 - Direct MiniMax probe confirmed the idle job can catch a missed memory write
   when Scarlet emits pseudo tool-call text and no real `mind.memory.write`
   trace exists.
 - A second integrated probe confirmed the idle job also catches quieter missed
   writes where Scarlet answers coherently but never calls the memory endpoint.
-- The review deliberately does not write semantic memories automatically in
-  this slice, avoiding a second memory writer that could compete with Scarlet's
-  in-turn cognition.
+- The review deliberately does not write semantic memories automatically.
+  Instead, it now creates pending memory proposals so future apply/merge
+  decisions can be evaluated without polluting active memory.
 
 Still monitoring:
 
 - Live MiniMax behavior still needs evaluation after the 15-minute idle window.
-- The report-only candidates need a future decision: whether to become a
-  proposal inbox, automatic write path, or evaluator-only diagnostic.
+- Pending proposals need future UI/application decisions: evaluator approval,
+  safe auto-apply thresholds, or Scarlet-assisted lifecycle actions.
 - BUG-0032 must be discussed before implementing a direct fix for pseudo
   tool-call text.
 - Some maintenance candidates are useful but not clean enough for automatic
@@ -575,8 +583,8 @@ Primary docs:
 
 Need:
 
-- decide whether report-only missed-memory candidates become a proposal inbox,
-  automatic write path, or evaluator-only diagnostic;
+- decide how pending memory proposals should be applied, rejected, merged, or
+  escalated to Scarlet/human review;
 - stale-memory detection and lifecycle repair for old technical baselines that
   conflict with current runtime state;
 - memory promise detection, e.g. final answer says "I will remember" without a
@@ -587,12 +595,14 @@ Need:
 Already implemented:
 
 - `turn.completed` schedules per-session idle maintenance.
-- The idle job runs summary refresh and report-only missed-memory review.
+- The idle job runs summary refresh, missed-memory review, and pending proposal
+  creation without auto-writing active memory.
 
 Why next:
 
 The first maintenance slice exists. The next decision should be based on live
-evidence from its report-only output, not on adding more overlapping processes.
+evidence from pending proposal quality, not on adding more overlapping
+processes.
 
 ### 3.2 Retrieval Quality Upgrade
 
@@ -732,8 +742,9 @@ Implemented first slice:
 1. Deterministic `maintenance_jobs` records.
 2. Per-session idle scheduling after `turn.completed`.
 3. Session summary refresh through the existing summarization endpoint.
-4. Report-only missed-memory review.
-5. Maintenance events/traces visible to debug/UI.
+4. Missed-memory review.
+5. Pending memory proposals with duplicate/similarity/fact preflight.
+6. Maintenance events/traces visible to debug/UI.
 
 Why:
 
@@ -743,6 +754,7 @@ burden to Scarlet's prompt.
 Next P1 evaluation:
 
 - wait for real idle jobs after live sessions;
+- inspect pending `memory_proposals` for action quality and noise;
 - inspect `maintenance.memory_review` traces for useful or noisy candidates;
 - decide whether candidates should feed a proposal inbox, auto-write path, or
   remain diagnostics.

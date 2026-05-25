@@ -2947,3 +2947,60 @@ Verification:
 - Documentation-only structure inspected through file reads.
 - Version metadata updated only in package/FastAPI metadata; no runtime behavior
   was intentionally changed.
+
+## 2026-05-25 - V1.1.0 Memory Proposal Inbox
+
+Area:
+
+Memoria / manutenzione semantica.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Implementazione.
+
+Target version:
+
+V1.1.0.
+
+Goal:
+
+Move idle missed-memory review from diagnostic-only traces to a safer,
+observable proposal inbox without auto-writing active semantic memories.
+
+Changes:
+
+- Added `memory_proposals` storage with idempotency key, source provenance,
+  candidate fields, evidence, similar-memory ids, related fact ids, decision
+  metadata, and future embedding/graph-ready slots.
+- Added repository helpers for proposal upsert/list/read-by-key.
+- Added preflight logic that reuses existing Memory v0 write policy, FTS5/BM25
+  sparse retrieval, lexical scoring, and canonical facts to suggest actions:
+  `create_new`, `noop_duplicate`, `review_similar`, `needs_review`, or
+  `reject_candidate`.
+- Updated idle maintenance so write-recommended missed-memory review
+  candidates create pending proposals and report proposal counts in
+  `maintenance.memory_review.completed`.
+- Added `GET /mind/memory/proposals` through `mind_api`.
+- Advanced the Mind API schema version to
+  `2026-05-25.memory-proposals-v1`.
+- Updated docs for API contract, project state, memory branch, decision log,
+  experiment log, changelog, and V1.1.0 version metadata.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_mind_api.py`
+  (`33 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest`
+  (`58 passed`).
+
+Notes:
+
+- Proposals are explicitly not active memories.
+- No auto-apply route was added in this slice.
+- Next useful work is proposal application policy and UI/evaluator inspection,
+  not embedding or graph infrastructure yet.

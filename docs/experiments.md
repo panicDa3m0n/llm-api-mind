@@ -2588,3 +2588,52 @@ is visible to the model as operational context, not only as UI metadata. The
 current persisted display name is still the test value `Test nome`; that is not
 a runtime bug, but the dashboard should be used to set the real profile name
 when the owner wants the local profile to reflect production-like identity.
+
+## EXP-0027 - Memory Proposal Inbox For Missed-Memory Review
+
+Date Started: 2026-05-25
+Status: implemented for backend verification
+
+Hypothesis:
+
+Missed-memory review should not write active memories directly. A safer first
+step is a proposal inbox that captures sourceable candidates, duplicate/similar
+memory preflight, and lifecycle suggestions, so later apply policies can be
+evaluated without polluting semantic memory.
+
+Variant:
+
+Idle maintenance still runs after the per-session idle timer. When the LLM
+review returns `write_recommended=true`, the backend now creates an idempotent
+`memory_proposals` row instead of writing a `memories` row.
+
+Each proposal records:
+
+- source session, turn, trace, and maintenance job;
+- candidate content and evidence;
+- proposed action such as `create_new`, `noop_duplicate`, `review_similar`,
+  `needs_review`, or `reject_candidate`;
+- similar memories from current FTS5/BM25 + lexical retrieval;
+- candidate and related canonical facts where the extractor can identify them;
+- future-ready decision metadata for embedding ids and graph node ids.
+
+Verification:
+
+- Targeted tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_mind_api.py`
+  (`33 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest`
+  (`58 passed`).
+- Storage test confirms proposal idempotency.
+- Maintenance test confirms idle review creates a pending proposal with
+  `create_new`.
+- Duplicate test confirms an exact existing memory becomes
+  `noop_duplicate`, not a second active memory.
+- Mind API test confirms `GET /mind/memory/proposals` returns pending proposal
+  data and warns that proposals are not active memory.
+
+Assessment:
+
+Accepted as the next safe P1 memory-maintenance slice. It turns diagnostic
+review into inspectable maintenance state while preserving the core rule that
+only explicit memory lifecycle operations mutate active semantic memory.

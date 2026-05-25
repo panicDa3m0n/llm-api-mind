@@ -1,7 +1,8 @@
 # Development Process
 
 Last updated: 2026-05-25  
-App baseline: V1.0.1  
+Current app version: V1.1.0
+Process baseline: V1.0.1
 Status: accepted
 
 This document defines the engineering process from V1.0.1 onward.
