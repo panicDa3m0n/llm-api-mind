@@ -2010,3 +2010,29 @@ Verification:
 
 `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_maintenance_api.py`
 passed with `25 passed`.
+
+## BUG-0037 - Short Fact Alias Can Match Unrelated Substrings
+
+Date Found: 2026-05-26
+Status: open
+
+Symptoms:
+
+While testing V1.2.0 maintenance-created memories, the deterministic fact
+extractor associated an unrelated user preference with entity
+`sal-updates`. The likely trigger is the short alias `sal`, which can match
+inside unrelated words such as tags or ordinary text.
+
+Impact:
+
+This can create misleading canonical facts for newly written memories. The
+current proposal resolution stores the full proposal and memory snapshot, so
+future Dream/human review can detect the anomaly, but retrieval/conflict logic
+that relies on canonical facts may receive noisy entity matches.
+
+Do Not Fix In V1.2.0:
+
+This is a pre-existing extractor issue, not the proposal-resolution feature
+itself. It should be fixed in a focused retrieval/facts slice by replacing
+substring alias checks with token/phrase-boundary matching and adding
+regression tests.

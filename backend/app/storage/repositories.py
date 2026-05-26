@@ -21,6 +21,15 @@ from app.storage.models import (
 )
 
 
+RESOLVED_MEMORY_PROPOSAL_STATUSES = {
+    "applied_create",
+    "archived_manual",
+    "archived_noop_duplicate",
+    "archived_rejected",
+    "pending_review",
+}
+
+
 def create_chat_session(
     db: Session,
     *,
@@ -727,17 +736,32 @@ def list_memory_proposals(
     db: Session,
     *,
     status: str | None = "pending",
+    statuses: list[str] | None = None,
     source_session_id: str | None = None,
+    created_from: datetime | None = None,
+    created_to: datetime | None = None,
+    resolved_from: datetime | None = None,
+    resolved_to: datetime | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> list[MemoryProposal]:
     statement = select(MemoryProposal)
-    if status is not None:
+    if statuses is not None:
+        statement = statement.where(MemoryProposal.status.in_(statuses))
+    elif status is not None:
         statement = statement.where(MemoryProposal.status == status)
     if source_session_id is not None:
         statement = statement.where(
             MemoryProposal.source_session_id == source_session_id
         )
+    if created_from is not None:
+        statement = statement.where(MemoryProposal.created_at >= created_from)
+    if created_to is not None:
+        statement = statement.where(MemoryProposal.created_at <= created_to)
+    if resolved_from is not None:
+        statement = statement.where(MemoryProposal.applied_at >= resolved_from)
+    if resolved_to is not None:
+        statement = statement.where(MemoryProposal.applied_at <= resolved_to)
     statement = (
         statement.order_by(
             MemoryProposal.created_at.desc(),
@@ -749,10 +773,11 @@ def list_memory_proposals(
     return list(db.exec(statement).all())
 
 
-def archive_memory_proposal(
+def resolve_memory_proposal(
     db: Session,
     *,
     proposal_id: str,
+    status: str,
     result: dict[str, Any] | None = None,
 ) -> MemoryProposal | None:
     proposal = get_memory_proposal(db, proposal_id)
@@ -760,7 +785,7 @@ def archive_memory_proposal(
         return None
 
     now = utc_now()
-    proposal.status = "archived"
+    proposal.status = status
     proposal.result_json = result or {}
     proposal.applied_at = now
     proposal.updated_at = now
@@ -770,6 +795,20 @@ def archive_memory_proposal(
     db.commit()
     db.refresh(proposal)
     return proposal
+
+
+def archive_memory_proposal(
+    db: Session,
+    *,
+    proposal_id: str,
+    result: dict[str, Any] | None = None,
+) -> MemoryProposal | None:
+    return resolve_memory_proposal(
+        db,
+        proposal_id=proposal_id,
+        status="archived_manual",
+        result=result,
+    )
 
 
 def update_memory_facts_status(

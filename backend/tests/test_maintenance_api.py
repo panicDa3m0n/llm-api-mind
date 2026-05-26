@@ -75,9 +75,25 @@ def test_maintenance_memory_proposals_are_paged_and_archived(db_engine: Engine) 
 
     assert archive_response.status_code == 200
     archived = archive_response.json()["proposal"]
-    assert archived["status"] == "archived"
+    assert archived["status"] == "archived_manual"
     assert archived["result"]["reason"] == "Reviewed by maintenance evaluator."
     assert archived["applied_at"] is not None
+
+    resolved_response = client.get(
+        "/api/maintenance/memory/proposals",
+        params={
+            "status": "resolved",
+            "resolved_from": "2000-01-01T00:00:00",
+            "resolved_to": "2999-01-01T00:00:00",
+            "limit": 10,
+            "offset": 0,
+        },
+    )
+    resolved_ids = [
+        proposal["id"] for proposal in resolved_response.json()["proposals"]
+    ]
+    assert first_id in resolved_ids
+    assert resolved_response.json()["statuses"]
 
     pending_response = client.get(
         "/api/maintenance/memory/proposals",

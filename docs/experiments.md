@@ -2643,3 +2643,67 @@ review into inspectable maintenance state while preserving the core rule that
 only explicit memory lifecycle operations mutate active semantic memory.
 Proposal inspection is intentionally internal to maintenance processes, not an
 autonomous Scarlet `mind_api` capability.
+
+## EXP-0028 - Cautious Proposal Resolution Inside Idle Maintenance
+
+Date Started: 2026-05-26
+Status: implemented for backend verification
+
+Hypothesis:
+
+The existing session-idle maintenance job can resolve safe memory proposals
+without adding a redundant background process. Deterministic preflight should
+close obvious rejects/duplicates with zero extra LLM calls, while ambiguous
+items should be sent to one batched LLM resolver only when needed.
+
+Variant:
+
+Idle maintenance now runs this single pipeline:
+
+```txt
+summary -> missed-memory review -> proposal creation -> preflight -> cautious resolution
+```
+
+Resolved proposals remain in `memory_proposals` as the daily audit ledger for
+future Dream review:
+
+- `archived_rejected`
+- `archived_noop_duplicate`
+- `applied_create`
+- `pending_review`
+- `archived_manual`
+
+Very high-confidence `create_new` proposals can create active memories with
+`created_by=maintenance`; their proposal result stores the created memory id
+and snapshot. Ambiguous cases are handled by one optional LLM resolver batch.
+Dream, merge, update, and deprecation are intentionally not implemented.
+
+Verification:
+
+- Targeted maintenance tests verify:
+  - normal ambiguous proposal becomes `pending_review` through the batch
+    resolver;
+  - very high-confidence `create_new` is applied without an extra resolver
+    call;
+  - exact duplicate proposal becomes `archived_noop_duplicate` without an extra
+    resolver call;
+  - LLM resolver can apply an eligible `create_new` proposal and emits
+    `maintenance.memory_proposal_resolution`.
+- Targeted API tests verify `status=resolved` plus resolved time filters over
+  the proposal ledger.
+- Full backend suite passed with `63 passed`; frontend production build and
+  `git diff --check` passed.
+- Direct real MiniMax maintenance probe on a temporary SQLite DB passed:
+  - job status: `completed`;
+  - proposal status: `applied_create`;
+  - proposal action: `create_new`;
+  - memory count: `1`;
+  - trace kinds included `maintenance.memory_proposal_resolution`,
+    `maintenance.memory_review`, and `mind.sessions.summarize`.
+
+Assessment:
+
+Accepted as the next memory-maintenance implementation slice. The important
+design result is that proposal resolution remains part of the same idle job,
+not a separate always-on LLM process. Future Dream should read resolved and
+pending-review proposal rows, not recompute the whole session history.

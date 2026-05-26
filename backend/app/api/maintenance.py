@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -37,15 +38,30 @@ def build_maintenance_router(engine: Engine) -> APIRouter:
             ),
         ),
         source_session_id: str | None = Query(default=None, max_length=80),
+        created_from: datetime | None = Query(default=None),
+        created_to: datetime | None = Query(default=None),
+        resolved_from: datetime | None = Query(default=None),
+        resolved_to: datetime | None = Query(default=None),
         limit: int = Query(default=20, ge=1, le=100),
         offset: int = Query(default=0, ge=0),
     ) -> dict[str, Any]:
         normalized_status = None if status_filter in {"all", "any", "*"} else status_filter
+        statuses = (
+            sorted(repositories.RESOLVED_MEMORY_PROPOSAL_STATUSES)
+            if normalized_status == "resolved"
+            else None
+        )
+        exact_status = None if statuses is not None else normalized_status
         with Session(engine) as db:
             proposals = repositories.list_memory_proposals(
                 db,
-                status=normalized_status,
+                status=exact_status,
+                statuses=statuses,
                 source_session_id=source_session_id,
+                created_from=created_from,
+                created_to=created_to,
+                resolved_from=resolved_from,
+                resolved_to=resolved_to,
                 limit=limit + 1,
                 offset=offset,
             )
@@ -56,7 +72,12 @@ def build_maintenance_router(engine: Engine) -> APIRouter:
         return {
             "operation": "maintenance.memory.proposals.list",
             "status": normalized_status,
+            "statuses": statuses,
             "source_session_id": source_session_id,
+            "created_from": created_from.isoformat() if created_from else None,
+            "created_to": created_to.isoformat() if created_to else None,
+            "resolved_from": resolved_from.isoformat() if resolved_from else None,
+            "resolved_to": resolved_to.isoformat() if resolved_to else None,
             "limit": limit,
             "offset": offset,
             "returned": len(payloads),

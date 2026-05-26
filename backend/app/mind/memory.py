@@ -1910,6 +1910,73 @@ def memory_proposal_payload(proposal: MemoryProposal) -> dict[str, Any]:
     }
 
 
+def apply_create_memory_proposal(
+    db: Session,
+    *,
+    proposal: MemoryProposal,
+    resolver: str,
+    reason: str,
+    decision: dict[str, Any] | None = None,
+) -> tuple[MemoryRecord, MemoryProposal]:
+    resolution = {
+        "resolver": resolver,
+        "outcome": "apply_create",
+        "reason": reason,
+        "decision": decision or {},
+        "decided_at": _isoformat(utc_now()),
+    }
+    metadata = {
+        **(proposal.metadata_json or {}),
+        "proposal_id": proposal.id,
+        "proposal_origin": proposal.source,
+        "maintenance_job_id": proposal.maintenance_job_id,
+        "resolution": resolution,
+    }
+    memory = repositories.add_memory(
+        db,
+        memory_type=proposal.candidate_type,
+        scope=proposal.candidate_scope,
+        content=proposal.content,
+        reason_for_storage=proposal.reason_for_storage,
+        expected_future_use=proposal.expected_future_use,
+        confidence=proposal.confidence,
+        salience=proposal.salience,
+        created_by="maintenance",
+        source_session_id=proposal.source_session_id,
+        source_turn_id=proposal.source_turn_id,
+        source_message_id=(
+            proposal.source_message_ids_json[0]
+            if proposal.source_message_ids_json
+            else None
+        ),
+        tags=proposal.tags_json,
+        metadata=metadata,
+    )
+    facts, _ = _ensure_memory_facts(
+        db,
+        memory,
+        source_trace_id=proposal.source_trace_id,
+    )
+    memory_snapshot = _memory_payload(memory, facts=facts)
+    resolved = repositories.resolve_memory_proposal(
+        db,
+        proposal_id=proposal.id,
+        status="applied_create",
+        result={
+            "resolution": resolution,
+            "memory_result": {
+                "memory_id": memory.id,
+                "memory_snapshot": memory_snapshot,
+            },
+            "preflight_snapshot": proposal.decision_json,
+            "dream_review_candidate": True,
+        },
+    )
+    if resolved is None:
+        raise ValueError(f"Memory proposal not found after apply: {proposal.id}")
+    return memory, resolved
+
+
 def _ensure_memory_facts(
     db: Session,
     memory: MemoryRecord,

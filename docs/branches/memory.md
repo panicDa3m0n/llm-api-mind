@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-05-25  
-System version assessed: V1.1.1
+Last updated: 2026-05-26
+System version assessed: V1.2.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -26,6 +26,9 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   preflight su duplicati, memorie simili e fatti canonici. La inbox non e
   esposta a Scarlet tramite `mind_api`; viene letta e archiviata solo da API di
   manutenzione.
+- Idle maintenance ora risolve i casi cauti nella stessa pipeline: reject e
+  duplicate vengono archiviati, create_new molto sicure possono diventare
+  memorie attive, e i casi ambigui passano a un solo resolver LLM batch.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
@@ -35,12 +38,12 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 Valutazione: L4+.
 
 E il ramo piu avanzato. La combinazione memoria semantica + episodica e gia
-innovativa e utile. La proposal inbox porta la manutenzione fuori dal solo
-diagnostico, senza ancora auto-scrivere memorie attive. Non e L5 perche mancano
-applicazione controllata delle proposal, compaction, embedding, knowledge
-graph, pesi emotivi, staleness scoring e privacy multiutente vera.
+innovativa e utile. La proposal inbox ora e un ledger operativo: conserva
+candidate, preflight, risoluzioni, scarti e memorie applicate. Non e L5 perche
+mancano ancora merge/deprecate automatici, Dream review, compaction, embedding,
+knowledge graph, pesi emotivi, staleness scoring e privacy multiutente vera.
 
-Sistema valutato: V1.1.1.
+Sistema valutato: V1.2.0.
 
 ## Sviluppi precedenti
 
@@ -56,12 +59,15 @@ Sistema valutato: V1.1.1.
 - V1.1.1 proposal inbox separation: la consultazione passa alle API di
   manutenzione con paginazione e archiviazione, fuori dalla superficie
   model-facing di Scarlet.
+- V1.2.0 cautious proposal resolution: la stessa idle maintenance archivia
+  scarti/duplicati, applica create_new molto sicure e manda i casi ambigui a
+  un resolver LLM batch opzionale.
 
 ## Evolutive
 
-- Processo LLM manutentivo che consuma N proposal pending, le valuta, applica
-  o scarta le operazioni future e poi le archivia.
-- Applicazione controllata delle proposal: approva/rifiuta/applica/merge.
+- Dream review ogni 12 ore sull'archivio giornaliero delle proposal risolte o
+  rimaste in pending_review.
+- Applicazione controllata avanzata delle proposal: merge/update/deprecate.
 - Compaction semantica e merge duplicati.
 - Stale-memory detection e deprecazione assistita.
 - Hybrid retrieval: sparse + dense embeddings + reranking.

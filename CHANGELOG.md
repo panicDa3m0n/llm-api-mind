@@ -6,6 +6,21 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Added
+
+- Added V1.2.0 cautious memory proposal resolution inside idle maintenance:
+  - deterministic preflight now immediately archives rejected and duplicate
+    proposals as auditable daily-ledger records;
+  - very high-confidence `create_new` proposals can be applied as active
+    memories with `created_by=maintenance` and full proposal provenance;
+  - ambiguous proposals are resolved in one optional LLM batch and become
+    `applied_create`, `archived_rejected`, `archived_noop_duplicate`, or
+    `pending_review`;
+  - `memory_proposals` acts as the daily archive/ledger for future Dream
+    review without adding a separate table or process;
+  - maintenance proposal listing now supports created/resolved time filters and
+    `status=resolved`.
+
 ### Fixed
 
 - Added V1.1.1 maintenance-only proposal inbox separation:
@@ -19,8 +34,6 @@ This project uses a practical changelog rather than a release-only log: each mea
     paths do not masquerade as memory ids;
   - Mind API schema version advanced to
     `2026-05-25.maintenance-proposals-v1`.
-
-### Added
 
 - Added V1.1.0 memory proposal inbox:
   - `memory_proposals` storage for missed-memory review candidates;

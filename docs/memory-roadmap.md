@@ -564,8 +564,12 @@ Implemented:
 - Idle job refreshes the episodic session summary with the existing
   `sessions.summarize` flow.
 - Idle job runs missed semantic memory review, stores
-  `maintenance.memory_review` traces, and creates pending `memory_proposals`
+  `maintenance.memory_review` traces, and creates `memory_proposals`
   for write-recommended candidates.
+- V1.2.0 keeps resolution inside the same idle job: rejected candidates and
+  duplicates are archived deterministically, very high-confidence create_new
+  candidates can become active maintenance memories, and ambiguous candidates
+  use one optional LLM resolver batch.
 - Proposal inspection is maintenance-only in V1.1.1:
   `GET /api/maintenance/memory/proposals` returns bounded pages of pending
   work, and
@@ -579,9 +583,10 @@ Implemented:
 
 Current policy:
 
-The missed-memory review does not write active memories automatically. It
-creates inspectable proposals first, avoiding a second active writer that might
-compete with Scarlet's in-turn semantic consolidation.
+The missed-memory review never writes directly from raw LLM output. It creates
+inspectable proposals first. Only the subsequent cautious resolution phase can
+write a maintenance-created active memory, and every resolved proposal remains
+in the daily ledger for future Dream review.
 
 Next evidence needed:
 
@@ -642,9 +647,11 @@ Behavior:
 - A future experiment may let the model propose memory operations only if it
   needs that model-facing primitive.
 - Backend validates proposals.
-- Maintenance workers inspect bounded pending proposal batches.
-- Human, trusted policy, or future maintenance LLM applies/rejects/merges them.
-- Handled proposals are archived.
+- Idle maintenance resolves safe reject/duplicate/create cases.
+- Ambiguous cases use one optional LLM resolver batch and otherwise remain
+  `pending_review`.
+- Future Dream/human review inspects the daily proposal ledger before
+  merge/update/deprecate behavior is added.
 - Compaction can merge duplicates, suggest supersession, and flag stale records.
 
 Acceptance:

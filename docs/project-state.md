@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-05-25  
-App baseline: V1.1.1
+Last updated: 2026-05-26
+App baseline: V1.2.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -519,10 +519,15 @@ Implemented:
   - missed semantic memory review over the full user/assistant transcript and
     memories already written from that session;
   - proposal creation for write-recommended review candidates, with duplicate,
-    similar-memory, and canonical-fact preflight.
+    similar-memory, and canonical-fact preflight;
+  - cautious proposal resolution in the same idle job: deterministic archive
+    for rejects/duplicates, conservative auto-create for very safe candidates,
+    and one optional batched LLM resolver for ambiguous proposals.
 - Maintenance emits `maintenance.job.*` and
-  `maintenance.memory_review.completed` events, and writes a
-  `maintenance.memory_review` trace. The review event reports proposal counts.
+  `maintenance.memory_review.completed` events, and writes
+  `maintenance.memory_review` plus optional
+  `maintenance.memory_proposal_resolution` traces. The review event reports
+  proposal and resolution counts.
 
 Confirmed:
 
@@ -534,19 +539,25 @@ Confirmed:
   trace exists.
 - A second integrated probe confirmed the idle job also catches quieter missed
   writes where Scarlet answers coherently but never calls the memory endpoint.
-- The review deliberately does not write semantic memories automatically.
-  Instead, it now creates pending memory proposals so future apply/merge
-  decisions can be evaluated without polluting active memory.
+- The review no longer writes every candidate blindly. It creates proposals
+  first, then resolves only safe cases. Created maintenance memories carry
+  `created_by=maintenance` and proposal provenance.
 - Pending memory proposals are not a Scarlet-facing `mind_api` capability.
   They are consumed through maintenance APIs:
   `GET /api/maintenance/memory/proposals` and
   `POST /api/maintenance/memory/proposals/{proposal_id}/archive`.
+- `memory_proposals` is now the daily ledger for future Dream review; resolved
+  rows retain preflight, outcome, reason, and memory snapshot when applied.
+- A direct real MiniMax probe on a temporary DB confirmed the full path:
+  summary, missed-memory review, proposal, LLM resolver, `applied_create`
+  status, active maintenance-created memory, and
+  `maintenance.memory_proposal_resolution` trace.
 
 Still monitoring:
 
 - Live MiniMax behavior still needs evaluation after the 15-minute idle window.
-- Pending proposals need future UI/application decisions: evaluator approval,
-  safe auto-apply thresholds, or Scarlet-assisted lifecycle actions.
+- Pending-review proposals need future UI/Dream decisions for merge, update,
+  deprecation, or human/evaluator approval.
 - BUG-0032 must be discussed before implementing a direct fix for pseudo
   tool-call text.
 - Some maintenance candidates are useful but not clean enough for automatic
@@ -587,8 +598,8 @@ Primary docs:
 
 Need:
 
-- decide how internal maintenance workers should apply, reject, merge, or
-  escalate pending memory proposals after reading them in paged batches;
+- decide how future Dream/human review should process pending-review and
+  resolved daily-ledger proposal rows;
 - stale-memory detection and lifecycle repair for old technical baselines that
   conflict with current runtime state;
 - memory promise detection, e.g. final answer says "I will remember" without a
@@ -599,8 +610,8 @@ Need:
 Already implemented:
 
 - `turn.completed` schedules per-session idle maintenance.
-- The idle job runs summary refresh, missed-memory review, and pending proposal
-  creation without auto-writing active memory.
+- The idle job runs summary refresh, missed-memory review, proposal creation,
+  cautious resolution, and daily-ledger updates.
 
 Why next:
 
@@ -628,7 +639,8 @@ Key acceptance:
 
 Need:
 
-- maintenance-worker apply/reject/merge policy for pending proposals;
+- Dream review over daily proposal ledger rows;
+- merge/update/deprecate policy for pending-review proposals;
 - `POST /mind/memory/propose` only if a later experiment proves Scarlet needs a
   model-facing proposal primitive;
 - `POST /mind/memory/compact`

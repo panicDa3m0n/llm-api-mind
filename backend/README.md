@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.1.1.
+App baseline: V1.2.0.
 
 Current scope:
 
@@ -25,7 +25,8 @@ Current scope:
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - per-session idle maintenance that schedules summary refresh, missed-memory
-  review, and pending memory proposal creation after completed turns;
+  review, pending memory proposal creation, cautious resolution, and auditable
+  proposal ledger updates after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
 

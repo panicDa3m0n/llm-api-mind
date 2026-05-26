@@ -3056,3 +3056,70 @@ Verification:
   (`60 passed`).
 - Frontend production build passed:
   `npm --prefix frontend run build`.
+
+## 2026-05-26 - V1.2.0 Cautious Proposal Resolution
+
+Area:
+
+Memoria / manutenzione proposal.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Implementazione.
+
+Target version:
+
+V1.2.0.
+
+Goal:
+
+Resolve safe memory proposals inside the existing idle maintenance job without
+adding a redundant background LLM process. Keep Dream as a future review phase.
+
+Changes:
+
+- Extended idle maintenance from proposal creation to cautious proposal
+  resolution.
+- Added deterministic proposal outcomes:
+  - `archived_rejected` for preflight rejects;
+  - `archived_noop_duplicate` for exact/equivalent duplicates;
+  - `applied_create` for very high-confidence `create_new` candidates that
+    pass conservative auto-apply gates.
+- Added one optional batched LLM resolver for ambiguous proposals, with
+  `apply_create`, `reject`, `noop_duplicate`, and `keep_pending` outcomes.
+- Added `pending_review` for proposals that should wait for future Dream or
+  human/evaluator review.
+- Stored resolution result, preflight snapshot, Dream review marker, and memory
+  id/snapshot when a proposal creates a memory.
+- Extended the maintenance proposal API with `status=resolved` plus
+  `created_from`, `created_to`, `resolved_from`, and `resolved_to` filters.
+- Kept all proposal inspection outside Scarlet's model-facing `mind_api`.
+
+Verification:
+
+- Targeted memory-maintenance tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_storage.py backend/tests/test_maintenance.py backend/tests/test_maintenance_api.py backend/tests/test_mind_api.py -q`
+  (`38 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest -q`
+  (`63 passed`).
+- Frontend production build passed:
+  `npm --prefix frontend run build`.
+- `git diff --check` passed.
+- Direct real MiniMax maintenance probe on a temporary SQLite database passed:
+  idle maintenance completed, created one `create_new` proposal, invoked the
+  batched LLM resolver, applied the proposal as `applied_create`, wrote one
+  active memory with maintenance provenance, and recorded
+  `maintenance.memory_proposal_resolution`.
+
+Notes:
+
+- Dream review is still not implemented.
+- Merge/update/deprecate resolution remains out of scope and should stay
+  `pending_review`.
+- During implementation, a pre-existing fact-extractor weakness was observed:
+  very short aliases such as `sal` can match substrings in unrelated words.
+  This was not fixed in this slice and is tracked separately.

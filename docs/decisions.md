@@ -1933,3 +1933,66 @@ Links:
 - `backend/app/mind/memory.py`
 - `backend/app/runtime/maintenance.py`
 - `docs/branches/memory.md`
+
+## ADR-0038 - Resolve Safe Memory Proposals Inside Idle Maintenance
+
+Date: 2026-05-26
+Status: accepted
+
+Context:
+
+The owner warned that adding separate proposal-processing workers could make
+memory maintenance redundant and waste LLM calls. The existing idle
+maintenance job already has the right trigger: after a session remains idle.
+It summarizes the session, asks an LLM for missed semantic-memory candidates,
+and creates proposal records with deterministic preflight.
+
+Decision:
+
+Keep proposal resolution inside the same idle maintenance pipeline:
+
+```txt
+idle session
+-> episodic summary
+-> LLM missed-memory review
+-> proposal creation
+-> deterministic preflight
+-> cautious resolution
+-> memory_proposals daily ledger
+```
+
+The deterministic phase resolves only low-risk cases:
+
+- `reject_candidate` becomes `archived_rejected`;
+- `noop_duplicate` becomes `archived_noop_duplicate`;
+- very high-confidence `create_new` with no similar memories and no fact
+  conflicts becomes `applied_create`.
+
+Ambiguous proposals are sent to one optional LLM batch resolver, not one LLM
+call per proposal. The resolver may choose `apply_create`, `reject`,
+`noop_duplicate`, or `keep_pending`. Merge, update, and deprecation are
+explicitly out of this slice and should remain `pending_review`.
+
+`memory_proposals` is the daily audit ledger. No separate archive table is
+created. Resolved proposal rows keep the original candidate, preflight,
+resolution result, and memory snapshot when a memory is created. Future Dream
+review should read this ledger every 12 hours, but Dream itself is not
+implemented yet.
+
+Consequences:
+
+- The maintenance path avoids redundant background LLM processes.
+- Safe duplicate/reject cases consume no extra LLM call.
+- Ambiguous cases consume at most one extra batched resolver call for the
+  current job.
+- No proposal disappears; rejected/noop/applied/pending-review decisions stay
+  auditable for future Dream review.
+- Background memory writes can now happen for conservative `create_new` cases,
+  with `created_by=maintenance` and source proposal provenance.
+
+Links:
+
+- `backend/app/runtime/maintenance.py`
+- `backend/app/mind/memory.py`
+- `backend/app/storage/repositories.py`
+- `docs/experiments.md#exp-0028---cautious-proposal-resolution-inside-idle-maintenance`
