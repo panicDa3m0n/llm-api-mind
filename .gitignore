@@ -48,3 +48,6 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+.scarlet/goals.json
+.scarlet/project.json
+.scarlet/rules.json
