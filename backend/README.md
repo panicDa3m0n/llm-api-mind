@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.2.0.
+App baseline: V1.3.0.
 
 Current scope:
 
@@ -15,7 +15,8 @@ Current scope:
   settings, memory panel data, and profile readout;
 - SQLite schema for sessions, messages, turns, traces, ordered runtime events,
   maintenance jobs, tool calls, memories, memory facts, memory proposals,
-  session summaries, and app settings;
+  memory surfaces, memory graph nodes/edges, session summaries, and app
+  settings;
 - model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
 - Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;

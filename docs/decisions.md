@@ -1996,3 +1996,55 @@ Links:
 - `backend/app/mind/memory.py`
 - `backend/app/storage/repositories.py`
 - `docs/experiments.md#exp-0028---cautious-proposal-resolution-inside-idle-maintenance`
+
+## ADR-0039 - Derived Memory Surfaces And Graph-Ready Retrieval Substrate
+
+Date: 2026-05-28
+Status: accepted
+
+Context:
+
+The owner approved moving toward advanced memory retrieval with embeddings,
+hybrid search, and knowledge graph expansion, but explicitly wanted to avoid
+breaking or replacing the memory logic that already works. The current system
+has canonical semantic memories, atomic facts, episodic summaries, lifecycle
+links, FTS5/BM25 sparse search, and a proposal ledger. The missing layer is a
+stable technical substrate that lets future Milvus/Qdrant/vector adapters and
+graph expansion consume the same canonical state without becoming the source
+of truth.
+
+Decision:
+
+Add derived retrieval artifacts in V1.3.0:
+
+- `memory_surfaces`: embeddable text surfaces for memory records, facts, graph
+  nodes, and session summaries;
+- `memory_graph_nodes`: graph-ready nodes for memories, facts, entities, and
+  sessions;
+- `memory_graph_edges`: graph-ready relationships for facts, entities,
+  source-session evidence, supersession, and fact lifecycle links;
+- a retrieval readiness manifest exposed in memory search/context traces.
+
+Keep `memories`, `memory_facts`, `session_summaries`, messages, and proposal
+rows as the canonical source of truth. Surfaces and graph rows are derived and
+rebuildable. They prepare future dense/hybrid retrieval, but V1.3.0 does not
+activate a vector database or change final memory ranking.
+
+Consequences:
+
+- API Mind stays the cognitive API and Milvus/Qdrant can later be plugged in
+  as specialized retrieval indexes rather than becoming the memory system.
+- Existing `POST /mind/memory/search` remains stable for Scarlet.
+- Future embedding jobs can index `memory_surfaces` by `target_type`,
+  `target_id`, `surface_kind`, scope, status, and content hash.
+- Future graph expansion can start from `memory_graph_nodes` and
+  `memory_graph_edges` without re-parsing every memory.
+- Current sparse matching bugs remain intentionally unpatched in this slice;
+  dense retrieval and stronger graph/entity logic will be evaluated later.
+
+Links:
+
+- `backend/app/storage/models.py`
+- `backend/app/mind/search.py`
+- `backend/app/mind/memory.py`
+- `docs/experiments.md#exp-0029---memory-retrieval-readiness-layer`

@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.2.0
+Version: 1.3.0
 Status: active experimental runtime
-Last updated: 2026-05-26
+Last updated: 2026-05-28
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 

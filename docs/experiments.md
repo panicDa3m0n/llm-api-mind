@@ -2707,3 +2707,55 @@ Accepted as the next memory-maintenance implementation slice. The important
 design result is that proposal resolution remains part of the same idle job,
 not a separate always-on LLM process. Future Dream should read resolved and
 pending-review proposal rows, not recompute the whole session history.
+
+## EXP-0029 - Memory Retrieval Readiness Layer
+
+Date Started: 2026-05-28
+Status: implemented for backend verification
+
+Hypothesis:
+
+Advanced memory retrieval should be prepared as derived infrastructure before
+activating dense vector search or knowledge graph reasoning. If the canonical
+memory tables can generate embeddable surfaces and graph-ready nodes/edges,
+future Milvus/Qdrant/KG adapters can be tested in shadow mode without
+rewriting Scarlet's `mind_api` surface or changing already-working lifecycle
+logic.
+
+Variant:
+
+V1.3.0 adds derived, rebuildable artifacts:
+
+- `memory_surfaces` for memory text, fact text, graph-node profiles, and
+  session summaries;
+- `memory_graph_nodes` for memory, fact, entity, and session nodes;
+- `memory_graph_edges` for `has_fact`, `about_entity`,
+  `evidenced_by_session`, `supersedes`, `superseded_by`, and fact lifecycle
+  links;
+- a retrieval-readiness manifest in memory search/context traces.
+
+The active memory search route still uses FTS5/BM25 plus lexical fallback. No
+Milvus, Qdrant, embedding model, reranker, or graph-reasoning ranker is active
+yet.
+
+Verification:
+
+- Storage test verifies `memory_surfaces`, `memory_graph_nodes`, and
+  `memory_graph_edges` are created and that memory/fact/session/entity
+  artifacts are produced from a sourceable memory.
+- Mind API test verifies `POST /mind/memory/write` creates retrieval surfaces
+  and graph nodes while `POST /mind/memory/search` returns the readiness
+  manifest without changing the search route.
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_chat_api.py tests/test_maintenance.py -q`
+  (`49 passed`).
+- Full backend suite passed: `.venv/bin/python -m pytest -q` (`64 passed`).
+- Frontend production build passed: `npm --prefix frontend run build`.
+- `git diff --check` passed.
+
+Assessment:
+
+Accepted as the V1.3.0 substrate. It deliberately avoids solving BUG-0037 or
+changing ranking by hardcoded terms. The next experimental step is a shadow
+retrieval adapter over `memory_surfaces`, likely Milvus Lite first, with trace
+comparison against the current FTS5/BM25 path.

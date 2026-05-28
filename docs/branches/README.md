@@ -1,7 +1,7 @@
 # Agentic Branches
 
-Last updated: 2026-05-26
-App baseline: V1.2.0
+Last updated: 2026-05-28
+App baseline: V1.3.0
 Status: canonical branch map
 
 This directory tracks Scarlet's real branches of development. A branch is not a
@@ -31,7 +31,7 @@ L5 - Mature lab-core
 | User flows | L1 | Future product workflow layer; only settings/profile/session affordances exist. |
 | Perception and context | L4 | Runtime context blocks are delivered and understood by Scarlet. |
 | Identity and relationship | L2/L3 | Prompt identity and active profile exist; long-term self/persona evolution is not yet structured. |
-| Memory | L4 | Strongest cognitive branch: semantic, episodic, summaries, provenance, retrieval; advanced RAG still missing. |
+| Memory | L4+ | Strongest cognitive branch: semantic, episodic, summaries, provenance, proposal ledger, surfaces and graph-ready retrieval substrate; dense retrieval/KG reasoning still future. |
 | Learning and adaptation | L2 | Preference adaptation through memory exists; no generalized learning loop yet. |
 | Metacognition | L2/L3 | One real endpoint exists; autonomous use is not yet reliable enough. |
 | Operational management | L2 | Seeded focus/state/open loops exist; no real goal/task manager yet. |

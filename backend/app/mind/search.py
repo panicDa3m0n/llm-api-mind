@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import hashlib
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Iterable
@@ -11,7 +12,7 @@ from sqlmodel import Session
 
 from app.mind.facts import fact_search_text
 from app.storage import repositories
-from app.storage.models import ChatSession, MemoryFact, MemoryRecord
+from app.storage.models import ChatSession, MemoryFact, MemoryGraphNode, MemoryRecord
 
 
 @dataclass(frozen=True)
@@ -31,7 +32,8 @@ def sync_memory_documents(
     facts_by_memory: dict[str, list[MemoryFact]] | None = None,
 ) -> None:
     facts_by_memory = facts_by_memory or {}
-    for memory in memories:
+    synced_memories = list(memories)
+    for memory in synced_memories:
         facts = facts_by_memory.get(memory.id)
         if facts is None:
             facts = repositories.list_memory_facts(db, memory_id=memory.id)
@@ -56,11 +58,17 @@ def sync_memory_documents(
                 "salience": memory.salience,
             },
         )
+    _sync_memory_surfaces_and_graph(
+        db,
+        synced_memories,
+        facts_by_memory=facts_by_memory,
+    )
     db.commit()
 
 
 def sync_session_documents(db: Session, sessions: Iterable[ChatSession]) -> None:
-    for chat_session in sessions:
+    synced_sessions = list(sessions)
+    for chat_session in synced_sessions:
         summary = repositories.get_session_summary(db, session_id=chat_session.id)
         messages = repositories.list_messages(db, session_id=chat_session.id)
         memories = repositories.list_memories_for_session(
@@ -111,7 +119,33 @@ def sync_session_documents(db: Session, sessions: Iterable[ChatSession]) -> None
                 "memory_count": len(memories),
             },
         )
+        _sync_session_surface_and_node(
+            db,
+            chat_session=chat_session,
+            summary_text=summary_text,
+            topics=topics,
+            decisions=decisions,
+            open_questions=open_questions,
+            transcript_text=transcript_text,
+            status=summary.status if summary is not None else "fallback",
+        )
     db.commit()
+
+
+def sync_memory_retrieval_artifacts(
+    db: Session,
+    memories: Iterable[MemoryRecord],
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]] | None = None,
+) -> None:
+    """Synchronize all current derived retrieval artifacts for memories.
+
+    This is the V1.3.0 readiness seam: FTS5 remains the active sparse retrieval
+    path, while surfaces and graph rows are durable indexes that can later feed
+    Milvus/Qdrant/GraphRAG-style retrieval without changing the source tables.
+    """
+
+    sync_memory_documents(db, memories, facts_by_memory=facts_by_memory)
 
 
 def search_documents(
@@ -160,6 +194,34 @@ def search_documents(
             )
         )
     return results
+
+
+def retrieval_stage_manifest() -> dict[str, Any]:
+    return {
+        "active_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+        "readiness_stages": [
+            "memory_surfaces_v1",
+            "memory_graph_v1",
+            "embedding_index_shadow_ready_v1",
+        ],
+        "source_of_truth": [
+            "memories",
+            "memory_facts",
+            "session_summaries",
+            "messages",
+        ],
+        "derived_indexes": [
+            "search_documents_fts",
+            "memory_surfaces",
+            "memory_graph_nodes",
+            "memory_graph_edges",
+        ],
+        "notes": [
+            "Surface and graph indexes are derived and can be rebuilt.",
+            "No vector database is required for V1.3.0.",
+            "Milvus/Qdrant adapters should consume memory_surfaces later.",
+        ],
+    }
 
 
 def sparse_results_by_source(
@@ -227,6 +289,581 @@ def _replace_document(
             "metadata_json": json.dumps(metadata, ensure_ascii=True),
         },
     )
+
+
+def _sync_memory_surfaces_and_graph(
+    db: Session,
+    memories: list[MemoryRecord],
+    *,
+    facts_by_memory: dict[str, list[MemoryFact]],
+) -> None:
+    for memory in memories:
+        facts = facts_by_memory.get(memory.id)
+        if facts is None:
+            facts = repositories.list_memory_facts(
+                db,
+                memory_id=memory.id,
+                include_inactive=True,
+            )
+        memory_node = _upsert_memory_node(db, memory)
+        _upsert_surface(
+            db,
+            target_type="memory",
+            target_id=memory.id,
+            surface_kind="memory_text",
+            content=_memory_surface_text(memory, facts=facts),
+            scope=memory.scope,
+            status=memory.status,
+            source_session_id=memory.source_session_id,
+            source_turn_id=memory.source_turn_id,
+            source_message_id=memory.source_message_id,
+            metadata={
+                "memory_type": memory.memory_type,
+                "confidence": memory.confidence,
+                "salience": memory.salience,
+                "surface_origin": "memory_record",
+            },
+        )
+        _upsert_surface(
+            db,
+            target_type="graph_node",
+            target_id=memory_node.id,
+            surface_kind="graph_node_profile",
+            content=_node_surface_text(memory_node),
+            scope=memory_node.scope,
+            status=memory_node.status,
+            source_session_id=memory_node.source_session_id,
+            metadata={
+                "node_key": memory_node.node_key,
+                "node_type": memory_node.node_type,
+                "surface_origin": "memory_graph_node",
+            },
+        )
+        if memory.source_session_id:
+            session_node = _upsert_session_node(
+                db,
+                session_id=memory.source_session_id,
+                scope=memory.scope,
+                status="active",
+                source_memory_id=None,
+            )
+            _upsert_edge(
+                db,
+                source_node=memory_node,
+                target_node=session_node,
+                relation="evidenced_by_session",
+                source_memory_id=memory.id,
+                source_session_id=memory.source_session_id,
+                confidence=memory.confidence,
+                salience=memory.salience,
+            )
+        for fact in facts:
+            fact_node = _upsert_fact_node(db, fact, memory=memory)
+            entity_node = _upsert_entity_node(db, fact, memory=memory)
+            _upsert_edge(
+                db,
+                source_node=memory_node,
+                target_node=fact_node,
+                relation="has_fact",
+                source_memory_id=memory.id,
+                source_fact_id=fact.id,
+                source_session_id=memory.source_session_id,
+                confidence=fact.confidence,
+                salience=fact.salience,
+            )
+            _upsert_edge(
+                db,
+                source_node=fact_node,
+                target_node=entity_node,
+                relation="about_entity",
+                source_memory_id=memory.id,
+                source_fact_id=fact.id,
+                source_session_id=memory.source_session_id,
+                confidence=fact.confidence,
+                salience=fact.salience,
+            )
+            _upsert_surface(
+                db,
+                target_type="fact",
+                target_id=fact.id,
+                surface_kind="fact_text",
+                content=_fact_surface_text(fact, memory=memory),
+                scope=memory.scope,
+                status=fact.status,
+                source_session_id=fact.source_session_id,
+                source_turn_id=fact.source_turn_id,
+                source_trace_id=fact.source_trace_id,
+                metadata={
+                    "memory_id": memory.id,
+                    "entity": fact.entity,
+                    "predicate": fact.predicate,
+                    "confidence": fact.confidence,
+                    "salience": fact.salience,
+                    "surface_origin": "memory_fact",
+                },
+            )
+            for node in (fact_node, entity_node):
+                _upsert_surface(
+                    db,
+                    target_type="graph_node",
+                    target_id=node.id,
+                    surface_kind="graph_node_profile",
+                    content=_node_surface_text(node),
+                    scope=node.scope,
+                    status=node.status,
+                    source_session_id=node.source_session_id,
+                    metadata={
+                        "node_key": node.node_key,
+                        "node_type": node.node_type,
+                        "surface_origin": "memory_graph_node",
+                    },
+                )
+            _sync_fact_lifecycle_edges(
+                db,
+                fact=fact,
+                fact_node=fact_node,
+                memory=memory,
+            )
+        _sync_memory_lifecycle_edges(db, memory=memory, memory_node=memory_node)
+
+
+def _sync_session_surface_and_node(
+    db: Session,
+    *,
+    chat_session: ChatSession,
+    summary_text: str,
+    topics: list[str],
+    decisions: list[str],
+    open_questions: list[str],
+    transcript_text: str,
+    status: str,
+) -> None:
+    session_node = _upsert_session_node(
+        db,
+        session_id=chat_session.id,
+        scope="session",
+        status=status,
+        source_memory_id=None,
+        label=chat_session.title or chat_session.id,
+        aliases=topics,
+    )
+    content = "\n".join(
+        item
+        for item in [
+            f"Session: {chat_session.title or chat_session.id}",
+            f"Summary: {summary_text}" if summary_text else "",
+            f"Topics: {', '.join(topics)}" if topics else "",
+            f"Decisions: {', '.join(decisions)}" if decisions else "",
+            f"Open questions: {', '.join(open_questions)}" if open_questions else "",
+            transcript_text,
+        ]
+        if item
+    )
+    _upsert_surface(
+        db,
+        target_type="session",
+        target_id=chat_session.id,
+        surface_kind="session_summary",
+        content=content,
+        scope="session",
+        status=status,
+        source_session_id=chat_session.id,
+        metadata={
+            "node_id": session_node.id,
+            "topic_count": len(topics),
+            "decision_count": len(decisions),
+            "surface_origin": "session_summary",
+        },
+    )
+    _upsert_surface(
+        db,
+        target_type="graph_node",
+        target_id=session_node.id,
+        surface_kind="graph_node_profile",
+        content=_node_surface_text(session_node),
+        scope=session_node.scope,
+        status=session_node.status,
+        source_session_id=session_node.source_session_id,
+        metadata={
+            "node_key": session_node.node_key,
+            "node_type": session_node.node_type,
+            "surface_origin": "memory_graph_node",
+        },
+    )
+
+
+def _upsert_memory_node(db: Session, memory: MemoryRecord) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"memory:{memory.id}",
+        node_type="memory",
+        label=_truncate(memory.content, 160),
+        scope=memory.scope,
+        status=memory.status,
+        aliases=memory.tags_json,
+        source_memory_id=memory.id,
+        source_session_id=memory.source_session_id,
+        confidence=memory.confidence,
+        salience=memory.salience,
+        metadata={
+            "memory_type": memory.memory_type,
+            "created_by": memory.created_by,
+        },
+    )
+    return node
+
+
+def _upsert_session_node(
+    db: Session,
+    *,
+    session_id: str,
+    scope: str | None,
+    status: str,
+    source_memory_id: str | None,
+    label: str | None = None,
+    aliases: list[str] | None = None,
+) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"session:{session_id}",
+        node_type="session",
+        label=label or session_id,
+        scope=scope or "session",
+        status=status,
+        aliases=aliases or [],
+        source_memory_id=source_memory_id,
+        source_session_id=session_id,
+        confidence=1.0,
+        salience=0.7,
+        metadata={"session_id": session_id},
+    )
+    return node
+
+
+def _upsert_fact_node(
+    db: Session,
+    fact: MemoryFact,
+    *,
+    memory: MemoryRecord,
+) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"fact:{fact.id}",
+        node_type="fact",
+        label=f"{fact.entity} {fact.predicate}",
+        scope=memory.scope,
+        status=fact.status,
+        aliases=_fact_aliases(fact),
+        source_memory_id=memory.id,
+        source_fact_id=fact.id,
+        source_session_id=fact.source_session_id or memory.source_session_id,
+        confidence=fact.confidence,
+        salience=fact.salience,
+        metadata={
+            "entity": fact.entity,
+            "predicate": fact.predicate,
+            "value": fact.value_json,
+        },
+    )
+    return node
+
+
+def _upsert_entity_node(
+    db: Session,
+    fact: MemoryFact,
+    *,
+    memory: MemoryRecord,
+) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"entity:{fact.entity}",
+        node_type="entity",
+        label=fact.entity,
+        scope=memory.scope,
+        status="active",
+        aliases=_fact_aliases(fact),
+        source_memory_id=memory.id,
+        source_fact_id=fact.id,
+        source_session_id=fact.source_session_id or memory.source_session_id,
+        confidence=fact.confidence,
+        salience=max(fact.salience, memory.salience),
+        metadata={
+            "entity": fact.entity,
+            "latest_fact_id": fact.id,
+            "latest_memory_id": memory.id,
+        },
+    )
+    return node
+
+
+def _sync_memory_lifecycle_edges(
+    db: Session,
+    *,
+    memory: MemoryRecord,
+    memory_node: MemoryGraphNode,
+) -> None:
+    lifecycle = memory.metadata_json.get("lifecycle")
+    if not isinstance(lifecycle, dict):
+        return
+    superseded_by = lifecycle.get("superseded_by")
+    if isinstance(superseded_by, str):
+        target_node = _upsert_external_memory_node(
+            db,
+            memory_id=superseded_by,
+            scope=memory.scope,
+        )
+        _upsert_edge(
+            db,
+            source_node=memory_node,
+            target_node=target_node,
+            relation="superseded_by",
+            source_memory_id=memory.id,
+            source_session_id=memory.source_session_id,
+            confidence=memory.confidence,
+            salience=memory.salience,
+        )
+    for old_memory_id in lifecycle.get("supersedes") or []:
+        if not isinstance(old_memory_id, str):
+            continue
+        target_node = _upsert_external_memory_node(
+            db,
+            memory_id=old_memory_id,
+            scope=memory.scope,
+        )
+        _upsert_edge(
+            db,
+            source_node=memory_node,
+            target_node=target_node,
+            relation="supersedes",
+            source_memory_id=memory.id,
+            source_session_id=memory.source_session_id,
+            confidence=memory.confidence,
+            salience=memory.salience,
+        )
+
+
+def _sync_fact_lifecycle_edges(
+    db: Session,
+    *,
+    fact: MemoryFact,
+    fact_node: MemoryGraphNode,
+    memory: MemoryRecord,
+) -> None:
+    if fact.supersedes_fact_id:
+        target_node = _upsert_external_fact_node(
+            db,
+            fact_id=fact.supersedes_fact_id,
+            memory=memory,
+        )
+        _upsert_edge(
+            db,
+            source_node=fact_node,
+            target_node=target_node,
+            relation="supersedes_fact",
+            source_memory_id=memory.id,
+            source_fact_id=fact.id,
+            source_session_id=memory.source_session_id,
+            confidence=fact.confidence,
+            salience=fact.salience,
+        )
+    if fact.superseded_by_fact_id:
+        target_node = _upsert_external_fact_node(
+            db,
+            fact_id=fact.superseded_by_fact_id,
+            memory=memory,
+        )
+        _upsert_edge(
+            db,
+            source_node=fact_node,
+            target_node=target_node,
+            relation="superseded_by_fact",
+            source_memory_id=memory.id,
+            source_fact_id=fact.id,
+            source_session_id=memory.source_session_id,
+            confidence=fact.confidence,
+            salience=fact.salience,
+        )
+
+
+def _upsert_external_memory_node(
+    db: Session,
+    *,
+    memory_id: str,
+    scope: str | None,
+) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"memory:{memory_id}",
+        node_type="memory",
+        label=memory_id,
+        scope=scope,
+        status="referenced",
+        aliases=[],
+        source_memory_id=memory_id,
+        confidence=0.7,
+        salience=0.7,
+        metadata={"external_reference": True},
+    )
+    return node
+
+
+def _upsert_external_fact_node(
+    db: Session,
+    *,
+    fact_id: str,
+    memory: MemoryRecord,
+) -> MemoryGraphNode:
+    node, _ = repositories.upsert_memory_graph_node(
+        db,
+        node_key=f"fact:{fact_id}",
+        node_type="fact",
+        label=fact_id,
+        scope=memory.scope,
+        status="referenced",
+        aliases=[],
+        source_memory_id=memory.id,
+        source_fact_id=fact_id,
+        source_session_id=memory.source_session_id,
+        confidence=0.7,
+        salience=0.7,
+        metadata={"external_reference": True},
+    )
+    return node
+
+
+def _upsert_edge(
+    db: Session,
+    *,
+    source_node: MemoryGraphNode,
+    target_node: MemoryGraphNode,
+    relation: str,
+    source_memory_id: str | None = None,
+    source_fact_id: str | None = None,
+    source_session_id: str | None = None,
+    confidence: float = 0.7,
+    salience: float = 0.7,
+) -> None:
+    edge_key = "|".join(
+        [
+            relation,
+            source_node.node_key,
+            target_node.node_key,
+            source_memory_id or "",
+            source_fact_id or "",
+        ]
+    )
+    repositories.upsert_memory_graph_edge(
+        db,
+        edge_key=edge_key,
+        source_node_id=source_node.id,
+        target_node_id=target_node.id,
+        relation=relation,
+        source_memory_id=source_memory_id,
+        source_fact_id=source_fact_id,
+        source_session_id=source_session_id,
+        confidence=confidence,
+        salience=salience,
+        metadata={
+            "source_node_key": source_node.node_key,
+            "target_node_key": target_node.node_key,
+        },
+    )
+
+
+def _upsert_surface(
+    db: Session,
+    *,
+    target_type: str,
+    target_id: str,
+    surface_kind: str,
+    content: str,
+    scope: str | None,
+    status: str,
+    source_session_id: str | None = None,
+    source_turn_id: str | None = None,
+    source_message_id: str | None = None,
+    source_trace_id: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    surface_key = f"{target_type}:{target_id}:{surface_kind}"
+    repositories.upsert_memory_surface(
+        db,
+        surface_key=surface_key,
+        target_type=target_type,
+        target_id=target_id,
+        surface_kind=surface_kind,
+        content=content,
+        content_hash=_content_hash(content),
+        scope=scope,
+        status=status,
+        source_session_id=source_session_id,
+        source_turn_id=source_turn_id,
+        source_message_id=source_message_id,
+        source_trace_id=source_trace_id,
+        metadata=metadata,
+    )
+
+
+def _memory_surface_text(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
+    return "\n".join(
+        item
+        for item in [
+            f"Memory {memory.id}",
+            f"Type: {memory.memory_type}",
+            f"Scope: {memory.scope}",
+            f"Status: {memory.status}",
+            f"Content: {memory.content}",
+            f"Reason: {memory.reason_for_storage}",
+            f"Future use: {memory.expected_future_use or ''}",
+            f"Tags: {', '.join(memory.tags_json)}" if memory.tags_json else "",
+            fact_search_text(facts),
+        ]
+        if item
+    )
+
+
+def _fact_surface_text(fact: MemoryFact, *, memory: MemoryRecord) -> str:
+    return "\n".join(
+        [
+            f"Fact {fact.id}",
+            f"Memory: {memory.id}",
+            f"Entity: {fact.entity}",
+            f"Predicate: {fact.predicate}",
+            f"Value: {json.dumps(fact.value_json, ensure_ascii=False)}",
+            f"Status: {fact.status}",
+            f"Scope: {memory.scope}",
+            f"Memory content: {memory.content}",
+        ]
+    )
+
+
+def _node_surface_text(node: MemoryGraphNode) -> str:
+    return "\n".join(
+        item
+        for item in [
+            f"Node {node.node_key}",
+            f"Type: {node.node_type}",
+            f"Label: {node.label}",
+            f"Scope: {node.scope or ''}",
+            f"Status: {node.status}",
+            f"Aliases: {', '.join(node.aliases_json)}"
+            if node.aliases_json
+            else "",
+            f"Metadata: {json.dumps(node.metadata_json, ensure_ascii=False)}",
+        ]
+        if item
+    )
+
+
+def _fact_aliases(fact: MemoryFact) -> list[str]:
+    aliases = fact.metadata_json.get("aliases")
+    if isinstance(aliases, list):
+        return [item for item in aliases if isinstance(item, str)]
+    return []
+
+
+def _content_hash(content: str) -> str:
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
 
 def _memory_body(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:

@@ -28,9 +28,11 @@ from app.mind.facts import (
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
+    retrieval_stage_manifest,
     search_documents,
     sparse_results_by_source,
     sync_memory_documents,
+    sync_memory_retrieval_artifacts,
 )
 from app.mind.time_filters import TimeFilter, interval_contains, resolve_interval, time_filter_payload
 from app.storage import repositories
@@ -549,6 +551,11 @@ def handle_memory_write(
             memory,
             source_trace_id=trace.id,
         )
+        sync_memory_retrieval_artifacts(
+            db,
+            [memory],
+            facts_by_memory={memory.id: facts},
+        )
         return MemoryOperationResult(
             ok=True,
             result={
@@ -656,6 +663,7 @@ def handle_memory_search(
                     len(facts) for facts in facts_by_memory.values()
                 ),
                 "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+                "retrieval_readiness": retrieval_stage_manifest(),
             },
         )
 
@@ -679,6 +687,7 @@ def handle_memory_search(
             "query": request.query,
             "time": time_filter_payload(request.time, resolved_time),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+            "retrieval_readiness": retrieval_stage_manifest(),
             "memories": memories,
             "count": len(memories),
             "trace_ids": [trace.id],
@@ -832,6 +841,19 @@ def handle_memory_facts_backfill(
             all_facts.extend(facts)
             created.extend(created_facts)
         _sync_fact_lifecycle_from_memory_metadata(db, memories)
+        facts_by_memory = {
+            memory.id: repositories.list_memory_facts(
+                db,
+                memory_id=memory.id,
+                include_inactive=True,
+            )
+            for memory in memories
+        }
+        sync_memory_retrieval_artifacts(
+            db,
+            memories,
+            facts_by_memory=facts_by_memory,
+        )
         all_facts = [
             fact
             for memory in memories
@@ -1018,6 +1040,18 @@ def handle_memory_deprecate(
             status="deprecated",
             superseded_by_memory_id=request.superseded_by,
         )
+        sync_memory_retrieval_artifacts(
+            db,
+            [item for item in [updated, replacement] if item is not None],
+            facts_by_memory={
+                updated.id: updated_facts or facts,
+                **(
+                    {replacement.id: replacement_facts}
+                    if replacement is not None
+                    else {}
+                ),
+            },
+        )
         memory_id = updated.id
         trace_id = trace.id
         memory_payload = _memory_payload(updated, facts=updated_facts or facts)
@@ -1157,6 +1191,14 @@ def handle_memory_supersede(
                 memory_id=updated_new.id,
                 include_inactive=True,
             )
+        sync_memory_retrieval_artifacts(
+            db,
+            [updated_old, updated_new],
+            facts_by_memory={
+                updated_old.id: old_facts,
+                updated_new.id: new_facts,
+            },
+        )
         old_memory_payload = _memory_payload(updated_old, facts=old_facts)
         new_memory_payload = _memory_payload(updated_new, facts=new_facts)
         old_memory_id = updated_old.id
@@ -1956,6 +1998,11 @@ def apply_create_memory_proposal(
         db,
         memory,
         source_trace_id=proposal.source_trace_id,
+    )
+    sync_memory_retrieval_artifacts(
+        db,
+        [memory],
+        facts_by_memory={memory.id: facts},
     )
     memory_snapshot = _memory_payload(memory, facts=facts)
     resolved = repositories.resolve_memory_proposal(

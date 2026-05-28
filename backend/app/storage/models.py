@@ -384,3 +384,127 @@ class MemoryProposal(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, index=True)
     updated_at: datetime = Field(default_factory=utc_now, index=True)
     applied_at: datetime | None = Field(default=None, index=True)
+
+
+class MemorySurface(SQLModel, table=True):
+    __tablename__ = "memory_surfaces"
+    __table_args__ = (
+        UniqueConstraint("surface_key", name="uq_memory_surfaces_surface_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("surf"), primary_key=True)
+    surface_key: str = Field(index=True)
+    target_type: str = Field(index=True)
+    target_id: str = Field(index=True)
+    surface_kind: str = Field(index=True)
+    content: str
+    content_hash: str = Field(index=True)
+    scope: str | None = Field(default=None, index=True)
+    status: str = Field(default="active", index=True)
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_message_id: str | None = Field(
+        default=None,
+        foreign_key="messages.id",
+        index=True,
+    )
+    source_trace_id: str | None = Field(
+        default=None,
+        foreign_key="traces.id",
+        index=True,
+    )
+    embedding_status: str = Field(default="pending", index=True)
+    embedding_model: str | None = Field(default=None, index=True)
+    embedding_vector_id: str | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class MemoryGraphNode(SQLModel, table=True):
+    __tablename__ = "memory_graph_nodes"
+    __table_args__ = (
+        UniqueConstraint("node_key", name="uq_memory_graph_nodes_node_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("node"), primary_key=True)
+    node_key: str = Field(index=True)
+    node_type: str = Field(index=True)
+    label: str
+    scope: str | None = Field(default=None, index=True)
+    status: str = Field(default="active", index=True)
+    aliases_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_memory_id: str | None = Field(
+        default=None,
+        foreign_key="memories.id",
+        index=True,
+    )
+    source_fact_id: str | None = Field(
+        default=None,
+        foreign_key="memory_facts.id",
+        index=True,
+    )
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    salience: float = Field(default=0.7, ge=0.0, le=1.0)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class MemoryGraphEdge(SQLModel, table=True):
+    __tablename__ = "memory_graph_edges"
+    __table_args__ = (
+        UniqueConstraint("edge_key", name="uq_memory_graph_edges_edge_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("edge"), primary_key=True)
+    edge_key: str = Field(index=True)
+    source_node_id: str = Field(foreign_key="memory_graph_nodes.id", index=True)
+    target_node_id: str = Field(foreign_key="memory_graph_nodes.id", index=True)
+    relation: str = Field(index=True)
+    status: str = Field(default="active", index=True)
+    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
+    salience: float = Field(default=0.7, ge=0.0, le=1.0)
+    source_memory_id: str | None = Field(
+        default=None,
+        foreign_key="memories.id",
+        index=True,
+    )
+    source_fact_id: str | None = Field(
+        default=None,
+        foreign_key="memory_facts.id",
+        index=True,
+    )
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)

@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-05-26
-App baseline: V1.2.0
+Last updated: 2026-05-28
+App baseline: V1.3.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:

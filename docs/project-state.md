@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-05-26
-App baseline: V1.2.0
+Last updated: 2026-05-28
+App baseline: V1.3.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -30,7 +30,8 @@ system is a local agentic runtime for Scarlet with:
 - Anthropic-compatible provider execution, defaulting to MiniMax M2.7;
 - persistent chat sessions, provider-native history, messages, turns, traces,
   tool calls, runtime events, maintenance jobs, semantic memories, atomic
-  facts, and episodic session summaries;
+  facts, episodic session summaries, derived memory surfaces, and graph-ready
+  memory nodes/edges;
 - a single model-facing cognitive tool, `mind_api`;
 - schema-discoverable API Mind routes for memory, session recall, and one
   internal metacognition step;
@@ -77,7 +78,7 @@ L5 Mature lab-core
 | Gestione flussi utente | L1/L2 | `docs/branches/user-flows.md` |
 | Percezione e contesto | L4 | `docs/branches/perception-context.md` |
 | Identita e relazione | L2/L3 | `docs/branches/identity-relationship.md` |
-| Memoria | L4 | `docs/branches/memory.md` |
+| Memoria | L4+ | `docs/branches/memory.md` |
 | Apprendimento e adattamento | L2 | `docs/branches/learning-adaptation.md` |
 | Metacognizione | L2/L3 | `docs/branches/metacognition.md` |
 | Gestione operativa | L2 | `docs/branches/operational-management.md` |
@@ -107,7 +108,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `55 passed`.
+- Backend test suite currently passes at `64 passed`.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
 
@@ -239,6 +240,11 @@ Implemented:
 - Memory proposal inbox for missed-memory review candidates, with candidate
   evidence, similar-memory preflight, suggested lifecycle action, and future
   embedding/graph slots.
+- V1.3.0 derived retrieval substrate:
+  `memory_surfaces`, `memory_graph_nodes`, and `memory_graph_edges`.
+  These are rigenerable indexes over source memories/facts/sessions and are
+  designed for future dense vector search, graph expansion, and Milvus/Qdrant
+  shadow mode without replacing API Mind's canonical memory tables.
 
 Confirmed:
 
@@ -269,6 +275,7 @@ Primary docs:
 - `docs/bug-ledger.md#bug-0027---recognized-semantic-candidate-not-written`
 - `docs/bug-ledger.md#bug-0032---scarlet-can-emit-pseudo-tool-invocation-text-instead-of-real-tool-use`
 - `docs/experiments.md#exp-0019---integrated-direct-scarlet-probes`
+- `docs/experiments.md#exp-0029---memory-retrieval-readiness-layer`
 
 ### 2.6 Atomic Memory Facts
 
@@ -400,6 +407,9 @@ Still monitoring:
 - Retrieval is stronger than lexical v0, but still sparse/entity-light and can
   miss synonyms, paraphrases, or ambiguous entities until embeddings and
   stronger entity guards exist.
+- V1.3.0 now exposes a retrieval-readiness manifest in memory search/context
+  traces and keeps surfaces/graph rows as derived state, but dense retrieval is
+  not yet active in ranking.
 - Retrieval can select stale project memories strongly enough that Scarlet uses
   obsolete present-tense claims, such as saying no event store exists after
   runtime events were implemented.

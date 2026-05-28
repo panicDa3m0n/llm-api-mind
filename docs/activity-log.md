@@ -3123,3 +3123,64 @@ Notes:
 - During implementation, a pre-existing fact-extractor weakness was observed:
   very short aliases such as `sal` can match substrings in unrelated words.
   This was not fixed in this slice and is tracked separately.
+
+## 2026-05-28 - V1.3.0 Memory Retrieval Readiness Layer
+
+Area:
+
+Memoria / retrieval avanzato.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Implementazione.
+
+Target version:
+
+V1.3.0.
+
+Goal:
+
+Prepare memory for dense embeddings, Milvus/Qdrant shadow indexing, and
+knowledge-graph expansion without changing Scarlet's model-facing `mind_api`
+surface or the current active FTS5/BM25 ranking behavior.
+
+Changes:
+
+- Added `memory_surfaces` as derived embeddable surfaces for memory records,
+  facts, graph-node profiles, and session summaries.
+- Added `memory_graph_nodes` and `memory_graph_edges` as graph-ready derived
+  state for memories, facts, entities, sessions, evidence links, and lifecycle
+  links.
+- Added repository helpers for idempotent surface/node/edge upserts and
+  bounded inspection.
+- Extended memory/session document synchronization so FTS5 remains active while
+  surfaces and graph artifacts are kept in step with memory/fact/session
+  changes.
+- Added a retrieval readiness manifest to memory search/context traces and
+  results.
+- Kept Milvus/Qdrant/vector/reranker activation out of scope.
+- Left existing sparse/fact matching bugs untouched; this slice prepares the
+  structural path that will later replace brittle lexical matching.
+
+Verification:
+
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_chat_api.py tests/test_maintenance.py -q`
+  (`49 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest -q`
+  (`64 passed`).
+- Frontend production build passed: `npm --prefix frontend run build`.
+- `git diff --check` passed.
+
+Notes:
+
+- Surfaces and graph rows are derived indexes, not canonical truth.
+- `memories`, `memory_facts`, `session_summaries`, messages, and proposal rows
+  remain the authoritative state.
+- Next useful implementation is a shadow retrieval adapter over
+  `memory_surfaces`, likely Milvus Lite first, with trace-only comparison
+  before changing ranking.

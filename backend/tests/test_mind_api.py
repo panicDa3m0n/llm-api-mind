@@ -660,6 +660,15 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
     memory_id = write_body["result"]["memory_id"]
     assert memory_id.startswith("mem_")
     assert write_body["result"]["memory"]["source_turn_id"] == write_turn_id
+    with Session(db_engine) as db:
+        surfaces = repositories.list_memory_surfaces(db, target_id=memory_id)
+        graph_nodes = repositories.list_memory_graph_nodes(
+            db,
+            source_memory_id=memory_id,
+        )
+    assert [surface.surface_kind for surface in surfaces] == ["memory_text"]
+    assert surfaces[0].embedding_status == "pending"
+    assert any(node.node_key == f"memory:{memory_id}" for node in graph_nodes)
 
     search_response = client.post(
         "/mind/call",
@@ -682,6 +691,9 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
     search_body = search_response.json()
     assert search_body["ok"] is True
     assert search_body["result"]["count"] == 1
+    assert "memory_surfaces_v1" in search_body["result"]["retrieval_readiness"][
+        "readiness_stages"
+    ]
     assert search_body["result"]["memories"][0]["id"] == memory_id
     assert search_body["result"]["memories"][0]["usage_count"] == 1
 

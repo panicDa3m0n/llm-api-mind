@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-05-26
-System version assessed: V1.2.0
+Last updated: 2026-05-28
+System version assessed: V1.3.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -29,6 +29,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 - Idle maintenance ora risolve i casi cauti nella stessa pipeline: reject e
   duplicate vengono archiviati, create_new molto sicure possono diventare
   memorie attive, e i casi ambigui passano a un solo resolver LLM batch.
+- V1.3.0 aggiunge un substrato derivato per retrieval avanzato:
+  `memory_surfaces`, `memory_graph_nodes`, `memory_graph_edges` e manifest di
+  readiness. Questi indici sono rigenerabili e preparano embedding, Milvus
+  shadow mode e knowledge graph senza cambiare la superficie `mind_api`.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
@@ -39,11 +43,14 @@ Valutazione: L4+.
 
 E il ramo piu avanzato. La combinazione memoria semantica + episodica e gia
 innovativa e utile. La proposal inbox ora e un ledger operativo: conserva
-candidate, preflight, risoluzioni, scarti e memorie applicate. Non e L5 perche
-mancano ancora merge/deprecate automatici, Dream review, compaction, embedding,
-knowledge graph, pesi emotivi, staleness scoring e privacy multiutente vera.
+candidate, preflight, risoluzioni, scarti e memorie applicate. V1.3.0 prepara
+le basi tecniche per dense retrieval e graph expansion con superfici e nodi
+derivati, ma non cambia ancora il ranking finale. Non e L5 perche mancano
+ancora merge/deprecate automatici, Dream review, compaction, embedding reale,
+knowledge graph reasoning, pesi emotivi, staleness scoring e privacy
+multiutente vera.
 
-Sistema valutato: V1.2.0.
+Sistema valutato: V1.3.0.
 
 ## Sviluppi precedenti
 
@@ -62,6 +69,9 @@ Sistema valutato: V1.2.0.
 - V1.2.0 cautious proposal resolution: la stessa idle maintenance archivia
   scarti/duplicati, applica create_new molto sicure e manda i casi ambigui a
   un resolver LLM batch opzionale.
+- V1.3.0 retrieval readiness: superfici embeddabili per memorie/fatti/sessioni
+  e nodi KG, graph nodes/edges per `has_fact`, `about_entity`,
+  `evidenced_by_session`, `supersedes`, `superseded_by` e lifecycle fact-edge.
 
 ## Evolutive
 
@@ -70,7 +80,8 @@ Sistema valutato: V1.2.0.
 - Applicazione controllata avanzata delle proposal: merge/update/deprecate.
 - Compaction semantica e merge duplicati.
 - Stale-memory detection e deprecazione assistita.
-- Hybrid retrieval: sparse + dense embeddings + reranking.
-- Knowledge graph con entita, relazioni e salienza.
+- Milvus Lite o Qdrant in shadow mode sopra `memory_surfaces`.
+- Hybrid retrieval: sparse + dense embeddings + graph expansion + reranking.
+- Knowledge graph con entita, relazioni, salienza, temporalita e staleness.
 - Pesi emotivi/affettivi collegati a memorie personali.
 - Memoria multiutente separata per profilo.

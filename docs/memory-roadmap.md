@@ -602,12 +602,26 @@ Goal:
 
 Reduce wrong-entity selected memories.
 
+V1.3.0 implemented the retrieval-readiness substrate before activating dense
+retrieval:
+
+- `memory_surfaces` for embeddable memory/fact/node/session-summary text;
+- `memory_graph_nodes` and `memory_graph_edges` for graph-ready expansion;
+- a retrieval readiness manifest in memory search/context traces;
+- no active ranking change yet.
+
 M4.0 schema/API discipline is implemented through the Cognitive API roadmap
 rather than as memory-specific code. `GET /mind/schema` now carries
 `schema_version`, `schema_digest`, route purposes, and schema policy; detailed
 endpoint usage guides appear only on recoverable endpoint errors. Chat runtime
 context includes `mind_schema`. This supports Scarlet's ability to choose memory
 and cognition routes correctly before retrieval hardening continues.
+
+Next M4 step:
+
+Run Milvus Lite or another vector backend in shadow mode over
+`memory_surfaces`, compare sparse/dense/hybrid candidates in traces, and only
+then decide whether to change the active ranking policy.
 
 Add in order:
 

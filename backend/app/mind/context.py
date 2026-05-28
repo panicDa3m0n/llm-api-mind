@@ -15,6 +15,7 @@ from app.mind.schema import MIND_API_ROUTES, schema_metadata
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
+    retrieval_stage_manifest,
     search_documents,
     sparse_results_by_source,
     sync_memory_documents,
@@ -159,6 +160,7 @@ def build_memory_context(
             "semantic_queries": [],
             "sparse_query": _truncate(sparse_query, 1500),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_guard_v1"],
+            "retrieval_readiness": retrieval_stage_manifest(),
         },
         "selected": selected,
         "near_miss": near_miss,

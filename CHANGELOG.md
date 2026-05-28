@@ -8,6 +8,14 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.3.0 memory retrieval readiness layer:
+  - `memory_surfaces` derived embeddable surfaces for memory, fact,
+    graph-node, and session-summary targets;
+  - `memory_graph_nodes` and `memory_graph_edges` derived graph-ready state for
+    memories, facts, entities, sessions, evidence links, and lifecycle links;
+  - idempotent repository helpers for surface/node/edge synchronization;
+  - retrieval readiness manifest in memory search/context traces and results;
+  - no active ranking change and no Milvus/Qdrant/vector dependency yet.
 - Added V1.2.0 cautious memory proposal resolution inside idle maintenance:
   - deterministic preflight now immediately archives rejected and duplicate
     proposals as auditable daily-ledger records;

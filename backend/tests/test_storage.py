@@ -14,9 +14,12 @@ from app.storage.repositories import (
     create_chat_session,
     create_turn,
     get_session_summary,
+    list_memory_graph_edges,
+    list_memory_graph_nodes,
     list_memory_facts,
     list_memories,
     list_memory_proposals,
+    list_memory_surfaces,
     list_messages,
     list_events_for_turn,
     list_due_maintenance_jobs,
@@ -28,6 +31,7 @@ from app.storage.repositories import (
     upsert_session_summary,
     upsert_memory_proposal,
 )
+from app.mind.search import search_documents, sync_memory_retrieval_artifacts
 from app.storage.models import utc_now
 
 
@@ -54,7 +58,10 @@ def test_init_db_creates_core_tables() -> None:
         "tool_calls",
         "memories",
         "memory_facts",
+        "memory_graph_edges",
+        "memory_graph_nodes",
         "memory_proposals",
+        "memory_surfaces",
         "session_summaries",
         "maintenance_jobs",
         "search_documents_fts",
@@ -202,6 +209,70 @@ def test_memory_fact_round_trip() -> None:
     assert fact.id.startswith("fact_")
     assert [item.id for item in facts] == [fact.id]
     assert facts[0].metadata_json["aliases"] == ["zero light protocol"]
+
+
+def test_memory_retrieval_artifacts_round_trip() -> None:
+    engine = make_test_engine()
+    init_db(engine)
+
+    with Session(engine) as db:
+        chat_session = create_chat_session(db, title="Retrieval artifact test")
+        turn = create_turn(db, session_id=chat_session.id, model="MiniMax-M2.7")
+        memory = add_memory(
+            db,
+            memory_type="user_preference",
+            scope="user",
+            content="The user avoids coffee after midnight and prefers chamomile.",
+            reason_for_storage="Stable late-work beverage preference.",
+            expected_future_use="Guide future late-night beverage suggestions.",
+            confidence=0.95,
+            salience=0.85,
+            source_session_id=chat_session.id,
+            source_turn_id=turn.id,
+            tags=["caffeine", "sleep"],
+        )
+        fact = add_memory_fact(
+            db,
+            memory_id=memory.id,
+            entity="local-user",
+            predicate="user_preference",
+            value={
+                "kind": "text",
+                "text": "Avoids coffee after midnight; prefers chamomile.",
+            },
+            source_session_id=chat_session.id,
+            source_turn_id=turn.id,
+            confidence=0.9,
+            salience=0.8,
+            metadata={"aliases": ["utente locale"]},
+        )
+        sync_memory_retrieval_artifacts(
+            db,
+            [memory],
+            facts_by_memory={memory.id: [fact]},
+        )
+        session_id = chat_session.id
+        memory_id = memory.id
+        fact_id = fact.id
+        surfaces = list_memory_surfaces(db, target_id=memory.id)
+        fact_surfaces = list_memory_surfaces(db, target_id=fact.id)
+        graph_nodes = list_memory_graph_nodes(db, limit=20)
+        graph_edges = list_memory_graph_edges(db, source_memory_id=memory.id)
+        sparse_results = search_documents(db, query="coffee chamomile", kind="memory")
+
+    assert {surface.surface_kind for surface in surfaces} == {"memory_text"}
+    assert surfaces[0].embedding_status == "pending"
+    assert surfaces[0].content_hash
+    assert fact_surfaces[0].surface_kind == "fact_text"
+    node_keys = {node.node_key for node in graph_nodes}
+    assert f"memory:{memory_id}" in node_keys
+    assert f"fact:{fact_id}" in node_keys
+    assert "entity:local-user" in node_keys
+    assert f"session:{session_id}" in node_keys
+    assert {"has_fact", "about_entity", "evidenced_by_session"}.issubset(
+        {edge.relation for edge in graph_edges}
+    )
+    assert [result.source_id for result in sparse_results] == [memory_id]
 
 
 def test_memory_proposal_round_trip_is_idempotent() -> None:

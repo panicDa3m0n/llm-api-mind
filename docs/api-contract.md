@@ -497,6 +497,18 @@ Tables:
   suggested action, similar-memory ids, related fact ids, resolution result,
   memory snapshot when applied, and future embedding/graph-ready decision
   metadata.
+- `memory_surfaces`: derived, embeddable retrieval surfaces for memories,
+  facts, graph nodes, and session summaries. They store target identity,
+  surface kind, content hash, embedding status/model/vector id placeholders,
+  provenance, and metadata. They are rebuildable and are not canonical memory
+  state.
+- `memory_graph_nodes`: derived graph-ready nodes for memories, facts, entities
+  and sessions, including stable node keys, labels, aliases, scope, status,
+  salience/confidence, and source provenance.
+- `memory_graph_edges`: derived graph-ready relationships such as `has_fact`,
+  `about_entity`, `evidenced_by_session`, `supersedes`, `superseded_by`, and
+  fact-level lifecycle edges. These rows prepare future graph expansion while
+  keeping `memories` and `memory_facts` as source of truth.
 - `session_summaries`: episodic recall index records linked one-to-one to chat
   sessions, with a descriptive summary, topics, decisions, open questions,
   source message counts, and memory ids written from that session.
@@ -1765,6 +1777,22 @@ candidate memories and combines sparse score, lexical overlap, tag overlap,
 confidence, and salience. The canonical memory rows remain the source of truth;
 the sparse index is derived and rebuildable.
 
+V1.3.0 also synchronizes retrieval-readiness artifacts whenever memory
+documents are synced or memory/fact lifecycle operations run. These artifacts
+do not change active ranking yet:
+
+- `memory_surfaces_v1`: embeddable text surfaces for memory, fact, graph-node,
+  and session-summary targets;
+- `memory_graph_v1`: graph-ready nodes and edges for provenance, facts,
+  entity links, and lifecycle links;
+- `embedding_index_shadow_ready_v1`: placeholders for future Milvus/Qdrant or
+  other vector-index adapters.
+
+`POST /mind/memory/search` still exposes the same model-facing route and keeps
+FTS5/lexical ranking as the active retrieval behavior. The readiness manifest
+is included in traces/results so evaluator tooling can see which derived
+indexes are available.
+
 Response result:
 
 ```json
@@ -1780,6 +1808,14 @@ Response result:
     }
   },
   "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+  "retrieval_readiness": {
+    "active_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+    "readiness_stages": [
+      "memory_surfaces_v1",
+      "memory_graph_v1",
+      "embedding_index_shadow_ready_v1"
+    ]
+  },
   "count": 1,
   "memories": [
     {
