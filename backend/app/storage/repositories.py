@@ -1062,6 +1062,32 @@ def list_memory_surfaces(
     return list(db.exec(statement).all())
 
 
+def list_memory_surfaces_by_targets(
+    db: Session,
+    *,
+    target_type: str,
+    target_ids: list[str],
+    surface_kind: str | None = None,
+    status: str | None = "active",
+    limit: int = 500,
+) -> list[MemorySurface]:
+    if not target_ids:
+        return []
+    statement = select(MemorySurface).where(
+        MemorySurface.target_type == target_type,
+        MemorySurface.target_id.in_(target_ids),
+    )
+    if surface_kind is not None:
+        statement = statement.where(MemorySurface.surface_kind == surface_kind)
+    if status is not None:
+        statement = statement.where(MemorySurface.status == status)
+    statement = statement.order_by(
+        MemorySurface.updated_at.desc(),
+        MemorySurface.id,
+    ).limit(limit)
+    return list(db.exec(statement).all())
+
+
 def upsert_memory_graph_node(
     db: Session,
     *,

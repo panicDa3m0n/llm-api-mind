@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.3.0.
+App baseline: V1.3.1.
 
 Current scope:
 
@@ -17,6 +17,8 @@ Current scope:
   maintenance jobs, tool calls, memories, memory facts, memory proposals,
   memory surfaces, memory graph nodes/edges, session summaries, and app
   settings;
+- optional retrieval shadow adapter over `memory_surfaces` for local deterministic
+  plumbing tests or Milvus Lite trace-only comparison;
 - model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
 - Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;

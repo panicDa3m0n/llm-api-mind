@@ -12,7 +12,7 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.3.0**.
+Current app baseline: **V1.3.1**.
 
 The project has a working local baseline runtime:
 
@@ -28,7 +28,7 @@ The project has a working local baseline runtime:
 - Memory v0 write/search/read/conflicts/deprecate/supersede with sourceable records and dedicated traces;
 - atomic `memory_facts` linked to memories, with canonical entity/predicate/value, lifecycle status, provenance, and backfill;
 - derived memory surfaces and graph-ready nodes/edges for future dense
-  retrieval, Milvus shadow indexing, and knowledge-graph expansion while
+  retrieval, optional Milvus/local shadow indexing, and knowledge-graph expansion while
   keeping SQLite/API Mind as the source of truth;
 - episodic recall through session summaries plus full transcript retrieval by session id;
 - Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
@@ -70,8 +70,8 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Run Milvus/Qdrant-style dense retrieval in shadow mode over derived memory
-   surfaces.
+1. Promote validated shadow retrieval into real hybrid retrieval only after a
+   real embedding provider is selected.
 2. Retrieval quality and memory health.
 3. Source-sensitive answer validation.
 4. Metacognition deepening inside the single route.

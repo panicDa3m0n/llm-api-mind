@@ -20,6 +20,7 @@ from app.storage.repositories import (
     list_memories,
     list_memory_proposals,
     list_memory_surfaces,
+    list_memory_surfaces_by_targets,
     list_messages,
     list_events_for_turn,
     list_due_maintenance_jobs,
@@ -255,12 +256,19 @@ def test_memory_retrieval_artifacts_round_trip() -> None:
         memory_id = memory.id
         fact_id = fact.id
         surfaces = list_memory_surfaces(db, target_id=memory.id)
+        target_surfaces = list_memory_surfaces_by_targets(
+            db,
+            target_type="memory",
+            target_ids=[memory.id, "missing"],
+            surface_kind="memory_text",
+        )
         fact_surfaces = list_memory_surfaces(db, target_id=fact.id)
         graph_nodes = list_memory_graph_nodes(db, limit=20)
         graph_edges = list_memory_graph_edges(db, source_memory_id=memory.id)
         sparse_results = search_documents(db, query="coffee chamomile", kind="memory")
 
     assert {surface.surface_kind for surface in surfaces} == {"memory_text"}
+    assert [surface.target_id for surface in target_surfaces] == [memory_id]
     assert surfaces[0].embedding_status == "pending"
     assert surfaces[0].content_hash
     assert fact_surfaces[0].surface_kind == "fact_text"

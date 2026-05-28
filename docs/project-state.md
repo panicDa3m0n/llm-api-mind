@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-05-28
-App baseline: V1.3.0
+App baseline: V1.3.1
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -245,6 +245,10 @@ Implemented:
   These are rigenerable indexes over source memories/facts/sessions and are
   designed for future dense vector search, graph expansion, and Milvus/Qdrant
   shadow mode without replacing API Mind's canonical memory tables.
+- V1.3.1 optional retrieval shadow adapter:
+  memory search and automatic memory context can run trace-only vector-shadow
+  comparison over `memory_surfaces` with `local` deterministic plumbing or
+  optional `milvus_lite`, without changing active ranking.
 
 Confirmed:
 
@@ -410,6 +414,9 @@ Still monitoring:
 - V1.3.0 now exposes a retrieval-readiness manifest in memory search/context
   traces and keeps surfaces/graph rows as derived state, but dense retrieval is
   not yet active in ranking.
+- V1.3.1 validates the shadow adapter path with live Scarlet evidence, but the
+  active ranking is still FTS5/BM25 plus lexical/fact logic until a real
+  embedding model is selected and tested.
 - Retrieval can select stale project memories strongly enough that Scarlet uses
   obsolete present-tense claims, such as saying no event store exists after
   runtime events were implemented.

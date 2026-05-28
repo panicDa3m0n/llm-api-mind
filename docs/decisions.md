@@ -2048,3 +2048,46 @@ Links:
 - `backend/app/mind/search.py`
 - `backend/app/mind/memory.py`
 - `docs/experiments.md#exp-0029---memory-retrieval-readiness-layer`
+
+## ADR-0040 - Retrieval Shadow Adapter Before Active Hybrid Ranking
+
+Date: 2026-05-28
+Status: accepted
+
+Context:
+
+V1.3.0 created `memory_surfaces` and graph-ready derived state, but activating
+vector ranking directly would risk changing Scarlet's behavior before the
+retrieval path has live evidence. The project direction is to avoid replacing
+working memory behavior with speculative vector logic.
+
+Decision:
+
+Add V1.3.1 as an optional trace-only retrieval shadow adapter over
+`memory_surfaces`:
+
+- `retrieval_shadow_enabled=false` by default;
+- `retrieval_shadow_backend=local` validates embedding/index/search plumbing
+  with deterministic `local_hash_embedding_v1`;
+- `retrieval_shadow_backend=milvus_lite` uses PyMilvus/Milvus Lite only when
+  the optional dependency is installed;
+- memory search and automatic memory context include `retrieval_shadow`
+  payloads when the adapter runs;
+- active ranking remains FTS5/BM25 plus lexical/fact logic.
+
+Consequences:
+
+- Milvus Lite is treated as a specialized index inside API Mind, not as the
+  source of memory truth.
+- Shadow results can be compared against current sparse retrieval during live
+  Scarlet tests without affecting user-facing answers.
+- `local_hash_embedding_v1` is explicitly not a semantic model; V1.4 active
+  hybrid ranking should wait for a real embedding provider and evidence that
+  it improves recall.
+
+Links:
+
+- `backend/app/mind/shadow_retrieval.py`
+- `backend/app/mind/memory.py`
+- `backend/app/mind/context.py`
+- `docs/experiments.md#exp-0030---retrieval-shadow-adapter`

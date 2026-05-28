@@ -34,6 +34,7 @@ from app.mind.search import (
     sync_memory_documents,
     sync_memory_retrieval_artifacts,
 )
+from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.mind.time_filters import TimeFilter, interval_contains, resolve_interval, time_filter_payload
 from app.storage import repositories
 from app.storage.models import MemoryFact, MemoryProposal, MemoryRecord, utc_now
@@ -633,6 +634,13 @@ def handle_memory_search(
                 limit=max(50, request.top_k * 8),
             )
         )
+        retrieval_shadow = run_memory_surface_shadow_search(
+            db,
+            query=request.query,
+            candidate_memory_ids=[memory.id for memory in candidates],
+            settings=context.settings,
+            limit=request.top_k,
+        )
         scored = _score_memories(
             candidates,
             request.query,
@@ -664,6 +672,7 @@ def handle_memory_search(
                 ),
                 "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
                 "retrieval_readiness": retrieval_stage_manifest(),
+                "retrieval_shadow": retrieval_shadow,
             },
         )
 
@@ -688,6 +697,7 @@ def handle_memory_search(
             "time": time_filter_payload(request.time, resolved_time),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
             "retrieval_readiness": retrieval_stage_manifest(),
+            "retrieval_shadow": retrieval_shadow,
             "memories": memories,
             "count": len(memories),
             "trace_ids": [trace.id],

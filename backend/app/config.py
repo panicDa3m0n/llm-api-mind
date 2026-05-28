@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     maintenance_worker_interval_seconds: float = Field(default=5.0, gt=0)
     maintenance_job_batch_size: int = Field(default=5, ge=1, le=50)
 
+    retrieval_shadow_enabled: bool = False
+    retrieval_shadow_backend: str = "none"
+    retrieval_shadow_top_k: int = Field(default=10, ge=1, le=50)
+    retrieval_shadow_vector_dim: int = Field(default=128, ge=8, le=4096)
+    retrieval_shadow_embedding_model: str = "local_hash_embedding_v1"
+    milvus_lite_uri: str = "./data/milvus_lite_shadow.db"
+    milvus_collection: str = "memory_surfaces_shadow"
+
     runtime_timezone: str = "Europe/Rome"
     runtime_language: str = "it"
     runtime_language_label: str = "Italiano"

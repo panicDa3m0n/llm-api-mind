@@ -203,6 +203,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "memory_surfaces_v1",
             "memory_graph_v1",
             "embedding_index_shadow_ready_v1",
+            "vector_shadow_adapter_v1",
         ],
         "source_of_truth": [
             "memories",
@@ -215,11 +216,13 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "memory_surfaces",
             "memory_graph_nodes",
             "memory_graph_edges",
+            "optional_milvus_lite_shadow",
         ],
         "notes": [
             "Surface and graph indexes are derived and can be rebuilt.",
-            "No vector database is required for V1.3.0.",
-            "Milvus/Qdrant adapters should consume memory_surfaces later.",
+            "No vector database is required for normal operation.",
+            "V1.3.1 shadow retrieval is trace-only and does not change active ranking.",
+            "Milvus Lite can consume memory_surfaces when the optional dependency is installed.",
         ],
     }
 

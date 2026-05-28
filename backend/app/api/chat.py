@@ -261,6 +261,7 @@ def build_chat_router(
                 current_user_message=user_message,
                 history=history,
                 runtime_preferences=load_runtime_preferences(db, settings),
+                settings=settings,
             )
             trace_ids.append(memory_context.trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
@@ -618,6 +619,7 @@ def build_chat_router(
                 current_user_message=user_message,
                 history=history,
                 runtime_preferences=load_runtime_preferences(db, settings),
+                settings=settings,
             )
             trace_ids.append(memory_context.trace_id)
             trace_ids.append(memory_context.runtime_trace_id)

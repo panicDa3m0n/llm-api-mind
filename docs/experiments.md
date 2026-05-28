@@ -2759,3 +2759,52 @@ Accepted as the V1.3.0 substrate. It deliberately avoids solving BUG-0037 or
 changing ranking by hardcoded terms. The next experimental step is a shadow
 retrieval adapter over `memory_surfaces`, likely Milvus Lite first, with trace
 comparison against the current FTS5/BM25 path.
+
+## EXP-0030 - Retrieval Shadow Adapter
+
+Date: 2026-05-28
+Status: accepted as V1.3.1 plumbing
+
+Hypothesis:
+
+Before changing active memory ranking, Scarlet needs a trace-only comparison
+path that can run vector-style retrieval over `memory_surfaces`. If this path
+can be observed during both manual memory search and automatic runtime context,
+future real embeddings can be evaluated without destabilizing the current
+memory behavior.
+
+Variant:
+
+V1.3.1 adds optional retrieval shadow mode:
+
+- `retrieval_shadow_enabled=false` by default;
+- `local` backend uses deterministic `local_hash_embedding_v1` to validate
+  indexing/search plumbing only;
+- `milvus_lite` backend uses PyMilvus/Milvus Lite when the optional retrieval
+  dependency is installed;
+- `retrieval_shadow` payloads are written into `mind.memory.search` and
+  `memory.context` traces;
+- active ranking remains FTS5/BM25 plus lexical/fact scoring.
+
+Verification:
+
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_chat_api.py tests/test_maintenance.py -q`
+  (`50 passed`).
+- Full backend suite passed: `.venv/bin/python -m pytest -q` (`65 passed`).
+- Frontend production build passed: `npm --prefix frontend run build`.
+- `git diff --check` passed.
+- Direct Scarlet test on a temporary SQLite database passed:
+  Scarlet answered a natural beverage/focus question from the seeded semantic
+  memory, `memory.context.selected` contained the expected memory, and
+  `query_plan.retrieval_shadow` reported
+  `status=completed`, `backend=local`, `ok=true`, and the same memory target
+  under `trace_only_no_active_ranking`.
+
+Assessment:
+
+Accepted as a safe retrieval experiment substrate. This validates the runtime
+and trace path but does not prove semantic retrieval quality because
+`local_hash_embedding_v1` is not a real embedding model. V1.4 active hybrid
+ranking should not be promoted until a real embedding provider is selected and
+tested against live Scarlet behavior.

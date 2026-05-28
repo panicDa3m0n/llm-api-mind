@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-05-28
-System version assessed: V1.3.0
+System version assessed: V1.3.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -33,6 +33,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   `memory_surfaces`, `memory_graph_nodes`, `memory_graph_edges` e manifest di
   readiness. Questi indici sono rigenerabili e preparano embedding, Milvus
   shadow mode e knowledge graph senza cambiare la superficie `mind_api`.
+- V1.3.1 aggiunge un adapter shadow opzionale sopra `memory_surfaces`.
+  Il backend puo confrontare retrieval vettoriale locale deterministico o
+  Milvus Lite in trace, senza usare quei punteggi per cambiare il ranking
+  attivo.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
@@ -45,12 +49,13 @@ E il ramo piu avanzato. La combinazione memoria semantica + episodica e gia
 innovativa e utile. La proposal inbox ora e un ledger operativo: conserva
 candidate, preflight, risoluzioni, scarti e memorie applicate. V1.3.0 prepara
 le basi tecniche per dense retrieval e graph expansion con superfici e nodi
-derivati, ma non cambia ancora il ranking finale. Non e L5 perche mancano
+derivati e V1.3.1 valida un canale shadow trace-only, ma non cambia ancora il
+ranking finale. Non e L5 perche mancano
 ancora merge/deprecate automatici, Dream review, compaction, embedding reale,
 knowledge graph reasoning, pesi emotivi, staleness scoring e privacy
 multiutente vera.
 
-Sistema valutato: V1.3.0.
+Sistema valutato: V1.3.1.
 
 ## Sviluppi precedenti
 
@@ -72,6 +77,9 @@ Sistema valutato: V1.3.0.
 - V1.3.0 retrieval readiness: superfici embeddabili per memorie/fatti/sessioni
   e nodi KG, graph nodes/edges per `has_fact`, `about_entity`,
   `evidenced_by_session`, `supersedes`, `superseded_by` e lifecycle fact-edge.
+- V1.3.1 retrieval shadow adapter: `local` deterministico e `milvus_lite`
+  opzionale sopra `memory_surfaces`, con risultati tracciati in
+  `memory.search` e `memory.context` ma non usati per il ranking finale.
 
 ## Evolutive
 
@@ -80,7 +88,10 @@ Sistema valutato: V1.3.0.
 - Applicazione controllata avanzata delle proposal: merge/update/deprecate.
 - Compaction semantica e merge duplicati.
 - Stale-memory detection e deprecazione assistita.
-- Milvus Lite o Qdrant in shadow mode sopra `memory_surfaces`.
+- Embedding provider reale per sostituire `local_hash_embedding_v1` come
+  esperimento scientificamente valido.
+- Milvus Lite/Qdrant in shadow mode con embedding reale sopra
+  `memory_surfaces`.
 - Hybrid retrieval: sparse + dense embeddings + graph expansion + reranking.
 - Knowledge graph con entita, relazioni, salienza, temporalita e staleness.
 - Pesi emotivi/affettivi collegati a memorie personali.

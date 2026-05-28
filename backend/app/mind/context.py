@@ -20,6 +20,7 @@ from app.mind.search import (
     sparse_results_by_source,
     sync_memory_documents,
 )
+from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.storage import repositories
 from app.storage.models import ChatSession, MemoryFact, MemoryRecord, Message, utc_now
 
@@ -60,6 +61,7 @@ def build_memory_context(
     history: list[Message],
     now: datetime | None = None,
     runtime_preferences: RuntimePreferences | None = None,
+    settings: Any | None = None,
 ) -> MemoryContextBuild:
     timestamp = now or utc_now()
     preferences = runtime_preferences or RuntimePreferences(
@@ -114,6 +116,13 @@ def build_memory_context(
             limit=INTERNAL_CANDIDATE_LIMIT * 4,
         )
     )
+    retrieval_shadow = run_memory_surface_shadow_search(
+        db,
+        query=sparse_query,
+        candidate_memory_ids=[memory.id for memory in candidates],
+        settings=settings,
+        limit=MODEL_SELECTED_LIMIT,
+    )
     ranked = _rank_candidates(
         candidates,
         current_user_message=current_user_message.content,
@@ -161,6 +170,7 @@ def build_memory_context(
             "sparse_query": _truncate(sparse_query, 1500),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_guard_v1"],
             "retrieval_readiness": retrieval_stage_manifest(),
+            "retrieval_shadow": retrieval_shadow,
         },
         "selected": selected,
         "near_miss": near_miss,

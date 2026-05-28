@@ -148,13 +148,19 @@ class FakeSessionSummaryProvider:
         )
 
 
-def make_client(db_engine: Engine, *, provider_factory=None) -> TestClient:
+def make_client(
+    db_engine: Engine,
+    *,
+    provider_factory=None,
+    settings_overrides: dict | None = None,
+) -> TestClient:
     settings = Settings(
         app_name="Test Mind",
         environment="test",
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
+        **(settings_overrides or {}),
     )
     return TestClient(
         create_app(
@@ -707,6 +713,99 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
         "mind.memory.search",
         "mind.tool_call",
     ]
+
+
+def test_mind_memory_search_reports_trace_only_shadow_retrieval(
+    db_engine: Engine,
+) -> None:
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "local",
+            "retrieval_shadow_top_k": 3,
+            "retrieval_shadow_vector_dim": 64,
+        },
+    )
+    write_session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Shadow write"},
+    ).json()
+    search_session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Shadow search"},
+    ).json()
+
+    with Session(db_engine) as db:
+        write_turn_id = repositories.create_turn(
+            db,
+            session_id=write_session["id"],
+            model="MiniMax-M2.7",
+        ).id
+        search_turn_id = repositories.create_turn(
+            db,
+            session_id=search_session["id"],
+            model="MiniMax-M2.7",
+        ).id
+
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": write_session["id"],
+            "turn_id": write_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner prefers cacao tea during evening focus work.",
+                "reason_for_storage": "Stable beverage preference for future suggestions.",
+                "expected_future_use": "Avoid suggesting late coffee when cacao tea fits.",
+                "confidence": 0.88,
+                "salience": 0.76,
+                "scope": "project",
+                "tags": ["cacao", "focus"],
+            },
+            "intent": "Persist a stable beverage preference.",
+        },
+    )
+    assert write_response.status_code == 200
+    memory_id = write_response.json()["result"]["memory_id"]
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": search_session["id"],
+            "turn_id": search_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "cacao tea evening focus",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 2,
+            },
+            "intent": "Retrieve relevant beverage preferences.",
+        },
+    )
+    assert search_response.status_code == 200
+    body = search_response.json()
+    assert body["ok"] is True
+    assert body["result"]["memories"][0]["id"] == memory_id
+    assert body["result"]["retrieval_stages"] == [
+        "fts5_sparse_v1",
+        "lexical_fallback_v1",
+    ]
+    shadow = body["result"]["retrieval_shadow"]
+    assert shadow["ok"] is True
+    assert shadow["status"] == "completed"
+    assert shadow["backend"] == "local"
+    assert shadow["ranking_policy"] == "trace_only_no_active_ranking"
+    assert [item["target_id"] for item in shadow["results"]] == [memory_id]
+
+    search_traces = client.get(f"/api/debug/traces/{search_turn_id}").json()
+    search_trace = search_traces[0]["payload"]
+    assert search_trace["retrieval_shadow"]["backend"] == "local"
+    assert search_trace["retrieval_shadow"]["results"][0]["target_id"] == memory_id
 
 
 def test_mind_memory_search_supports_source_conversation_time_filter(

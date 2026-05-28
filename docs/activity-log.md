@@ -3184,3 +3184,61 @@ Notes:
 - Next useful implementation is a shadow retrieval adapter over
   `memory_surfaces`, likely Milvus Lite first, with trace-only comparison
   before changing ranking.
+
+## 2026-05-28 - V1.3.1 Retrieval Shadow Adapter
+
+Area:
+
+Memoria / retrieval avanzato.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Fix/integrazione non comportamentale.
+
+Target version:
+
+V1.3.1.
+
+Goal:
+
+Add an optional retrieval shadow path over `memory_surfaces` so future dense
+retrieval can be observed in traces before it affects Scarlet's answers.
+
+Changes:
+
+- Added configurable retrieval shadow settings and `.env.example` defaults.
+- Added `backend/app/mind/shadow_retrieval.py` with:
+  - disabled default behavior;
+  - deterministic `local_hash_embedding_v1` backend for plumbing tests;
+  - optional PyMilvus/Milvus Lite backend when installed;
+  - trace-only result payloads with `ranking_policy=trace_only_no_active_ranking`.
+- Added repository helper for listing memory surfaces by target memory ids.
+- Added `retrieval_shadow` payloads to manual `memory.search` results/traces
+  and automatic `memory.context` query plans.
+- Kept active memory ranking unchanged.
+
+Verification:
+
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_chat_api.py tests/test_maintenance.py -q`
+  (`50 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest -q`
+  (`65 passed`).
+- Frontend production build passed:
+  `npm --prefix frontend run build`.
+- `git diff --check` passed.
+- Direct Scarlet test on a temporary SQLite database passed:
+  Scarlet answered from the expected semantic memory and the `memory.context`
+  trace reported completed local shadow retrieval over the same memory target.
+
+Notes:
+
+- `local_hash_embedding_v1` is only a deterministic plumbing vector and is not
+  a real semantic embedding model.
+- Milvus Lite remains optional and is not required for base runtime or tests.
+- V1.4 should only activate hybrid ranking after selecting and validating a
+  real embedding provider.

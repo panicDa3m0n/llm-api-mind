@@ -8,6 +8,13 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.3.1 retrieval shadow adapter:
+  - optional `retrieval_shadow_*` settings plus `.env.example` defaults;
+  - `local` deterministic vector-shadow plumbing over `memory_surfaces`;
+  - optional `milvus_lite` backend using PyMilvus when installed;
+  - `retrieval_shadow` payloads in manual memory search and automatic
+    memory-context traces;
+  - trace-only policy, with no active ranking change.
 - Added V1.3.0 memory retrieval readiness layer:
   - `memory_surfaces` derived embeddable surfaces for memory, fact,
     graph-node, and session-summary targets;

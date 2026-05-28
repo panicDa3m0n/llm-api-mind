@@ -1788,10 +1788,18 @@ do not change active ranking yet:
 - `embedding_index_shadow_ready_v1`: placeholders for future Milvus/Qdrant or
   other vector-index adapters.
 
+V1.3.1 adds optional retrieval shadow mode over `memory_surfaces`:
+
+- disabled by default;
+- `local` uses `local_hash_embedding_v1` only to validate plumbing and traces;
+- `milvus_lite` uses PyMilvus/Milvus Lite when the optional retrieval
+  dependency is installed;
+- shadow results are trace-only and never change the returned memory ranking.
+
 `POST /mind/memory/search` still exposes the same model-facing route and keeps
 FTS5/lexical ranking as the active retrieval behavior. The readiness manifest
 is included in traces/results so evaluator tooling can see which derived
-indexes are available.
+indexes and optional shadow comparisons are available.
 
 Response result:
 
@@ -1813,7 +1821,29 @@ Response result:
     "readiness_stages": [
       "memory_surfaces_v1",
       "memory_graph_v1",
-      "embedding_index_shadow_ready_v1"
+      "embedding_index_shadow_ready_v1",
+      "vector_shadow_adapter_v1"
+    ]
+  },
+  "retrieval_shadow": {
+    "enabled": true,
+    "backend": "local",
+    "embedding_model": "local_hash_embedding_v1",
+    "vector_dim": 64,
+    "ranking_policy": "trace_only_no_active_ranking",
+    "operation": "memory.surface_shadow_search",
+    "status": "completed",
+    "ok": true,
+    "results": [
+      {
+        "surface_id": "surf_...",
+        "target_type": "memory",
+        "target_id": "mem_...",
+        "surface_kind": "memory_text",
+        "score": 0.62,
+        "backend": "local",
+        "content_hash": "..."
+      }
     ]
   },
   "count": 1,
