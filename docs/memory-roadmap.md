@@ -610,6 +610,16 @@ retrieval:
 - a retrieval readiness manifest in memory search/context traces;
 - no active ranking change yet.
 
+V1.4.0 implemented the surface taxonomy slice before local embedding work:
+
+- Scarlet still supplies only canonical memory judgment fields;
+- the backend compiles multiple rebuildable cognitive surfaces per memory;
+- current taxonomy covers canonical semantic text, type-specific facets,
+  future-use retrieval hints, temporal/provenance anchors, fact bundles, and
+  conflict/update guards;
+- maintenance proposal decisions now include an assessment lane and review
+  focus so future policy tuning can be measured before adding more automation.
+
 M4.0 schema/API discipline is implemented through the Cognitive API roadmap
 rather than as memory-specific code. `GET /mind/schema` now carries
 `schema_version`, `schema_digest`, route purposes, and schema policy; detailed

@@ -8,6 +8,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.4.0 memory surface taxonomy:
+  - backend-owned deterministic `surface_taxonomy` compiler for memory,
+    fact, and graph-node surfaces;
+  - multiple cognitive memory facets such as `preference_text`,
+    `future_use_text`, `temporal_text`, `fact_bundle_text`, and
+    `conflict_guard_text` when applicable;
+  - retrieval readiness manifest now reports `memory_surface_taxonomy_v1`;
+  - maintenance proposal preflight now stores an assessment lane, review focus,
+    and counts to support policy tuning without extra automation.
 - Added V1.3.1 retrieval shadow adapter:
   - optional `retrieval_shadow_*` settings plus `.env.example` defaults;
   - `local` deterministic vector-shadow plumbing over `memory_surfaces`;

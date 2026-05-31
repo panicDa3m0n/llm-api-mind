@@ -11,6 +11,13 @@ from sqlalchemy import text
 from sqlmodel import Session
 
 from app.mind.facts import fact_search_text
+from app.mind.surface_taxonomy import (
+    SurfaceDraft,
+    compile_fact_surface_drafts,
+    compile_graph_node_surface_draft,
+    compile_memory_surface_drafts,
+    surface_taxonomy_manifest,
+)
 from app.storage import repositories
 from app.storage.models import ChatSession, MemoryFact, MemoryGraphNode, MemoryRecord
 
@@ -202,6 +209,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
         "readiness_stages": [
             "memory_surfaces_v1",
             "memory_graph_v1",
+            "memory_surface_taxonomy_v1",
             "embedding_index_shadow_ready_v1",
             "vector_shadow_adapter_v1",
         ],
@@ -222,8 +230,10 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "Surface and graph indexes are derived and can be rebuilt.",
             "No vector database is required for normal operation.",
             "V1.3.1 shadow retrieval is trace-only and does not change active ranking.",
+            "V1.4.0 memory surfaces are compiled by the backend, not written by Scarlet.",
             "Milvus Lite can consume memory_surfaces when the optional dependency is installed.",
         ],
+        "surface_taxonomy": surface_taxonomy_manifest(),
     }
 
 
@@ -309,39 +319,9 @@ def _sync_memory_surfaces_and_graph(
                 include_inactive=True,
             )
         memory_node = _upsert_memory_node(db, memory)
-        _upsert_surface(
-            db,
-            target_type="memory",
-            target_id=memory.id,
-            surface_kind="memory_text",
-            content=_memory_surface_text(memory, facts=facts),
-            scope=memory.scope,
-            status=memory.status,
-            source_session_id=memory.source_session_id,
-            source_turn_id=memory.source_turn_id,
-            source_message_id=memory.source_message_id,
-            metadata={
-                "memory_type": memory.memory_type,
-                "confidence": memory.confidence,
-                "salience": memory.salience,
-                "surface_origin": "memory_record",
-            },
-        )
-        _upsert_surface(
-            db,
-            target_type="graph_node",
-            target_id=memory_node.id,
-            surface_kind="graph_node_profile",
-            content=_node_surface_text(memory_node),
-            scope=memory_node.scope,
-            status=memory_node.status,
-            source_session_id=memory_node.source_session_id,
-            metadata={
-                "node_key": memory_node.node_key,
-                "node_type": memory_node.node_type,
-                "surface_origin": "memory_graph_node",
-            },
-        )
+        for surface in compile_memory_surface_drafts(memory, facts=facts):
+            _upsert_surface_draft(db, surface)
+        _upsert_surface_draft(db, compile_graph_node_surface_draft(memory_node))
         if memory.source_session_id:
             session_node = _upsert_session_node(
                 db,
@@ -385,42 +365,10 @@ def _sync_memory_surfaces_and_graph(
                 confidence=fact.confidence,
                 salience=fact.salience,
             )
-            _upsert_surface(
-                db,
-                target_type="fact",
-                target_id=fact.id,
-                surface_kind="fact_text",
-                content=_fact_surface_text(fact, memory=memory),
-                scope=memory.scope,
-                status=fact.status,
-                source_session_id=fact.source_session_id,
-                source_turn_id=fact.source_turn_id,
-                source_trace_id=fact.source_trace_id,
-                metadata={
-                    "memory_id": memory.id,
-                    "entity": fact.entity,
-                    "predicate": fact.predicate,
-                    "confidence": fact.confidence,
-                    "salience": fact.salience,
-                    "surface_origin": "memory_fact",
-                },
-            )
+            for surface in compile_fact_surface_drafts(fact, memory=memory):
+                _upsert_surface_draft(db, surface)
             for node in (fact_node, entity_node):
-                _upsert_surface(
-                    db,
-                    target_type="graph_node",
-                    target_id=node.id,
-                    surface_kind="graph_node_profile",
-                    content=_node_surface_text(node),
-                    scope=node.scope,
-                    status=node.status,
-                    source_session_id=node.source_session_id,
-                    metadata={
-                        "node_key": node.node_key,
-                        "node_type": node.node_type,
-                        "surface_origin": "memory_graph_node",
-                    },
-                )
+                _upsert_surface_draft(db, compile_graph_node_surface_draft(node))
             _sync_fact_lifecycle_edges(
                 db,
                 fact=fact,
@@ -478,21 +426,7 @@ def _sync_session_surface_and_node(
             "surface_origin": "session_summary",
         },
     )
-    _upsert_surface(
-        db,
-        target_type="graph_node",
-        target_id=session_node.id,
-        surface_kind="graph_node_profile",
-        content=_node_surface_text(session_node),
-        scope=session_node.scope,
-        status=session_node.status,
-        source_session_id=session_node.source_session_id,
-        metadata={
-            "node_key": session_node.node_key,
-            "node_type": session_node.node_type,
-            "surface_origin": "memory_graph_node",
-        },
-    )
+    _upsert_surface_draft(db, compile_graph_node_surface_draft(session_node))
 
 
 def _upsert_memory_node(db: Session, memory: MemoryRecord) -> MemoryGraphNode:
@@ -807,54 +741,20 @@ def _upsert_surface(
     )
 
 
-def _memory_surface_text(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
-    return "\n".join(
-        item
-        for item in [
-            f"Memory {memory.id}",
-            f"Type: {memory.memory_type}",
-            f"Scope: {memory.scope}",
-            f"Status: {memory.status}",
-            f"Content: {memory.content}",
-            f"Reason: {memory.reason_for_storage}",
-            f"Future use: {memory.expected_future_use or ''}",
-            f"Tags: {', '.join(memory.tags_json)}" if memory.tags_json else "",
-            fact_search_text(facts),
-        ]
-        if item
-    )
-
-
-def _fact_surface_text(fact: MemoryFact, *, memory: MemoryRecord) -> str:
-    return "\n".join(
-        [
-            f"Fact {fact.id}",
-            f"Memory: {memory.id}",
-            f"Entity: {fact.entity}",
-            f"Predicate: {fact.predicate}",
-            f"Value: {json.dumps(fact.value_json, ensure_ascii=False)}",
-            f"Status: {fact.status}",
-            f"Scope: {memory.scope}",
-            f"Memory content: {memory.content}",
-        ]
-    )
-
-
-def _node_surface_text(node: MemoryGraphNode) -> str:
-    return "\n".join(
-        item
-        for item in [
-            f"Node {node.node_key}",
-            f"Type: {node.node_type}",
-            f"Label: {node.label}",
-            f"Scope: {node.scope or ''}",
-            f"Status: {node.status}",
-            f"Aliases: {', '.join(node.aliases_json)}"
-            if node.aliases_json
-            else "",
-            f"Metadata: {json.dumps(node.metadata_json, ensure_ascii=False)}",
-        ]
-        if item
+def _upsert_surface_draft(db: Session, surface: SurfaceDraft) -> None:
+    _upsert_surface(
+        db,
+        target_type=surface.target_type,
+        target_id=surface.target_id,
+        surface_kind=surface.surface_kind,
+        content=surface.content,
+        scope=surface.scope,
+        status=surface.status,
+        source_session_id=surface.source_session_id,
+        source_turn_id=surface.source_turn_id,
+        source_message_id=surface.source_message_id,
+        source_trace_id=surface.source_trace_id,
+        metadata=surface.metadata,
     )
 
 

@@ -672,8 +672,21 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
             db,
             source_memory_id=memory_id,
         )
-    assert [surface.surface_kind for surface in surfaces] == ["memory_text"]
-    assert surfaces[0].embedding_status == "pending"
+    surface_kinds = {surface.surface_kind for surface in surfaces}
+    assert {
+        "memory_text",
+        "preference_text",
+        "future_use_text",
+        "temporal_text",
+        "fact_bundle_text",
+    }.issubset(surface_kinds)
+    memory_text_surface = next(
+        surface for surface in surfaces if surface.surface_kind == "memory_text"
+    )
+    assert memory_text_surface.embedding_status == "pending"
+    assert memory_text_surface.metadata_json["compiler"] == (
+        "deterministic_backend_surface_compiler"
+    )
     assert any(node.node_key == f"memory:{memory_id}" for node in graph_nodes)
 
     search_response = client.post(
@@ -698,6 +711,9 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
     assert search_body["ok"] is True
     assert search_body["result"]["count"] == 1
     assert "memory_surfaces_v1" in search_body["result"]["retrieval_readiness"][
+        "readiness_stages"
+    ]
+    assert "memory_surface_taxonomy_v1" in search_body["result"]["retrieval_readiness"][
         "readiness_stages"
     ]
     assert search_body["result"]["memories"][0]["id"] == memory_id
@@ -800,12 +816,15 @@ def test_mind_memory_search_reports_trace_only_shadow_retrieval(
     assert shadow["status"] == "completed"
     assert shadow["backend"] == "local"
     assert shadow["ranking_policy"] == "trace_only_no_active_ranking"
-    assert [item["target_id"] for item in shadow["results"]] == [memory_id]
+    assert {item["target_id"] for item in shadow["results"]} == {memory_id}
 
     search_traces = client.get(f"/api/debug/traces/{search_turn_id}").json()
     search_trace = search_traces[0]["payload"]
     assert search_trace["retrieval_shadow"]["backend"] == "local"
-    assert search_trace["retrieval_shadow"]["results"][0]["target_id"] == memory_id
+    assert {
+        item["target_id"]
+        for item in search_trace["retrieval_shadow"]["results"]
+    } == {memory_id}
 
 
 def test_mind_memory_search_supports_source_conversation_time_filter(

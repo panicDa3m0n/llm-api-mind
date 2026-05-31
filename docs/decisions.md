@@ -2091,3 +2091,46 @@ Links:
 - `backend/app/mind/memory.py`
 - `backend/app/mind/context.py`
 - `docs/experiments.md#exp-0030---retrieval-shadow-adapter`
+
+## ADR-0041 - Backend-Owned Memory Surface Taxonomy
+
+Date: 2026-05-31
+Status: accepted
+
+Context:
+
+The owner decided to defer local embedding/model setup to the Windows machine
+with the RTX GPU. The Mac development path should still improve the memory
+substrate that future embeddings will consume. A key risk is asking Scarlet to
+fill too many non-deterministic surface/index fields during memory writes,
+which would increase tool-call error surface and make retrieval artifacts
+inconsistent.
+
+Decision:
+
+Add a deterministic backend-owned surface taxonomy in V1.4.0:
+
+- Scarlet continues to write only canonical semantic memory fields;
+- `memory_surfaces` are generated from `MemoryRecord`, `MemoryFact`, graph
+  nodes, and provenance;
+- every surface metadata records taxonomy version, compiler, cognitive
+  dimensions, embedding role, agent-supplied fields, and backend-owned fields;
+- memory records can produce several derived facets, including canonical
+  semantic text, type-specific text, future-use text, temporal/provenance text,
+  fact bundles, and conflict/update guards.
+
+Consequences:
+
+- Future BGE-M3/Milvus indexing can consume richer surfaces without changing
+  Scarlet's model-facing write contract.
+- Surface quality can be tested on Mac before embedding runs on Windows.
+- The backend remains responsible for ids, timestamps, provenance, content
+  hashes, graph keys, and embedding status.
+- Surface generation is rebuildable and stays separate from canonical memory
+  truth.
+
+Links:
+
+- `backend/app/mind/surface_taxonomy.py`
+- `backend/app/mind/search.py`
+- `docs/experiments.md#exp-0031---memory-surface-taxonomy`

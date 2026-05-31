@@ -2808,3 +2808,52 @@ and trace path but does not prove semantic retrieval quality because
 `local_hash_embedding_v1` is not a real embedding model. V1.4 active hybrid
 ranking should not be promoted until a real embedding provider is selected and
 tested against live Scarlet behavior.
+
+## EXP-0031 - Memory Surface Taxonomy
+
+Date: 2026-05-31
+Status: accepted as V1.4.0 substrate
+
+Hypothesis:
+
+Embedding quality will depend strongly on the text surfaces we index. Before
+running BGE-M3 on the Windows GPU machine, the backend should compile richer
+cognitive facets from canonical memories while keeping Scarlet's direct write
+payload simple.
+
+Variant:
+
+V1.4.0 adds a deterministic backend-owned surface compiler:
+
+- Scarlet writes canonical memory content, type, reason, expected future use,
+  confidence, salience, scope, tags, and semantic metadata only.
+- The backend generates rebuildable `memory_surfaces` with taxonomy metadata.
+- A user preference with facts can now produce `memory_text`,
+  `preference_text`, `future_use_text`, `temporal_text`, and
+  `fact_bundle_text`.
+- Project decisions, corrections, task context, behavioral patterns, inactive
+  memories, and lifecycle-linked memories can also produce
+  `conflict_guard_text`.
+- Maintenance proposal preflight now records `maintenance_assessment` with
+  lane, risk, review focus, counts, and policy buckets.
+
+Verification:
+
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_maintenance.py tests/test_chat_api.py -q`
+  (`50 passed`).
+- Full backend suite passed: `.venv/bin/python -m pytest -q` (`65 passed`).
+- Frontend production build passed: `npm --prefix frontend run build`.
+- `git diff --check` passed.
+- Direct Scarlet test on a temporary SQLite database passed:
+  a chocolate preference/constraint memory generated `memory_text`,
+  `preference_text`, `future_use_text`, `temporal_text`, and
+  `fact_bundle_text`; Scarlet then used the memory in a natural snack
+  recommendation and respected the chocolate constraint.
+
+Assessment:
+
+Accepted. This does not improve semantic retrieval by itself, but it gives the
+future Windows/BGE-M3 embedding pipeline better cognitive surfaces to index and
+reduces the chance that Scarlet must manage non-deterministic retrieval fields
+inside tool calls.

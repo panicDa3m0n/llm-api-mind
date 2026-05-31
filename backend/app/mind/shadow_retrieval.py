@@ -87,7 +87,7 @@ def run_memory_surface_shadow_search(
         db,
         target_type="memory",
         target_ids=target_ids,
-        surface_kind="memory_text",
+        surface_kind=None,
         status="active",
         limit=max(requested_limit * 8, len(target_ids), 1),
     )

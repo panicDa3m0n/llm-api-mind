@@ -500,8 +500,9 @@ Tables:
 - `memory_surfaces`: derived, embeddable retrieval surfaces for memories,
   facts, graph nodes, and session summaries. They store target identity,
   surface kind, content hash, embedding status/model/vector id placeholders,
-  provenance, and metadata. They are rebuildable and are not canonical memory
-  state.
+  provenance, and metadata. V1.4.0 compiles memory surfaces through a
+  backend-owned taxonomy; Scarlet does not write surface rows directly. They
+  are rebuildable and are not canonical memory state.
 - `memory_graph_nodes`: derived graph-ready nodes for memories, facts, entities
   and sessions, including stable node keys, labels, aliases, scope, status,
   salience/confidence, and source provenance.
@@ -1785,6 +1786,10 @@ do not change active ranking yet:
   and session-summary targets;
 - `memory_graph_v1`: graph-ready nodes and edges for provenance, facts,
   entity links, and lifecycle links;
+- `memory_surface_taxonomy_v1`: backend-owned surface compiler for cognitive
+  facets such as canonical semantic text, type-specific memory text,
+  future-use text, temporal/provenance text, fact bundles, and conflict/update
+  guards;
 - `embedding_index_shadow_ready_v1`: placeholders for future Milvus/Qdrant or
   other vector-index adapters.
 
@@ -1821,9 +1826,17 @@ Response result:
     "readiness_stages": [
       "memory_surfaces_v1",
       "memory_graph_v1",
+      "memory_surface_taxonomy_v1",
       "embedding_index_shadow_ready_v1",
       "vector_shadow_adapter_v1"
-    ]
+    ],
+    "surface_taxonomy": {
+      "taxonomy_version": "memory-surface-taxonomy-v1",
+      "compiler": "deterministic_backend_surface_compiler",
+      "policy": {
+        "agent_does_not_write_surfaces_directly": true
+      }
+    }
   },
   "retrieval_shadow": {
     "enabled": true,

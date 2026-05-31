@@ -12,7 +12,7 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.3.1**.
+Current app baseline: **V1.4.0**.
 
 The project has a working local baseline runtime:
 
@@ -30,6 +30,9 @@ The project has a working local baseline runtime:
 - derived memory surfaces and graph-ready nodes/edges for future dense
   retrieval, optional Milvus/local shadow indexing, and knowledge-graph expansion while
   keeping SQLite/API Mind as the source of truth;
+- backend-owned memory surface taxonomy that splits each memory into
+  embeddable cognitive facets such as preference, future-use, temporal, fact,
+  and conflict/update surfaces;
 - episodic recall through session summaries plus full transcript retrieval by session id;
 - Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
 - runtime event control plane feeding the cockpit timeline and compact

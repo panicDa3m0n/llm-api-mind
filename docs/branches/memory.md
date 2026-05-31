@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-05-28
-System version assessed: V1.3.1
+Last updated: 2026-05-31
+System version assessed: V1.4.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -37,6 +37,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   Il backend puo confrontare retrieval vettoriale locale deterministico o
   Milvus Lite in trace, senza usare quei punteggi per cambiare il ranking
   attivo.
+- V1.4.0 aggiunge una tassonomia backend-owned delle superfici cognitive:
+  Scarlet salva la memoria canonica, mentre il backend genera superfici come
+  `memory_text`, `preference_text`, `future_use_text`, `temporal_text`,
+  `fact_bundle_text` e `conflict_guard_text` quando applicabile.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
@@ -49,13 +53,14 @@ E il ramo piu avanzato. La combinazione memoria semantica + episodica e gia
 innovativa e utile. La proposal inbox ora e un ledger operativo: conserva
 candidate, preflight, risoluzioni, scarti e memorie applicate. V1.3.0 prepara
 le basi tecniche per dense retrieval e graph expansion con superfici e nodi
-derivati e V1.3.1 valida un canale shadow trace-only, ma non cambia ancora il
-ranking finale. Non e L5 perche mancano
+derivati, V1.3.1 valida un canale shadow trace-only e V1.4.0 arricchisce le
+superfici cognitive che un embedding futuro dovra leggere, ma non cambia
+ancora il ranking finale. Non e L5 perche mancano
 ancora merge/deprecate automatici, Dream review, compaction, embedding reale,
 knowledge graph reasoning, pesi emotivi, staleness scoring e privacy
 multiutente vera.
 
-Sistema valutato: V1.3.1.
+Sistema valutato: V1.4.0.
 
 ## Sviluppi precedenti
 
@@ -80,6 +85,10 @@ Sistema valutato: V1.3.1.
 - V1.3.1 retrieval shadow adapter: `local` deterministico e `milvus_lite`
   opzionale sopra `memory_surfaces`, con risultati tracciati in
   `memory.search` e `memory.context` ma non usati per il ranking finale.
+- V1.4.0 memory surface taxonomy: compilatore deterministico backend per
+  superfici cognitive derivate da memoria, fatti e provenance; assessment
+  maintenance nei `decision_json` delle proposal per classificare lane e focus
+  di review senza cambiare le soglie di auto-apply.
 
 ## Evolutive
 

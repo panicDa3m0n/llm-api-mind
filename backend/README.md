@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.3.1.
+App baseline: V1.4.0.
 
 Current scope:
 
@@ -19,6 +19,8 @@ Current scope:
   settings;
 - optional retrieval shadow adapter over `memory_surfaces` for local deterministic
   plumbing tests or Milvus Lite trace-only comparison;
+- backend-owned memory surface taxonomy for derived cognitive retrieval
+  facets; Scarlet writes canonical memory fields, not surface internals;
 - model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
 - Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;

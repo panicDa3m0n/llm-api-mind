@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-05-28
-App baseline: V1.3.1
+App baseline: V1.4.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -249,6 +249,12 @@ Implemented:
   memory search and automatic memory context can run trace-only vector-shadow
   comparison over `memory_surfaces` with `local` deterministic plumbing or
   optional `milvus_lite`, without changing active ranking.
+- V1.4.0 memory surface taxonomy:
+  the backend now compiles multiple cognitive surfaces for a memory, including
+  canonical semantic text, type-specific facets, future-use instructions,
+  temporal/provenance anchors, fact bundles, and conflict/update guards.
+  Scarlet still writes only canonical memory fields; derived surfaces are
+  backend-owned and rebuildable.
 
 Confirmed:
 
@@ -417,6 +423,10 @@ Still monitoring:
 - V1.3.1 validates the shadow adapter path with live Scarlet evidence, but the
   active ranking is still FTS5/BM25 plus lexical/fact logic until a real
   embedding model is selected and tested.
+- V1.4.0 validates surface taxonomy with direct Scarlet evidence: a
+  chocolate-preference memory generated preference, future-use, temporal, fact
+  bundle, and canonical surfaces; Scarlet then used the memory correctly in a
+  snack recommendation turn.
 - Retrieval can select stale project memories strongly enough that Scarlet uses
   obsolete present-tense claims, such as saying no event store exists after
   runtime events were implemented.

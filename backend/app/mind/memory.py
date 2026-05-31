@@ -1509,6 +1509,15 @@ def _proposal_decision_for_request(
                 ],
             },
         )
+    maintenance_assessment = _proposal_maintenance_assessment(
+        proposed_action=action,
+        risk=risk,
+        policy=policy,
+        similar_payloads=similar_payloads,
+        matching_fact_ids=matching_fact_ids,
+        conflicting_fact_ids=conflicting_fact_ids,
+        candidate_facts=candidate_facts,
+    )
 
     return {
         "proposed_action": action,
@@ -1524,6 +1533,7 @@ def _proposal_decision_for_request(
         "similar_memory_ids": [item["id"] for item in similar_payloads],
         "related_fact_ids": sorted(set(matching_fact_ids + conflicting_fact_ids)),
         "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1", "atomic_fact_v1"],
+        "maintenance_assessment": maintenance_assessment,
         "future_ready": {
             "embedding_vector_id": None,
             "graph_node_ids": [
@@ -1572,6 +1582,65 @@ def _candidate_fact_matches(
                 else:
                     conflicting.append(fact.id)
     return sorted(set(matching)), sorted(set(conflicting))
+
+
+def _proposal_maintenance_assessment(
+    *,
+    proposed_action: str,
+    risk: str,
+    policy: dict[str, Any],
+    similar_payloads: list[dict[str, Any]],
+    matching_fact_ids: list[str],
+    conflicting_fact_ids: list[str],
+    candidate_facts: list[dict[str, Any]],
+) -> dict[str, Any]:
+    if proposed_action in {"reject_candidate", "noop_duplicate"}:
+        lane = "deterministic_archive"
+    elif proposed_action == "create_new":
+        lane = "cautious_resolution"
+    else:
+        lane = "pending_review"
+
+    review_focus: list[str] = []
+    if not policy.get("accepted"):
+        review_focus.append("write_policy")
+    if matching_fact_ids:
+        review_focus.append("duplicate_fact")
+    elif proposed_action == "noop_duplicate":
+        review_focus.append("duplicate_memory")
+    if conflicting_fact_ids:
+        review_focus.append("fact_conflict")
+    if similar_payloads:
+        review_focus.append("similarity_merge_update_or_duplicate")
+    if candidate_facts:
+        review_focus.append("canonical_fact_quality")
+    if not review_focus:
+        review_focus.append("new_memory_candidate")
+
+    return {
+        "policy_version": "maintenance_preflight_assessment_v1",
+        "lane": lane,
+        "risk": risk,
+        "review_focus": review_focus,
+        "counts": {
+            "similar_memories": len(similar_payloads),
+            "matching_facts": len(matching_fact_ids),
+            "conflicting_facts": len(conflicting_fact_ids),
+            "candidate_facts": len(candidate_facts),
+        },
+        "decision_policy": {
+            "safe_deterministic": [
+                "reject_candidate",
+                "noop_duplicate",
+            ],
+            "cautious_resolution": ["create_new"],
+            "pending_review": [
+                "review_similar",
+                "needs_review",
+            ],
+            "auto_apply_is_owned_by": "runtime.maintenance",
+        },
+    }
 
 
 def _proposal_idempotency_key(

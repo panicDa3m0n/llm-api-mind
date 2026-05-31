@@ -267,10 +267,24 @@ def test_memory_retrieval_artifacts_round_trip() -> None:
         graph_edges = list_memory_graph_edges(db, source_memory_id=memory.id)
         sparse_results = search_documents(db, query="coffee chamomile", kind="memory")
 
-    assert {surface.surface_kind for surface in surfaces} == {"memory_text"}
+    surface_kinds = {surface.surface_kind for surface in surfaces}
+    assert {
+        "memory_text",
+        "preference_text",
+        "future_use_text",
+        "temporal_text",
+        "fact_bundle_text",
+    }.issubset(surface_kinds)
     assert [surface.target_id for surface in target_surfaces] == [memory_id]
-    assert surfaces[0].embedding_status == "pending"
-    assert surfaces[0].content_hash
+    memory_text_surface = next(
+        surface for surface in surfaces if surface.surface_kind == "memory_text"
+    )
+    assert memory_text_surface.embedding_status == "pending"
+    assert memory_text_surface.content_hash
+    assert memory_text_surface.metadata_json["taxonomy_version"] == (
+        "memory-surface-taxonomy-v1"
+    )
+    assert "backend_owned_fields" in memory_text_surface.metadata_json
     assert fact_surfaces[0].surface_kind == "fact_text"
     node_keys = {node.node_key for node in graph_nodes}
     assert f"memory:{memory_id}" in node_keys

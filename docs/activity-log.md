@@ -3242,3 +3242,69 @@ Notes:
 - Milvus Lite remains optional and is not required for base runtime or tests.
 - V1.4 should only activate hybrid ranking after selecting and validating a
   real embedding provider.
+
+## 2026-05-31 - V1.4.0 Memory Surface Taxonomy
+
+Area:
+
+Memoria / retrieval e maintenance readiness.
+
+Branch:
+
+Memoria.
+
+Type:
+
+Implementazione.
+
+Target version:
+
+V1.4.0.
+
+Goal:
+
+Improve the memory substrate that future embeddings will consume while leaving
+local BGE-M3/GPU work for the Windows machine.
+
+Changes:
+
+- Added `backend/app/mind/surface_taxonomy.py` as the single deterministic
+  backend compiler for memory/fact/graph-node surfaces.
+- Memory records can now emit multiple cognitive surfaces:
+  `memory_text`, type-specific surfaces such as `preference_text`,
+  `future_use_text`, `temporal_text`, `fact_bundle_text`, and
+  `conflict_guard_text` when applicable.
+- Surface metadata now records taxonomy version, compiler, cognitive
+  dimensions, embedding role, agent-supplied fields, and backend-owned fields.
+- Retrieval readiness now reports `memory_surface_taxonomy_v1` and includes
+  the surface taxonomy manifest.
+- Shadow retrieval now compares across all active memory surfaces for candidate
+  memories, still trace-only.
+- Maintenance proposal preflight now stores `maintenance_assessment` with lane,
+  risk, review focus, and counts so future policy tuning has measurable
+  evidence.
+- Active memory ranking, Scarlet prompt, embedding providers, and graph DB
+  choices remain unchanged.
+
+Verification:
+
+- Targeted backend suite passed:
+  `.venv/bin/python -m pytest tests/test_storage.py tests/test_mind_api.py tests/test_maintenance.py tests/test_chat_api.py -q`
+  (`50 passed`).
+- Full backend suite passed from `backend`: `.venv/bin/python -m pytest -q`
+  (`65 passed`).
+- Frontend production build passed:
+  `npm --prefix frontend run build`.
+- `git diff --check` passed.
+- Direct Scarlet test on a temporary SQLite database passed:
+  a chocolate preference/constraint memory generated the expected taxonomy
+  surfaces, and Scarlet used that memory correctly in a natural snack
+  recommendation.
+
+Notes:
+
+- This slice intentionally avoids BGE-M3, Milvus activation, and active hybrid
+  ranking because local embedding work is planned for the Windows GPU machine.
+- The stronger surface taxonomy should make future embedding tests more
+  meaningful, because the vectors will index cognitive facets rather than one
+  flattened memory string.

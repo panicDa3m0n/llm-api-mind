@@ -548,6 +548,11 @@ def test_memory_review_proposal_detects_exact_duplicate() -> None:
     assert proposal.proposed_action == "noop_duplicate"
     assert proposal.similar_memory_ids_json[0] == existing_id
     assert proposal.decision_json["reason"].startswith("equivalent active memory")
+    assessment = proposal.decision_json["maintenance_assessment"]
+    assert assessment["policy_version"] == "maintenance_preflight_assessment_v1"
+    assert assessment["lane"] == "deterministic_archive"
+    assert "duplicate_memory" in assessment["review_focus"]
+    assert assessment["counts"]["similar_memories"] >= 1
 
 
 def test_idle_maintenance_skips_when_a_newer_turn_exists() -> None:
