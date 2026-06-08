@@ -12,12 +12,13 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.4.0**.
+Current app baseline: **V1.4.1**.
 
 The project has a working local baseline runtime:
 
 - FastAPI backend;
-- MiniMax M2.7 baseline provider with optional Qwen provider comparison;
+- MiniMax M3 baseline provider, with MiniMax M2.7 retained as the direct A/B
+  comparison baseline and optional Qwen provider comparison;
 - configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, traces, and ordered runtime
   events;
@@ -143,7 +144,7 @@ Expected future environment variables:
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic
-MINIMAX_MODEL=MiniMax-M2.7
+MINIMAX_MODEL=MiniMax-M3
 MINIMAX_MAX_TOKENS=131072
 QWEN_API_KEY=
 QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/apps/anthropic

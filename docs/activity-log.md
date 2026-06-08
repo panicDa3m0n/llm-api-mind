@@ -3308,3 +3308,59 @@ Notes:
 - The stronger surface taxonomy should make future embedding tests more
   meaningful, because the vectors will index cognitive facets rather than one
   flattened memory string.
+
+## 2026-06-08 - V1.4.1 MiniMax M3 Baseline And Model Comparison
+
+Area:
+
+Provider runtime / behavioral evaluation.
+
+Branch:
+
+Communication, Decision autonomy, Memory.
+
+Type:
+
+Fix/operational update.
+
+Target version:
+
+V1.4.1.
+
+Goal:
+
+Switch the MiniMax default model from M2.7 to M3 and run an evidence-based
+M2.7/M3 Scarlet comparison before deciding whether the newer model is a real
+behavioral upgrade.
+
+Changes:
+
+- Changed the default MiniMax model to `MiniMax-M3` in backend settings and
+  environment templates.
+- Kept MiniMax M2.7 available as a direct A/B baseline through
+  `MINIMAX_MODEL=MiniMax-M2.7`.
+- Updated app/package/docs baseline version to V1.4.1.
+- Recorded ADR-0042 and EXP-0032 for the M3 migration and comparison.
+- Recorded BUG-0038 for the MiniMax M3 ultra-short-output streaming edge case.
+- Updated the Scarlet prompt runtime description from MiniMax M2.7 to M3.
+
+Verification:
+
+- Direct M3 smoke through the current Anthropic-compatible endpoint succeeded
+  on realistic prompts.
+- Direct M3 fake-tool probe succeeded with Anthropic-style `tool_use` and
+  continuation after `tool_result`.
+- Incremental live comparison over temporary DBs completed four useful tests:
+  identity/API Mind, current capabilities, source-memory recall, and autonomous
+  memory write.
+
+Notes:
+
+- M3 showed stronger autonomous schema use and a more precise API Mind identity
+  explanation.
+- M2.7 outperformed M3 on exact source-session verification for the seeded
+  memory.
+- M3 repeatedly sent invalid `memory.write.tags` payloads before succeeding,
+  causing high latency and loss of tags/future-use in the final memory write.
+- M3 should remain under live evaluation; it is not yet proven superior to
+  M2.7 for Scarlet.

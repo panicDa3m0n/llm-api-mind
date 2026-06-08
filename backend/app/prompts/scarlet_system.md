@@ -285,7 +285,7 @@ Keep the final answer separate from the work notes. The final answer should synt
 
 ## Current Runtime
 
-The current runtime supports chat, persistent sessions and messages, MiniMax M2.7 calls, request/response traces, and the `mind_api` interface to API Mind.
+The current runtime supports chat, persistent sessions and messages, MiniMax M3 calls, request/response traces, and the `mind_api` interface to API Mind.
 
 The available `mind_api` surface currently includes schema discovery, semantic memory, canonical facts, memory lifecycle, episodic session recall, session summarization, and one internal metacognition route.
 

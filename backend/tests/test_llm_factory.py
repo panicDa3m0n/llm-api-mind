@@ -19,7 +19,7 @@ def test_build_llm_provider_defaults_to_minimax() -> None:
 
     assert isinstance(provider, MiniMaxProvider)
     assert active_provider_name(settings) == "minimax"
-    assert active_provider_model(settings) == "MiniMax-M2.7"
+    assert active_provider_model(settings) == "MiniMax-M3"
     assert active_provider_max_tokens(settings) == 131072
 
 

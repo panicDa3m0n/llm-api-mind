@@ -392,7 +392,7 @@ export function App() {
           seq: eventSeq(event),
           modelStep: numericValue(event.data.step),
           title: `MiniMax request #${String(event.data.step ?? "1")}`,
-          body: `model: ${String(event.data.model ?? "MiniMax-M2.7")}`,
+          body: `model: ${String(event.data.model ?? "MiniMax-M3")}`,
           status: "active"
         });
         break;

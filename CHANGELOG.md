@@ -8,6 +8,13 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.4.1 MiniMax M3 baseline migration and M2.7/M3 comparison:
+  - MiniMax default model is now `MiniMax-M3`;
+  - MiniMax M2.7 remains the direct A/B comparison baseline;
+  - project docs and runtime examples now treat M3 as the active baseline;
+  - the migration records an explicit behavioral comparison plan focused on
+    identity, autonomous API Mind use, memory behavior, source verification,
+    and previously observed model-sensitive failures.
 - Added V1.4.0 memory surface taxonomy:
   - backend-owned deterministic `surface_taxonomy` compiler for memory,
     fact, and graph-node surfaces;

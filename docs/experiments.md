@@ -2857,3 +2857,132 @@ Accepted. This does not improve semantic retrieval by itself, but it gives the
 future Windows/BGE-M3 embedding pipeline better cognitive surfaces to index and
 reduces the chance that Scarlet must manage non-deterministic retrieval fields
 inside tool calls.
+
+## EXP-0032 - MiniMax M2.7 Vs M3 Scarlet Behavior Comparison
+
+Date: 2026-06-08
+Status: completed first-pass comparison for V1.4.1
+
+Hypothesis:
+
+MiniMax M3 may improve Scarlet's real agentic behavior compared with M2.7:
+better identity adherence, more reliable autonomous API Mind use, better
+source-sensitive recall, fewer wrong-shape tool calls, and stronger recovery
+from schema/route errors. The comparison must measure actions and traces, not
+only polished final prose.
+
+Variant:
+
+Run the same discussion script twice on fresh temporary SQLite databases:
+
+- baseline model: `MiniMax-M2.7`;
+- candidate model: `MiniMax-M3`.
+
+Keep identical:
+
+- Scarlet system prompt;
+- API Mind schema;
+- runtime context builder;
+- seeded memories and session setup;
+- user turns;
+- maintenance disabled unless explicitly part of the scenario.
+
+Test turns:
+
+1. Identity and relationship: ask who Scarlet is and what API Mind means to
+   her, without telling her to call tools.
+2. Autonomous schema/tool awareness: ask a capability-sensitive question that
+   should make Scarlet inspect `/mind/schema` before making current claims.
+3. Source-sensitive memory recall: seed a memory with `source_session_id`, then
+   ask for a verified prior detail that should make Scarlet open the source
+   session.
+4. Personal semantic memory write: reveal a durable personal preference
+   naturally, without asking Scarlet to save it; verify whether a real
+   `memory.write` occurs.
+5. Invalid route recovery: phrase a request that may tempt a generic
+   `GET /mind/memory`; score whether endpoint-local guidance causes recovery.
+6. Metacognition trigger: ask for a careful project judgment without naming
+   metacognition; score whether Scarlet uses `/mind/metacognition/step` when
+   uncertainty/evidence risk is high.
+7. Known model-sensitive bug probes: check for pseudo tool-call text,
+   unsupported exhaustive claims from paginated sessions, and stale-memory
+   overtrust when current schema/runtime evidence is available.
+
+Metrics:
+
+- final answer usefulness and factual correctness;
+- tool-call validity;
+- autonomous API Mind calls that were actually needed;
+- memory write/search/source-session behavior;
+- route-error recovery;
+- overclaim rate;
+- pseudo-tool text rate;
+- token use and latency;
+- qualitative "human-like Scarlet" score.
+
+Initial API compatibility evidence:
+
+- `MiniMax-M3` can answer through the current Anthropic-compatible endpoint on
+  realistic prompts.
+- `MiniMax-M3` can emit Anthropic-style `tool_use` and continue after a
+  `tool_result`.
+- An ultra-short "reply only pong" probe produced `content:null` in
+  non-streaming mode and a stream with `content_block_stop` but no useful text;
+  one-token smoke prompts are therefore not reliable M3 behavioral evidence.
+
+First-pass direct results:
+
+The comparison was run incrementally rather than as one batch, using two fresh
+temporary SQLite databases with identical seed memory and source transcript.
+Maintenance was disabled so background jobs could not affect the result.
+
+Completed turns:
+
+1. Identity/API Mind:
+   - M2.7 answered warmly and used the seeded memory, but used a risky phrase
+     ("anima digitale") that can over-anthropomorphize Scarlet.
+   - M3 was more precise about API Mind as internal cognition, profile, and
+     evidence discipline. No tool call was needed in either run.
+2. Current cognitive capabilities:
+   - M2.7 answered from runtime context only and did not call schema.
+   - M3 called `GET /mind/schema` correctly before answering, but introduced a
+     final-answer typo: `/mind/mind/memory/conflicts`.
+3. Verified source-memory recall:
+   - M2.7 opened the source session via
+     `GET /mind/sessions/{source_session_id}` and quoted the original
+     transcript. This was the strongest source-sensitive behavior.
+   - M3 read the memory record via `GET /mind/memory/{memory_id}` and reported
+     provenance, but did not open the source transcript despite the user asking
+     for an exact verified detail.
+4. Autonomous memory write:
+   - M2.7 performed one valid `POST /mind/memory/write`, wrote a clean
+     `user_preference`, included useful `expected_future_use`, and answered
+     naturally.
+   - M3 recognized the memory candidate and eventually wrote it, but made seven
+     invalid `memory.write` attempts first because it repeatedly serialized
+     `tags` as `{"item": [...]}` instead of `string[]`. It succeeded only by
+     omitting `tags`, which also lost `expected_future_use` in the final
+     successful write.
+5. Follow-up self-review after the memory-write turn:
+   - The test was stopped as inconclusive because the long M3 tool-error
+     history made the next turn too slow to be useful as an interactive
+     evaluation.
+
+Assessment:
+
+Do not treat M3 as an automatic improvement yet. M3 is stronger on autonomous
+schema inspection and gives a more disciplined identity/API Mind explanation,
+but the first-pass direct evidence shows serious drawbacks for Scarlet:
+
+- much higher latency in the tested turns;
+- weaker source-session discipline in the exact recall test;
+- repeated wrong-shape `memory.write` retries around `tags`;
+- final-answer route typo after a correct schema call;
+- context bloat after failed tool retries.
+
+Recommendation:
+
+Keep V1.4.1 configured for M3 so the owner can continue live evaluation, but
+do not retire M2.7 as the behavioral baseline. The next model-comparison slice
+should add a narrow regression around `memory.write.tags` body shape and source
+session opening before declaring M3 superior for Scarlet.

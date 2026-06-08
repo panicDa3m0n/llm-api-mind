@@ -388,7 +388,7 @@ Response:
   "app": "LLM API Mind",
   "environment": "local",
   "provider": "minimax",
-  "model": "MiniMax-M2.7"
+  "model": "MiniMax-M3"
 }
 ```
 
@@ -418,7 +418,7 @@ Request:
 
 ```json
 {
-  "prompt": "Reply with exactly: pong",
+  "prompt": "Reply in one short sentence saying you are ready.",
   "max_tokens": 131072
 }
 ```
@@ -429,16 +429,17 @@ default token budget:
 - `MINIMAX_MAX_TOKENS` for `LLM_PROVIDER=minimax`;
 - `QWEN_MAX_TOKENS` for `LLM_PROVIDER=qwen`.
 
-For MiniMax M2.7, the backend accepts request overrides up to `131072`, matching
-the documented maximum completion budget.
+For the configured MiniMax baseline, the backend accepts request overrides up
+to `131072`, preserving the high-output-budget policy used by the Scarlet
+runtime.
 
 Response:
 
 ```json
 {
   "ok": true,
-  "model": "MiniMax-M2.7",
-  "text": "pong",
+  "model": "MiniMax-M3",
+  "text": "Sono pronta.",
   "max_tokens": 131072,
   "latency_ms": 2556,
   "usage": {
@@ -821,7 +822,7 @@ Request:
 
 ```json
 {
-  "message": "Reply with exactly: pong",
+  "message": "Reply in one short sentence saying you are ready.",
   "system": null,
   "max_tokens": null
 }
@@ -830,8 +831,9 @@ Request:
 `max_tokens` is optional. When omitted, the backend uses the selected provider
 default token budget.
 
-For MiniMax M2.7, the backend accepts request overrides up to `131072`, matching
-the documented maximum completion budget.
+For the configured MiniMax baseline, the backend accepts request overrides up
+to `131072`, preserving the high-output-budget policy used by the Scarlet
+runtime.
 
 `system` is optional. When omitted or blank, the backend loads the configured agent system prompt. The default prompt is `backend/app/prompts/scarlet_system.md`. It can be replaced with `AGENT_SYSTEM_PROMPT` or `AGENT_SYSTEM_PROMPT_PATH`.
 
@@ -851,15 +853,15 @@ Response:
   "user_message": {
     "id": "msg_...",
     "role": "user",
-    "content": "Reply with exactly: pong"
+    "content": "Reply in one short sentence saying you are ready."
   },
   "assistant_message": {
     "id": "msg_...",
     "role": "assistant",
-    "content": "pong"
+    "content": "Sono pronta."
   },
   "trace_ids": ["trace_...", "trace_...", "trace_..."],
-  "model": "MiniMax-M2.7",
+  "model": "MiniMax-M3",
   "latency_ms": 1104,
   "usage": {
     "input_tokens": 26,

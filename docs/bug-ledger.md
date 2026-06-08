@@ -2036,3 +2036,35 @@ This is a pre-existing extractor issue, not the proposal-resolution feature
 itself. It should be fixed in a focused retrieval/facts slice by replacing
 substring alias checks with token/phrase-boundary matching and adding
 regression tests.
+
+## BUG-0038 - MiniMax M3 Ultra-Short Responses Can Produce Empty Content Blocks
+
+Date Found: 2026-06-08
+Status: monitoring
+
+Symptoms:
+
+During the V1.4.1 MiniMax M3 migration check, an ultra-short prompt asking the
+model to reply only `pong` reached the Anthropic-compatible endpoint but
+returned no usable text content:
+
+- non-streaming raw response: `content:null`, `model=MiniMax-M3`, usage
+  present, `stop_reason=end_turn`;
+- streaming raw response: `message_start`, `ping`, `content_block_stop`,
+  `message_delta`, `message_stop`, without a preceding text block containing
+  final text;
+- the Anthropic SDK stream accumulator raised `IndexError: list index out of
+  range`.
+
+Impact:
+
+This can break synthetic one-token smoke tests and possibly user prompts that
+overconstrain Scarlet to a one-token output. Realistic M3 prompts and a
+tool-use probe both worked through the current provider, so this is treated as
+a provider/model edge case rather than a blocker for behavioral comparison.
+
+Do Not Fix Yet:
+
+Do not add a custom raw-SSE M3 provider in V1.4.1 unless direct Scarlet turns
+show the same issue in normal use. Use realistic smoke prompts and keep M2.7
+available as `MINIMAX_MODEL=MiniMax-M2.7`.

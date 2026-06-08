@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-05-28
-App baseline: V1.4.0
+App baseline: V1.4.1
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -27,7 +27,8 @@ docs/branches/README.md
 The project has moved beyond the original foundation milestone. The current
 system is a local agentic runtime for Scarlet with:
 
-- Anthropic-compatible provider execution, defaulting to MiniMax M2.7;
+- Anthropic-compatible provider execution, defaulting to MiniMax M3, with
+  MiniMax M2.7 retained as the model-comparison baseline;
 - persistent chat sessions, provider-native history, messages, turns, traces,
   tool calls, runtime events, maintenance jobs, semantic memories, atomic
   facts, episodic session summaries, derived memory surfaces, and graph-ready
@@ -108,7 +109,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `64 passed`.
+- Backend test suite currently passes at `65 passed`.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
 
@@ -123,7 +124,9 @@ Primary docs:
 Implemented:
 
 - `LLM_PROVIDER=minimax|qwen`.
-- MiniMax remains default.
+- MiniMax M3 remains the default MiniMax baseline from V1.4.1.
+- MiniMax M2.7 remains available as the direct A/B baseline by setting
+  `MINIMAX_MODEL=MiniMax-M2.7`.
 - Qwen is available as an A/B comparison provider without changing Scarlet,
   API Mind, memory, traces, or UI.
 - All Anthropic-compatible provider calls use SDK streaming internally. External
@@ -136,9 +139,14 @@ Confirmed:
 - MiniMax high-token smoke test passed after moving non-streaming code paths to
   collected streaming.
 - Provider-native tool history now persists across turns.
+- MiniMax M3 can answer and perform Anthropic-style `tool_use` through the
+  current MiniMax Anthropic-compatible endpoint on realistic prompts.
 
 Still monitoring:
 
+- MiniMax M3 has a monitored ultra-short-output streaming edge case: a
+  one-token `pong` prompt can produce no usable text content block through the
+  Anthropic-compatible stream. Realistic Scarlet turns and tool-use worked.
 - Qwen comparison exists for experimentation, but current working baseline is
   MiniMax because it is the cost-free provider for the owner.
 

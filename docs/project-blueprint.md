@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.4.0
+Version: 1.4.1
 Status: active experimental runtime
 Last updated: 2026-05-31
 Primary human: project owner, evaluator, direction, validation  
@@ -198,10 +198,10 @@ Avoid at first:
 Initial provider:
 
 ```txt
-MiniMax M2.7
+MiniMax M3
 Anthropic-compatible API
 base_url: https://api.minimax.io/anthropic
-model: MiniMax-M2.7
+model: MiniMax-M3
 ```
 
 Comparison provider:
@@ -365,7 +365,7 @@ User
   -> backend chat endpoint
   -> agent runtime
   -> attention/context preparation
-  -> MiniMax M2.7
+  -> MiniMax M3
   -> autonomous mind_api cognitive operations
   -> mind API dispatcher
   -> storage/events/memory/metacognition/state
@@ -875,7 +875,7 @@ Minimum trace object:
     "excluded": [],
     "conflicts": []
   },
-  "model": "MiniMax-M2.7",
+  "model": "MiniMax-M3",
   "tool_calls": [],
   "events": [],
   "memory_reads": [],
@@ -1064,7 +1064,7 @@ Deliverables:
 
 Exit criteria:
 
-- user can chat with MiniMax M2.7 locally;
+- user can chat with the configured MiniMax model locally;
 - every turn is stored and inspectable;
 - provider errors are handled clearly.
 
@@ -1338,7 +1338,7 @@ Expected environment variables:
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=
 MINIMAX_BASE_URL=https://api.minimax.io/anthropic
-MINIMAX_MODEL=MiniMax-M2.7
+MINIMAX_MODEL=MiniMax-M3
 MINIMAX_MAX_TOKENS=131072
 QWEN_API_KEY=
 QWEN_BASE_URL=https://dashscope-intl.aliyuncs.com/apps/anthropic
@@ -1440,6 +1440,6 @@ Immediate next recommended steps:
 The first milestone is not "digital mind". The first milestone is:
 
 ```txt
-A local chat agent using MiniMax M2.7 where every turn is inspectable, reproducible,
+A local chat agent using MiniMax M3 where every turn is inspectable, reproducible,
 and now able to run traceable semantic memory, episodic recall, and metacognition experiments.
 ```

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     minimax_api_key: str | None = Field(default=None, repr=False)
     minimax_base_url: str = "https://api.minimax.io/anthropic"
-    minimax_model: str = "MiniMax-M2.7"
+    minimax_model: str = "MiniMax-M3"
     minimax_max_tokens: int = Field(default=131072, ge=1)
 
     qwen_api_key: str | None = Field(default=None, repr=False)

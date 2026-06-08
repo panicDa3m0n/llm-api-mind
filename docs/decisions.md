@@ -2134,3 +2134,50 @@ Links:
 - `backend/app/mind/surface_taxonomy.py`
 - `backend/app/mind/search.py`
 - `docs/experiments.md#exp-0031---memory-surface-taxonomy`
+
+## ADR-0042 - MiniMax M3 As Default Baseline With M2.7 Comparison
+
+Date: 2026-06-08
+Status: accepted
+
+Context:
+
+MiniMax released M3 with a larger context window, native multimodality, and
+stronger agentic/coding claims than M2.7. The project owner wants to evaluate
+whether Scarlet's observed limits are caused by the model rather than API Mind
+architecture, while avoiding speculative rewrites of the working runtime.
+
+Current MiniMax documentation still shows the Anthropic-compatible API as the
+recommended M2.x integration surface, but live probes on 2026-06-08 confirmed
+that `MiniMax-M3` can answer and perform Anthropic-style `tool_use` through the
+same `https://api.minimax.io/anthropic` endpoint. A separate ultra-short
+`pong` probe exposed an M3 streaming edge case where the provider returned no
+text content block, so M3 must be evaluated with realistic Scarlet turns rather
+than one-token smoke prompts.
+
+Decision:
+
+Make `MiniMax-M3` the default MiniMax model in V1.4.1 while retaining
+`MiniMax-M2.7` as the direct A/B baseline.
+
+The comparison must use the same Scarlet prompt, same API Mind surface, same
+runtime context shape, same seeded memory state, and identical user turns. The
+evaluation should score not only final text quality, but also real actions:
+schema inspection, memory search/write, source-session opening, invalid-route
+recovery, metacognition use, event/tool traces, and latency/token use.
+
+Consequences:
+
+- A model improvement can be measured without changing API Mind architecture.
+- If M3 improves behavior, future prompt/backend work can start from a
+  stronger baseline.
+- If M3 fails on tool-use or event discipline, M2.7 remains available by
+  setting `MINIMAX_MODEL=MiniMax-M2.7`.
+- Multimodal input, the M3 native chatcompletion API, and 1M-context packing
+  are not adopted in this slice.
+
+Links:
+
+- `backend/app/config.py`
+- `backend/.env.example`
+- `docs/experiments.md#exp-0032---minimax-m27-vs-m3-scarlet-behavior-comparison`
