@@ -3364,3 +3364,68 @@ Notes:
   causing high latency and loss of tags/future-use in the final memory write.
 - M3 should remain under live evaluation; it is not yet proven superior to
   M2.7 for Scarlet.
+
+## 2026-06-08 - EXP-0033 MiniMax M3 Stability Replication
+
+Area:
+
+Provider runtime / behavioral evaluation.
+
+Branch:
+
+Communication, Decision autonomy, Memory.
+
+Type:
+
+Diagnostic documentation.
+
+Target version:
+
+V1.4.1 unchanged.
+
+Goal:
+
+Check whether the negative M3 findings from the first comparison were
+temporary cases or repeatable behavior by running repeated direct Scarlet turns
+against temporary SQLite databases.
+
+Work Performed:
+
+- Ran 5 M2.7 semantic-memory write replicas, 5 M2.7 source-recall replicas,
+  and 3 M2.7 schema-awareness replicas.
+- Ran 3 completed M3 semantic-memory write replicas, then stopped that block
+  adaptively because the same failure pattern repeated and each turn was slow.
+- Ran a separate isolated M3 source/schema pass with 3 source-recall replicas
+  and 3 schema-awareness replicas so memory-write retry loops could not
+  contaminate later turns.
+- Recalculated final metrics directly from the temporary SQLite DB traces and
+  assistant messages.
+- Recorded EXP-0033 and BUG-0039.
+
+Results:
+
+- M2.7 semantic memory writes: 5/5 successful, 5/5 valid first attempt, 0/5
+  invalid writes, 0/5 tag-shape errors.
+- M3 semantic memory writes: 3/3 eventually successful, 0/3 valid first
+  attempt, 3/3 invalid writes, 3/3 tag-shape errors, average 5.67 write
+  attempts, average latency 82.1s.
+- M2.7 source recall: opened source session 4/5 and answered exact details
+  5/5.
+- M3 isolated source recall: opened source session 3/3 and answered exact
+  details 3/3.
+- M2.7 schema inspection: called `/mind/schema` 1/3.
+- M3 schema inspection: called `/mind/schema` 3/3.
+
+Verification:
+
+- Direct live Scarlet turns used real MiniMax provider calls through the
+  existing chat streaming endpoint and temporary SQLite databases.
+- Metrics were derived from stored `mind.tool_call` traces and persisted
+  assistant messages.
+- No backend, prompt, schema, or model configuration code was changed.
+
+Next Suggested Step:
+
+Discuss a focused mitigation for BUG-0039 before changing code. M3 looks
+stronger on schema-awareness and isolated source recall, but M2.7 remains the
+more reliable semantic-memory-write baseline.

@@ -2068,3 +2068,53 @@ Do Not Fix Yet:
 Do not add a custom raw-SSE M3 provider in V1.4.1 unless direct Scarlet turns
 show the same issue in normal use. Use realistic smoke prompts and keep M2.7
 available as `MINIMAX_MODEL=MiniMax-M2.7`.
+
+## BUG-0039 - MiniMax M3 Repeatedly Sends Invalid Memory Write Tags Shape
+
+Date Found: 2026-06-08
+Status: monitoring
+
+Symptoms:
+
+During EXP-0032 and the targeted EXP-0033 replication, MiniMax M3 repeatedly
+called `POST /mind/memory/write` with `tags` serialized as an object-like shape
+instead of the endpoint's expected `string[]`. The endpoint rejected those
+calls with `memory.invalid_write`, M3 retried several times, and eventually
+stored the memory only after dropping tags.
+
+EXP-0033 replication:
+
+- M2.7 memory write: 5/5 successful, 5/5 valid first attempt, 0/5 tag-shape
+  errors, 5/5 successful memories had tags.
+- M3 memory write: 3/3 successful eventually, 0/3 valid first attempt, 3/3
+  invalid write, 3/3 tag-shape errors, 0/3 successful memories had tags.
+- M3 average write attempts: 5.67.
+- M3 average memory-write latency: 82.1s.
+
+Impact:
+
+M3 can still complete the semantic memory write, but the retry loop creates high
+latency, context bloat, and degraded memory quality because tags are lost in
+the final stored memory. This directly affects retrieval quality and future
+embedding/knowledge-graph surfaces, where tags are useful classification
+signals.
+
+Root Cause:
+
+Not fixed yet. Current evidence points to a model/tool-argument compatibility
+issue rather than backend failure: M2.7 uses the same prompt, same schema, same
+endpoint, and same backend successfully.
+
+Do Not Fix Yet:
+
+Do not patch this with hardcoded term bans or case-specific prompt tricks.
+Discuss a focused root-cause mitigation first. Candidate directions include
+clearer endpoint-local error guidance, provider/tool schema compatibility
+checks, or backend-side structural normalization for known array-wrapper shapes
+while preserving traces that show the model error occurred.
+
+Related Files:
+
+- `docs/experiments.md#exp-0033---minimax-m3-stability-replication`
+- `backend/app/mind/memory.py`
+- `backend/app/mind/schema.py`

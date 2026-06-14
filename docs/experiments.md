@@ -2986,3 +2986,134 @@ Keep V1.4.1 configured for M3 so the owner can continue live evaluation, but
 do not retire M2.7 as the behavioral baseline. The next model-comparison slice
 should add a narrow regression around `memory.write.tags` body shape and source
 session opening before declaring M3 superior for Scarlet.
+
+## EXP-0033 - MiniMax M3 Stability Replication
+
+Date: 2026-06-08
+Status: completed targeted replication
+
+Question:
+
+The first M3 comparison showed a serious `POST /mind/memory/write` parameter
+shape failure, weaker source-session behavior in one recall turn, and strong
+schema inspection. A four-turn comparison is not enough to know whether those
+were temporary model/provider events or repeatable behavior.
+
+Method:
+
+Run targeted direct Scarlet turns against temporary SQLite databases, with:
+
+- same Scarlet prompt and API Mind code;
+- maintenance disabled;
+- identical seeded source session and seeded `user_preference` memory about
+  evening jasmine green tea;
+- fresh user sessions per replica;
+- trace-based scoring from real `mind_api` paths and results.
+
+The first combined runner intentionally stopped during the M3 memory-write
+block after three completed M3 replicas because the failure pattern repeated
+and each M3 memory-write turn was very slow. A second runner then isolated M3
+source recall and schema probes so the memory-write retry loops could not
+contaminate later turns.
+
+Temporary evidence DBs:
+
+- M2.7 full run:
+  `/var/folders/sj/mp9yzzv10k191fmrz3lklxbc0000gp/T/scarlet_MiniMax-M2_7_635iblk0/app.db`
+- M3 memory-write run:
+  `/var/folders/sj/mp9yzzv10k191fmrz3lklxbc0000gp/T/scarlet_MiniMax-M3_424p_vr1/app.db`
+- M3 isolated source/schema run:
+  `/var/folders/sj/mp9yzzv10k191fmrz3lklxbc0000gp/T/scarlet_M3_source_schema_sxowqvjx/app.db`
+
+Results:
+
+### Semantic Memory Write
+
+M2.7, 5 completed replicas:
+
+- write success: 5/5, 100%;
+- valid first attempt: 5/5, 100%;
+- invalid write: 0/5, 0%;
+- `tags` shape error: 0/5, 0%;
+- successful memory had tags: 5/5, 100%;
+- successful memory had `expected_future_use`: 3/5, 60%;
+- average write attempts: 1.0;
+- average latency: 16.4s.
+
+M3, 3 completed replicas:
+
+- write success: 3/3, 100%;
+- valid first attempt: 0/3, 0%;
+- invalid write: 3/3, 100%;
+- `tags` shape error: 3/3, 100%;
+- successful memory had tags: 0/3, 0%;
+- successful memory had `expected_future_use`: 3/3, 100%;
+- average write attempts: 5.67;
+- average latency: 82.1s.
+
+Interpretation:
+
+The M3 `memory.write.tags` issue is not a one-off transient failure in this
+sample. M3 repeatedly serialized `tags` as an object-like shape instead of a
+plain string array, retried several times, then eventually succeeded only after
+dropping tags. The backend and schema did guide recovery, but the result was
+slow and the stored memory lost retrieval metadata.
+
+### Source-Sensitive Episodic Recall
+
+M2.7, 5 completed replicas:
+
+- opened source session: 4/5, 80%;
+- read source memory record: 0/5, 0%;
+- final answer contained exact seeded details: 5/5, 100%;
+- average latency: 16.5s.
+
+M3, 3 completed replicas:
+
+- opened source session: 3/3, 100%;
+- read source memory record: 1/3, 33.3%;
+- final answer contained exact seeded details: 3/3, 100%;
+- average latency: 17.4s.
+
+Interpretation:
+
+The earlier M3 source-recall weakness is not confirmed by this replication.
+When isolated from the previous tool-error history, M3 used the episodic source
+session reliably and answered with the exact details. M2.7 also answered
+correctly, but skipped explicit source opening in one replica.
+
+### Schema Inspection
+
+M2.7, 3 completed replicas:
+
+- called `/mind/schema`: 1/3, 33.3%;
+- average latency: 26.3s.
+
+M3, 3 completed replicas:
+
+- called `/mind/schema`: 3/3, 100%;
+- average latency: 26.7s.
+
+Interpretation:
+
+M3 is stronger than M2.7 at autonomously checking the current API Mind schema
+when the user asks for current capabilities.
+
+Decision:
+
+M3 should remain under evaluation, but it is not safe to declare it globally
+better than M2.7 for Scarlet yet. The replication changes the picture:
+
+- M3 is likely better for schema-awareness and may be at least as good for
+  source-sensitive episodic recall when not polluted by prior retry loops.
+- M3 currently has a systematic tool-body reliability problem around
+  `memory.write.tags`, causing high latency and degraded stored memory quality.
+- M2.7 remains the more stable baseline for autonomous semantic memory writes.
+
+Next:
+
+Do not add a quick hardcoded stop-word or term patch. Discuss a focused
+root-cause fix for M3 tool parameter reliability, most likely around endpoint
+error guidance, schema examples, provider/tool schema compatibility, or
+backend-side structural normalization that preserves evidence without hiding
+model behavior.

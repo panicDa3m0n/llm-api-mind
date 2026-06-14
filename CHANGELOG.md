@@ -15,6 +15,16 @@ This project uses a practical changelog rather than a release-only log: each mea
   - the migration records an explicit behavioral comparison plan focused on
     identity, autonomous API Mind use, memory behavior, source verification,
     and previously observed model-sensitive failures.
+- Added EXP-0033 MiniMax M3 stability replication:
+  - repeated semantic-memory write, source-recall, and schema-awareness probes
+    against temporary DBs;
+  - confirmed M3 is stronger than M2.7 on autonomous `/mind/schema`
+    inspection in this sample;
+  - confirmed M3 source-session recall works well when isolated from previous
+    memory-write retry loops;
+  - recorded BUG-0039 because M3 repeatedly sends invalid
+    `memory.write.tags` shapes, causing high latency and loss of tags in
+    stored memories.
 - Added V1.4.0 memory surface taxonomy:
   - backend-owned deterministic `surface_taxonomy` compiler for memory,
     fact, and graph-node surfaces;
