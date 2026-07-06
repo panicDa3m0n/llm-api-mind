@@ -5,14 +5,17 @@ import type {
   ChatTurn,
   CognitiveEvent,
   DashboardMemories,
+  HealthStatus,
   RuntimeSettings,
   StreamEvent,
   TraceItem,
   UserProfile
 } from "./types";
 
+const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(resolveApiPath(path), {
     headers: {
       "Content-Type": "application/json",
       ...(init?.headers ?? {})
@@ -32,6 +35,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   return (await response.json()) as T;
+}
+
+function resolveApiPath(path: string): string {
+  if (/^https?:\/\//.test(path)) {
+    return path;
+  }
+  return `${API_BASE_URL}${path}`;
+}
+
+function normalizeBaseUrl(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return "";
+  }
+  return value.replace(/\/$/, "");
 }
 
 export function createSession(title?: string): Promise<ChatSession> {
@@ -68,7 +85,7 @@ export async function streamTurn(
   maxTokens: number | undefined,
   onEvent: (event: StreamEvent) => void
 ): Promise<void> {
-  const response = await fetch(`/api/chat/sessions/${sessionId}/turn/stream`, {
+  const response = await fetch(resolveApiPath(`/api/chat/sessions/${sessionId}/turn/stream`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -180,6 +197,6 @@ export function fetchUserProfile(): Promise<UserProfile> {
   return request<UserProfile>("/api/dashboard/profile");
 }
 
-export function fetchHealth(): Promise<{ status: string; app: string; model: string }> {
-  return request<{ status: string; app: string; model: string }>("/health");
+export function fetchHealth(): Promise<HealthStatus> {
+  return request<HealthStatus>("/health");
 }

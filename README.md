@@ -74,8 +74,8 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Promote validated shadow retrieval into real hybrid retrieval only after a
-   real embedding provider is selected.
+1. Calibrate and validate active hybrid memory retrieval with live Scarlet
+   probes and negative controls.
 2. Retrieval quality and memory health.
 3. Source-sensitive answer validation.
 4. Metacognition deepening inside the single route.

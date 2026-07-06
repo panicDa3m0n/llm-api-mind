@@ -55,12 +55,16 @@ class FakeAnthropicClient:
         self.messages = FakeMessages()
 
 
-def make_provider(*, max_tokens: int = 131072) -> AnthropicCompatibleProvider:
+def make_provider(
+    *,
+    model: str = "MiniMax-M2.7",
+    max_tokens: int = 131072,
+) -> AnthropicCompatibleProvider:
     provider = AnthropicCompatibleProvider(
         api_key="test-key",
         api_key_name="MINIMAX_API_KEY",
         base_url="https://api.minimax.io/anthropic",
-        model="MiniMax-M2.7",
+        model=model,
         max_tokens=max_tokens,
         provider_name="MiniMax",
     )
@@ -80,6 +84,7 @@ def test_generate_chat_always_uses_stream() -> None:
     assert result.text == "pong"
     assert provider._client.messages.create_called is False
     assert provider._client.messages.stream_calls[0]["max_tokens"] == 131072
+    assert "thinking" not in provider._client.messages.stream_calls[0]
 
 
 def test_generate_chat_uses_stream_for_small_default_token_budget() -> None:
@@ -92,6 +97,7 @@ def test_generate_chat_uses_stream_for_small_default_token_budget() -> None:
     assert result.text == "pong"
     assert provider._client.messages.create_called is False
     assert provider._client.messages.stream_calls[0]["max_tokens"] == 4096
+    assert "thinking" not in provider._client.messages.stream_calls[0]
 
 
 def test_generate_chat_with_tools_always_uses_stream() -> None:
@@ -108,3 +114,34 @@ def test_generate_chat_with_tools_always_uses_stream() -> None:
     assert provider._client.messages.create_called is False
     assert provider._client.messages.stream_calls[0]["max_tokens"] == 131072
     assert provider._client.messages.stream_calls[0]["tools"] == []
+    assert "thinking" not in provider._client.messages.stream_calls[0]
+
+
+def test_generate_chat_enables_thinking_for_m3() -> None:
+    provider = make_provider(model="MiniMax-M3")
+
+    result = provider.generate_chat(
+        messages=[LLMMessage(role="user", content="ping")],
+        max_tokens=131072,
+    )
+
+    assert result.text == "pong"
+    assert provider._client.messages.stream_calls[0]["thinking"] == {
+        "type": "adaptive"
+    }
+
+
+def test_generate_chat_with_tools_enables_thinking_for_m3() -> None:
+    provider = make_provider(model="MiniMax-M3")
+
+    result = provider.generate_chat_with_tools(
+        messages=[LLMMessage(role="user", content="ping")],
+        max_tokens=131072,
+        tools=[],
+        tool_runner=lambda _tool_use: None,
+    )
+
+    assert result.text == "pong"
+    assert provider._client.messages.stream_calls[0]["thinking"] == {
+        "type": "adaptive"
+    }

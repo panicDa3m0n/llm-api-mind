@@ -230,6 +230,187 @@ class ToolCall(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, index=True)
 
 
+class FocusRecord(SQLModel, table=True):
+    __tablename__ = "focus_records"
+
+    id: str = Field(default_factory=lambda: new_id("focus"), primary_key=True)
+    owner_profile_id: str = Field(default="local-user", index=True)
+    status: str = Field(default="active", index=True)
+    focus_object: str = Field(index=True)
+    focus_type: str = Field(default="general", index=True)
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    duration_policy: str | None = Field(default=None, index=True)
+    reason: str
+    resolution: str | None = None
+    impossible_reason: str | None = None
+    created_by: str = Field(default="scarlet", index=True)
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_message_id: str | None = Field(
+        default=None,
+        foreign_key="messages.id",
+        index=True,
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    closed_at: datetime | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class FocusTransition(SQLModel, table=True):
+    __tablename__ = "focus_transitions"
+
+    id: str = Field(default_factory=lambda: new_id("focus_edge"), primary_key=True)
+    owner_profile_id: str = Field(default="local-user", index=True)
+    from_focus_id: str | None = Field(
+        default=None,
+        foreign_key="focus_records.id",
+        index=True,
+    )
+    to_focus_id: str | None = Field(
+        default=None,
+        foreign_key="focus_records.id",
+        index=True,
+    )
+    relation: str = Field(index=True)
+    reason: str | None = None
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_message_id: str | None = Field(
+        default=None,
+        foreign_key="messages.id",
+        index=True,
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class IntentionRecord(SQLModel, table=True):
+    __tablename__ = "intention_records"
+
+    id: str = Field(default_factory=lambda: new_id("intent"), primary_key=True)
+    owner_profile_id: str = Field(default="local-user", index=True)
+    status: str = Field(default="active", index=True)
+    desire: str = Field(index=True)
+    origin: str = Field(default="scarlet", index=True)
+    horizon: str | None = Field(default=None, index=True)
+    intensity: float = Field(default=0.5, ge=0.0, le=1.0)
+    autonomy_level: str = Field(default="self_generated", index=True)
+    reason: str
+    next_possible_reflection: str | None = None
+    last_reviewed_at: datetime | None = Field(default=None, index=True)
+    next_review_at: datetime | None = Field(default=None, index=True)
+    review_interval_seconds: int | None = Field(default=None, index=True)
+    review_count: int = Field(default=0)
+    resolution: str | None = None
+    impossible_reason: str | None = None
+    created_by: str = Field(default="scarlet", index=True)
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    source_message_id: str | None = Field(
+        default=None,
+        foreign_key="messages.id",
+        index=True,
+    )
+    source_focus_id: str | None = Field(
+        default=None,
+        foreign_key="focus_records.id",
+        index=True,
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    closed_at: datetime | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class IntentionLink(SQLModel, table=True):
+    __tablename__ = "intention_links"
+
+    id: str = Field(default_factory=lambda: new_id("intent_link"), primary_key=True)
+    intention_id: str = Field(foreign_key="intention_records.id", index=True)
+    target_type: str = Field(index=True)
+    target_id: str = Field(index=True)
+    relation: str = Field(default="related_to", index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class AffectState(SQLModel, table=True):
+    __tablename__ = "affect_states"
+
+    id: str = Field(default_factory=lambda: new_id("affect"), primary_key=True)
+    owner_profile_id: str = Field(default="local-user", index=True)
+    session_id: str | None = Field(default=None, foreign_key="sessions.id", index=True)
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    status: str = Field(default="active", index=True)
+    mode: str = Field(default="shadow", index=True)
+    emotion: str = Field(index=True)
+    intensity: float = Field(default=0.0, ge=0.0, le=1.0)
+    intensity_label: str = Field(default="low", index=True)
+    valence: float = Field(default=0.0, ge=-1.0, le=1.0)
+    activation: float = Field(default=0.0, ge=0.0, le=1.0)
+    prototype_version: str = Field(index=True)
+    variables_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    causes_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    tendencies_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    pack_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    decays_at: datetime | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
 class MemoryRecord(SQLModel, table=True):
     __tablename__ = "memories"
 
@@ -424,6 +605,40 @@ class MemorySurface(SQLModel, table=True):
     embedding_status: str = Field(default="pending", index=True)
     embedding_model: str | None = Field(default=None, index=True)
     embedding_vector_id: str | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class EmbeddingVector(SQLModel, table=True):
+    __tablename__ = "embedding_vectors"
+    __table_args__ = (
+        UniqueConstraint("object_key", name="uq_embedding_vectors_object_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("emb"), primary_key=True)
+    object_key: str = Field(index=True)
+    provider: str = Field(index=True)
+    model: str = Field(index=True)
+    input_hash: str = Field(index=True)
+    input_kind: str = Field(default="memory_surface", index=True)
+    vector_dim: int = Field(index=True)
+    vector_json: list[float] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_surface_id: str | None = Field(
+        default=None,
+        foreign_key="memory_surfaces.id",
+        index=True,
+    )
+    target_type: str | None = Field(default=None, index=True)
+    target_id: str | None = Field(default=None, index=True)
+    surface_kind: str | None = Field(default=None, index=True)
+    status: str = Field(default="active", index=True)
     metadata_json: dict[str, Any] = Field(
         default_factory=dict,
         sa_column=Column(JSON, nullable=False),

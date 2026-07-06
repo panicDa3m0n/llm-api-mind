@@ -100,11 +100,17 @@ class AnthropicCompatibleProvider:
     ) -> LLMTextResult:
         provider_messages = [self._to_anthropic_message(item) for item in messages]
         try:
+            stream_kwargs: dict[str, Any] = {
+                "model": self._model,
+                "max_tokens": max_tokens,
+                "system": system or "You are a concise assistant.",
+                "messages": provider_messages,
+            }
+            thinking_config = self._thinking_config()
+            if thinking_config is not None:
+                stream_kwargs["thinking"] = thinking_config
             with self._client.messages.stream(
-                model=self._model,
-                max_tokens=max_tokens,
-                system=system or "You are a concise assistant.",
-                messages=provider_messages,
+                **stream_kwargs,
             ) as stream:
                 for _event in stream:
                     pass
@@ -163,12 +169,18 @@ class AnthropicCompatibleProvider:
                     type="model_request",
                     data={"step": step, "model": self._model},
                 )
+                stream_kwargs: dict[str, Any] = {
+                    "model": self._model,
+                    "max_tokens": effective_max_tokens,
+                    "system": system or "You are a concise assistant.",
+                    "messages": provider_messages,
+                    "tools": tools,
+                }
+                thinking_config = self._thinking_config()
+                if thinking_config is not None:
+                    stream_kwargs["thinking"] = thinking_config
                 with self._client.messages.stream(
-                    model=self._model,
-                    max_tokens=effective_max_tokens,
-                    system=system or "You are a concise assistant.",
-                    messages=provider_messages,
-                    tools=tools,
+                    **stream_kwargs,
                 ) as stream:
                     for event in stream:
                         for stream_event in self._stream_events_from_raw_event(event):
@@ -177,11 +189,13 @@ class AnthropicCompatibleProvider:
                     message = stream.get_final_message()
 
                 raw_content = self._extract_raw_content(message.content)
+                stop_reason = getattr(message, "stop_reason", None)
+                provider_message_id = getattr(message, "id", None)
                 raw_provider_messages.append(
                     {
-                        "id": getattr(message, "id", None),
+                        "id": provider_message_id,
                         "model": getattr(message, "model", self._model),
-                        "stop_reason": getattr(message, "stop_reason", None),
+                        "stop_reason": stop_reason,
                         "content": raw_content,
                         "usage": self._extract_usage(message),
                     }
@@ -191,6 +205,13 @@ class AnthropicCompatibleProvider:
                     self._extract_usage(message),
                 )
                 tool_uses = self._extract_tool_uses(message.content)
+                for semantic_event in self._semantic_events_from_raw_content(
+                    raw_content,
+                    provider_message_id=provider_message_id,
+                    stop_reason=stop_reason,
+                    model_step=step,
+                ):
+                    yield semantic_event
                 if not tool_uses:
                     yield LLMStreamEvent(
                         type="final_result",
@@ -264,6 +285,11 @@ class AnthropicCompatibleProvider:
         if self._api_key:
             return message.replace(self._api_key, "***")
         return message
+
+    def _thinking_config(self) -> dict[str, str] | None:
+        if self._model.startswith("MiniMax-M3"):
+            return {"type": "adaptive"}
+        return None
 
     @staticmethod
     def _extract_text(content_blocks: list[Any]) -> str:
@@ -389,6 +415,46 @@ class AnthropicCompatibleProvider:
                 yield LLMStreamEvent(
                     type="model_stop",
                     data={"stop_reason": stop_reason},
+                )
+
+    @staticmethod
+    def _semantic_events_from_raw_content(
+        raw_content: list[dict[str, Any]],
+        *,
+        provider_message_id: str | None,
+        stop_reason: str | None,
+        model_step: int,
+    ) -> Iterator[LLMStreamEvent]:
+        has_tool_use = any(block.get("type") == "tool_use" for block in raw_content)
+        text_event_type = "assistant_note" if has_tool_use else "assistant_answer"
+        for index, block in enumerate(raw_content):
+            block_type = block.get("type")
+            if block_type == "thinking":
+                thinking = block.get("thinking")
+                yield LLMStreamEvent(
+                    type="thinking_captured",
+                    data={
+                        "index": index,
+                        "model_step": model_step,
+                        "provider_message_id": provider_message_id,
+                        "stop_reason": stop_reason,
+                        "text": thinking if isinstance(thinking, str) else "",
+                        "has_text": isinstance(thinking, str) and bool(thinking.strip()),
+                    },
+                )
+            elif block_type == "text":
+                text = block.get("text")
+                if not isinstance(text, str) or not text.strip():
+                    continue
+                yield LLMStreamEvent(
+                    type=text_event_type,
+                    data={
+                        "index": index,
+                        "model_step": model_step,
+                        "provider_message_id": provider_message_id,
+                        "stop_reason": stop_reason,
+                        "text": text.strip(),
+                    },
                 )
 
     @staticmethod

@@ -1,13 +1,22 @@
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import func
 from sqlalchemy.engine import Engine
-from sqlmodel import Session
+from sqlmodel import Session, select
 
+from app.config import Settings
+from app.llm.factory import build_llm_provider
 from app.mind.memory import memory_proposal_payload
+from app.runtime.maintenance import run_maintenance_job
 from app.storage import repositories
+from app.storage.models import MaintenanceJob, MemoryProposal, MemoryRecord, utc_now
+
+
+ProviderFactory = Callable[[Settings], Any]
 
 
 class MaintenanceProposalArchiveBody(BaseModel):
@@ -23,8 +32,146 @@ class MaintenanceProposalArchiveBody(BaseModel):
         return self
 
 
-def build_maintenance_router(engine: Engine) -> APIRouter:
+def build_maintenance_router(
+    engine: Engine,
+    settings: Settings,
+    provider_factory: ProviderFactory = build_llm_provider,
+) -> APIRouter:
     router = APIRouter(prefix="/api/maintenance", tags=["maintenance"])
+
+    @router.get("/overview")
+    def get_maintenance_overview(
+        recent_limit: int = Query(default=8, ge=1, le=30),
+    ) -> dict[str, Any]:
+        now = utc_now()
+        with Session(engine) as db:
+            recent_jobs = repositories.list_maintenance_jobs(
+                db,
+                limit=recent_limit,
+            )
+            recent_proposals = repositories.list_memory_proposals(
+                db,
+                status=None,
+                limit=recent_limit,
+            )
+            due_pending_jobs = repositories.list_due_maintenance_jobs(
+                db,
+                now=now,
+                limit=recent_limit + 1,
+            )
+            maintenance_memories = db.exec(
+                select(func.count(MemoryRecord.id)).where(
+                    MemoryRecord.created_by == "maintenance"
+                )
+            ).one()
+
+            return {
+                "operation": "maintenance.overview",
+                "generated_at": now.isoformat(),
+                "settings": {
+                    "enabled": settings.maintenance_enabled,
+                    "idle_seconds": settings.maintenance_idle_seconds,
+                    "worker_interval_seconds": settings.maintenance_worker_interval_seconds,
+                    "job_batch_size": settings.maintenance_job_batch_size,
+                },
+                "jobs": {
+                    "counts_by_status": _counts_by_column(
+                        db,
+                        MaintenanceJob.status,
+                    ),
+                    "counts_by_kind": _counts_by_column(db, MaintenanceJob.kind),
+                    "due_pending_count": len(due_pending_jobs[:recent_limit]),
+                    "due_pending_has_more": len(due_pending_jobs) > recent_limit,
+                    "recent": [_maintenance_job_payload(job) for job in recent_jobs],
+                },
+                "memory_proposals": {
+                    "counts_by_status": _counts_by_column(
+                        db,
+                        MemoryProposal.status,
+                    ),
+                    "counts_by_action": _counts_by_column(
+                        db,
+                        MemoryProposal.proposed_action,
+                    ),
+                    "counts_by_risk": _counts_by_column(db, MemoryProposal.risk),
+                    "recent": [
+                        memory_proposal_payload(proposal)
+                        for proposal in recent_proposals
+                    ],
+                },
+                "memories": {
+                    "created_by_maintenance": maintenance_memories,
+                },
+                "lab_guidance": [
+                    "Inspect pending proposals before adding new maintenance processes.",
+                    "Use GET /api/maintenance/jobs to inspect idle jobs and skipped/failed runs.",
+                    "Use POST /api/maintenance/jobs/{job_id}/run only for a pending lab job you want to execute now.",
+                    "Keep merge/update/deprecate automation pending until embedding/KG evidence improves similarity and stale-memory detection.",
+                ],
+            }
+
+    @router.get("/jobs")
+    def list_maintenance_jobs(
+        status_filter: str | None = Query(
+            default=None,
+            alias="status",
+            max_length=40,
+            description="Optional job status filter. Omit to list all statuses.",
+        ),
+        kind: str | None = Query(default=None, max_length=80),
+        session_id: str | None = Query(default=None, max_length=80),
+        limit: int = Query(default=20, ge=1, le=100),
+        offset: int = Query(default=0, ge=0),
+    ) -> dict[str, Any]:
+        with Session(engine) as db:
+            jobs = repositories.list_maintenance_jobs(
+                db,
+                status=status_filter,
+                kind=kind,
+                session_id=session_id,
+                limit=limit + 1,
+                offset=offset,
+            )
+            has_more = len(jobs) > limit
+            visible = jobs[:limit]
+
+        return {
+            "operation": "maintenance.jobs.list",
+            "status": status_filter,
+            "kind": kind,
+            "session_id": session_id,
+            "limit": limit,
+            "offset": offset,
+            "returned": len(visible),
+            "has_more": has_more,
+            "next_offset": offset + limit if has_more else None,
+            "jobs": [_maintenance_job_payload(job) for job in visible],
+        }
+
+    @router.post("/jobs/{job_id}/run")
+    def run_pending_maintenance_job(job_id: str) -> dict[str, Any]:
+        with Session(engine) as db:
+            job = repositories.get_maintenance_job(db, job_id)
+            if job is None:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "code": "maintenance_job.not_found",
+                        "message": f"Maintenance job {job_id} was not found.",
+                        "recoverable": True,
+                    },
+                )
+        result = run_maintenance_job(
+            engine,
+            settings=settings,
+            provider_factory=provider_factory,
+            job_id=job_id,
+        )
+        return {
+            "operation": "maintenance.jobs.run",
+            "job_id": job_id,
+            "result": result,
+        }
 
     @router.get("/memory/proposals")
     def list_memory_proposals(
@@ -114,3 +261,35 @@ def build_maintenance_router(engine: Engine) -> APIRouter:
         }
 
     return router
+
+
+def _counts_by_column(db: Session, column: Any) -> dict[str, int]:
+    statement = select(column, func.count()).group_by(column)
+    return {
+        str(key): int(count)
+        for key, count in db.exec(statement).all()
+        if key is not None
+    }
+
+
+def _maintenance_job_payload(job: MaintenanceJob) -> dict[str, Any]:
+    return {
+        "id": job.id,
+        "kind": job.kind,
+        "status": job.status,
+        "session_id": job.session_id,
+        "trigger_turn_id": job.trigger_turn_id,
+        "trigger_event_id": job.trigger_event_id,
+        "due_at": job.due_at.isoformat(),
+        "started_at": job.started_at.isoformat() if job.started_at else None,
+        "completed_at": (
+            job.completed_at.isoformat() if job.completed_at else None
+        ),
+        "superseded_by_job_id": job.superseded_by_job_id,
+        "idempotency_key": job.idempotency_key,
+        "input": job.input_json,
+        "result": job.result_json,
+        "error": job.error_json,
+        "created_at": job.created_at.isoformat(),
+        "updated_at": job.updated_at.isoformat(),
+    }

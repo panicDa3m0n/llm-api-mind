@@ -3,12 +3,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlmodel import Session
+from sqlmodel import select
 
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
 from app.mind.memory import MemoryOperationResult, MindAPIContext
 from app.mind.schema import MIND_API_ROUTES
 from app.storage import repositories
+from app.storage.models import CognitiveEvent, Message, ToolCall, Trace, Turn
 
 
 MetacognitionMode = Literal[
@@ -19,7 +21,26 @@ MetacognitionMode = Literal[
     "synthesizer",
     "empathy",
     "memory_curator",
+    "review_previous_turn",
+    "detect_reasoning_drift",
+    "explain_tool_choice",
+    "recover_open_loops",
+    "compare_answer_to_reasoning",
+    "extract_reasoning_digest",
+    "memory_from_reasoning",
 ]
+RetrospectionScope = Literal["none", "previous"]
+RetrospectionDetail = Literal["digest", "excerpt", "raw"]
+
+RETROSPECTION_MODES = {
+    "review_previous_turn",
+    "detect_reasoning_drift",
+    "explain_tool_choice",
+    "recover_open_loops",
+    "compare_answer_to_reasoning",
+    "extract_reasoning_digest",
+    "memory_from_reasoning",
+}
 
 
 METACOGNITION_SYSTEM_PROMPT = """You are Scarlet's internal metacognitive reviewer.
@@ -36,6 +57,11 @@ Return only one JSON object with this shape:
   "claim_checks": [{"claim": "...", "support": "supported|needs_evidence|unsupported|inference", "confidence": 0.0, "recommended_action": "..."}],
   "missing_evidence": ["..."],
   "recommended_internal_actions": [{"method": "GET|POST", "path": "/mind/...", "reason": "..."}],
+  "reasoning_digest": "optional compact summary of previous internal reasoning",
+  "drift_findings": [{"finding": "...", "severity": "low|medium|high", "evidence": "..."}],
+  "open_loops": ["..."],
+  "tool_use_assessment": [{"tool": "...", "assessment": "...", "needed": true}],
+  "memory_candidates_from_reasoning": ["..."],
   "should_continue": true,
   "next_focus_question": "short question or null",
   "public_summary": "optional compact visible metacognition summary"
@@ -45,6 +71,12 @@ Keep the object compact and operational. Prefer schema, trace, memory, fact, or
 runtime-context checks when claims depend on current backend state.
 Recommended internal actions must use exactly one route/method pair from the
 provided available_mind_api_routes list. Do not invent endpoints or methods.
+
+When a retrospection_pack is provided, treat prior thinking as evidence of
+Scarlet's earlier process, not evidence that external facts are true. Use it to
+detect drift, lost assumptions, open loops, unnecessary tools, missed memory
+candidates, and mismatch between user request, reasoning, actions, and final
+answer.
 """
 
 
@@ -68,6 +100,8 @@ class MetacognitionStepBody(BaseModel):
     draft_answer: str | None = Field(default=None, max_length=12000)
     previous_steps: list[dict[str, Any]] = Field(default_factory=list, max_length=20)
     max_findings: int = Field(default=6, ge=1, le=12)
+    turn_scope: RetrospectionScope = "none"
+    detail: RetrospectionDetail = "digest"
 
     @model_validator(mode="before")
     @classmethod
@@ -106,6 +140,26 @@ class MetacognitionStepBody(BaseModel):
         ):
             normalized["objective"] = normalized["focus_question"]
 
+        reasoning_scope = normalized.pop("reasoning_scope", None)
+        if isinstance(reasoning_scope, str) and "turn_scope" not in normalized:
+            normalized["turn_scope"] = reasoning_scope
+
+        reasoning_detail = normalized.pop("reasoning_detail", None)
+        if isinstance(reasoning_detail, str) and "detail" not in normalized:
+            normalized["detail"] = reasoning_detail
+
+        if (
+            normalized.get("mode") in RETROSPECTION_MODES
+            and "turn_scope" not in normalized
+        ):
+            normalized["turn_scope"] = "previous"
+
+        for list_field in ("known_evidence", "uncertainties", "previous_steps"):
+            if list_field in normalized:
+                normalized[list_field] = _normalize_model_list_wrapper(
+                    normalized.get(list_field)
+                )
+
         return normalized
 
 
@@ -125,7 +179,12 @@ def handle_metacognition_step(
     except ValidationError as exc:
         return _validation_error(exc)
 
-    prompt = _build_review_prompt(request, intent=intent)
+    retrospection_pack = _build_retrospection_pack(request, context)
+    prompt = _build_review_prompt(
+        request,
+        intent=intent,
+        retrospection_pack=retrospection_pack,
+    )
     try:
         provider = context.provider_factory(context.settings)
         result = provider.generate_text(
@@ -169,6 +228,9 @@ def handle_metacognition_step(
                 "operation": "metacognition.step",
                 "intent": intent,
                 "input": request.model_dump(mode="json"),
+                "retrospection_pack": _trace_safe_retrospection_pack(
+                    retrospection_pack
+                ),
                 "provider": _provider_payload(result),
                 "repair_provider": _provider_payload(repair_result)
                 if repair_result is not None
@@ -204,6 +266,7 @@ def handle_metacognition_step(
             "operation": "metacognition.step",
             "intent": intent,
             "input": request.model_dump(mode="json"),
+            "retrospection_pack": _trace_safe_retrospection_pack(retrospection_pack),
             "review": normalized,
             "provider": _provider_payload(result),
             "repair_provider": _provider_payload(repair_result)
@@ -217,6 +280,7 @@ def handle_metacognition_step(
         result={
             "mode": request.mode,
             "review": normalized,
+            "retrospection": _result_retrospection_payload(retrospection_pack),
             "trace_ids": [trace_id],
             "model": (repair_result or result).model,
             "usage": (repair_result or result).usage,
@@ -236,7 +300,12 @@ def handle_metacognition_step(
     )
 
 
-def _build_review_prompt(request: MetacognitionStepBody, *, intent: str) -> str:
+def _build_review_prompt(
+    request: MetacognitionStepBody,
+    *,
+    intent: str,
+    retrospection_pack: dict[str, Any] | None,
+) -> str:
     payload = {
         "intent": intent,
         "mode": request.mode,
@@ -248,6 +317,9 @@ def _build_review_prompt(request: MetacognitionStepBody, *, intent: str) -> str:
         "draft_answer": request.draft_answer,
         "previous_steps": request.previous_steps,
         "max_findings": request.max_findings,
+        "turn_scope": request.turn_scope,
+        "detail": request.detail,
+        "retrospection_pack": retrospection_pack,
         "available_mind_api_routes": _route_summaries(),
     }
     return (
@@ -265,6 +337,273 @@ def _build_repair_prompt(raw_review: str) -> str:
     )
 
 
+def _build_retrospection_pack(
+    request: MetacognitionStepBody,
+    context: MindAPIContext,
+) -> dict[str, Any] | None:
+    scope = request.turn_scope
+    if scope == "none" and request.mode in RETROSPECTION_MODES:
+        scope = "previous"
+    if scope == "none":
+        return None
+
+    if scope != "previous":
+        return {
+            "schema_version": "thinking-retrospection-pack-v1",
+            "available": False,
+            "reason": "unsupported_scope",
+            "requested_scope": scope,
+        }
+
+    with Session(context.engine) as db:
+        target_turn = _previous_completed_turn(db, context)
+        if target_turn is None:
+            return {
+                "schema_version": "thinking-retrospection-pack-v1",
+                "available": False,
+                "reason": "no_previous_completed_turn",
+                "requested_scope": scope,
+                "detail": request.detail,
+            }
+
+        messages = list(
+            db.exec(
+                select(Message)
+                .where(Message.turn_id == target_turn.id)
+                .order_by(Message.created_at, Message.id)
+            ).all()
+        )
+        traces = list(
+            db.exec(
+                select(Trace)
+                .where(Trace.turn_id == target_turn.id)
+                .order_by(Trace.created_at, Trace.id)
+            ).all()
+        )
+        events = list(
+            db.exec(
+                select(CognitiveEvent)
+                .where(CognitiveEvent.turn_id == target_turn.id)
+                .order_by(
+                    CognitiveEvent.seq,
+                    CognitiveEvent.created_at,
+                    CognitiveEvent.id,
+                )
+            ).all()
+        )
+        tool_calls = list(
+            db.exec(
+                select(ToolCall)
+                .where(ToolCall.turn_id == target_turn.id)
+                .order_by(ToolCall.created_at, ToolCall.id)
+            ).all()
+        )
+
+    raw_provider_messages = _raw_provider_messages_from_traces(traces)
+    thinking_blocks = _provider_blocks(raw_provider_messages, "thinking")
+    text_blocks = _provider_blocks(raw_provider_messages, "text")
+    tool_use_blocks = _provider_blocks(raw_provider_messages, "tool_use")
+
+    user_messages = [message.content for message in messages if message.role == "user"]
+    assistant_messages = [
+        message.content for message in messages if message.role == "assistant"
+    ]
+    public_notes = [
+        _string(event.payload_json.get("text"))
+        for event in events
+        if event.type == "assistant.note.emitted"
+    ]
+    public_notes = [note for note in public_notes if note]
+
+    thinking_texts = [
+        _string(block.get("thinking")) or ""
+        for block in thinking_blocks
+        if isinstance(block, dict)
+    ]
+    thinking_texts = [text for text in thinking_texts if text.strip()]
+
+    pack = {
+        "schema_version": "thinking-retrospection-pack-v1",
+        "available": True,
+        "scope": "previous",
+        "detail": request.detail,
+        "source_session_id": target_turn.session_id,
+        "source_turn_id": target_turn.id,
+        "turn_started_at": target_turn.started_at.isoformat(),
+        "turn_completed_at": target_turn.completed_at.isoformat()
+        if target_turn.completed_at
+        else None,
+        "user_messages": [_clip(text, 1200) for text in user_messages],
+        "assistant_final_messages": [_clip(text, 1600) for text in assistant_messages],
+        "public_notes": [_clip(note, 800) for note in public_notes],
+        "tool_calls": [
+            {
+                "tool_call_id": tool_call.id,
+                "tool_name": tool_call.tool_name,
+                "status": tool_call.status,
+                "arguments": _clip_json(tool_call.arguments_json, 1000),
+                "result": _clip_json(tool_call.result_json, 1200),
+            }
+            for tool_call in tool_calls
+        ],
+        "provider_message_count": len(raw_provider_messages),
+        "provider_text_block_count": len(text_blocks),
+        "provider_tool_use_block_count": len(tool_use_blocks),
+        "thinking_block_count": len(thinking_texts),
+        "thinking_total_chars": sum(len(text) for text in thinking_texts),
+        "thinking": _thinking_payload(thinking_texts, detail=request.detail),
+        "event_markers": [
+            {
+                "type": event.type,
+                "status": event.status,
+                "seq": event.seq,
+            }
+            for event in events
+            if event.type
+            in {
+                "llm.thinking.started",
+                "llm.thinking.captured",
+                "assistant.note.emitted",
+                "assistant.answer.completed",
+                "mind.tool_call.requested",
+                "mind.tool_call.completed",
+                "turn.completed",
+            }
+        ][:40],
+        "source_policy": (
+            "Prior thinking is process evidence. It can explain Scarlet's "
+            "assumptions, drift, open loops, and tool choices, but it does not "
+            "prove external facts."
+        ),
+    }
+    return pack
+
+
+def _previous_completed_turn(
+    db: Session,
+    context: MindAPIContext,
+) -> Turn | None:
+    current_turn: Turn | None = None
+    if context.turn_id:
+        current_turn = db.get(Turn, context.turn_id)
+
+    statement = select(Turn).where(
+        Turn.session_id == context.session_id,
+        Turn.status == "completed",
+    )
+    if current_turn is not None:
+        statement = statement.where(Turn.started_at < current_turn.started_at)
+    elif context.turn_id:
+        statement = statement.where(Turn.id != context.turn_id)
+    statement = statement.order_by(Turn.started_at.desc(), Turn.id.desc()).limit(1)
+    return db.exec(statement).first()
+
+
+def _raw_provider_messages_from_traces(traces: list[Trace]) -> list[dict[str, Any]]:
+    for trace in reversed(traces):
+        if trace.kind != "llm.response":
+            continue
+        messages = trace.payload_json.get("raw_provider_messages")
+        if isinstance(messages, list):
+            return [message for message in messages if isinstance(message, dict)]
+    return []
+
+
+def _provider_blocks(
+    raw_provider_messages: list[dict[str, Any]],
+    block_type: str,
+) -> list[dict[str, Any]]:
+    blocks: list[dict[str, Any]] = []
+    for message in raw_provider_messages:
+        content = message.get("content")
+        if not isinstance(content, list):
+            continue
+        for block in content:
+            if isinstance(block, dict) and block.get("type") == block_type:
+                blocks.append(block)
+    return blocks
+
+
+def _thinking_payload(
+    thinking_texts: list[str],
+    *,
+    detail: RetrospectionDetail,
+) -> dict[str, Any]:
+    joined = "\n\n--- thinking block ---\n\n".join(thinking_texts)
+    if not joined:
+        return {
+            "available": False,
+            "detail": detail,
+            "items": [],
+        }
+    if detail == "raw":
+        limit = 16000
+    elif detail == "excerpt":
+        limit = 6000
+    else:
+        limit = 2200
+    return {
+        "available": True,
+        "detail": detail,
+        "chars": len(joined),
+        "truncated": len(joined) > limit,
+        "items": [
+            {
+                "index": index,
+                "chars": len(text),
+                "text": _clip(text, limit // max(len(thinking_texts), 1)),
+            }
+            for index, text in enumerate(thinking_texts)
+        ],
+        "extractive_digest": _extractive_digest(joined, limit=limit),
+    }
+
+
+def _extractive_digest(text: str, *, limit: int) -> str:
+    text = text.strip()
+    if len(text) <= limit:
+        return text
+    head_size = max(600, int(limit * 0.65))
+    tail_size = max(300, limit - head_size - 80)
+    return (
+        text[:head_size].rstrip()
+        + "\n...[middle omitted by thinking-retrospection-pack]...\n"
+        + text[-tail_size:].lstrip()
+    )
+
+
+def _trace_safe_retrospection_pack(
+    pack: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if pack is None:
+        return None
+    return pack
+
+
+def _result_retrospection_payload(
+    pack: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    if pack is None:
+        return None
+    thinking = pack.get("thinking")
+    return {
+        "available": bool(pack.get("available")),
+        "schema_version": pack.get("schema_version"),
+        "scope": pack.get("scope"),
+        "detail": pack.get("detail"),
+        "source_session_id": pack.get("source_session_id"),
+        "source_turn_id": pack.get("source_turn_id"),
+        "thinking_block_count": pack.get("thinking_block_count", 0),
+        "thinking_total_chars": pack.get("thinking_total_chars", 0),
+        "thinking_available": bool(thinking.get("available"))
+        if isinstance(thinking, dict)
+        else False,
+        "tool_call_count": len(pack.get("tool_calls") or []),
+        "public_note_count": len(pack.get("public_notes") or []),
+        "source_policy": pack.get("source_policy"),
+    }
+
+
 def _context_summary(context: Any) -> str:
     if isinstance(context, str):
         return context[:1000]
@@ -272,6 +611,34 @@ def _context_summary(context: Any) -> str:
         return json.dumps(context, ensure_ascii=True, sort_keys=True)[:1000]
     except TypeError:
         return str(context)[:1000]
+
+
+def _normalize_model_list_wrapper(value: Any) -> Any:
+    if isinstance(value, dict) and set(value.keys()) == {"item"}:
+        return value.get("item")
+    return value
+
+
+def _clip(text: Any, limit: int) -> str:
+    if text is None:
+        return ""
+    value = str(text)
+    if len(value) <= limit:
+        return value
+    return value[: max(limit - 40, 0)].rstrip() + "...[truncated]"
+
+
+def _clip_json(value: Any, limit: int) -> Any:
+    try:
+        encoded = json.dumps(value, ensure_ascii=True, sort_keys=True)
+    except TypeError:
+        return _clip(value, limit)
+    if len(encoded) <= limit:
+        return value
+    return {
+        "truncated": True,
+        "json_preview": _clip(encoded, limit),
+    }
 
 
 def _parse_review(text: str) -> dict[str, Any] | None:
@@ -305,6 +672,19 @@ def _normalize_review(
             parsed.get("recommended_internal_actions"),
             request.max_findings,
         ),
+        "reasoning_digest": _string(parsed.get("reasoning_digest")),
+        "drift_findings": _list_of_dicts(parsed.get("drift_findings"))[
+            : request.max_findings
+        ],
+        "open_loops": _list_of_strings(parsed.get("open_loops"))[
+            : request.max_findings
+        ],
+        "tool_use_assessment": _list_of_dicts(parsed.get("tool_use_assessment"))[
+            : request.max_findings
+        ],
+        "memory_candidates_from_reasoning": _list_of_strings(
+            parsed.get("memory_candidates_from_reasoning")
+        )[: request.max_findings],
         "should_continue": bool(parsed.get("should_continue", False)),
         "next_focus_question": _string(parsed.get("next_focus_question")),
         "public_summary": _string(parsed.get("public_summary")),

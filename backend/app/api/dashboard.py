@@ -14,6 +14,7 @@ from app.runtime.preferences import (
     save_runtime_preferences,
 )
 from app.storage import repositories
+from app.storage.db import database_runtime_info
 from app.storage.models import MemoryRecord
 
 
@@ -27,6 +28,8 @@ class RuntimePreferencesResponse(BaseModel):
     user_display_name: str
     privacy_scope: str
     source: str
+    codex_test: bool
+    database: dict[str, Any]
     options: dict[str, Any]
 
 
@@ -86,7 +89,7 @@ def build_dashboard_router(settings: Settings, engine: Engine) -> APIRouter:
     @router.get("/settings", response_model=RuntimePreferencesResponse)
     def get_settings() -> RuntimePreferencesResponse:
         with Session(engine) as db:
-            return _preferences_response(load_runtime_preferences(db, settings))
+            return _preferences_response(settings, load_runtime_preferences(db, settings))
 
     @router.put("/settings", response_model=RuntimePreferencesResponse)
     def update_settings(
@@ -113,7 +116,7 @@ def build_dashboard_router(settings: Settings, engine: Engine) -> APIRouter:
                         "recoverable": True,
                     },
                 ) from exc
-            return _preferences_response(preferences)
+            return _preferences_response(settings, preferences)
 
     @router.get("/memories", response_model=DashboardMemoriesResponse)
     def list_memories(
@@ -160,10 +163,13 @@ def build_dashboard_router(settings: Settings, engine: Engine) -> APIRouter:
 
 
 def _preferences_response(
+    settings: Settings,
     preferences: RuntimePreferences,
 ) -> RuntimePreferencesResponse:
     return RuntimePreferencesResponse(
         **preferences.as_payload(),
+        codex_test=settings.codex_test,
+        database=database_runtime_info(settings),
         options=runtime_preference_options(),
     )
 

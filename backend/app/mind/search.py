@@ -61,8 +61,7 @@ def sync_memory_documents(
             updated_at=memory.updated_at,
             metadata={
                 "memory_type": memory.memory_type,
-                "confidence": memory.confidence,
-                "salience": memory.salience,
+                "memory_scope": memory.scope,
             },
         )
     _sync_memory_surfaces_and_graph(
@@ -205,13 +204,22 @@ def search_documents(
 
 def retrieval_stage_manifest() -> dict[str, Any]:
     return {
-        "active_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+        "active_stages": [
+            "fts5_sparse_v1",
+            "lexical_fallback_v1",
+            "networkx_graph_expansion_v1",
+        ],
         "readiness_stages": [
             "memory_surfaces_v1",
             "memory_graph_v1",
             "memory_surface_taxonomy_v1",
             "embedding_index_shadow_ready_v1",
             "vector_shadow_adapter_v1",
+            "openrouter_embedding_shadow_v1",
+            "openrouter_rerank_shadow_v1",
+            "memory_grouped_dense_v1",
+            "hybrid_retrieval_v1",
+            "networkx_associative_memory_graph_v1",
         ],
         "source_of_truth": [
             "memories",
@@ -225,12 +233,16 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "memory_graph_nodes",
             "memory_graph_edges",
             "optional_milvus_lite_shadow",
+            "optional_openrouter_embedding_cache",
         ],
         "notes": [
             "Surface and graph indexes are derived and can be rebuilt.",
             "No vector database is required for normal operation.",
             "V1.3.1 shadow retrieval is trace-only and does not change active ranking.",
             "V1.4.0 memory surfaces are compiled by the backend, not written by Scarlet.",
+            "V1.10.0 OpenRouter embedding/rerank can provide dense retrieval evidence.",
+            "V1.11.0 hybrid retrieval changes active ranking only when retrieval_hybrid_mode=active.",
+            "V1.11.1 NetworkX graph expansion adds field-of-discourse associative recall.",
             "Milvus Lite can consume memory_surfaces when the optional dependency is installed.",
         ],
         "surface_taxonomy": surface_taxonomy_manifest(),
@@ -720,9 +732,13 @@ def _upsert_surface(
     source_turn_id: str | None = None,
     source_message_id: str | None = None,
     source_trace_id: str | None = None,
+    surface_key_suffix: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> None:
-    surface_key = f"{target_type}:{target_id}:{surface_kind}"
+    surface_key_parts = [target_type, target_id, surface_kind]
+    if surface_key_suffix:
+        surface_key_parts.append(surface_key_suffix)
+    surface_key = ":".join(surface_key_parts)
     repositories.upsert_memory_surface(
         db,
         surface_key=surface_key,
@@ -754,6 +770,7 @@ def _upsert_surface_draft(db: Session, surface: SurfaceDraft) -> None:
         source_turn_id=surface.source_turn_id,
         source_message_id=surface.source_message_id,
         source_trace_id=surface.source_trace_id,
+        surface_key_suffix=surface.surface_key_suffix,
         metadata=surface.metadata,
     )
 
@@ -774,8 +791,6 @@ def _memory_body(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
         item
         for item in [
             memory.content,
-            memory.reason_for_storage,
-            memory.expected_future_use or "",
             memory.memory_type,
             memory.scope,
             fact_search_text(facts),

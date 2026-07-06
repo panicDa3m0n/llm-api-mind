@@ -8,7 +8,7 @@ from sqlmodel import Session
 from app.config import Settings
 from app.llm.provider import LLMTextResult
 from app.main import create_app
-from app.mind.schema import schema_metadata
+from app.mind.schema import route_usage_guide, schema_metadata
 from app.storage import repositories
 
 
@@ -59,6 +59,11 @@ class FakeMetacognitionProvider:
                             "reason": "Deliberately wrong method from reviewer.",
                         }
                     ],
+                    "reasoning_digest": "Previous reasoning considered schema evidence.",
+                    "drift_findings": [],
+                    "open_loops": [],
+                    "tool_use_assessment": [],
+                    "memory_candidates_from_reasoning": [],
                     "should_continue": True,
                     "next_focus_question": "What does /mind/schema report?",
                     "public_summary": "Ho verificato che serve conferma schema.",
@@ -148,6 +153,73 @@ class FakeSessionSummaryProvider:
         )
 
 
+class FakeOpenRouterRetrievalClient:
+    embedding_calls: list[dict] = []
+    rerank_calls: list[dict] = []
+
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        base_url: str,
+        timeout_seconds: float,
+    ) -> None:
+        self.api_key = api_key
+        self.base_url = base_url
+        self.timeout_seconds = timeout_seconds
+
+    def embed_texts(self, *, model: str, texts: list[str]) -> list[list[float]]:
+        self.__class__.embedding_calls.append({"model": model, "texts": texts})
+        return [_fake_embedding(text) for text in texts]
+
+    def rerank(
+        self,
+        *,
+        model: str,
+        query: str,
+        documents: list[str],
+        top_n: int,
+    ) -> dict:
+        self.__class__.rerank_calls.append(
+            {
+                "model": model,
+                "query": query,
+                "documents": documents,
+                "top_n": top_n,
+            }
+        )
+        scored = [
+            {
+                "index": index,
+                "relevance_score": 0.99 if "cacao" in document.casefold() else 0.21,
+                "document": {"text": document},
+            }
+            for index, document in enumerate(documents)
+        ]
+        scored.sort(key=lambda item: item["relevance_score"], reverse=True)
+        return {
+            "id": "rerank_fake_1",
+            "model": model,
+            "provider": "fake-openrouter",
+            "usage": {"total_tokens": 42},
+            "results": scored[:top_n],
+        }
+
+
+def _fake_embedding(text: str) -> list[float]:
+    lowered = text.casefold()
+    if (
+        "cacao" in lowered
+        or "bevanda" in lowered
+        or "caffe" in lowered
+        or "concentr" in lowered
+    ):
+        return [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    if "camminata" in lowered or "hiking" in lowered:
+        return [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    return [0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25]
+
+
 def make_client(
     db_engine: Engine,
     *,
@@ -185,7 +257,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == "2026-05-25.maintenance-proposals-v1"
+    assert body["result"]["schema_version"] == "2026-06-26.digital-organs-standalone-v1"
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"
@@ -203,6 +275,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
     assert route_status[("GET", "/mind/memory/{memory_id}")] == "implemented"
     assert route_status[("GET", "/mind/memory/facts")] == "implemented"
     assert route_status[("POST", "/mind/memory/facts/backfill")] == "implemented"
+    assert route_status[("POST", "/mind/memory/graph")] == "implemented"
     assert route_status[("GET", "/mind/memory/conflicts")] == "implemented"
     assert ("GET", "/mind/memory/proposals") not in route_status
     assert route_status[("POST", "/mind/memory/deprecate")] == "implemented"
@@ -222,6 +295,23 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
     assert "body_schema" not in summarize_route
     assert "max_messages" not in str(summarize_route)
     assert route_status[("POST", "/mind/metacognition/step")] == "implemented"
+    assert route_status[("POST", "/mind/focus")] == "implemented"
+    assert route_status[("POST", "/mind/volition")] == "implemented"
+    assert route_status[("POST", "/mind/affect")] == "implemented"
+    focus_guide = route_usage_guide("POST", "/mind/focus")
+    volition_guide = route_usage_guide("POST", "/mind/volition")
+    assert focus_guide is not None
+    assert volition_guide is not None
+    assert "timeline" in focus_guide["body_schema"]["properties"]["action"]["enum"]
+    assert "list_due" in volition_guide["body_schema"]["properties"]["action"]["enum"]
+    metacognition_route = next(
+        route
+        for route in routes
+        if route["method"] == "POST" and route["path"] == "/mind/metacognition/step"
+    )
+    assert "body_schema" not in metacognition_route
+    assert "thinking retrospection" in metacognition_route["purpose"]
+    assert ("POST", "/mind/attention/context") not in route_status
     assert ("POST", "/mind/events/emit") not in route_status
     assert ("POST", "/mind/validation/claims") not in route_status
     assert ("POST", "/mind/blackboard/write") not in route_status
@@ -349,7 +439,7 @@ def test_mind_call_records_tool_call_and_session_trace(db_engine: Engine) -> Non
     assert completed_event["payload"]["operation"]["path"] == "/mind/schema"
 
 
-def test_mind_call_returns_structured_error_for_planned_route(
+def test_mind_call_returns_structured_error_for_removed_attention_route(
     db_engine: Engine,
 ) -> None:
     client = make_client(db_engine)
@@ -567,6 +657,191 @@ def test_mind_metacognition_accepts_goal_alias_for_objective(
     assert "verificare la forma" in FakeMetacognitionProvider.prompts[0]
 
 
+def test_mind_metacognition_error_guide_includes_retrospection_fields(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine, provider_factory=FakeMetacognitionProvider)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Metacognition usage guide"},
+    ).json()
+
+    response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "method": "POST",
+            "path": "/mind/metacognition/step",
+            "intent": "Inspect local recovery guidance for an invalid retrospective call.",
+            "body": {
+                "mode": "recover_open_loops",
+                "objective": "Review the previous reasoning loop.",
+                "turn_scope": "previous",
+                "detail": "everything",
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is False
+    assert body["error"]["code"] == "metacognition.invalid_body"
+    assert body["usage_guide"]["method"] == "POST"
+    assert body["usage_guide"]["path"] == "/mind/metacognition/step"
+    assert body["usage_guide"]["parameters"]["turn_scope"]["enum"] == [
+        "none",
+        "previous",
+    ]
+    assert body["usage_guide"]["parameters"]["detail"]["enum"] == [
+        "digest",
+        "excerpt",
+        "raw",
+    ]
+    assert (
+        body["usage_guide"]["accepted_aliases"]["reasoning_scope"]
+        == "turn_scope"
+    )
+
+
+def test_mind_metacognition_can_retrospect_previous_turn_thinking(
+    db_engine: Engine,
+) -> None:
+    FakeMetacognitionProvider.prompts = []
+    client = make_client(db_engine, provider_factory=FakeMetacognitionProvider)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Thinking retrospection"},
+    ).json()
+
+    with Session(db_engine) as db:
+        previous_turn = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        )
+        repositories.add_message(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            role="user",
+            content="Ho chiesto di verificare se Scarlet perdeva un loop aperto.",
+        )
+        repositories.add_event(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            event_type="assistant.note.emitted",
+            payload={"text": "Controllo il punto critico prima della risposta."},
+        )
+        repositories.add_tool_call(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            tool_name="mind_api",
+            arguments={
+                "method": "GET",
+                "path": "/mind/schema",
+                "intent": "Inspect available cognitive routes.",
+            },
+            result={"ok": True, "result": {"schema_version": "test"}},
+            status="completed",
+        )
+        repositories.add_message(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            role="assistant",
+            content="Ho verificato lo schema, ma devo ancora controllare il loop aperto.",
+        )
+        repositories.add_trace(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            kind="llm.response",
+            payload={
+                "raw_provider_messages": [
+                    {
+                        "role": "assistant",
+                        "content": [
+                            {
+                                "type": "thinking",
+                                "thinking": (
+                                    "I should verify the schema and then return "
+                                    "to the open loop about missed memory writes."
+                                ),
+                            },
+                            {
+                                "type": "text",
+                                "text": "Ho verificato lo schema.",
+                            },
+                        ],
+                    }
+                ]
+            },
+        )
+        repositories.add_event(
+            db,
+            session_id=session["id"],
+            turn_id=previous_turn.id,
+            event_type="llm.thinking.captured",
+            payload={"chars": 83},
+        )
+        previous_turn_id = previous_turn.id
+        repositories.complete_turn(db, turn_id=previous_turn_id)
+        current_turn = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        )
+        current_turn_id = current_turn.id
+
+    response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": current_turn_id,
+            "method": "POST",
+            "path": "/mind/metacognition/step",
+            "intent": "Use previous thinking to detect an unresolved loop.",
+            "body": {
+                "mode": "recover_open_loops",
+                "objective": "Review the previous turn for unresolved reasoning loops.",
+                "reasoning_scope": "previous",
+                "reasoning_detail": "digest",
+                "known_evidence": {
+                    "item": ["The user asked for thinking visibility."]
+                },
+            },
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ok"] is True
+    assert body["result"]["mode"] == "recover_open_loops"
+    assert body["result"]["retrospection"]["available"] is True
+    assert body["result"]["retrospection"]["source_turn_id"] == previous_turn_id
+    assert body["result"]["retrospection"]["thinking_block_count"] == 1
+    assert body["result"]["retrospection"]["tool_call_count"] == 1
+    assert (
+        "Previous reasoning considered schema evidence"
+        in body["result"]["review"]["reasoning_digest"]
+    )
+    assert FakeMetacognitionProvider.prompts
+    prompt = FakeMetacognitionProvider.prompts[0]
+    assert "thinking-retrospection-pack-v1" in prompt
+    assert "missed memory writes" in prompt
+    assert '"known_evidence": [\n    "The user asked for thinking visibility."\n  ]' in prompt
+
+    traces = client.get(f"/api/debug/traces/{current_turn_id}").json()
+    metacognition_trace = next(
+        trace for trace in traces if trace["kind"] == "mind.metacognition.step"
+    )
+    trace_pack = metacognition_trace["payload"]["retrospection_pack"]
+    assert trace_pack["available"] is True
+    assert trace_pack["thinking"]["available"] is True
+
+
 def test_parallel_cognitive_routes_are_not_available(db_engine: Engine) -> None:
     client = make_client(db_engine)
     session = client.post(
@@ -666,6 +941,7 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
     memory_id = write_body["result"]["memory_id"]
     assert memory_id.startswith("mem_")
     assert write_body["result"]["memory"]["source_turn_id"] == write_turn_id
+    assert write_body["result"]["memory"]["facts"][0]["entity"] == "sal-updates"
     with Session(db_engine) as db:
         surfaces = repositories.list_memory_surfaces(db, target_id=memory_id)
         graph_nodes = repositories.list_memory_graph_nodes(
@@ -729,6 +1005,148 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
         "mind.memory.search",
         "mind.tool_call",
     ]
+
+
+def test_mind_memory_content_chunks_are_internal_surfaces_only(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Memory chunk surfaces"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    long_content = (
+        "The user is experimenting with a human-like memory system for Scarlet. "
+        "The first point is that content retrieval should find the exact claim "
+        "inside long memories. "
+        "The second point is that support surfaces should not be enough to select "
+        "a memory on their own. "
+        "The third point is that the model-facing packet must stay clean and "
+        "deduplicated even when multiple internal chunks match."
+    )
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "project_fact",
+                "scope": "memory_retrieval_design",
+                "content": long_content,
+                "reason_for_storage": "Checkpoint for retrieval-surface design.",
+                "expected_future_use": "Use when evaluating long-memory search.",
+            },
+            "intent": "Persist a long memory that requires chunk surfaces.",
+        },
+    )
+
+    assert write_response.status_code == 200
+    memory_id = write_response.json()["result"]["memory_id"]
+    with Session(db_engine) as db:
+        chunk_surfaces = repositories.list_memory_surfaces(
+            db,
+            target_id=memory_id,
+            surface_kind="content_chunk_text",
+        )
+    assert len(chunk_surfaces) >= 1
+    assert len({surface.surface_key for surface in chunk_surfaces}) == len(
+        chunk_surfaces
+    )
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "exact claim inside long memories",
+                "top_k": 5,
+            },
+            "intent": "Verify chunk surfaces deduplicate to a clean memory packet.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    memories = search_response.json()["result"]["memories"]
+    assert [memory["id"] for memory in memories].count(memory_id) == 1
+    assert "content_chunk_text" not in memories[0]
+
+
+def test_mind_memory_static_salience_does_not_override_query_relevance(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Dynamic relevance"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+        relevant = repositories.add_memory(
+            db,
+            memory_type="user_preference",
+            scope="user",
+            content=(
+                "L'utente adora il cioccolato ma non può mangiarne troppo "
+                "perche poi sta male."
+            ),
+            reason_for_storage="Vincolo alimentare personale.",
+            expected_future_use="Usare per suggerimenti alimentari e dolci.",
+            confidence=0.1,
+            salience=0.1,
+            source_session_id=session["id"],
+            source_turn_id=turn_id,
+        )
+        repositories.add_memory(
+            db,
+            memory_type="user_preference",
+            scope="user",
+            content="L'utente apprezza film con scene ambientate in cioccolaterie.",
+            reason_for_storage="Preferenza narrativa occasionale.",
+            expected_future_use="Usare per suggerimenti di film.",
+            confidence=0.99,
+            salience=0.99,
+            source_session_id=session["id"],
+            source_turn_id=turn_id,
+        )
+        relevant_id = relevant.id
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "cioccolato troppo sto male vincolo alimentare",
+                "scope": "user",
+                "top_k": 2,
+            },
+            "intent": "A/B guard: query relevance must beat stored static salience.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    memories = search_response.json()["result"]["memories"]
+    assert memories[0]["id"] == relevant_id
+    assert "salience" not in memories[0]
+    assert "confidence" not in memories[0]
 
 
 def test_mind_memory_search_reports_trace_only_shadow_retrieval(
@@ -825,6 +1243,633 @@ def test_mind_memory_search_reports_trace_only_shadow_retrieval(
         item["target_id"]
         for item in search_trace["retrieval_shadow"]["results"]
     } == {memory_id}
+
+
+def test_mind_memory_search_reports_openrouter_embedding_and_rerank_shadow(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    FakeOpenRouterRetrievalClient.rerank_calls.clear()
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_top_k": 3,
+            "retrieval_shadow_vector_dim": 8,
+            "retrieval_shadow_cloud_surface_limit": 20,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 3,
+        },
+    )
+    write_session = client.post(
+        "/api/chat/sessions",
+        json={"title": "OpenRouter shadow write"},
+    ).json()
+    search_session = client.post(
+        "/api/chat/sessions",
+        json={"title": "OpenRouter shadow search"},
+    ).json()
+
+    with Session(db_engine) as db:
+        write_turn_id = repositories.create_turn(
+            db,
+            session_id=write_session["id"],
+            model="MiniMax-M3",
+        ).id
+        search_turn_id = repositories.create_turn(
+            db,
+            session_id=search_session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    cacao_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": write_session["id"],
+            "turn_id": write_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner prefers cacao tea during evening focus work.",
+                "reason_for_storage": "Stable beverage preference for future suggestions.",
+                "expected_future_use": "Prefer cacao tea over late coffee suggestions.",
+                "confidence": 0.88,
+                "salience": 0.76,
+                "scope": "project",
+                "tags": ["cacao", "focus"],
+            },
+            "intent": "Persist a stable beverage preference.",
+        },
+    )
+    assert cacao_response.status_code == 200
+    cacao_memory_id = cacao_response.json()["result"]["memory_id"]
+
+    other_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": write_session["id"],
+            "turn_id": write_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner likes quiet hiking routes on weekends.",
+                "reason_for_storage": "Stable leisure preference for future suggestions.",
+                "expected_future_use": "Suggest calm outdoor plans when relevant.",
+                "confidence": 0.81,
+                "salience": 0.62,
+                "scope": "project",
+                "tags": ["hiking", "weekend"],
+            },
+            "intent": "Persist a stable leisure preference.",
+        },
+    )
+    assert other_response.status_code == 200
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": search_session["id"],
+            "turn_id": search_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "bevanda serale per concentrarmi senza caffe",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 2,
+            },
+            "intent": "Retrieve a beverage preference using paraphrased Italian.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    shadow = body["result"]["retrieval_shadow"]
+    assert shadow["ok"] is True
+    assert shadow["status"] == "completed"
+    assert shadow["backend"] == "openrouter"
+    assert shadow["embedding_model"] == "test/embed"
+    assert shadow["ranking_policy"] == "trace_only_no_active_ranking"
+    assert shadow["embedding_cache"]["misses"] > 0
+    assert {item["target_id"] for item in shadow["results"]} >= {cacao_memory_id}
+    assert shadow["grouped_results"][0]["target_id"] == cacao_memory_id
+    assert shadow["grouped_results"][0]["ranking_policy"] == (
+        "memory_target_role_aware_surface_score_v2"
+    )
+    assert shadow["grouped_results"][0]["contributing_surfaces"]
+    assert shadow["rerank"]["ok"] is True
+    assert shadow["rerank"]["status"] == "completed"
+    assert shadow["rerank"]["model"] == "test/rerank"
+    assert shadow["rerank"]["results"][0]["target_id"] == cacao_memory_id
+    assert shadow["rerank"]["results"][0]["backend"] == "openrouter_rerank"
+    assert shadow["rerank"]["grouped_status"] == "completed"
+    assert shadow["rerank"]["grouped_results"][0]["target_id"] == cacao_memory_id
+    assert shadow["rerank"]["grouped_results"][0]["backend"] == (
+        "openrouter_grouped_rerank"
+    )
+    assert FakeOpenRouterRetrievalClient.embedding_calls
+    assert FakeOpenRouterRetrievalClient.rerank_calls
+
+    search_traces = client.get(f"/api/debug/traces/{search_turn_id}").json()
+    trace_shadow = search_traces[0]["payload"]["retrieval_shadow"]
+    assert trace_shadow["backend"] == "openrouter"
+    assert trace_shadow["rerank"]["results"][0]["target_id"] == cacao_memory_id
+    assert trace_shadow["rerank"]["grouped_results"][0]["target_id"] == cacao_memory_id
+
+    with Session(db_engine) as db:
+        cacao_surfaces = repositories.list_memory_surfaces(
+            db,
+            target_type="memory",
+            target_id=cacao_memory_id,
+            limit=20,
+        )
+        assert cacao_surfaces
+        assert {
+            surface.embedding_status for surface in cacao_surfaces
+        } == {"embedded"}
+        assert {
+            surface.embedding_model for surface in cacao_surfaces
+        } == {"test/embed"}
+        assert all(surface.embedding_vector_id for surface in cacao_surfaces)
+        for surface in cacao_surfaces:
+            surface.embedding_status = "pending"
+            surface.embedding_model = None
+            surface.embedding_vector_id = None
+            db.add(surface)
+        db.commit()
+
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    second_search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": search_session["id"],
+            "turn_id": search_turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "bevanda serale per concentrarmi senza caffe",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 2,
+            },
+            "intent": "Retrieve a beverage preference using cached embeddings.",
+        },
+    )
+    assert second_search_response.status_code == 200
+    second_shadow = second_search_response.json()["result"]["retrieval_shadow"]
+    assert second_shadow["embedding_cache"]["hits"] > 0
+
+    with Session(db_engine) as db:
+        refreshed_surfaces = repositories.list_memory_surfaces(
+            db,
+            target_type="memory",
+            target_id=cacao_memory_id,
+            limit=20,
+        )
+        assert {
+            surface.embedding_status for surface in refreshed_surfaces
+        } == {"embedded"}
+        assert {
+            surface.embedding_model for surface in refreshed_surfaces
+        } == {"test/embed"}
+        assert all(surface.embedding_vector_id for surface in refreshed_surfaces)
+
+
+def test_mind_memory_search_active_hybrid_promotes_grouped_dense_candidate(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    FakeOpenRouterRetrievalClient.rerank_calls.clear()
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_top_k": 3,
+            "retrieval_shadow_vector_dim": 8,
+            "retrieval_shadow_cloud_surface_limit": 20,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 3,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_dense_score": 0.38,
+            "retrieval_hybrid_min_rerank_score": 0.55,
+        },
+    )
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Active hybrid retrieval"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    cacao_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner prefers cacao tea during evening focus work.",
+                "reason_for_storage": "Stable beverage preference for future suggestions.",
+                "expected_future_use": "Prefer cacao tea over late coffee suggestions.",
+                "confidence": 0.88,
+                "salience": 0.76,
+                "scope": "project",
+                "tags": ["cacao", "focus"],
+            },
+            "intent": "Persist a stable beverage preference.",
+        },
+    )
+    assert cacao_response.status_code == 200
+    cacao_memory_id = cacao_response.json()["result"]["memory_id"]
+
+    other_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner likes quiet hiking routes on weekends.",
+                "reason_for_storage": "Stable leisure preference for future suggestions.",
+                "expected_future_use": "Suggest calm outdoor plans when relevant.",
+                "confidence": 0.81,
+                "salience": 0.62,
+                "scope": "project",
+                "tags": ["hiking", "weekend"],
+            },
+            "intent": "Persist a stable leisure preference.",
+        },
+    )
+    assert other_response.status_code == 200
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "bevanda serale per concentrarmi senza caffe",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 1,
+            },
+            "intent": "Retrieve a beverage preference using paraphrased Italian.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    assert body["result"]["retrieval_hybrid"]["active"] is True
+    assert body["result"]["memories"][0]["id"] == cacao_memory_id
+    assert body["result"]["memories"][0]["retrieval_signals"]["hybrid"][
+        "dense_signal"
+    ] is True
+
+
+def test_mind_memory_search_active_hybrid_does_not_select_dense_below_threshold(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    FakeOpenRouterRetrievalClient.rerank_calls.clear()
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_top_k": 3,
+            "retrieval_shadow_vector_dim": 8,
+            "retrieval_shadow_cloud_surface_limit": 20,
+            "retrieval_shadow_rerank_enabled": False,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_dense_score": 0.6,
+        },
+    )
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Active hybrid negative control"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner likes quiet hiking routes on weekends.",
+                "reason_for_storage": "Stable leisure preference for future suggestions.",
+                "expected_future_use": "Suggest calm outdoor plans when relevant.",
+                "confidence": 0.81,
+                "salience": 0.62,
+                "scope": "project",
+                "tags": ["hiking", "weekend"],
+            },
+            "intent": "Persist a stable leisure preference.",
+        },
+    )
+    assert response.status_code == 200
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "playlist jazz notturna per cucinare",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 3,
+            },
+            "intent": "Negative control: no related memory should be promoted.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    assert body["result"]["retrieval_hybrid"]["active"] is True
+    assert body["result"]["retrieval_hybrid"]["entry_count"] == 0
+    assert body["result"]["memories"] == []
+
+
+def test_mind_memory_search_active_hybrid_does_not_promote_support_only_surface(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    FakeOpenRouterRetrievalClient.rerank_calls.clear()
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_top_k": 3,
+            "retrieval_shadow_vector_dim": 8,
+            "retrieval_shadow_cloud_surface_limit": 20,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 3,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_dense_score": 0.38,
+            "retrieval_hybrid_min_rerank_score": 0.55,
+        },
+    )
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Support-only dense retrieval"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner likes quiet hiking routes on weekends.",
+                "reason_for_storage": "Stable leisure preference for future suggestions.",
+                "expected_future_use": (
+                    "Use when choosing a beverage for evening focus without caffeine."
+                ),
+                "confidence": 0.84,
+                "salience": 0.67,
+                "scope": "project",
+                "tags": ["hiking", "weekend"],
+            },
+            "intent": "Persist a leisure preference with a misleading future-use hint.",
+        },
+    )
+    assert write_response.status_code == 200
+    memory_id = write_response.json()["result"]["memory_id"]
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "bevanda serale per concentrarmi senza caffe",
+                "types": ["user_preference"],
+                "scope": "project",
+                "top_k": 3,
+            },
+            "intent": "Negative control: future-use support must not select a memory.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    shadow = body["result"]["retrieval_shadow"]
+    group = next(
+        item for item in shadow["grouped_results"] if item["target_id"] == memory_id
+    )
+    assert group["active_rank_eligible"] is False
+    assert group["promotable_score"] == 0.0
+    assert group["support_score"] >= 0.38
+    assert "future_use_text" in group["support_surface_kinds"]
+    assert "future_use_text" not in group["promotable_surface_kinds"]
+    assert shadow["rerank"]["grouped_status"] == "no_grouped_candidates"
+    assert body["result"]["retrieval_hybrid"]["entry_count"] == 0
+    assert body["result"]["memories"] == []
+
+
+def test_mind_memory_search_uses_networkx_graph_expansion_for_dynamic_concepts(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Graph expansion memory search"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": (
+                    "Adora il cioccolato ma non può mangiarne troppo: il corpo "
+                    "segnala un limite preciso, superata quella soglia sta male."
+                ),
+                "reason_for_storage": (
+                    "Vincolo alimentare personale espresso dall'utente."
+                ),
+                "expected_future_use": (
+                    "Riferimento per raccomandazioni alimentari, suggerimenti, "
+                    "dolci e benessere."
+                ),
+                "confidence": 0.95,
+                "salience": 0.85,
+                "scope": "user",
+                "tags": [
+                    "preferenza-alimentare",
+                    "cioccolato",
+                    "limite-salutare",
+                ],
+            },
+            "intent": "Persist a personal food constraint.",
+        },
+    )
+    assert write_response.status_code == 200
+    memory_id = write_response.json()["result"]["memory_id"]
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "preferenza alimentare con limite salutare",
+                "types": ["user_preference"],
+                "scope": "user",
+                "top_k": 3,
+            },
+            "intent": "Retrieve personal constraints through dynamic graph concepts.",
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    assert body["ok"] is True
+    assert body["result"]["retrieval_graph"]["backend"] == "networkx"
+    assert body["result"]["retrieval_graph"]["ranking_policy"] == (
+        "networkx_associative_memory_graph_v1"
+    )
+    assert body["result"]["memories"][0]["id"] == memory_id
+    graph_signal = body["result"]["memories"][0]["retrieval_signals"]["graph"]
+    assert "scope:user" in graph_signal["domains"]
+    assert "type:user_preference" in graph_signal["domains"]
+    assert graph_signal["score"] > 0
+
+
+def test_mind_memory_graph_exposes_associative_neighbors(db_engine: Engine) -> None:
+    client = make_client(db_engine)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Graph navigation"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    write_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "scope": "user",
+                "content": "The user prefers quiet evening tea when they need focus.",
+                "reason_for_storage": "Useful future personalization around evening focus.",
+                "expected_future_use": "Suggest calm evening routines.",
+            },
+            "intent": "Persist a personal evening focus preference.",
+        },
+    )
+    memory_id = write_response.json()["result"]["memory_id"]
+
+    graph_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/graph",
+            "body": {"memory_id": memory_id, "depth": 2, "limit": 40},
+            "intent": "Inspect graph neighbors for a retrieved memory.",
+        },
+    )
+
+    assert graph_response.status_code == 200
+    body = graph_response.json()
+    assert body["ok"] is True
+    assert body["result"]["root_memory"]["id"] == memory_id
+    node_keys = {node["node_key"] for node in body["result"]["nodes"]}
+    assert f"memory:{memory_id}" in node_keys
+    assert body["result"]["edges"]
 
 
 def test_mind_memory_search_supports_source_conversation_time_filter(
@@ -1235,13 +2280,15 @@ def test_mind_memory_accepts_common_model_aliases(db_engine: Engine) -> None:
     assert write_body["ok"] is True
     assert write_body["result"]["stored"] is True
     assert write_body["result"]["memory"]["type"] == "user_preference"
-    assert write_body["result"]["memory"]["confidence"] == 0.85
-    assert write_body["result"]["memory"]["metadata"]["model_suggested_id"] == (
-        "alias_pref"
-    )
-    assert write_body["result"]["memory"]["metadata"]["model_extra"] == {
-        "salient_for": "status reporting"
-    }
+    assert "confidence" not in write_body["result"]["memory"]
+    assert "salience" not in write_body["result"]["memory"]
+    ignored = write_body["result"]["memory"]["metadata"][
+        "agent_supplied_fields_ignored_for_ranking"
+    ]
+    assert ignored["confidence"] == 0.85
+    assert ignored["tags"] == ["sal"]
+    assert ignored["metadata"]["model_suggested_id"] == "alias_pref"
+    assert ignored["metadata"]["model_extra"] == {"salient_for": "status reporting"}
 
     search_response = client.post(
         "/mind/call",
@@ -1335,7 +2382,7 @@ def test_mind_memory_accepts_common_model_aliases(db_engine: Engine) -> None:
     scope_type_body = scope_type_response.json()
     assert scope_type_body["ok"] is True
     assert scope_type_body["result"]["memory"]["type"] == "user_preference"
-    assert scope_type_body["result"]["memory"]["scope"] == "project"
+    assert scope_type_body["result"]["memory"]["scope"] == "general"
     assert scope_type_body["result"]["memory"]["reason_for_storage"] == (
         "The model put the memory type in the scope field."
     )
@@ -1386,7 +2433,13 @@ def test_mind_call_accepts_minimax_raw_input_and_json_string_body(
     assert write_body["ok"] is True
     assert write_body["result"]["stored"] is True
     assert write_body["result"]["memory"]["type"] == "user_preference"
-    assert write_body["result"]["memory"]["confidence"] == 0.85
+    assert "confidence" not in write_body["result"]["memory"]
+    assert (
+        write_body["result"]["memory"]["metadata"][
+            "agent_supplied_fields_ignored_for_ranking"
+        ]["confidence"]
+        == 0.85
+    )
     memory_id = write_body["result"]["memory_id"]
 
     search_response = client.post(
@@ -1408,6 +2461,123 @@ def test_mind_call_accepts_minimax_raw_input_and_json_string_body(
     assert search_body["ok"] is True
     assert search_body["result"]["count"] == 1
     assert search_body["result"]["memories"][0]["id"] == memory_id
+
+
+def test_mind_memory_fact_alias_matching_uses_phrase_boundaries(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Fact alias boundaries"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    chocolate_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": (
+                    "Adora il cioccolato ma non può mangiarne troppo: il corpo "
+                    "segnala un limite preciso, superata quella soglia sta male."
+                ),
+                "reason": "Stable personal food constraint.",
+                "expected_future_use": "Use for future food suggestions.",
+                "confidence": 0.9,
+                "salience": 0.85,
+                "scope": "user",
+                "tags": [
+                    "preferenza-alimentare",
+                    "cioccolato",
+                    "limite-salutare",
+                ],
+            },
+            "intent": "Persist a personal food constraint.",
+        },
+    )
+
+    assert chocolate_response.status_code == 200
+    chocolate_body = chocolate_response.json()
+    assert chocolate_body["ok"] is True
+    chocolate_facts = chocolate_body["result"]["memory"]["facts"]
+    assert all(fact["entity"] != "sal-updates" for fact in chocolate_facts)
+
+    brief_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": (
+                    "User prefers brief, non-technical responses, especially "
+                    "for evaluative or analytical tasks."
+                ),
+                "reason": "Stable communication style preference.",
+                "expected_future_use": "Default to plain short answers when relevant.",
+                "confidence": 0.85,
+                "salience": 0.7,
+                "scope": "user",
+                "tags": ["communication_style", "preferences", "register"],
+            },
+            "intent": "Persist a communication style preference.",
+        },
+    )
+
+    assert brief_response.status_code == 200
+    brief_body = brief_response.json()
+    assert brief_body["ok"] is True
+    assert brief_body["result"]["memory"]["facts"] == []
+    assert brief_body["result"]["memory"]["tags"] == []
+    ignored_fields = brief_body["result"]["memory"]["metadata"][
+        "agent_supplied_fields_ignored_for_ranking"
+    ]
+    assert ignored_fields["tags"] == [
+        "communication_style",
+        "preferences",
+        "register",
+    ]
+
+    sal_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "The owner prefers SAL updates with risks and next steps.",
+                "reason": "Stable status-reporting preference.",
+                "expected_future_use": "Shape future SAL summaries.",
+                "confidence": 0.9,
+                "salience": 0.8,
+                "scope": "project",
+                "tags": ["sal", "status"],
+            },
+            "intent": "Persist a real SAL status update preference.",
+        },
+    )
+
+    assert sal_response.status_code == 200
+    sal_body = sal_response.json()
+    assert sal_body["ok"] is True
+    assert sal_body["result"]["memory"]["facts"][0]["entity"] == "sal-updates"
+    assert sal_body["result"]["memory"]["facts"][0]["predicate"] == (
+        "user_preference"
+    )
 
 
 def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
@@ -1523,6 +2693,29 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     assert facts_body["result"]["count"] == 2
     assert {
         fact["memory_id"] for fact in facts_body["result"]["facts"]
+    } == {old_memory_id, new_memory_id}
+
+    unfiltered_facts_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "GET",
+            "path": "/mind/memory/facts",
+            "body": {},
+            "intent": (
+                "Inspect canonical facts; this operational intent must not "
+                "be interpreted as a data query."
+            ),
+        },
+    )
+
+    assert unfiltered_facts_response.status_code == 200
+    unfiltered_facts_body = unfiltered_facts_response.json()
+    assert unfiltered_facts_body["ok"] is True
+    assert unfiltered_facts_body["result"]["count"] == 2
+    assert {
+        fact["memory_id"] for fact in unfiltered_facts_body["result"]["facts"]
     } == {old_memory_id, new_memory_id}
 
     conflicts_response = client.post(

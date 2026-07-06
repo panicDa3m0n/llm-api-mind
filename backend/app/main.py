@@ -12,7 +12,7 @@ from app.api.system import build_system_router
 from app.config import Settings, get_settings
 from app.llm.factory import build_llm_provider
 from app.runtime.maintenance import start_maintenance_worker
-from app.storage.db import create_db_engine, init_db
+from app.storage.db import create_db_engine, init_db, prepare_runtime_database
 
 
 def create_app(
@@ -21,7 +21,7 @@ def create_app(
     db_engine: Engine | None = None,
 ) -> FastAPI:
     runtime_settings = settings or get_settings()
-    engine = db_engine or create_db_engine(runtime_settings.database_url)
+    engine = db_engine or create_db_engine(prepare_runtime_database(runtime_settings))
     provider_factory = llm_provider_factory or build_llm_provider
     init_db(engine)
 
@@ -42,7 +42,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.4.1",
+        version="1.21.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -63,7 +63,13 @@ def create_app(
             provider_factory=provider_factory,
         )
     )
-    app.include_router(build_maintenance_router(engine))
+    app.include_router(
+        build_maintenance_router(
+            engine,
+            runtime_settings,
+            provider_factory=provider_factory,
+        )
+    )
     app.include_router(build_trace_router(engine))
     app.include_router(
         build_mind_router(

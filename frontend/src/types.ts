@@ -80,7 +80,16 @@ export type AgentStep = {
     | "session"
     | "metacognition";
   seq: number;
+  blockId?: string;
   modelStep?: number;
+  phase?:
+    | "created"
+    | "streaming"
+    | "captured"
+    | "executing"
+    | "completed"
+    | "persisted"
+    | "failed";
   title: string;
   body: string;
   data?: Record<string, unknown>;
@@ -124,6 +133,13 @@ export type RuntimeSettings = {
   user_display_name: string;
   privacy_scope: string;
   source: string;
+  codex_test: boolean;
+  database: {
+    profile: string;
+    codex_test: boolean;
+    database_url: string;
+    seed_database_url: string;
+  };
   options: {
     languages: Array<{ code: string; label: string }>;
     timezones: Array<{ id: string; label: string }>;
@@ -151,5 +167,19 @@ export type ApiError = {
     code?: string;
     message?: string;
     recoverable?: boolean;
+  };
+};
+
+export type HealthStatus = {
+  status: string;
+  app: string;
+  environment: string;
+  provider: string;
+  model: string;
+  database: {
+    profile: string;
+    codex_test: boolean;
+    database_url: string;
+    seed_database_url: string;
   };
 };

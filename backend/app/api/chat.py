@@ -264,6 +264,8 @@ def build_chat_router(
                 settings=settings,
             )
             trace_ids.append(memory_context.trace_id)
+            if memory_context.metacognitive_trace_id is not None:
+                trace_ids.append(memory_context.metacognitive_trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
             record_event(
                 db,
@@ -276,6 +278,22 @@ def build_chat_router(
                 visibility="debug",
                 trace_id=memory_context.trace_id,
             )
+            if memory_context.metacognitive_payload is not None:
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="metacognitive.context.injected"
+                    if memory_context.metacognitive_payload.get("model_facing") is True
+                    else "metacognitive.context.shadowed",
+                    payload=_metacognitive_context_event_payload(
+                        memory_context.metacognitive_payload
+                    ),
+                    source="metacognition",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=memory_context.metacognitive_trace_id,
+                )
             record_event(
                 db,
                 session_id=session_id,
@@ -307,6 +325,15 @@ def build_chat_router(
                     "runtime_context_present": True,
                     "runtime_context": memory_context.runtime_context,
                     "memory_context_trace_id": memory_context.trace_id,
+                    "metacognitive_context_trace_id": (
+                        memory_context.metacognitive_trace_id
+                    ),
+                    "metacognitive_context_mode": (
+                        memory_context.metacognitive_payload or {}
+                    ).get("mode"),
+                    "metacognitive_context_model_facing": (
+                        memory_context.metacognitive_payload or {}
+                    ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
@@ -622,6 +649,8 @@ def build_chat_router(
                 settings=settings,
             )
             trace_ids.append(memory_context.trace_id)
+            if memory_context.metacognitive_trace_id is not None:
+                trace_ids.append(memory_context.metacognitive_trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
             record_event(
                 db,
@@ -634,6 +663,22 @@ def build_chat_router(
                 visibility="debug",
                 trace_id=memory_context.trace_id,
             )
+            if memory_context.metacognitive_payload is not None:
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="metacognitive.context.injected"
+                    if memory_context.metacognitive_payload.get("model_facing") is True
+                    else "metacognitive.context.shadowed",
+                    payload=_metacognitive_context_event_payload(
+                        memory_context.metacognitive_payload
+                    ),
+                    source="metacognition",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=memory_context.metacognitive_trace_id,
+                )
             record_event(
                 db,
                 session_id=session_id,
@@ -665,6 +710,15 @@ def build_chat_router(
                     "runtime_context_present": True,
                     "runtime_context": memory_context.runtime_context,
                     "memory_context_trace_id": memory_context.trace_id,
+                    "metacognitive_context_trace_id": (
+                        memory_context.metacognitive_trace_id
+                    ),
+                    "metacognitive_context_mode": (
+                        memory_context.metacognitive_payload or {}
+                    ).get("mode"),
+                    "metacognitive_context_model_facing": (
+                        memory_context.metacognitive_payload or {}
+                    ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
@@ -719,6 +773,7 @@ def build_chat_router(
                 system=effective_system,
                 max_tokens=max_tokens,
                 memory_context=memory_context.payload,
+                metacognitive_context=memory_context.metacognitive_payload,
                 runtime_context=memory_context.runtime_payload,
             ),
             media_type="application/x-ndjson",
@@ -845,6 +900,7 @@ def _stream_turn_events(
     system: str,
     max_tokens: int,
     memory_context: dict[str, Any],
+    metacognitive_context: dict[str, Any] | None,
     runtime_context: dict[str, Any],
 ) -> Iterator[str]:
     sequence = 0
@@ -888,6 +944,11 @@ def _stream_turn_events(
             "negative_evidence": memory_context.get("negative_evidence"),
         },
     )
+    if metacognitive_context is not None:
+        yield emit(
+            "metacognitive_context",
+            _metacognitive_context_event_payload(metacognitive_context),
+        )
     yield emit(
         "runtime_context",
         {
@@ -899,6 +960,7 @@ def _stream_turn_events(
     )
 
     result: LLMTextResult | None = None
+    semantic_content_event_seen = False
     try:
         provider = provider_factory(settings)
         for stream_event in provider.stream_chat_with_tools(
@@ -921,6 +983,12 @@ def _stream_turn_events(
             if stream_event.type == "final_result":
                 result = LLMTextResult.model_validate(stream_event.data["result"])
             else:
+                if stream_event.type in {
+                    "assistant_note",
+                    "assistant_answer",
+                    "thinking_captured",
+                }:
+                    semantic_content_event_seen = True
                 provider_event = record_provider_stream_event(
                     engine,
                     session_id=session_id,
@@ -1057,17 +1125,18 @@ def _stream_turn_events(
                 )
             )
         )
-        final_runtime_events.extend(
-            _event_stream_payload(event)
-            for event in record_response_content_events(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                raw_provider_messages=_response_event_messages(result),
-                response_trace_id=response_trace.id,
-                assistant_message_id=assistant_message.id,
+        if not semantic_content_event_seen:
+            final_runtime_events.extend(
+                _event_stream_payload(event)
+                for event in record_response_content_events(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    raw_provider_messages=_response_event_messages(result),
+                    response_trace_id=response_trace.id,
+                    assistant_message_id=assistant_message.id,
+                )
             )
-        )
         repositories.update_chat_session_provider_history(
             db,
             session_id=session_id,
@@ -1553,6 +1622,23 @@ def _memory_context_event_payload(memory_context: dict[str, Any]) -> dict[str, A
         "near_miss": memory_context.get("near_miss", []),
         "excluded": memory_context.get("excluded", []),
         "conflicts": memory_context.get("conflicts", []),
+    }
+
+
+def _metacognitive_context_event_payload(
+    metacognitive_context: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "operation": metacognitive_context.get("operation"),
+        "trace_id": metacognitive_context.get("trace_id"),
+        "schema_version": metacognitive_context.get("schema_version"),
+        "mode": metacognitive_context.get("mode"),
+        "model_facing": metacognitive_context.get("model_facing"),
+        "selection": metacognitive_context.get("selection", {}),
+        "triggers": metacognitive_context.get("triggers", []),
+        "lessons": metacognitive_context.get("lessons", []),
+        "runtime_inputs": metacognitive_context.get("runtime_inputs", {}),
+        "policy": metacognitive_context.get("policy", {}),
     }
 
 

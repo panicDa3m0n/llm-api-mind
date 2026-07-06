@@ -203,8 +203,9 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
         proposals = repositories.list_memory_proposals(
             db,
             source_session_id=session_id,
-            status="pending_review",
+            status="applied_create",
         )
+        memories = repositories.list_memories_for_session(db, session_id=session_id)
         events = repositories.list_events_for_turn(db, turn_id=turn_id)
         completed_job = repositories.get_maintenance_job(db, job_id)
 
@@ -217,7 +218,7 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
     assert summary.summary == "The session discussed a durable food preference."
     trace_kinds = [trace.kind for trace in traces]
     assert "maintenance.memory_review" in trace_kinds
-    assert "maintenance.memory_proposal_resolution" in trace_kinds
+    assert "maintenance.memory_proposal_resolution" not in trace_kinds
     assert "mind.sessions.summarize" in trace_kinds
     event_types = [event.type for event in events]
     assert "maintenance.job.started" in event_types
@@ -232,15 +233,18 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
     assert len(proposals) == 1
     assert proposals[0].content == "The user likes chocolate but feels bad if they eat too much."
     assert proposals[0].proposed_action == "create_new"
-    assert proposals[0].status == "pending_review"
-    assert proposals[0].result_json["resolution"]["outcome"] == "keep_pending"
+    assert proposals[0].status == "applied_create"
+    assert proposals[0].result_json["resolution"]["outcome"] == "apply_create"
+    assert proposals[0].result_json["resolution"]["resolver"] == "deterministic_preflight"
+    assert proposals[0].result_json["memory_result"]["memory_id"] == memories[0].id
     completed_event = next(
         event for event in events if event.type == "maintenance.memory_review.completed"
     )
     assert completed_event.payload_json["proposal_count"] == 1
     assert completed_event.payload_json["proposal_created_count"] == 1
-    assert completed_event.payload_json["resolution"]["resolver_called"] is True
-    assert len(FakeMaintenanceProvider.calls) == 3
+    assert completed_event.payload_json["resolution"]["resolver_called"] is False
+    assert completed_event.payload_json["resolution"]["auto_applied_count"] == 1
+    assert len(FakeMaintenanceProvider.calls) == 2
 
 
 def test_idle_maintenance_safely_applies_high_confidence_create_candidate() -> None:
@@ -418,7 +422,6 @@ def test_idle_maintenance_llm_resolver_can_apply_cautious_create_candidate() -> 
             "confidence": 0.9,
             "salience": 0.8,
             "tags": ["memory-maintenance", "dream"],
-            "evidence": "Owner explicitly scoped Dream out of the current slice.",
             "write_recommended": True,
         }
     ]

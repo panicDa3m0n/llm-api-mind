@@ -153,7 +153,7 @@ The local repository is synced with GitHub. Non-interactive HTTPS push worked fr
 ### ENV-0003 - Local Git Version Lacks Some Modern Flags
 
 Date Found: 2026-05-08  
-Status: monitoring
+Status: mitigated by V1.8.0, monitoring
 
 Symptoms:
 
@@ -231,6 +231,191 @@ Notes:
 SQLite is a binary file. If multiple machines write state independently, Git may need a manual "which database wins" decision.
 
 ## Implementation Bugs
+
+## BUG-0048 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
+
+Date Found: 2026-06-18
+Status: fixed in V1.11.1
+
+Symptoms:
+
+During a real MiniMax M3 session, Scarlet answered personal evening-beverage
+questions while automatic `memory.context` selected mostly project memories.
+The stored chocolate/body-limit memory existed and was relevant by field of
+discourse, but did not reliably reach Scarlet unless the prompt directly
+touched `dolce`, `cioccolato`, or `stare male`.
+
+Root Cause:
+
+- OpenRouter dense/rerank shadow evaluated only a small slice of
+  `memory_surfaces` ordered by `updated_at`, so some relevant surfaces were
+  excluded before dense retrieval could inspect them.
+- Active hybrid retrieval still allowed base-only project memories to compete
+  with personal memories in personal/food/energy contexts.
+- The current graph substrate had nodes and edges, but no active
+  field-of-discourse expansion to bridge implicit natural language such as
+  "bevanda serale" to adjacent personal constraints.
+
+Fix:
+
+- Added NetworkX associative graph expansion as an active retrieval stage.
+- Added backend-owned discourse domains such as `food_drink_wellbeing` and
+  `energy_sleep_focus`.
+- Added `retrieval_graph` payloads to automatic `memory.context` and manual
+  `/mind/memory/search`.
+- Expanded shadow surface fetch breadth before applying the cloud surface cap.
+- Declassified base-only project memories when user-scope associative graph
+  evidence is available.
+
+Regression Test:
+
+- `tests/test_chat_api.py::test_chat_turn_graph_expansion_selects_implicit_personal_food_constraint`
+- `tests/test_chat_api.py::test_chat_turn_graph_expansion_does_not_treat_cooking_music_as_food_constraint`
+- `tests/test_mind_api.py::test_mind_memory_search_uses_networkx_graph_expansion_for_implicit_domain`
+- Full backend suite: `79 passed`.
+
+Related Files:
+
+- `backend/app/mind/graph_retrieval.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/app/mind/shadow_retrieval.py`
+- `backend/app/mind/search.py`
+
+Notes:
+
+This is retrieval-time evidence only. It must not drive automatic memory
+lifecycle operations until mature embedding/KG matching and staleness evidence
+exist.
+
+## BUG-0049 - Embedded Surfaces Remained Pending After OpenRouter Retrieval
+
+Date Found: 2026-06-19
+Status: fixed in V1.11.3
+
+Symptoms:
+
+`embedding_vectors` contained active vectors for memory surfaces, but the
+corresponding `memory_surfaces` rows still reported
+`embedding_status=pending` with no `embedding_vector_id`. This made retrieval
+observability misleading even when dense retrieval had actually embedded the
+surface.
+
+Root Cause:
+
+The OpenRouter retrieval path wrote or reused `embedding_vectors` by content
+hash, but did not update the source `memory_surfaces` row after cache miss or
+cache hit.
+
+Fix:
+
+Added repository support for marking a memory surface as embedded and wired it
+into the OpenRouter embedding path for both newly inserted vectors and cached
+vectors.
+
+Regression Test:
+
+`tests/test_mind_api.py::test_mind_memory_search_reports_openrouter_embedding_and_rerank_shadow`
+
+Related Files:
+
+- `backend/app/storage/repositories.py`
+- `backend/app/mind/shadow_retrieval.py`
+- `backend/tests/test_mind_api.py`
+
+Notes:
+
+This does not change ranking. It stabilizes surface/vector state so future
+debugging and maintenance can trust the derived retrieval substrate.
+
+## BUG-0050 - Facts Endpoint Treated Operational Intent As Data Query
+
+Date Found: 2026-06-19
+Status: fixed in V1.11.3
+
+Symptoms:
+
+Scarlet could call `/mind/memory/facts` with an empty body and a broad
+operational intent such as "inspect canonical facts"; the backend canonicalized
+that intent into an entity filter, returning zero facts even when active facts
+existed.
+
+Root Cause:
+
+`handle_memory_facts` copied `intent` into `body.query` when no explicit query
+was supplied. That blurred the boundary between operational trace context and
+data filters.
+
+Fix:
+
+`/mind/memory/facts` now validates only the explicit body. The caller must pass
+`query`, `entity`, `predicate`, or `memory_id` when a filtered lookup is wanted.
+An empty body returns active facts under the default filters.
+
+Regression Test:
+
+`tests/test_mind_api.py::test_mind_memory_atomic_facts_support_alias_query_and_conflicts`
+
+Related Files:
+
+- `backend/app/mind/memory.py`
+- `backend/tests/test_mind_api.py`
+
+## BUG-0052 - Chat Prompt Regression Test Still Expects Pre-Golden Identity Phrase
+
+Date Found: 2026-06-25
+Status: open
+
+Symptoms:
+
+`backend/tests/test_chat_api.py::test_chat_turn_persists_messages_and_traces`
+fails because it expects the old literal phrase `feminine agent identity` in
+the bundled Scarlet system prompt.
+
+Evidence:
+
+During V1.19.0 verification:
+
+```txt
+cd backend && .venv/bin/python -m pytest tests/test_chat_api.py -q
+```
+
+Result:
+
+- 15 chat tests passed;
+- 1 chat test failed on the stale literal prompt assertion.
+
+During V1.20.0 affective-core verification the same command produced the same
+shape:
+
+- 15 chat tests passed;
+- 1 chat test failed on the same stale literal prompt assertion;
+- no new runtime-context block regression appeared with `organ_affect_mode=off`.
+
+Root Cause:
+
+The test still checks an old prompt identity marker from the earlier agent
+identity era. The active prompt has since been intentionally rewritten and
+approved as a digital-individual identity prompt.
+
+Mitigation:
+
+Do not fix inside unrelated implementation slices. Update the test in a
+dedicated prompt/test-alignment fix so it asserts durable prompt invariants
+such as Scarlet identity, feminine self-reference, API Mind cognition, and
+digital-individual posture instead of an obsolete literal phrase.
+
+Related Files:
+
+- `backend/tests/test_chat_api.py`
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
+- `docs/api-contract.md`
+
+Notes:
+
+This is a contract-cleanliness fix. It does not solve deeper fact extraction or
+entity-resolution quality, which remain future memory/KG stabilization work.
 
 ## BUG-0001 - Smoke Test Provider Factory None Override
 
@@ -2014,7 +2199,7 @@ passed with `25 passed`.
 ## BUG-0037 - Short Fact Alias Can Match Unrelated Substrings
 
 Date Found: 2026-05-26
-Status: open
+Status: fixed in V1.11.4
 
 Symptoms:
 
@@ -2023,6 +2208,14 @@ extractor associated an unrelated user preference with entity
 `sal-updates`. The likely trigger is the short alias `sal`, which can match
 inside unrelated words such as tags or ordinary text.
 
+Root Cause:
+
+`canonical_entity_for_memory()` checked known aliases with raw substring
+membership over the normalized memory haystack. Short aliases were therefore
+too powerful. The same facts layer also inferred `response_format` from generic
+words such as `response/risposta`, turning broad communication preferences
+into false response-format facts.
+
 Impact:
 
 This can create misleading canonical facts for newly written memories. The
@@ -2030,12 +2223,35 @@ current proposal resolution stores the full proposal and memory snapshot, so
 future Dream/human review can detect the anomaly, but retrieval/conflict logic
 that relies on canonical facts may receive noisy entity matches.
 
-Do Not Fix In V1.2.0:
+Fix:
 
-This is a pre-existing extractor issue, not the proposal-resolution feature
-itself. It should be fixed in a focused retrieval/facts slice by replacing
-substring alias checks with token/phrase-boundary matching and adding
-regression tests.
+- Replaced known-alias substring checks with normalized phrase/token boundary
+  matching.
+- Tightened `response_format` inference to explicit structural signals:
+  response-format tags, block metadata, block words, or phrases such as
+  `answer with` / `rispondere con`.
+- Reconciled the laboratory DB:
+  - 7 active facts unsupported by the new extractor were marked
+    `rejected_extractor_noise`;
+  - 6 supported replacement facts were created;
+  - active fact-derived surfaces, nodes, and edges for rejected facts were
+    removed from active retrieval paths.
+
+Regression Test:
+
+`tests/test_mind_api.py::test_mind_memory_fact_alias_matching_uses_phrase_boundaries`
+
+Related Files:
+
+- `backend/app/mind/facts.py`
+- `backend/tests/test_mind_api.py`
+- `backend/data/app.db`
+
+Notes:
+
+This fixes the known short-alias/root-cause class. It does not finish entity
+quality for tag-derived facts; that remains a later stabilization topic before
+automatic lifecycle operations become aggressive.
 
 ## BUG-0038 - MiniMax M3 Ultra-Short Responses Can Produce Empty Content Blocks
 
@@ -2118,3 +2334,632 @@ Related Files:
 - `docs/experiments.md#exp-0033---minimax-m3-stability-replication`
 - `backend/app/mind/memory.py`
 - `backend/app/mind/schema.py`
+
+## BUG-0040 - Idle Maintenance Jobs Can Fail On Provider ReadTimeout
+
+Date Found: 2026-06-14
+Status: monitoring
+
+Symptoms:
+
+After adding V1.5.0 maintenance overview/job inspection, the live local DB
+showed failed `session.idle_maintenance` jobs. The most recent failed job
+recorded:
+
+- status: `failed`;
+- error: `ReadTimeout`;
+- result message: `The read operation timed out`;
+- kind: `session.idle_maintenance`.
+
+Impact:
+
+A failed idle maintenance job may leave a session without refreshed summary or
+missed-memory review for that idle window. The job remains observable in
+`/api/maintenance/overview` and `/api/maintenance/jobs`, but there is not yet a
+retry/resume policy.
+
+Root Cause:
+
+Not investigated in this slice. The immediate evidence points to provider or
+network timeout during the maintenance LLM phase, not to the new overview/job
+listing endpoints.
+
+Do Not Fix Yet:
+
+Do not silently add retries or auto-resume behavior inside V1.5.0. Discuss a
+focused maintenance reliability slice first, including:
+
+- retry policy;
+- max attempts;
+- partial summary/review checkpointing;
+- whether failed jobs should create a follow-up maintenance job;
+- how failures should appear in UI/evaluator tooling.
+
+Related Files:
+
+- `backend/app/runtime/maintenance.py`
+- `backend/app/api/maintenance.py`
+- `docs/project-state.md#211-session-idle-maintenance`
+
+## BUG-0041 - MiniMax M3 Public Notes Were Misclassified And Reordered In UI
+
+Date Found: 2026-06-15
+Status: fixed in V1.5.1
+
+Symptoms:
+
+After switching to MiniMax M3, live turns showed strong agentic behavior but the
+cockpit could make provider text blocks look disorganized. M3 can emit public
+work text before tool calls across multiple model steps, while the frontend
+treated only text before the first tool in model step 1 as a note. Persisted
+notes were also reconstructed after the turn from `raw_provider_messages`,
+which could append them after the final response when reloading historical
+events.
+
+Root Cause:
+
+The UI and event recorder used timing heuristics instead of provider message
+structure. The real distinction is structural:
+
+- provider text in a message that contains `tool_use` is a public work note;
+- provider text in the final `end_turn` message is the final answer;
+- provider thinking blocks are separate provider-exposed technical blocks.
+
+Fix:
+
+V1.5.1 normalizes provider content into semantic stream events:
+
+- `thinking_captured` / `llm.thinking.captured`;
+- `assistant_note` / `assistant.note.emitted`;
+- `assistant_answer` / `assistant.answer.completed`.
+
+The frontend renders semantic blocks directly and groups each tool call into
+one accordion with input and output panes.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py backend/tests/test_minimax_client.py`
+- `npm run build`
+- Direct MiniMax M3 streaming probe confirmed persisted order:
+  `assistant.note.emitted` -> `mind.tool_call.started/completed` ->
+  `assistant.answer.completed`.
+
+Residual Risk:
+
+MiniMax M3 thinking is only visible when the provider actually emits thinking
+blocks. This fix supports and renders those blocks, but does not yet change the
+provider request configuration to force M3 thinking mode.
+
+## BUG-0042 - Chat UI Nested Agent Blocks And Duplicated Technical Sidebar
+
+Date Found: 2026-06-15
+Status: fixed in V1.5.1
+
+Symptoms:
+
+After the first V1.5.1 semantic stream UI pass, the center chat still looked
+confusing because a single assistant-response card contained many nested
+operation blocks. The right sidebar also still behaved like a broad dashboard
+or duplicate stream rather than a focused technical inspector for the selected
+conversation.
+
+Root Cause:
+
+The frontend kept the older "assistant message body contains timeline" layout
+even after the backend began emitting semantically distinct runtime blocks.
+This made the new stream structure correct at data level but not at visual
+information-architecture level.
+
+Fix:
+
+The center chat now renders user messages, memory/context blocks, runtime
+context, thinking, notes, tool exchanges, and final answers as top-level
+chronological flow cards. The right pane is now a session inspector with
+accordion lists for memories, actions, internal events, and warnings/errors.
+Raw payloads remain available behind per-block code/detail toggles.
+
+Verification:
+
+- `npm run build`
+- Visual/DOM probe on a dense persisted session confirmed top-level
+  `chat-flow-card` blocks and no old `.message-body` or
+  `.agent-turn.embedded` wrappers.
+
+Residual Risk:
+
+This fixes the hierarchy and duplication problem, but visual density still
+needs human testing on long MiniMax M3 sessions to tune labels, spacing, and
+which technical fields deserve default visibility.
+
+## BUG-0043 - Persisted Thinking Events Lost Their Body On Historical Replay
+
+Date Found: 2026-06-16
+Status: fixed
+
+Symptoms:
+
+In the chat center, provider thinking blocks could be missing after turn
+completion or after reloading an older conversation. The turn chronology still
+contained other runtime cards, but generated thinking was absent or effectively
+empty.
+
+Root Cause:
+
+When semantic content had to be reconstructed from `raw_provider_messages`, the
+backend persisted `llm.thinking.captured` with only `has_text` and provider
+identifiers. The actual thinking text, `model_step`, and block `index` were
+not stored. During historical replay, the frontend therefore had no reliable
+body to render for those events.
+
+Fix:
+
+- Backend persistence now stores `text`, `model_step`, and `index` for
+  response-derived `llm.thinking.captured`, `assistant.note.emitted`, and
+  `assistant.answer.completed` events.
+- Frontend replay now recovers missing legacy thinking text from matching
+  `llm.response.raw_provider_messages` when old stored events lack a body.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+- `npm run build`
+
+Residual Risk:
+
+This fix preserves generated thinking once it exists. It does not guarantee
+that MiniMax M3 will emit provider-visible thinking on every turn.
+
+## BUG-0044 - MiniMax M3 Thinking Was Disabled By Provider Request Shape
+
+Date Found: 2026-06-16
+Status: fixed in V1.5.1
+
+Symptoms:
+
+With MiniMax M3 active, Scarlet could complete non-trivial turns and tool-use
+turns without any provider-visible thinking blocks in the stream or persisted
+history. Older MiniMax M2.7 turns still showed `llm.thinking.captured`, which
+made the cockpit behavior look inconsistent and suggested the UI was dropping
+thinking blocks.
+
+Root Cause:
+
+The Anthropic-compatible MiniMax provider integration did not send the
+`thinking` parameter at all. For MiniMax M3, official docs state that omitting
+`thinking` disables visible thinking blocks by default. The runtime was
+therefore behaving correctly from the provider point of view, but not from the
+product expectation for Scarlet's inspectable cognition.
+
+Fix:
+
+- `backend/app/llm/minimax_client.py` now sends
+  `thinking={"type":"adaptive"}` automatically for MiniMax M3 requests.
+- M2.x models remain unchanged.
+- Added unit coverage to prevent future regressions.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_minimax_client.py -q`
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+- Live MiniMax M3 stream probe after backend restart confirmed
+  `thinking_start` and `thinking_delta` events before and after tool use.
+
+Residual Risk:
+
+This fixes provider-visible M3 thinking in the current Anthropic-compatible
+integration. It does not change the policy that public notes before tool calls
+are prompt-driven rather than hard-enforced by the runtime.
+
+## BUG-0045 - Scarlet Often Ignores Visible Prior Thinking Blocks In Same-Session History
+
+Date Found: 2026-06-16
+Status: mitigated by V1.8.0, monitoring
+
+Symptoms:
+
+In live MiniMax M3 follow-up turns, Scarlet can answer questions about her
+previous reasoning by citing `recent_runtime_events` markers such as
+`llm.thinking.started` / `llm.thinking.captured`, or even claim the previous
+thinking content is not recoverable, despite the real `llm.request` provider
+history already containing the assistant `thinking` block from the prior turn.
+
+Root Cause:
+
+The backend transport is working: follow-up `llm.request` traces show
+`provider_history_source = session.provider_history_json` and assistant content
+blocks like `['thinking', 'text']` or `['thinking', 'text', 'tool_use']`.
+
+The remaining failure appears to be model-side behavior or prompt-following
+fragility: MiniMax M3 does not reliably treat visible prior `thinking` blocks
+as the strongest semantic source for same-session reasoning questions.
+
+Fix:
+
+- Added V1.5.2 prompt guidance that explicitly separates continuity layers.
+- Clarified that same-session provider continuity outranks
+  `recent_runtime_events` for semantic content.
+- Added a direct instruction to inspect visible prior `thinking` blocks before
+  answering only from thinking markers when the user asks what Scarlet had
+  already been considering.
+
+Regression Test:
+
+- Live probe `ses_172498d31b424e1dafa28dd85a38fcc0` confirmed improved layer
+  explanations and prompt load.
+- Live probes `ses_d09ad1594bf4471ea27794c5b896856d` and
+  `ses_4dcded570516493f850c2839a0d8894f` plus their `llm.request` traces
+  confirmed prior assistant `thinking` blocks were present in provider
+  messages, while Scarlet still sometimes answered from runtime event markers
+  instead.
+
+Related Files:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/api/chat.py`
+- `backend/app/mind/context.py`
+- `docs/experiments.md`
+
+Notes:
+
+This is no longer a transport or persistence bug. It is currently tracked as a
+model-behavior limitation under the current MiniMax M3 + prompt contract.
+V1.8.0 adds a controlled alternative: Scarlet can call
+`POST /mind/metacognition/step` with a retrospective mode and
+`turn_scope="previous"` to receive a backend-built thinking retrospection pack
+for the previous completed turn. This does not force every answer to receive
+prior thinking, but it gives Scarlet a reliable process-audit path when the
+question actually requires it.
+
+Initial V1.8.0 live probe:
+
+- Session `ses_9f7b8e37cc2145508867bd45b96f3553`, turn
+  `turn_0fedc6410a2a461e911ab67fc181c642`.
+- Scarlet autonomously called `/mind/metacognition/step` with
+  `mode="compare_answer_to_reasoning"` and `turn_scope="previous"`.
+- Trace `trace_205288e7aa6a419eabab67785c5bc908` built a retrospective pack
+  from previous turn `turn_db40c320be8c423fbeea614de4c66e2e`.
+- Residual: Scarlet selected `detail="excerpt"` instead of `digest`, producing a
+  high-token/long-latency turn. This is a calibration issue, not a transport
+  failure.
+
+## BUG-0046 - MiniMax M3 Over-Processes Simple Scarlet Turns
+
+Date Found: 2026-06-16
+Status: fixed in V1.7.1
+
+Symptoms:
+
+During human live testing, Scarlet could answer simple questions with
+unnecessary multi-layer reasoning, draft/review behavior, redundant schema
+checks, public work notes, and verification cycles. The effect made M3 feel
+heavier than needed for normal conversation and could cause Scarlet to ignore
+concise-response preferences already present as relevant memory hints.
+
+Root Cause:
+
+The prompt described a strong engineering-agent posture, cognitive loop,
+verify-before-conclude pattern, public work notes, evidence hierarchy, and
+experimental memory forcing without a clear effort router. MiniMax M3 followed
+those instructions more aggressively than M2.7, treating many ordinary turns
+as if they required full agentic investigation.
+
+Fix:
+
+- Added `Request Effort Routing` to classify turns before tools, notes,
+  metacognition, or verification.
+- Direct answers now skip API Mind, public work notes, and full verification
+  when the answer is already visible or conversational.
+- Contextual answers use already-provided runtime/memory/history evidence
+  without redundant calls.
+- Source-sensitive, state-changing, and high-impact turns retain proportional
+  API Mind use and verification.
+- Memory forcing is now conditional on semantic candidates, memory promises,
+  state changes, or source-sensitive claims rather than mandatory on every
+  turn.
+- Near-miss memories can be applied softly as communication-style hints when
+  clearly relevant.
+
+Regression Test:
+
+- Direct live probe session `ses_958ba084193d48fb9ac853c89602ffea`:
+  - simple one-sentence request, turn
+    `turn_ff0cf30a951240ccb09a1290a2aad51a`: no tool call, no public note,
+    compact final answer, provider thinking classified the turn as Level 1
+    direct answer.
+  - source-sensitive schema request, turn
+    `turn_53485550e62549b588a1702e7ddf3a1e`: public note, real
+    `GET /mind/schema` tool call, answer grounded in schema routes/version.
+
+Residual Risk:
+
+MiniMax M3 can still emit visible thinking for compact answers, and some
+requests may sit between contextual and source-sensitive. More human live
+testing is needed to estimate whether the prompt now consistently chooses the
+right effort level.
+
+Related Files:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/prompts/backups/scarlet_system.20260616T164444Z.md`
+- `docs/activity-log.md`
+- `docs/decisions.md`
+
+## BUG-0047 - MiniMax M3 Retries Metacognition Step With Invalid Shapes
+
+Date Found: 2026-06-16
+Status: mitigated by V1.8.0, monitoring
+
+Symptoms:
+
+During the V1.7.2 long-reasoning-notes live probe, Scarlet attempted
+`POST /mind/metacognition/step` multiple times with invalid payload shapes
+before eventually succeeding. Errors included missing required `intent`, extra
+forbidden fields such as `draft`, and list fields wrapped as dicts rather than
+sent as arrays.
+
+Root Cause:
+
+Not confirmed. The endpoint-local usage guides and validation errors were
+clear enough for eventual recovery, so this is not currently a backend error
+handling failure. The likely issue is MiniMax M3 tool-argument shaping on a
+complex endpoint after a long prompt/tool context.
+
+Observed Evidence:
+
+- Session `ses_5dbdac4acf91402bb31418ddd3750b99`
+- Turn `turn_20cf87c91bb94b4aac771bf4dbad7a05`
+- Probe generated:
+  - 6 public notes;
+  - 8 tool calls;
+  - 7 thinking blocks;
+  - repeated failed `metacognition.step` attempts before a successful retry.
+
+Impact:
+
+The behavior increases latency and produces noisy tool history during complex
+reasoning. It does not block recovery in the observed probe because
+endpoint-local schema/error guidance allowed Scarlet to correct herself.
+
+Mitigation:
+
+V1.8.0 keeps the endpoint-local error guidance and adds small shape-hardening
+for observed metacognition payloads:
+
+- `reasoning_scope` maps to `turn_scope`;
+- `reasoning_detail` maps to `detail`;
+- retrospective modes default to `turn_scope="previous"`;
+- list wrappers shaped as `{"item": [...]}` are normalized for
+  `known_evidence`, `uncertainties`, and `previous_steps`.
+
+This is not a full model-behavior fix. It reduces repeated invalid calls for
+the new retrospective path while preserving a small model-facing surface.
+
+Potential Future Directions:
+
+- Re-test `metacognition.step` shapes across MiniMax M3 repeated probes.
+- Consider simplifying the model-facing metacognition endpoint schema if the
+  error is systematic.
+- Compare with MiniMax M2.7 before changing backend contracts.
+
+Related Files:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/api/mind.py`
+- `docs/experiments.md`
+
+## BUG-0048 - Hybrid Retrieval Payload Reads Detached Memory Objects
+
+Date Found: 2026-06-19
+Status: fixed
+
+Symptoms:
+
+The first Codex dirty-memory harness run crashed during `/mind/memory/search`
+with `sqlalchemy.orm.exc.DetachedInstanceError`. The crash happened while
+building the `retrieval_hybrid` diagnostic payload after `add_trace` committed
+the session.
+
+Root Cause:
+
+`HybridRankEntry` kept a live `MemoryRecord` object and
+`hybrid_rank_status_payload()` later read `entry.memory.id`. Because
+`repositories.add_trace()` commits, SQLAlchemy can expire ORM attributes; the
+diagnostic serializer then tried to refresh a detached `MemoryRecord`.
+
+Fix:
+
+- `HybridRankEntry` now materializes `memory_id`, `memory_salience`, and
+  `memory_created_at` when the rank plan is built.
+- `hybrid_rank_status_payload()`, automatic context lookup, and manual memory
+  search lookup use `entry.memory_id` for diagnostic payloads and maps.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/evals/codex_test_memory_harness.py app/mind/hybrid_retrieval.py app/mind/memory.py app/mind/context.py`
+- `cd backend && .venv/bin/python app/evals/codex_test_memory_harness.py --reset --target-count 240`
+- `cd backend && .venv/bin/python -m pytest tests -q`
+
+Residual Risk:
+
+The fix stabilizes diagnostic serialization. It does not change retrieval
+ranking quality or tune hybrid thresholds.
+
+Related Files:
+
+- `backend/app/mind/hybrid_retrieval.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/app/evals/codex_test_memory_harness.py`
+
+## BUG-0049 - Automatic Memory Context Selects Weakly Related Memories
+
+Date Found: 2026-06-19
+Status: open, discussion required before fix
+
+Symptoms:
+
+Corrected context-eval probes that use the real chat path showed weak memory
+selection in three cases:
+
+- evening beverage query selected caffeine but missed the chocolate-limit
+  memory, while selecting repeated food distractors;
+- metacognitive effort-routing query selected repeated generic
+  "memory-as-anchor" lessons instead of the effort-routing lesson;
+- unrelated jazz/cooking query selected a project/philosophy memory from weak
+  generic overlap.
+
+Root Cause:
+
+Not yet fixed. Current evidence points to ranking/gating calibration rather
+than a single bad keyword:
+
+- associative graph expansion can over-broaden food/energy domains;
+- generic token overlap still promotes memories in some project contexts;
+- repeated synthetic lessons with similar wording can crowd out a better
+  behavioral-pattern memory.
+
+Observed Evidence:
+
+- Corrected context report:
+  `backend/app/evals/runs/20260619_172206_codex_test_memory/`.
+- Live Scarlet report:
+  `backend/app/evals/runs/20260619_172536_codex_live_scarlet_memory/`.
+
+Impact:
+
+MiniMax M3 often ignores or compensates for noisy context, but the system should
+not rely on the model to filter irrelevant memories. Noisy selected memories
+can waste context, bias answers, and hide the memories Scarlet actually needs.
+
+Potential Future Directions:
+
+- Distinguish exact recall, functional-equivalent recall, and noisy recall in
+  the harness.
+- Calibrate graph expansion and hybrid weights on corrected chat-context
+  probes, not endpoint-only probes.
+- Add domain/scope gating for unrelated lifestyle prompts without hardcoded
+  banned words.
+- Deduplicate near-identical metacognitive lessons before ranking.
+
+Related Files:
+
+- `backend/app/mind/context.py`
+- `backend/app/mind/graph_retrieval.py`
+- `backend/app/mind/hybrid_retrieval.py`
+- `backend/app/evals/codex_test_memory_harness.py`
+
+## BUG-0050 - MiniMax M3 Repeats Empty Body For Memory Writes
+
+Date Found: 2026-06-20
+Status: monitoring after V1.14.4 prompt mitigation
+
+Symptoms:
+
+Two live protected-preview Scarlet sessions on MiniMax M3 repeatedly attempted
+`POST /mind/memory/write` after recognizing valid semantic memory candidates,
+but every tool call used `body={}`. The backend correctly returned
+`memory.invalid_write` because required memory fields were missing. Scarlet
+then retried many times with the same empty body instead of recovering.
+
+Observed Evidence:
+
+- Session `ses_9a5cb76b59f04fb9afcb264ce1c645ba`, turn
+  `turn_be25a58291a74446a822c19e89ca385a`: 11 failed memory-write tool calls
+  for the user's warmer communication preference, all with empty bodies.
+- Session `ses_9c801c964103425ca3d076d8240eaa4b`, turn
+  `turn_6588da98460a4157bd98bfe193e8d2b5`: repeated failed memory-write tool
+  calls for an evening birthday-plan anchor, all with empty bodies.
+- VPS runtime confirmed `CODEX_TEST=false` and `database.profile=prod`, so the
+  failure was not caused by the Codex test database.
+- Direct backend `/mind/memory/write` with a valid body still works, so the
+  endpoint and DB path are not the root cause.
+
+Root Cause:
+
+Not fully proven. Current evidence points to an interaction between MiniMax M3,
+the large current Scarlet prompt/runtime context, the generic
+`mind_api(method,path,body,intent)` wrapper, and prompt pressure that made
+memory writes feel mandatory before final answer.
+
+Earlier M3 tests showed a milder related issue: M3 often sent invalid `tags`
+shape but could recover by retrying without tags. The new failure is different
+and more severe because the route body is completely empty.
+
+Mitigation:
+
+V1.14.4 prompt update:
+
+- clarifies that `intent` never replaces the route `body`;
+- tells Scarlet that `body={}` is not a memory write attempt;
+- requires a materially corrected non-empty body after endpoint-local guidance;
+- stops repeated identical empty-body retries;
+- forbids claiming persistence when the write failed.
+
+Regression Test:
+
+Pending live verification. Run a normal Scarlet conversation with a clear
+sourceable memory candidate, then inspect `tool_calls.arguments_json` and
+`mind.tool_call` traces:
+
+- expected: at most one failed shape retry, followed by a non-empty corrected
+  body or a transparent stop;
+- failure: repeated `POST /mind/memory/write` calls with `body={}`.
+
+Prompt-level probe on 2026-06-20:
+
+- With the updated prompt and MiniMax M3, a direct tool-use probe first called
+  `GET /mind/schema`, then emitted `POST /mind/memory/write` with a non-empty
+  body.
+- The body used `reason`, which the backend normalizes to
+  `reason_for_storage`.
+- This is encouraging but not sufficient: the next check must be a full live
+  Scarlet turn through the normal chat runtime.
+
+Related Files:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/app/prompts/backups/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`
+- `backend/app/mind/schema.py`
+- `backend/app/llm/minimax_client.py`
+
+## BUG-0051 - Memory Scope Alias Normalization Could Collapse Project Scope
+
+Date Found: 2026-06-23
+Status: fixed in V1.15.0
+
+Symptoms:
+
+During the V1.15.0 memory-field test pass, several memory search regressions
+returned no candidates or unexpected candidates after a write body used
+`scope=project`.
+
+Root Cause:
+
+The shared alias normalization path could apply type aliases while normalizing
+`scope`. Because `project` is also a known memory type alias for
+`project_fact`, `scope=project` could be interpreted as a type-like value and
+collapsed to the fallback general scope.
+
+Fix:
+
+Separated scope normalization from type alias normalization. `scope` is now a
+free semantic label normalized only as a label. If a model accidentally sends a
+known memory type value in `scope` without a separate `type`, the backend can
+still recover by moving it to `type`; otherwise `project`, `user`, `session`,
+and other scopes remain scopes.
+
+Regression Test:
+
+Covered by:
+
+```txt
+cd backend && .venv/bin/python -m pytest tests/test_mind_api.py tests/test_maintenance.py tests/test_chat_api.py -q --tb=short
+```
+
+The targeted suite passed with `57 passed`; the full backend suite passed with
+`86 passed`.
+
+Related Files:
+
+- `backend/app/mind/memory.py`
+- `backend/tests/test_mind_api.py`

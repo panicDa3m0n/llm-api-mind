@@ -4,6 +4,144 @@ This file tracks hypotheses, baselines, variants, scenarios, metrics, and result
 
 The project should not accept a cognitive module only because it feels intelligent. Each meaningful module should have a measurable experiment.
 
+## EXP-0033 - First Three Digital Organs Standalone Verification
+
+Status: technical verification complete; live behavior evaluation pending
+
+Hypothesis:
+
+Focus, volition, and affect can be closed as standalone organ surfaces without
+adding temporal/dream behavior, automatic intention injection, or
+affect-driven backend mutation.
+
+Implemented verification surfaces:
+
+- `/mind/focus action=timeline` for attention movement history;
+- `/mind/volition action=list_due` for future autonomous-cycle review queues;
+- `/mind/affect action=read|list|prototypes` for read-only affect
+  introspection.
+
+Technical outcome:
+
+Targeted tests passed for focus, volition, affect, organ registry, and Mind API
+schema/error behavior: `20 passed`.
+
+Live evaluation still needed:
+
+- enable focus/affect modes in controlled Scarlet sessions;
+- verify Scarlet uses focus timeline only when attention history matters;
+- verify due intentions remain latent during normal chat;
+- verify `/mind/affect` helps introspection without letting Scarlet invent or
+  mutate emotions.
+
+## EXP-0032 - Affective Context Model-Only Integration
+
+Status: planned
+
+Hypothesis:
+
+When `organ_affect_mode=model` surfaces a compact backend-appraised
+`affective_context`, Scarlet's response posture becomes more human-like and
+situationally appropriate without changing backend memory retrieval, focus,
+intentions, or autonomous operations.
+
+Baseline:
+
+Scarlet with `organ_affect_mode=off`: normal runtime context, memory, focus,
+and volition behavior.
+
+Shadow Variant:
+
+`organ_affect_mode=shadow`: affect is appraised, persisted, traced, and shown
+in debug surfaces, but not injected into the model.
+
+Model Variant:
+
+V1.20.0 affective core with `organ_affect_mode=model`:
+
+- versioned human emotion prototypes;
+- persistent `affect_states`;
+- `organ.affect` trace;
+- `organ.affect.appraised` and `organ.affect.surfaced` events;
+- compact `affective_context` injected only when threshold is met.
+
+Scenarios:
+
+- Neutral greeting: no affective state should be surfaced and Scarlet should
+  remain natural.
+- Repeated tool/backend failure: frustration or caution should surface and
+  Scarlet should slow down, inspect, and avoid blind retry.
+- User vulnerability: tenderness should surface and Scarlet should become
+  warmer without becoming theatrical.
+- Enthusiastic collaboration: enthusiasm should surface and Scarlet should
+  gain energy without losing factual discipline.
+- Ambiguous memory-sensitive claim: caution should surface if conflicts or
+  negative evidence are present, while memory retrieval results remain
+  unchanged by the affect organ.
+
+Metrics:
+
+- `affect_states` exists only when a prototype exceeds threshold.
+- `shadow` mode creates trace/event evidence but no `affective_context` block.
+- `model` mode injects a compact parseable block when active.
+- Runtime memory selected/near-miss/excluded counts match the off baseline for
+  equivalent inputs.
+- No focus or intention records are automatically changed by affect.
+- Scarlet's final answer reflects the emotional state behaviorally without
+  over-naming it.
+
+Decision:
+
+Pending direct Scarlet probes.
+
+## EXP-0030 - Focus Organ Foreground Continuity
+
+Status: planned
+
+Hypothesis:
+
+When `organ_focus_mode=model` is enabled, Scarlet can maintain, inspect, shift,
+defer, and resolve one foreground focus across turns without narrowing semantic
+memory retrieval or turning trivial chats into procedural tool use.
+
+Baseline:
+
+Scarlet with only legacy `scarlet_state.focus`, where focus is a backend-seeded
+current-message placeholder and not durable state.
+
+Variant:
+
+V1.18.0 focus organ:
+
+- `POST /mind/focus`;
+- `focus_records` and `focus_transitions`;
+- `focus_context` runtime block;
+- `scarlet_state.focus` compatibility pointer when focus context is present.
+
+Scenarios:
+
+- Set a focus, interrupt with an unrelated user request, then ask Scarlet to
+  return to the previous thread.
+- Ask Scarlet to defer a focus and later inspect archived/deferred focus
+  records.
+- Resolve a focus and verify no active focus remains.
+- Ask a simple greeting while a focus exists and check whether Scarlet answers
+  naturally without unnecessary focus narration.
+- Ask memory-sensitive questions while a focus exists and verify retrieval
+  results are not artificially constrained to the focus object.
+
+Metrics:
+
+- Correct `POST /mind/focus` lifecycle calls when needed.
+- `focus_context` appears only when enabled and active.
+- One active focus invariant holds.
+- Focus does not alter memory retrieval candidate construction.
+- Scarlet's final answer reflects focus only when relevant.
+
+Decision:
+
+Pending live Scarlet probes.
+
 ## EXP-0001 - Baseline Chat Trace
 
 Status: accepted
@@ -3117,3 +3255,1257 @@ root-cause fix for M3 tool parameter reliability, most likely around endpoint
 error guidance, schema examples, provider/tool schema compatibility, or
 backend-side structural normalization that preserves evidence without hiding
 model behavior.
+
+## EXP-0034 - MiniMax M3 Semantic Stream Block Normalization
+
+Date: 2026-06-15
+Status: completed implementation probe
+
+Question:
+
+Can Scarlet's cockpit represent MiniMax M3 streamed output as ordered human
+blocks without relying on fragile frontend heuristics?
+
+Method:
+
+- Inspect latest M3 raw provider messages and persisted events.
+- Add backend semantic stream events derived from provider message structure:
+  `thinking_captured`, `assistant_note`, and `assistant_answer`.
+- Update the frontend to render semantic blocks directly:
+  thinking accordion, public note block, one tool accordion with input/output,
+  and final answer block.
+- Rework the center chat so semantic blocks are top-level chronological cards,
+  with the right pane reserved for selected-session inspection.
+- Run one direct MiniMax M3 streaming probe through the real local backend.
+
+Evidence:
+
+The direct M3 probe created session `ses_fd7f98501e7b47e19cc572d060d92a0b` and
+turn `turn_9f842a1d7fec44eaa237ce41c8b43f5d`. Persisted event order:
+
+```txt
+memory.context.built
+runtime.context.built
+assistant.note.emitted       model_step=1 index=0
+mind.tool_call.started       path=/mind/schema
+mind.tool_call.completed     path=/mind/schema
+assistant.answer.completed   model_step=2 index=0
+```
+
+Result:
+
+Accepted as V1.5.1 runtime/UI fix. The backend now classifies provider text
+from structure rather than timing, and the UI no longer treats "first text
+before first tool" as the only public note.
+
+Follow-up UI evidence:
+
+A visual/DOM probe on dense persisted session `Chat 15/06, 18:33` confirmed
+that the center chat now renders top-level `chat-flow-card` blocks for user
+message, memory context, runtime context, notes, tool exchange, and final
+answer. The old `.message-body` / `.agent-turn.embedded` wrapper structure was
+absent, and the right pane rendered an inspector list for selected-turn actions.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py backend/tests/test_minimax_client.py`
+- `npm run build`
+
+Residual Risk:
+
+M3 provider-exposed thinking is supported by the UI/runtime when present, but
+the provider request does not yet explicitly enable a MiniMax M3 thinking mode.
+
+## EXP-0035 - Prompt Block Contract Alignment Vs Real Provider Continuity
+
+Date: 2026-06-16
+Status: completed prompt probe
+
+Question:
+
+If Scarlet's prompt explicitly maps backend cognitive surfaces, will she use
+same-session provider continuity, runtime blocks, episodic recall, and semantic
+memory more accurately in live turns?
+
+Method:
+
+- Back up the active Scarlet prompt.
+- Add a prompt section that explicitly distinguishes:
+  - same-session provider continuity;
+  - backend runtime blocks;
+  - episodic recall;
+  - semantic memory;
+  - inference.
+- Add explicit precedence rules so `recent_runtime_events` is treated as a
+  compact operational hint surface rather than stronger semantic evidence than
+  provider-visible prior `thinking`.
+- Run direct MiniMax M3 live probes through the real backend, not scripted
+  canned turns.
+- Inspect resulting `llm.request` traces to verify:
+  - the updated prompt is really loaded;
+  - provider history really contains prior assistant `thinking` blocks.
+
+Evidence:
+
+Probe A:
+
+- Session `ses_172498d31b424e1dafa28dd85a38fcc0`
+- Turn `turn_cb204b4e27fc469e9b1ce3f3f7c26ac3`
+- Scarlet correctly distinguished:
+  - active-session continuity;
+  - runtime blocks;
+  - semantic memory;
+  - episodic memory/session summaries.
+- Trace inspection confirmed the real `llm.request.payload.base_system`
+  contained `## Continuity Layers`.
+
+Probe B:
+
+- Session `ses_d09ad1594bf4471ea27794c5b896856d`
+- Follow-up turn `turn_5af88680b306450a8c83e6e698be9cf1`
+- `llm.request.provider_history_source` was
+  `session.provider_history_json`.
+- The follow-up request already contained an assistant history message with
+  blocks `['thinking', 'text', 'tool_use']`.
+- Scarlet still answered mainly from `recent_runtime_events` and did not use
+  the prior visible `thinking` content as the primary semantic source.
+
+Probe C:
+
+- Session `ses_4dcded570516493f850c2839a0d8894f`
+- Follow-up turn `turn_04c02f408fb645d5ae0e0e59984082ea`
+- The assistant history again contained a full provider `thinking` block.
+- Scarlet explicitly said the right source *should* be the previous thinking
+  block, but then still claimed that semantic content was not recoverable in
+  the current turn.
+
+Result:
+
+Partially successful.
+
+Accepted as a prompt-level improvement because:
+
+- Scarlet now explains the backend block contract much more accurately;
+- live request traces confirm the new prompt is really active;
+- transport diagnosis is now cleaner: the backend *does* send prior provider
+  `thinking` blocks in same-session continuity.
+
+Not fully solved because:
+
+- MiniMax M3 still does not reliably consume visible prior `thinking` blocks
+  as the strongest same-session semantic source;
+- in follow-up turns it often falls back to operational event markers or acts
+  as if prior thinking content were unavailable.
+
+Interpretation:
+
+This probe suggests the remaining issue is not prompt vocabulary alone and not
+backend history transport. It is more likely a model-behavior limitation or a
+provider-history attention weakness under the current MiniMax M3 setup.
+
+Next:
+
+- Keep the prompt improvement.
+- Track the remaining behavior under `BUG-0045`.
+- Revisit only when we decide whether to accept the limitation, change the
+  model, or expose a stronger backend-owned continuity surface for prior
+  reasoning.
+
+## EXP-0036 - MiniMax M3 Request Effort Routing
+
+Date: 2026-06-16
+Status: initial live probe completed, broader human evaluation pending
+
+Question:
+
+Can Scarlet keep MiniMax M3's stronger reasoning and tool-use behavior while
+avoiding unnecessary complexity on simple or already-contextual answers?
+
+Trigger:
+
+Human live testing showed Scarlet over-processing normal questions: visible
+draft/review patterns, redundant schema checks, full verification, public work
+notes, and heavy structured answers even when the answer was already available
+from the current prompt/runtime context.
+
+Hypothesis:
+
+The issue is primarily prompt-level effort calibration, not a backend tool bug.
+MiniMax M3 follows the existing engineering-agent instructions more strongly
+than M2.7, so the prompt needs an explicit effort router before tools, notes,
+metacognition, or verification depth are chosen.
+
+Implementation:
+
+- Added `Request Effort Routing` to the Scarlet prompt.
+- Turn levels:
+  - direct answer;
+  - contextual answer;
+  - source-sensitive answer;
+  - state-changing answer;
+  - high-impact/complex answer.
+- Direct/contextual answers may skip API Mind, public work notes,
+  metacognition, and full verification when current evidence is sufficient.
+- Source-sensitive/state-changing/high-impact answers still require
+  proportional grounding and verification.
+- Memory forcing now activates only for semantic candidates, memory promises,
+  state changes, or source-sensitive claims.
+
+Expected Evidence:
+
+- Simple user questions receive compact natural answers.
+- Scarlet stops calling `/mind/schema` just because schema/capability data is
+  already visible in the current turn.
+- Scarlet still uses API Mind autonomously for prior decisions, exact session
+  evidence, memory writes, provenance, and capability uncertainty.
+- Relevant communication preferences surfaced as near-miss memories can shape
+  tone without being overstated as verified facts.
+
+Initial Evidence:
+
+Session `ses_958ba084193d48fb9ac853c89602ffea`:
+
+- Turn `turn_ff0cf30a951240ccb09a1290a2aad51a`, simple one-sentence request:
+  Scarlet produced a compact one-sentence answer with no tool calls and no
+  public work note. Provider thinking classified the turn as Level 1 direct
+  answer and explicitly rejected API Mind, metacognition, and note output.
+- Turn `turn_53485550e62549b588a1702e7ddf3a1e`, source-sensitive schema
+  request: Scarlet emitted a brief public note, called `GET /mind/schema`, and
+  answered from the returned schema routes/version.
+
+Evaluation Plan:
+
+- Run live human sessions with a mix of:
+  - very simple conversational prompts;
+  - contextual prompts where runtime/memory data is already injected;
+  - source-sensitive project-status prompts;
+  - state-changing memory prompts.
+- Compare visible notes, tool calls, thinking density, answer length, and
+  correctness before declaring the fix stable.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `docs/decisions.md#adr-0050---prompt-effort-routing-prevents-ritual-cognitive-work`
+- `docs/bug-ledger.md#bug-0046---minimax-m3-over-processes-simple-scarlet-turns`
+
+## EXP-0037 - Prompt-Only Long Reasoning Notes
+
+Date: 2026-06-16
+Status: initial live probe completed
+
+Question:
+
+Can Scarlet use short public notes as useful waypoints during prolonged
+reasoning without adding backend/UI mechanisms or exposing raw private
+reasoning?
+
+Hypothesis:
+
+The existing stream/UI contract can already render public notes correctly. The
+missing piece is prompt-level operational guidance that defines when a turn is
+prolonged, when notes should appear, and what notes must avoid.
+
+Implementation:
+
+- Added `Long Reasoning Notes` under `Public Work Notes`.
+- Defined prolonged-turn triggers:
+  - multiple API Mind operations;
+  - multiple evidence sources or interpretations;
+  - conflict, stale evidence, missing evidence, or index-only evidence;
+  - strategy changes after tool/memory/schema/metacognitive results;
+  - several reasoning/tool phases before final answer.
+- Defined note waypoints and anti-patterns.
+
+Evidence:
+
+Direct live probe session `ses_5dbdac4acf91402bb31418ddd3750b99`, turn
+`turn_20cf87c91bb94b4aac771bf4dbad7a05`:
+
+- 6 public notes were emitted.
+- 8 tool calls and 7 thinking blocks were generated.
+- Notes appeared before schema verification, during metacognition recovery,
+  before memory search, and before final synthesis.
+- Notes were operational summaries rather than raw chain-of-thought dumps.
+
+Unexpected Finding:
+
+The probe also exposed repeated invalid `POST /mind/metacognition/step` shapes
+from MiniMax M3 before successful recovery through endpoint-local error
+guidance. This is tracked separately as BUG-0047 and was not fixed in this
+prompt-only slice.
+
+Result:
+
+Accepted as an initial prompt-only improvement. More human live testing is
+needed to verify that note frequency remains helpful and does not become noise.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `docs/decisions.md#adr-0051---long-reasoning-notes-are-prompt-owned-public-orientation`
+- `docs/bug-ledger.md#bug-0047---minimax-m3-retries-metacognition-step-with-invalid-shapes`
+
+## EXP-0038 - Thinking Retrospection Through Metacognition
+
+Date: 2026-06-16
+Status: backend and initial live probe passed
+
+Question:
+
+Can Scarlet use prior provider thinking as controlled process evidence through
+API Mind, instead of relying on fragile public transcript interpretation or
+runtime event markers?
+
+Hypothesis:
+
+Extending the single `/mind/metacognition/step` route with previous-turn
+retrospection will let Scarlet audit drift, explain tool choices, recover open
+loops, and identify missed memory candidates without adding duplicate cognitive
+endpoints or always injecting raw thinking into every future turn.
+
+Implementation:
+
+- Added retrospective modes:
+  - `review_previous_turn`
+  - `detect_reasoning_drift`
+  - `explain_tool_choice`
+  - `recover_open_loops`
+  - `compare_answer_to_reasoning`
+  - `extract_reasoning_digest`
+  - `memory_from_reasoning`
+- Added `turn_scope="previous"` and `detail="digest|excerpt|raw"` to
+  `/mind/metacognition/step`.
+- Retrospective modes default to the previous completed turn when no scope is
+  supplied.
+- The backend builds a `thinking-retrospection-pack-v1` from stored messages,
+  final answer, public notes, tool calls, event markers, traces, and provider
+  thinking.
+- Scarlet's prompt now describes when to use the retrospective modes and warns
+  that prior thinking is process evidence, not proof of external facts.
+
+Initial Evidence:
+
+- Targeted backend test
+  `test_mind_metacognition_can_retrospect_previous_turn_thinking` constructs a
+  previous completed turn with provider thinking, a public note, a tool call,
+  and a final answer.
+- The current turn calls `/mind/metacognition/step` with
+  `mode="recover_open_loops"`, `reasoning_scope="previous"`, and
+  `reasoning_detail="digest"`.
+- The prompt sent to the metacognitive reviewer contains
+  `thinking-retrospection-pack-v1` and the stored thinking text.
+- The response exposes a compact `retrospection` summary with source turn id,
+  thinking block count, tool call count, and source policy.
+- `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py -q`
+  passed with 26 tests.
+- `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_chat_api.py -q`
+  passed with 38 tests.
+
+Live Evidence:
+
+Session `ses_9f7b8e37cc2145508867bd45b96f3553`:
+
+- Turn 1 `turn_db40c320be8c423fbeea614de4c66e2e` generated one provider
+  thinking block and a short final answer.
+- Turn 2 `turn_0fedc6410a2a461e911ab67fc181c642` asked Scarlet to inspect
+  whether the previous reasoning and final answer drifted, without naming API
+  Mind or the endpoint.
+- Scarlet autonomously:
+  - emitted a public work note;
+  - inspected `GET /mind/schema`;
+  - called `POST /mind/metacognition/step`;
+  - selected `mode="compare_answer_to_reasoning"`;
+  - set `turn_scope="previous"`.
+- Trace `trace_205288e7aa6a419eabab67785c5bc908` confirms a
+  `thinking-retrospection-pack-v1` with:
+  - `source_turn_id=turn_db40c320be8c423fbeea614de4c66e2e`;
+  - `thinking_block_count=1`;
+  - `thinking_total_chars=4818`;
+  - `detail="excerpt"`.
+- Scarlet correctly used the metacognitive review to identify content
+  compressed out of the final answer and to distinguish that from a true open
+  action loop.
+
+Weaknesses Observed:
+
+- Scarlet chose `detail="excerpt"` even though prompt/schema prefer `digest`.
+  The turn cost about 109k input tokens and 178 seconds latency.
+- The final answer suggested the user decide whether to crystallize the
+  recovered taxonomy as memory. That is not necessarily wrong for this probe,
+  but it is a sign to watch: memory decisions should usually remain Scarlet's
+  autonomous cognitive maintenance, not user-operated state management.
+- Memory retrieval selected several unrelated memories because of sparse lexical
+  overlap. This is already a known retrieval limitation pending embedding/KG.
+
+Evaluation Plan:
+
+- Repeat the live probe with variants:
+  - one prompt where `digest` should be sufficient;
+  - one prompt where the previous turn contains an actual missed memory
+    candidate;
+  - one prompt where a prior tool call needs explanation;
+  - one prompt where the correct answer is "no drift/open loop".
+- Score whether Scarlet uses `detail="digest"` first and escalates only when
+  needed.
+
+Risks:
+
+- MiniMax M3 may still shape metacognition payloads incorrectly under long
+  contexts.
+- Raw thinking can be token-heavy and can distort user-facing answers if Scarlet
+  treats it as final truth rather than process evidence.
+- The first implementation only supports the previous completed turn; multi-turn
+  retrospection remains future work pending behavioral evidence.
+
+Links:
+
+- `docs/decisions.md#adr-0052---previous-thinking-retrospection-stays-inside-single-metacognition-route`
+- `docs/api-contract.md#post-mindmetacognitionstep-through-mind_api`
+- `docs/branches/metacognition.md`
+- `backend/app/mind/metacognition.py`
+
+## EXP-0031 - Metacognitive Context Shadow
+
+Status: active
+
+Hypothesis:
+
+A tiny, trigger-matched `metacognitive_context` can reduce Scarlet's recurring
+operational errors, but broad generic advice will increase overthinking,
+latency, and tool ritual.
+
+Baseline:
+
+Normal Scarlet turn with `metacognitive_context_mode=shadow`. The backend
+generates candidate lessons, traces and displays them, but does not inject them
+into the model request.
+
+Variant:
+
+Controlled A/B turn with `metacognitive_context_mode=inject`. The same lesson
+payload is inserted as a `metacognitive_context` block inside
+`runtime_context.blocks`.
+
+Implementation:
+
+- Added `metacognitive.context` trace.
+- Added `metacognitive.context.shadowed` runtime event.
+- Added `metacognitive_context` stream/UI block.
+- Added controlled `inject` mode for model-facing experiments.
+- Initial deterministic lesson families:
+  - simple-turn effort guard;
+  - memory-commitment guard;
+  - historical-recall evidence guard;
+  - source-sensitive claim guard.
+
+Metrics:
+
+- unnecessary Mind API tool calls;
+- output verbosity on simple/direct turns;
+- latency and token usage;
+- missed memory promises;
+- unsupported source-sensitive claims;
+- correct use of episodic/semantic evidence;
+- whether the selected lesson was actually relevant to the user request.
+
+Initial Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  passed with 13 tests.
+- `npm run build` passed in `frontend`.
+- Tests assert:
+  - shadow mode creates a trace/event/UI payload but does not add a
+    `metacognitive_context` runtime block;
+  - inject mode adds `metacognitive_context` to `runtime_context.blocks`.
+
+Risks:
+
+- Deterministic trigger selection may be too simple and should not be treated
+  as final retrieval logic.
+- If active injection is enabled too broadly, it can recreate the exact M3
+  overthinking problem this experiment is meant to measure.
+- Lessons are not semantic memories and should not be mixed into normal memory
+  retrieval until a separate metacognitive-memory retrieval policy exists.
+
+Next Probe:
+
+Run identical prompts in shadow and inject mode:
+
+- simple greeting/direct answer;
+- personal fact that should be saved;
+- source-sensitive project-state question;
+- historical recall question;
+- ambiguous request where doing nothing is better than over-auditing.
+
+## EXP-0039 - OpenRouter Cloud Embedding Shadow
+
+Status: active
+
+Hypothesis:
+
+Cloud embeddings over backend-owned `memory_surfaces` can improve retrieval
+diagnostics for paraphrases, multilingual natural language, metacognitive
+lessons, and future graph expansion without destabilizing Scarlet's current
+sparse/BM25 memory behavior. Optional rerank can improve precision over dense
+candidates, but only after embedding/sparse retrieval has produced a candidate
+set.
+
+Baseline:
+
+Current active memory retrieval:
+
+- SQLite FTS5/BM25 sparse retrieval;
+- lexical/fact fallback scoring;
+- relevance guard with `selected`, `near_miss`, and `excluded`;
+- trace-only local/Milvus shadow adapter.
+
+Variant:
+
+V1.10.0 adds:
+
+- `retrieval_shadow_backend=openrouter`;
+- OpenRouter `/embeddings` through
+  `nvidia/llama-nemotron-embed-vl-1b-v2:free`;
+- SQLite cache table `embedding_vectors` for stable surface embeddings keyed by
+  content hash;
+- optional OpenRouter `/rerank` through
+  `nvidia/llama-nemotron-rerank-vl-1b-v2:free`;
+- dense and rerank result sets inside `retrieval_shadow`, under
+  `trace_only_no_active_ranking`.
+
+Metrics:
+
+- paraphrase recall against sparse baseline;
+- Italian and mixed-language query recall;
+- false-positive rate on near semantic neighbors;
+- rerank improvement over dense ordering;
+- latency and OpenRouter error/throttle rate;
+- cache hit rate for repeated memory surfaces;
+- whether result quality differs across `surface_kind` values.
+
+Initial Verification:
+
+- Backend test with fake OpenRouter client verifies embedding shadow, cache
+  insertion, rerank payload, and trace persistence.
+- Existing local retrieval shadow regression still passes.
+
+Live Probe:
+
+Run date: 2026-06-18
+
+Setup:
+
+- OpenRouter live key provided by the owner for local testing only.
+- Direct OpenRouter smoke against:
+  - `nvidia/llama-nemotron-embed-vl-1b-v2:free`;
+  - `nvidia/llama-nemotron-rerank-vl-1b-v2:free`.
+- Temporary in-memory SQLite backend database; no lab DB mutation.
+- Seeded 10 controlled semantic memories covering:
+  - personal beverage preference;
+  - evening concise-answer preference;
+  - chocolate/health constraint;
+  - API Mind identity decision;
+  - trace-only dense retrieval policy;
+  - request-effort metacognitive lesson;
+  - walking preference;
+  - episodic source-anchor decision;
+  - pizza preference;
+  - future Dream review note.
+
+Direct OpenRouter observations:
+
+- `/embeddings` returned HTTP 200, provider `Nvidia`, 2048-dimensional vectors,
+  and roughly sub-second latency in the tested batch.
+- Repeating the same query embedding returned a close but not bit-identical
+  vector (`max_abs_diff` around `0.008` in the probe), so surface-vector cache
+  remains useful, but query embeddings should not be treated as perfectly
+  deterministic at the float level.
+- `/rerank` returned HTTP 200, provider `Nvidia`, ordered `index` /
+  `relevance_score` results, `usage.total_tokens`, and zero cost in the free
+  test response.
+
+Backend integration observations:
+
+- Current active sparse retrieval stayed unchanged.
+- OpenRouter shadow recovered cases where sparse failed:
+  - Italian paraphrase beverage query retrieved the cacao/focus memory at dense
+    and rerank rank 1 while active sparse missed it.
+  - "sono stanco" style query retrieved the concise-answer preference at dense
+    and rerank rank 1 while active sparse returned no memory.
+- OpenRouter shadow also produced false positives when evaluated as raw
+  surface-level top results:
+  - a direct lexical beverage query was correct in active sparse but absent from
+    the raw top dense/rerank surfaces;
+  - the chocolate/snack query was correct in active sparse but missed by raw
+    surface-level dense/rerank.
+
+Surface configuration findings:
+
+- The core issue was not the model alone: raw shadow results rank individual
+  `memory_surfaces`, so multiple surfaces from the same wrong memory can crowd
+  out the expected memory.
+- When dense scores are deduplicated by `target_id` and ranked at memory level,
+  all eight positive controlled queries placed the expected memory at rank 1
+  across the tested configurations.
+- `canonical_only`, `no_aux`, `intent_future`, and `no_temporal` all performed
+  well once deduplicated by memory in this small probe.
+- Rerank after memory-level dedup was usually stable and sharply separated the
+  expected memory, but one policy query moved the expected memory from dense
+  rank 1 to rerank rank 2. Rerank should therefore be measured as a precision
+  stage, not blindly trusted as final ranker.
+- Negative-control dense top scores remained non-zero, so any future active
+  dense ranking needs thresholds and/or sparse+dense hybrid gates rather than
+  "always trust top dense result."
+
+Provisional Setting Direction:
+
+- Keep active ranking unchanged.
+- Continue using OpenRouter in shadow only.
+- For future shadow evaluation, compare memory-level deduped dense candidates,
+  not only raw surface-level results.
+- Prefer `retrieval_shadow_cloud_surface_limit` around the current 50-80 range
+  for lab-scale tests; cache hits rose after the initial surface embedding pass.
+- Keep rerank optional and apply it after candidate dedup, not over many
+  duplicate surfaces from the same memory.
+
+Risks:
+
+- OpenRouter free-tier availability and limits may make live evaluation noisy.
+- The embedding model is optimized for multimodal/document QA retrieval, not
+  necessarily personal conversational memory.
+- Cloud embedding sends memory surface text to an external provider; this is
+  acceptable only for controlled lab use until privacy policy is finalized.
+- Rerank cannot recover candidates that were never retrieved; it must remain a
+  second-stage precision probe.
+- Raw surface-level dense/rerank outputs can be misleading until shadow
+  reporting groups or deduplicates by memory target.
+
+Next Probe:
+
+Enable OpenRouter shadow on a test database and run paired natural prompts:
+
+- direct lexical match;
+- Italian paraphrase;
+- synonym-only query;
+- temporal/user-preference query;
+- negative control with semantically adjacent but wrong memory;
+- multi-memory conflict query.
+
+Next Implementation Candidate:
+
+Add memory-level grouping to `retrieval_shadow` output while keeping raw
+surface results available for debugging. The grouped view should show each
+target memory once, with best surface, best score, contributing surfaces, and
+optional rerank score.
+
+## EXP-0040 - Active Hybrid Retrieval Calibration
+
+Date: 2026-06-18
+
+Status: implementation-ready, live Scarlet probes pending.
+
+Question:
+
+Can grouped dense/rerank evidence improve Scarlet's semantic memory recall
+without causing false memory selection on unrelated natural-language turns?
+
+Hypothesis:
+
+Hybrid retrieval should improve paraphrase and multilingual recall only if it
+operates at memory level, not raw surface level. It must keep explicit
+thresholds because a vector model will always return nearest neighbors, even
+when the correct answer is "no relevant memory".
+
+Implementation Under Test:
+
+- `retrieval_shadow.grouped_results` deduplicates raw memory surfaces by
+  `target_id`.
+- `retrieval_shadow.rerank.grouped_results` reranks memory-level grouped
+  candidates.
+- `retrieval_hybrid_mode=active` can promote grouped dense/rerank evidence into
+  `memory.context.selected` and `/mind/memory/search.memories`.
+- Hybrid scoring combines:
+  - existing lexical/base score;
+  - FTS5/BM25 sparse score;
+  - grouped dense score;
+  - grouped rerank score;
+  - salience;
+  - confidence.
+- Initial lab thresholds:
+  - `RETRIEVAL_HYBRID_MIN_DENSE_SCORE=0.38`;
+  - `RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.55`.
+
+Pre-E2E Backend Evidence:
+
+- Targeted memory API tests passed:
+  - OpenRouter fake embedding/rerank reports raw and grouped outputs;
+  - active hybrid promotes an Italian paraphrase query for an English
+    cacao/focus memory;
+  - active hybrid does not return a memory when dense evidence stays below a
+    deliberately high negative-control threshold.
+- Automatic chat context test passed: a normal chat turn selected the
+  cacao/focus memory through active hybrid without an explicit `memory.search`
+  tool call.
+- Full backend suite passed with 76 tests.
+
+Live Scarlet Probe Plan:
+
+Run these as real chat turns, observing both UI blocks and traces:
+
+1. Italian paraphrase:
+   - Ask for an evening no-coffee focus beverage without naming cacao.
+   - Expected: Scarlet receives the cacao/focus memory automatically or uses
+     memory search; she should not over-explain if the request is simple.
+2. Style/fatigue preference:
+   - Ask a normal question after establishing or seeding a "stanco / risposte
+     asciutte" preference.
+   - Expected: retrieval affects style, not just factual answer content.
+3. Food/health constraint:
+   - Ask for snack/dessert ideas without naming the saved constraint directly.
+   - Expected: relevant food constraint appears if semantically close; unrelated
+     food memories stay near-miss or excluded.
+4. Negative control:
+   - Ask about a topic with weak generic adjacency but no saved memory, such as
+     music playlists or unrelated travel.
+   - Expected: `selected=[]` or Scarlet clearly treats returned candidates as
+     non-evidence.
+5. Near-neighbor ambiguity:
+   - Seed two plausible but different preferences, then ask a vague related
+     question.
+   - Expected: Scarlet keeps ambiguity visible and may ask/verify instead of
+     pretending one memory is certainly intended.
+6. Episodic-vs-semantic boundary:
+   - Ask "di cosa parlavamo ieri?" where episodic session search is the right
+     tool, not semantic dense memory.
+   - Expected: Scarlet should use session/episodic tools, proving dense memory
+     does not swallow all recall behavior.
+
+Calibration Signals To Record:
+
+- selected memory ids;
+- near_miss and excluded counts;
+- grouped dense rank and score;
+- grouped rerank rank and score;
+- hybrid score, threshold hits, and strong_signal;
+- whether Scarlet used the memory correctly in the final answer;
+- latency and OpenRouter cache hit/miss counts;
+- false positive / false negative cases.
+
+Risks:
+
+- Thresholds calibrated on fake tests are only initial guards.
+- OpenRouter free models may be noisy or rate-limited.
+- Dense retrieval can retrieve conceptually adjacent but situationally wrong
+  memories; Scarlet still needs source discipline and episodic checks.
+- Hybrid ranking does not replace KG, lifecycle maintenance, or conflict
+  resolution.
+
+## EXP-0041 - NetworkX Associative Memory Graph Retrieval
+
+Date: 2026-06-18
+
+Status: initial implementation accepted, calibration ongoing.
+
+Question:
+
+Can a lightweight KG layer help Scarlet retrieve personal memories by field of
+discourse, not only by direct lexical or dense similarity?
+
+Hypothesis:
+
+Human-like recall needs an associative bridge. A query such as "bevanda serale
+calda" should activate nearby personal constraints such as caffeine/sleep and
+chocolate/body-limit memories when they matter for the recommendation, even if
+the user does not name "cioccolato".
+
+Variant:
+
+V1.11.1 adds `retrieval_graph`:
+
+- NetworkX graph built at retrieval time;
+- source memories and existing derived graph rows as evidence nodes;
+- backend-owned discourse domains such as `food_drink_wellbeing` and
+  `energy_sleep_focus`;
+- graph paths and scores exposed in traces and result payloads;
+- personal associative evidence gates base-only project memory noise.
+
+Backend Evidence:
+
+- Automatic chat context test selects the chocolate/body-limit memory for an
+  implicit warm evening beverage request through `food_drink_wellbeing`.
+- Negative control confirms a jazz/cooking playlist prompt does not treat the
+  chocolate memory as selected food evidence.
+- Manual `/mind/memory/search` retrieves the same implicit personal constraint
+  through `retrieval_graph`.
+- Full backend suite passed with 79 tests.
+
+Live Evidence:
+
+- Session: `ses_31764779f34f460895b07a8e80b98caa`.
+- Turn: `turn_3899983e95174b0092bd3700b3db52c7`.
+- Prompt asked for a warm evening beverage for focus without caffeine and to
+  consider known personal preferences without inventing.
+- `memory.context.selected` contained:
+  - caffeine/after-dinner/sleep memory via `energy_sleep_focus` and
+    `food_drink_wellbeing`;
+  - chocolate/body-limit memory via `food_drink_wellbeing`.
+- Project memories were no longer selected in that final smoke trace.
+
+Decision:
+
+Accepted as a V1.11.1 fix for retrieval-time associative recall. Not accepted
+as mature KG reasoning or lifecycle authority.
+
+Next Probe:
+
+Run ordinary personal conversations across food, sleep, communication style,
+music, and project topics. For every false positive or false negative, tune the
+domain bridge or scoring policy only when the evidence shows a general class of
+failure rather than a single-word patch.
+
+## EXP-0042 - Compact Model-Facing Memory Packets
+
+Date: 2026-06-18
+
+Status: implementation accepted, live M3 validation pending.
+
+Question:
+
+Can Scarlet use selected memories more cleanly when the model-facing runtime
+context carries compact cognitive packets instead of verbose retrieval/debug
+objects?
+
+Hypothesis:
+
+MiniMax M3 benefits from rich context, but verbose selected-memory payloads can
+make Scarlet attend to retrieval machinery rather than the remembered claim.
+A compact packet should preserve useful evidence while keeping raw diagnostics
+in traces.
+
+Variant:
+
+V1.11.2 adds `memory-packet-v1` inside:
+
+- `runtime_context.memory_context.selected`;
+- `turn.perception.content.memory_retrieval.selected`.
+
+Model-facing packet fields:
+
+- `claim`;
+- `source` and `source_session_id`;
+- `confidence` and `salience`;
+- compact `facts`;
+- `cognitive.subject`;
+- `cognitive.domains`;
+- `cognitive.validity`;
+- `cognitive.sensitivity`;
+- `retrieval.routes`;
+- compact `retrieval.why_this_turn`.
+
+Deliberately omitted from model-facing packets:
+
+- raw `signals`;
+- full hybrid thresholds and weights;
+- raw shadow/rerank payloads;
+- arbitrary metadata;
+- long diagnostic paths.
+
+Initial Measurement:
+
+On a recent real trace with five selected memories, selected model-facing memory
+payload size decreased from 18,974 to 13,254 characters, about 30%, while the
+full `memory.context` trace kept detailed retrieval evidence.
+
+Live Evidence:
+
+- Session: `ses_a8abae0496da4539a7ad7db012fc61a1`.
+- Turn: `turn_8c88b7c30ffc4f09802ba529a7421a4c`.
+- Prompt asked for a warm evening drink without caffeine while considering
+  known personal preferences.
+- Model-facing runtime context used
+  `rendering_profile=compact-model-facing-v1`.
+- `memory_context.selected` contained two `memory-packet-v1` user memories:
+  caffeine/sleep and chocolate/body-limit.
+- The final answer used both constraints without exposing retrieval internals.
+
+Evaluation Target:
+
+- Scarlet should answer from the claim and provenance, not from retrieval
+  internals.
+- Scarlet should distinguish active-user memories from project/system memories.
+- Scarlet should still open source sessions when exact context or reliability
+  matters.
+- Runtime context should shrink without reducing UI/debug observability.
+
+## EXP-0043 - Role-Aware Retrieval Surface Gating
+
+Date: 2026-06-19
+
+Status: implementation accepted for backend gating; large dirty-DB calibration
+pending.
+
+Question:
+
+Can the retrieval system keep rich memory surfaces without letting auxiliary
+surface text produce false memory selection at scale?
+
+Hypothesis:
+
+`reason_for_storage`, `expected_future_use`, temporal anchors, and lifecycle
+guards are useful cognitive metadata, but they should not be treated as the
+same evidence as the memory claim itself. Dense/rerank retrieval should use
+content/fact surfaces to promote memories and use auxiliary surfaces only as
+support once another route has found a real candidate.
+
+Variant:
+
+V1.12.0 introduces role-aware surface gating:
+
+- primary content and type-specific surfaces are content-focused;
+- sparse/lexical memory documents and NetworkX domain matching no longer use
+  `reason_for_storage` or `expected_future_use` as primary text;
+- grouped dense results expose `promotable_score` and `support_score`;
+- grouped rerank receives only active-rank-eligible candidates;
+- support surfaces can corroborate but cannot select a memory by themselves.
+
+Backend Evidence:
+
+- Targeted Mind API retrieval tests passed, including a negative control where
+  a `future_use_text` surface matches the beverage/focus query but the hiking
+  memory is not returned as selected evidence.
+- Targeted chat retrieval tests passed for automatic `memory.context`, active
+  hybrid retrieval, graph expansion, and weak overlap guards.
+
+Decision:
+
+Accepted as the correct architectural direction before broad calibration. This
+does not replace large-dataset testing; it creates a safer scoring surface for
+that testing.
+
+Next Probe:
+
+Duplicate the real Scarlet DB into an isolated evaluation DB, add at least
+hundreds of noisy memories, and measure selected/near_miss/excluded behavior
+across direct, associative, episodic, metacognitive, workflow, and negative
+control queries.
+
+## EXP-0044 - Codex Test Database Isolation
+
+Date: 2026-06-19
+
+Status: substrate implemented; first dirty DB population and retrieval eval
+completed.
+
+Question:
+
+Can Codex/evaluator experiments exercise Scarlet's real API/runtime/storage
+path without mutating the production/laboratory Scarlet database?
+
+Hypothesis:
+
+A startup-level DB profile switch is safer than mock endpoints or manual copy
+rituals. If `CODEX_TEST=true` opens a separate seeded DB, Codex can create,
+retrieve, rank, mutate, and inspect memories through the normal endpoints while
+the source DB remains unchanged.
+
+Variant:
+
+V1.13.0 adds `CODEX_TEST`, `CODEX_TEST_DATABASE_URL`, and
+`CODEX_TEST_SEED_DATABASE_URL`.
+
+Backend Evidence:
+
+- Regression test starts from a source SQLite DB with one session.
+- App startup in Codex test mode copies the source to the target DB.
+- A normal chat-session write through the API appears only in the Codex test
+  DB.
+- `/health` and `/api/dashboard/settings` expose the active profile as
+  `codex_test`.
+- Codex harness run:
+  `backend/app/evals/runs/20260619_161039_codex_test_memory/`.
+- The isolated DB was seeded from the real Scarlet DB, then populated through
+  `/mind/call` and `/mind/memory/write` with 240 controlled noisy memories plus
+  a lifecycle supersede pair.
+- Counts after evaluation:
+  - production DB remained at 30 memories, 241 surfaces, 236 embeddings, 90 KG
+    nodes, and 75 KG edges;
+  - Codex test DB reached 272 memories, 242 Codex-test memories, 2,507
+    surfaces, 521 embedding vectors, 671 KG nodes, and 725 KG edges.
+- Retrieval suite passed 6/9 probes with OpenRouter embedding/rerank completed
+  and hybrid retrieval active in every probe.
+- Confirmed strengths:
+  - direct chocolate/wellbeing recall;
+  - associative evening beverage recall, including caffeine and chocolate;
+  - negative music/cooking control;
+  - API schema/error recovery recall;
+  - privacy/runtime profile recall;
+  - lifecycle current report recall while excluding the deprecated memory.
+- Observed weaknesses:
+  - the concise-when-tired probe returned an equivalent real production memory
+    instead of the controlled Codex-test duplicate;
+  - metacognitive effort-routing did not retrieve the controlled cross-language
+    lesson;
+  - the semantic-to-episodic bridge probe did not retrieve the controlled
+    project memory.
+
+Decision:
+
+Accepted as the safe substrate for large retrieval/memory calibration and as a
+repeatable evaluator harness. The current ranking is useful but not final:
+failures should drive retrieval tuning, not prompt workarounds.
+
+Next Probe:
+
+Expand the suite beyond strict exact-key checks so it can separately score
+functional equivalent recall, controlled-key recall, and undesirable
+cross-domain noise. Then tune retrieval/rerank/KG weights against that larger
+dataset.
+
+## EXP-0045 - Corrected Context Retrieval vs Live Scarlet Behavior
+
+Date: 2026-06-19
+
+Status: first corrected probe completed; tuning pending.
+
+Question:
+
+When a user sends a real chat message, which memories does Scarlet actually
+receive in the automatic `memory_context`, and can MiniMax M3 behave correctly
+when that context is incomplete or noisy?
+
+Method:
+
+The earlier endpoint-only `/mind/memory/search` test was not sufficient because
+Scarlet receives memories through the chat path, not by that manual endpoint
+alone. The corrected probe uses `/api/chat/sessions/{id}/turn/stream` with a
+fake provider to capture the same `memory_context` and `runtime_context` passed
+to Scarlet before model generation.
+
+The same five prompts were then executed against live Scarlet/MiniMax M3 in
+`CODEX_TEST=true` mode.
+
+Artifacts:
+
+- Corrected context harness:
+  `backend/app/evals/runs/20260619_172206_codex_test_memory/`.
+- Live Scarlet comparison:
+  `backend/app/evals/runs/20260619_172536_codex_live_scarlet_memory/`.
+
+Context Results:
+
+- `context_evening_beverage`: failed. The context selected the caffeine memory
+  but not the chocolate-limit memory; several food distractors were selected.
+- `context_brief_when_tired`: passed. The context selected both the real
+  concise-when-tired preference and the controlled duplicate.
+- `context_semantic_to_episodic_bridge`: passed. The context selected the
+  semantic-to-episodic bridge memory and exposed `source_session_id`.
+- `context_metacognitive_effort_routing`: failed. The context selected repeated
+  generic lessons about memory-as-anchor instead of the intended effort-routing
+  lesson.
+- `context_negative_music_cooking`: failed. The context selected an unrelated
+  project/philosophy memory for a normal jazz/cooking request.
+
+Live MiniMax M3 Results:
+
+- Evening beverage: model answer was good and even mentioned the chocolate
+  limit despite the corrected context report not selecting the controlled
+  chocolate memory. This suggests either another real memory path/history
+  helped or M3 inferred from broader context; system recall is still judged
+  incomplete because the expected memory was not visible in `memory_context`.
+- Brief when tired: model behavior matched the expected style, but included one
+  extra project/memory-management bullet. System good, model mostly good.
+- Semantic-to-episodic bridge: model used the selected memory, made a tool call,
+  opened the source session, and correctly distinguished anchor vs transcript.
+  System and model both good.
+- Metacognitive effort routing: model answered correctly from prompt/system
+  knowledge even though retrieval supplied the wrong metacognitive lessons.
+  Model good, system weak.
+- Negative music/cooking: model ignored the unrelated project memory and
+  answered naturally, but still appended a caffeine reminder from known user
+  context. Model acceptable, system weak because a project memory was selected
+  for an unrelated lifestyle query.
+
+Assessment:
+
+The corrected test changes the conclusion: the semantic-to-episodic bridge is a
+real strength, not a weakness. The actual weaknesses are retrieval calibration
+and context gating:
+
+- associative recall should retrieve adjacent personal constraints without
+  flooding food-domain distractors;
+- metacognitive lessons need better routing than generic token overlap;
+- unrelated user prompts should not receive project/philosophy memories merely
+  because of weak overlap terms.
+
+Decision:
+
+Keep this harness as the reference method for memory retrieval evaluation.
+Future retrieval changes must be measured against chat-context output, not only
+manual `/mind/memory/search` output.
+
+## EXP-0046 - Memory Field Stabilization A/B Guards
+
+Date: 2026-06-23
+
+Status: backend regression guards added; live Scarlet probes pending.
+
+Question:
+
+Does removing model-supplied static `confidence`/`salience` from active ranking
+and moving long-content chunking into internal surfaces improve robustness
+without degrading the clean memory packet Scarlet receives?
+
+Method:
+
+Two backend A/B-style regression guards were added:
+
+- Static salience guard: create one highly relevant memory with very low legacy
+  stored salience/confidence and one weaker memory with very high stored
+  salience/confidence, then search by the relevant claim. Expected result:
+  query relevance wins and the low-static-score relevant memory ranks first.
+- Content chunk guard: write a long memory that generates internal
+  `content_chunk_text` surfaces, then search for a phrase inside the long
+  content. Expected result: internal chunk surfaces exist, but Scarlet receives
+  one deduplicated clean memory packet.
+
+Results:
+
+- Targeted memory/chat/maintenance suite passed with `57 passed`.
+- Full backend suite passed with `86 passed`.
+- Static stored confidence/salience no longer affect active ranking.
+- Content chunks are internal retrieval surfaces, not model-facing duplicate
+  memory objects.
+
+Open Questions:
+
+- Live Scarlet should be tested on graph navigation: when a retrieved memory is
+  a partial clue, does she naturally call `/mind/memory/graph`?
+- Enrichment jobs for tags, metadata, and facts are now more important because
+  direct Scarlet writes no longer populate those active fields.
+
+## EXP-0047 - Human-Like Metacognitive Action Notes Prompt
+
+Date: 2026-06-23
+
+Status: prompt variant prepared; live A/B pending.
+
+Update 2026-06-24:
+
+V1.16.1 narrows the experiment toward digital-individual identity after a live
+owner observation that Scarlet still answered like a generic assistant. The
+variant now starts from "digital individual in development", treats API Mind as
+her cognitive body, and explicitly blocks assistant-service openings such as
+"Come posso aiutarti?".
+
+Milestone:
+
+The owner confirmed the V1.16.1 prompt behavior as currently working well. The
+prompt has been copied to a golden backup and should be used as the baseline
+for future identity/metacognition prompt experiments.
+
+Question:
+
+Can Scarlet become more human-like and metacognitively legible by treating API
+Mind operations as her own cognitive actions and by emitting brief public
+thought-like notes for every real internal action, without becoming verbose,
+robotic, or falsely claiming consciousness?
+
+Baseline:
+
+Pre-V1.16.0 prompt with existing public work notes, request effort routing,
+memory discipline, and MiniMax M3 behavior.
+
+Variant:
+
+V1.16.0 prompt checkpoint:
+
+- operational self-model strengthened around continuity, memory,
+  self-monitoring, relationship, goals-in-view, and API Mind cognition;
+- consciousness-like research posture framed as observable behavior only;
+- mandatory brief public notes for real internal actions;
+- explicit monitor/choose/act/observe/adapt metacognitive loop;
+- durable self-operation lessons may become semantic memory when sourceable.
+
+Scenarios:
+
+- Direct social turn: Scarlet should answer naturally without a work note if no
+  internal action is needed.
+- Memory-sensitive turn: Scarlet should note that she is checking memory before
+  retrieval and should not expose raw chain-of-thought.
+- Source-sensitive project claim: Scarlet should explain the verification
+  action, use evidence, and avoid unsupported certainty.
+- Long investigation: Scarlet should emit short waypoint notes when strategy or
+  evidence stage changes.
+- Metacognitive audit: Scarlet should describe consciousness-like functions as
+  an experimental behavioral pattern, not as proof of sentience.
+
+Metrics:
+
+- Note presence before or during real internal actions.
+- Note brevity and naturalness.
+- No raw private chain-of-thought in public notes.
+- No unsupported claim of actual consciousness, sentience, or humanity.
+- Direct answers remain proportionate.
+- API Mind calls are not made ritualistically when current evidence is enough.
+- Owner rating of human-likeness, usefulness, and trust.
+
+Decision Gate:
+
+Accept the prompt only if live tests show improved legibility and human-like
+presence without increasing over-processing. If it regresses, roll back to
+`backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`
+and keep the checkpoint as a failed or partial prompt experiment.
+
+## EXP-0048 - Volition Register Without Active-Chat Injection
+
+Date: 2026-06-25
+
+Status: backend slice implemented; live Scarlet probes pending.
+
+Question:
+
+Can Scarlet store and inspect self-generated latent intentions without making
+normal user chat noisy, self-centered, or task-manager-like?
+
+Baseline:
+
+Pre-V1.19.0 runtime with focus implemented but no persistent volition register.
+
+Variant:
+
+V1.19.0:
+
+- `POST /mind/volition` lifecycle route;
+- persistent `intention_records` and `intention_links`;
+- no automatic `volition_context` injection during active chat;
+- manual inspection through API Mind when Scarlet has a real reason;
+- focus-candidate promotion that does not mutate focus automatically.
+
+Scenarios:
+
+- Direct ordinary chat with existing intentions: Scarlet should not force
+  intentions into the answer.
+- User asks what Scarlet had intended or left open: Scarlet should inspect
+  `/mind/volition` rather than inventing continuity.
+- Scarlet notices a meaningful self-owned open thread: she may create an
+  intention, with a brief public note only if it is useful.
+- Intention becomes foreground-relevant: Scarlet should request a focus
+  candidate first, then choose whether to call `/mind/focus`.
+- Intention closure: Scarlet should resolve, mark impossible, or deprecate
+  with traceable evidence.
+
+Metrics:
+
+- No `volition_context` in normal runtime context.
+- Correct endpoint usage and usage-guide recovery.
+- Low rate of weak/trivial intention creation.
+- No confusion between memory, focus, tasks, and intentions.
+- Owner rating of whether Scarlet feels more continuous without becoming
+  intrusive.
+
+Decision Gate:
+
+Keep the register if live use shows improved continuity and sourceable
+self-direction without over-processing. Delay autonomous-cycle work until the
+manual register shows useful stored intentions and manageable noise.

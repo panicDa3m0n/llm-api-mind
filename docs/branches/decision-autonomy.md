@@ -1,8 +1,8 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-05-25  
-System version assessed: V1.0.1  
-Status: early branch
+Last updated: 2026-06-26
+System version assessed: V1.21.0
+Status: first volition register standalone surface closed
 
 ## Filosofia del ramo
 
@@ -21,16 +21,21 @@ deragliare.
 - Il sistema permette molte chiamate tool per turno.
 - L'autonomia di memory write e migliorata ma non garantita.
 - Il nuovo protocollo di sviluppo vieta fix opportunistici non discussi.
+- V1.19.0/V1.21.0 introduce il registro volitivo: Scarlet puo creare,
+  ispezionare, rivedere e chiudere intenzioni latenti senza iniettarle
+  automaticamente nella chat attiva.
 
 ## Stato attuale
 
-Valutazione: L2.
+Valutazione: L2/L3.
 
-Scarlet ha autonomia guidata da prompt e tool disponibili. Non esistono ancora
-policy backend/validatori che rendano certe decisioni obbligatorie o sicure.
-L'autonomia e quindi utile, ma fragile in casi limite.
+Scarlet ha autonomia guidata da prompt e tool disponibili. Il registro
+volitivo aggiunge una prima forma di direzione interna tracciabile:
+`POST /mind/volition` gestisce intenzioni latenti e V1.21.0 aggiunge
+`list_due` per future code di cicli autonomi. Non esiste ancora esecuzione
+autonoma dei cicli.
 
-Sistema valutato: V1.0.1.
+Sistema valutato: V1.21.0.
 
 ## Sviluppi precedenti
 
@@ -38,6 +43,8 @@ Sistema valutato: V1.0.1.
 - API Mind come cognizione interna.
 - Prompt per salvataggio memoria autonomo.
 - Endpoint-local error guides.
+- V1.19.0 `intention_records`, `intention_links`, `/mind/volition`.
+- V1.21.0 `volition.list_due` per review queue senza chat injection.
 
 ## Evolutive
 
@@ -46,3 +53,5 @@ Sistema valutato: V1.0.1.
 - Autonomy budget non come limite numerico, ma come criterio di costo/beneficio.
 - Receipt per decisioni autonome importanti.
 - Modalita "chiedi prima" per azioni esterne o irreversibili.
+- Cicli autonomi che consumano intenzioni dovute senza disturbare la chat
+  utente.

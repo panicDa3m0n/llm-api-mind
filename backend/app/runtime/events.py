@@ -11,10 +11,13 @@ from app.storage.models import CognitiveEvent
 STREAM_EVENT_TYPE_MAP = {
     "model_request": "llm.request.started",
     "thinking_start": "llm.thinking.started",
+    "thinking_captured": "llm.thinking.captured",
     "tool_use_start": "mind.tool_use.started",
     "tool_call": "mind.tool_call.requested",
     "tool_result": "mind.tool_call.result_returned",
     "text_start": "llm.text.started",
+    "assistant_note": "assistant.note.emitted",
+    "assistant_answer": "assistant.answer.completed",
     "model_stop": "llm.request.stopped",
 }
 
@@ -106,15 +109,16 @@ def record_provider_stream_event(
         return None
     payload = dict(stream_event.data)
     payload["provider_stream_event"] = stream_event.type
+    source, actor, visibility = _stream_event_identity(stream_event)
     return record_event_with_engine(
         engine,
         session_id=session_id,
         turn_id=turn_id,
         event_type=event_type,
         payload=payload,
-        source="provider",
-        actor="llm",
-        visibility="debug",
+        source=source,
+        actor=actor,
+        visibility=visibility,
         status=_status_for_stream_event(stream_event),
         tool_call_id=_string(payload.get("tool_call_id")),
         trace_id=_string(payload.get("trace_id")),
@@ -191,7 +195,7 @@ def record_response_content_events(
     assistant_message_id: str,
 ) -> list[CognitiveEvent]:
     events: list[CognitiveEvent] = []
-    for provider_message in raw_provider_messages:
+    for model_step, provider_message in enumerate(raw_provider_messages, start=1):
         content = provider_message.get("content")
         if not isinstance(content, list):
             continue
@@ -199,7 +203,7 @@ def record_response_content_events(
             isinstance(block, dict) and block.get("type") == "tool_use"
             for block in content
         )
-        for block in content:
+        for index, block in enumerate(content):
             if not isinstance(block, dict):
                 continue
             if block.get("type") == "text" and isinstance(block.get("text"), str):
@@ -216,6 +220,8 @@ def record_response_content_events(
                         else "assistant.answer.completed",
                         payload={
                             "text": text,
+                            "model_step": model_step,
+                            "index": index,
                             "provider_message_id": provider_message.get("id"),
                             "stop_reason": provider_message.get("stop_reason"),
                         },
@@ -228,6 +234,7 @@ def record_response_content_events(
                     )
                 )
             elif block.get("type") == "thinking":
+                thinking_text = block.get("thinking")
                 events.append(
                     record_event(
                         db,
@@ -235,10 +242,13 @@ def record_response_content_events(
                         turn_id=turn_id,
                         event_type="llm.thinking.captured",
                         payload={
+                            "text": thinking_text if isinstance(thinking_text, str) else "",
+                            "model_step": model_step,
+                            "index": index,
                             "provider_message_id": provider_message.get("id"),
                             "stop_reason": provider_message.get("stop_reason"),
-                            "has_text": isinstance(block.get("thinking"), str)
-                            and bool(block.get("thinking")),
+                            "has_text": isinstance(thinking_text, str)
+                            and bool(thinking_text),
                         },
                         source="provider",
                         actor="llm",
@@ -300,6 +310,14 @@ def _status_for_stream_event(stream_event: LLMStreamEvent) -> str:
         return "active"
     status = stream_event.data.get("status")
     return status if isinstance(status, str) else "completed"
+
+
+def _stream_event_identity(stream_event: LLMStreamEvent) -> tuple[str, str, str]:
+    if stream_event.type in {"assistant_note", "assistant_answer"}:
+        return ("assistant", "scarlet", "public")
+    if stream_event.type == "thinking_captured":
+        return ("provider", "llm", "debug")
+    return ("provider", "llm", "debug")
 
 
 def _mind_operation(arguments: dict[str, Any]) -> dict[str, Any]:

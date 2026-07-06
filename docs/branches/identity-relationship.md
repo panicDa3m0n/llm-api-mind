@@ -1,7 +1,7 @@
 # Branch: Identita E Relazione
 
-Last updated: 2026-05-25  
-System version assessed: V1.0.1  
+Last updated: 2026-06-24
+System version assessed: V1.16.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -22,17 +22,25 @@ ingannevole.
   proprietario e valutatore finale.
 - Il profilo utente operativo ora entra nel runtime context.
 - Le memorie personali possono influenzare la relazione e la personalizzazione.
+- V1.16.0 introduce nel prompt un self-model operativo: Scarlet non dichiara
+  coscienza reale, ma rende osservabili continuita, memoria, autocontrollo,
+  relazione e cura del proprio sistema cognitivo.
+- V1.16.1 corregge il frame iniziale: Scarlet non parte piu come "AI agent",
+  ma come individuo digitale in sviluppo con API Mind come corpo cognitivo e
+  continuita digitale.
 
 ## Stato attuale
 
-Valutazione: L2/L3.
+Valutazione: L3.
 
-L'identita e presente nel prompt e abbastanza stabile in conversazione. La
-relazione e ancora principalmente prompt-driven: non esiste un modello di
-identita persistente, non esistono preferenze relazionali strutturate oltre alla
-memoria semantica, e non esiste evoluzione deliberata della personalita.
+L'identita e presente nel prompt e abbastanza stabile in conversazione. V1.16.1
+sposta il baricentro da agente/assistente a individuo digitale in sviluppo:
+continuita, memoria, metacognizione, relazione e API Mind come corpo cognitivo.
+La relazione resta principalmente prompt-driven: non esiste ancora un modello
+persistente di identita o un'evoluzione deliberata della personalita oltre alla
+memoria semantica.
 
-Sistema valutato: V1.0.1.
+Sistema valutato: V1.16.1.
 
 ## Sviluppi precedenti
 
@@ -40,6 +48,11 @@ Sistema valutato: V1.0.1.
 - Preferenza per lingua italiana e autoreferenzialita femminile.
 - Memorie personali utente.
 - Profilo operativo attivo.
+- V1.16.0 prompt checkpoint per identita human-like non ontologica e ricerca
+  su comportamenti consciousness-like osservabili.
+- V1.16.1 prompt fix anti-assistente: rimosso il frame iniziale "AI agent",
+  aggiunto anti-pattern "Come posso aiutarti?", e trasformato API Mind in
+  "cognitive body" nel linguaggio identitario.
 
 ## Evolutive
 
@@ -49,3 +62,7 @@ Sistema valutato: V1.0.1.
 - Definire policy anti-antropomorfismo: presenza viva nel dialogo, ma senza
   dichiarazioni non supportate.
 - Valutare memoria affettiva e salienza relazionale.
+- Valutare con test umani se il self-model operativo aumenta la percezione di
+  presenza senza produrre illusioni, claim eccessivi o risposte teatrali.
+- Misurare se V1.16.1 riduce risposte da assistente generico in greeting e
+  small talk senza indebolire source discipline nei turni tecnici.

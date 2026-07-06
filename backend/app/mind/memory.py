@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import combinations
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import (
     BaseModel,
@@ -25,6 +25,15 @@ from app.mind.facts import (
     fact_payload,
     fact_search_text,
 )
+from app.mind.graph_retrieval import (
+    build_memory_graph_expansion,
+    graph_signals_by_memory,
+)
+from app.mind.hybrid_retrieval import (
+    HybridBaseScore,
+    hybrid_rank_status_payload,
+    rank_hybrid_memories,
+)
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
@@ -37,19 +46,18 @@ from app.mind.search import (
 from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.mind.time_filters import TimeFilter, interval_contains, resolve_interval, time_filter_payload
 from app.storage import repositories
-from app.storage.models import MemoryFact, MemoryProposal, MemoryRecord, utc_now
+from app.storage.models import (
+    MemoryFact,
+    MemoryGraphEdge,
+    MemoryGraphNode,
+    MemoryProposal,
+    MemoryRecord,
+    utc_now,
+)
 
 
-MemoryType = Literal[
-    "project_fact",
-    "user_preference",
-    "decision",
-    "correction",
-    "task_context",
-    "behavioral_pattern",
-    "episodic",
-]
-MemoryScope = Literal["project", "user", "session"]
+MemoryType = str
+MemoryScope = str
 MEMORY_TYPE_VALUES = {
     "project_fact",
     "user_preference",
@@ -72,8 +80,9 @@ CANONICAL_WRITE_KEYS = {
     "metadata",
 }
 
-MIN_WRITE_CONFIDENCE = 0.2
-MIN_WRITE_SALIENCE = 0.25
+NEUTRAL_STORED_CONFIDENCE = 0.5
+NEUTRAL_STORED_SALIENCE = 0.5
+DEFAULT_MEMORY_SCOPE = "general"
 TYPE_ALIASES = {
     "pref": "user_preference",
     "preference": "user_preference",
@@ -133,13 +142,13 @@ class MemoryOperationResult:
 class MemoryWriteBody(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    memory_type: MemoryType = Field(alias="type")
+    memory_type: MemoryType = Field(alias="type", min_length=2, max_length=80)
     content: str = Field(min_length=12, max_length=4000)
     reason_for_storage: str = Field(min_length=8, max_length=1000)
     expected_future_use: str | None = Field(default=None, max_length=1000)
-    confidence: float = Field(default=0.7, ge=0.0, le=1.0)
-    salience: float = Field(default=0.7, ge=0.0, le=1.0)
-    scope: MemoryScope = "project"
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    salience: float | None = Field(default=None, ge=0.0, le=1.0)
+    scope: MemoryScope = Field(default=DEFAULT_MEMORY_SCOPE, min_length=2, max_length=80)
     tags: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -151,15 +160,19 @@ class MemoryWriteBody(BaseModel):
         normalized = dict(value)
         memory_type = normalized.get("type") or normalized.get("memory_type")
         if isinstance(memory_type, str):
-            normalized["type"] = TYPE_ALIASES.get(memory_type.casefold(), memory_type)
+            normalized["type"] = _normalize_freeform_label(
+                TYPE_ALIASES.get(memory_type.casefold(), memory_type)
+            )
         scope = normalized.get("scope")
         if isinstance(scope, str):
-            normalized_scope = TYPE_ALIASES.get(scope.casefold(), scope)
+            normalized_scope = _normalize_freeform_label(scope)
             if "type" not in normalized and normalized_scope in MEMORY_TYPE_VALUES:
                 normalized["type"] = normalized_scope
-                normalized["scope"] = "project"
+                normalized["scope"] = DEFAULT_MEMORY_SCOPE
             elif normalized_scope in MEMORY_TYPE_VALUES:
-                normalized["scope"] = "project"
+                normalized["scope"] = DEFAULT_MEMORY_SCOPE
+            else:
+                normalized["scope"] = normalized_scope
         if "reason_for_storage" not in normalized and "why" in normalized:
             normalized["reason_for_storage"] = normalized.pop("why")
         elif "reason_for_storage" not in normalized and "reason" in normalized:
@@ -238,7 +251,7 @@ class MemorySearchBody(BaseModel):
 
     query: str = Field(min_length=1, max_length=1000)
     memory_types: list[MemoryType] = Field(default_factory=list, alias="types")
-    scope: MemoryScope | None = "project"
+    scope: MemoryScope | None = None
     top_k: int = Field(default=5, ge=1, le=20)
     include_low_confidence: bool = False
     time: TimeFilter | None = None
@@ -255,12 +268,24 @@ class MemorySearchBody(BaseModel):
             normalized.pop("limit", None)
         memory_types = normalized.get("types")
         if isinstance(memory_types, str):
-            normalized["types"] = [TYPE_ALIASES.get(memory_types.casefold(), memory_types)]
+            normalized["types"] = [
+                _normalize_freeform_label(
+                    TYPE_ALIASES.get(memory_types.casefold(), memory_types)
+                )
+            ]
         elif isinstance(memory_types, list):
             normalized["types"] = [
-                TYPE_ALIASES.get(item.casefold(), item) if isinstance(item, str) else item
+                _normalize_freeform_label(TYPE_ALIASES.get(item.casefold(), item))
+                if isinstance(item, str)
+                else item
                 for item in memory_types
             ]
+        scope = normalized.get("scope")
+        if isinstance(scope, str):
+            if scope.strip().casefold() in {"", "all", "any", "*", "null", "none"}:
+                normalized["scope"] = None
+            else:
+                normalized["scope"] = _normalize_freeform_label(scope)
         if "time" not in normalized:
             for alias in ("when", "period", "date_range"):
                 if alias in normalized:
@@ -341,6 +366,32 @@ class MemoryFactsBackfillBody(BaseModel):
                 if alias in normalized:
                     normalized["memory_id"] = normalized.pop(alias)
                     break
+        return normalized
+
+
+class MemoryGraphExploreBody(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    memory_id: str = Field(min_length=1, max_length=80)
+    depth: int = Field(default=1, ge=1, le=3)
+    limit: int = Field(default=30, ge=1, le=100)
+    include_inactive: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_common_aliases(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        normalized = dict(value)
+        if "memory_id" not in normalized:
+            for alias in ("id", "target_id", "source_memory_id"):
+                if alias in normalized:
+                    normalized["memory_id"] = normalized.pop(alias)
+                    break
+        if "depth" not in normalized and "max_hops" in normalized:
+            normalized["depth"] = normalized.pop("max_hops")
+        if "limit" not in normalized and "top_k" in normalized:
+            normalized["limit"] = normalized.pop("top_k")
         return normalized
 
 
@@ -530,13 +581,13 @@ def handle_memory_write(
             content=request.content,
             reason_for_storage=request.reason_for_storage,
             expected_future_use=request.expected_future_use,
-            confidence=request.confidence,
-            salience=request.salience,
+            confidence=NEUTRAL_STORED_CONFIDENCE,
+            salience=NEUTRAL_STORED_SALIENCE,
             scope=request.scope,
             source_session_id=context.session_id,
             source_turn_id=context.turn_id,
-            tags=request.tags,
-            metadata=request.metadata,
+            tags=[],
+            metadata=_backend_memory_metadata_from_write(request),
         )
         trace = _trace_memory_write(
             db,
@@ -607,7 +658,6 @@ def handle_memory_search(
     with Session(context.engine) as db:
         candidates = repositories.list_memories(
             db,
-            memory_types=list(request.memory_types),
             scope=request.scope,
             include_low_confidence=request.include_low_confidence,
         )
@@ -626,27 +676,62 @@ def handle_memory_search(
             for memory in candidates
         }
         sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
+        retrieval_query = _expanded_retrieval_query(
+            request.query,
+            memory_types=list(request.memory_types),
+        )
         sparse_matches = sparse_results_by_source(
             search_documents(
                 db,
-                query=request.query,
+                query=retrieval_query,
                 kind="memory",
                 limit=max(50, request.top_k * 8),
             )
         )
+        graph_expansion = build_memory_graph_expansion(
+            db,
+            query=retrieval_query,
+            memories=candidates,
+            facts_by_memory=facts_by_memory,
+            limit=max(request.top_k, 20),
+        )
+        graph_signals = graph_signals_by_memory(graph_expansion)
         retrieval_shadow = run_memory_surface_shadow_search(
             db,
-            query=request.query,
+            query=retrieval_query,
             candidate_memory_ids=[memory.id for memory in candidates],
             settings=context.settings,
             limit=request.top_k,
         )
         scored = _score_memories(
             candidates,
-            request.query,
+            retrieval_query,
             facts_by_memory=facts_by_memory,
             sparse_matches=sparse_matches,
+            graph_signals=graph_signals,
         )
+        hybrid_plan = rank_hybrid_memories(
+            candidates,
+            base_scores=_hybrid_base_scores_from_memory_search(scored, sparse_matches),
+            retrieval_shadow=retrieval_shadow,
+            settings=context.settings,
+            limit=max(request.top_k, 20),
+        )
+        if hybrid_plan.active:
+            scored = _memory_scores_from_hybrid(hybrid_plan.entries, scored)
+        hybrid_signals_by_id = {
+            entry.memory_id: entry.signals
+            for entry in hybrid_plan.entries
+        }
+        graph_signal_payload_by_id = {
+            memory_id: {
+                "score": round(signal.score, 6),
+                "why_relevant": signal.why_relevant,
+                "domains": signal.domains,
+                "paths": signal.paths[:5],
+            }
+            for memory_id, signal in graph_signals.items()
+        }
         selected = scored[: request.top_k]
         refreshed: list[tuple[MemoryRecord, float, str]] = []
         for memory, score, reason in selected:
@@ -661,6 +746,7 @@ def handle_memory_search(
             payload={
                 "operation": "memory.search",
                 "query": request.query,
+                "retrieval_query": retrieval_query,
                 "types": list(request.memory_types),
                 "scope": request.scope,
                 "top_k": request.top_k,
@@ -672,7 +758,9 @@ def handle_memory_search(
                 ),
                 "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
                 "retrieval_readiness": retrieval_stage_manifest(),
+                "retrieval_graph": graph_expansion,
                 "retrieval_shadow": retrieval_shadow,
+                "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
             },
         )
 
@@ -685,6 +773,10 @@ def handle_memory_search(
                 ],
                 "score": round(score, 4),
                 "why_relevant": reason,
+                "retrieval_signals": {
+                    "graph": graph_signal_payload_by_id.get(memory.id),
+                    "hybrid": hybrid_signals_by_id.get(memory.id),
+                },
             }
             for memory, score, reason in refreshed
         ]
@@ -694,10 +786,13 @@ def handle_memory_search(
         result={
             "operation": "memory.search",
             "query": request.query,
+            "retrieval_query": retrieval_query,
             "time": time_filter_payload(request.time, resolved_time),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
             "retrieval_readiness": retrieval_stage_manifest(),
+            "retrieval_graph": graph_expansion,
             "retrieval_shadow": retrieval_shadow,
+            "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
             "memories": memories,
             "count": len(memories),
             "trace_ids": [trace.id],
@@ -723,12 +818,8 @@ def handle_memory_facts(
     if context is None or context.session_id is None:
         return _context_required("facts")
 
-    body_with_intent = dict(body)
-    if "query" not in body_with_intent and intent:
-        body_with_intent["query"] = intent
-
     try:
-        request = MemoryFactsQueryBody.model_validate(body_with_intent)
+        request = MemoryFactsQueryBody.model_validate(body)
     except ValidationError as exc:
         return MemoryOperationResult(
             ok=False,
@@ -898,6 +989,134 @@ def handle_memory_facts_backfill(
             "Use memory conflicts to check unresolved active fact conflicts",
         ],
         confidence=1.0,
+    )
+
+
+def handle_memory_graph(
+    body: dict[str, Any],
+    context: MindAPIContext | None,
+    *,
+    intent: str | None = None,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("graph")
+
+    body_with_intent = dict(body)
+    if "memory_id" not in body_with_intent and intent and "mem_" in intent:
+        match = re.search(r"mem_[a-f0-9]+", intent)
+        if match:
+            body_with_intent["memory_id"] = match.group(0)
+
+    try:
+        request = MemoryGraphExploreBody.model_validate(body_with_intent)
+    except ValidationError as exc:
+        return MemoryOperationResult(
+            ok=False,
+            error_code="memory.invalid_graph_request",
+            error_message=str(exc),
+            suggested_next_actions=[
+                "Retry with memory_id and optional depth/limit",
+            ],
+            confidence=1.0,
+        )
+
+    with Session(context.engine) as db:
+        memory = repositories.get_memory(db, request.memory_id)
+        if memory is None:
+            return _memory_not_found(request.memory_id)
+        facts = repositories.list_memory_facts(
+            db,
+            memory_id=memory.id,
+            include_inactive=True,
+        )
+        sync_memory_retrieval_artifacts(
+            db,
+            [memory],
+            facts_by_memory={memory.id: facts},
+        )
+        root = repositories.get_memory_graph_node_by_key(
+            db,
+            node_key=f"memory:{memory.id}",
+        )
+        if root is None:
+            return MemoryOperationResult(
+                ok=False,
+                error_code="memory.graph_root_missing",
+                error_message=f"No graph root was available for memory {memory.id}.",
+                suggested_next_actions=[
+                    "Call POST /mind/memory/facts/backfill for this memory",
+                    "Retry graph navigation after retrieval artifacts sync",
+                ],
+                confidence=0.7,
+            )
+        nodes, edges = _graph_neighborhood(
+            db,
+            root=root,
+            depth=request.depth,
+            limit=request.limit,
+            include_inactive=request.include_inactive,
+        )
+        related_memory_ids = sorted(
+            {
+                node.source_memory_id
+                for node in nodes
+                if node.source_memory_id
+                and node.source_memory_id != memory.id
+                and (request.include_inactive or node.status == "active")
+            }
+        )
+        related_memories = [
+            _memory_payload(related)
+            for memory_id in related_memory_ids[: request.limit]
+            if (related := repositories.get_memory(db, memory_id)) is not None
+        ]
+        root_memory_payload = _memory_payload(memory, facts=facts)
+        node_payloads = [_graph_node_payload(node) for node in nodes]
+        edge_payloads = [_graph_edge_payload(edge) for edge in edges]
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.memory.graph",
+            payload={
+                "operation": "memory.graph",
+                "memory_id": memory.id,
+                "depth": request.depth,
+                "limit": request.limit,
+                "node_count": len(nodes),
+                "edge_count": len(edges),
+                "related_memory_ids": related_memory_ids,
+            },
+        )
+        trace_id = trace.id
+
+    return MemoryOperationResult(
+        ok=True,
+        result={
+            "operation": "memory.graph",
+            "memory_id": request.memory_id,
+            "root_memory": root_memory_payload,
+            "depth": request.depth,
+            "nodes": node_payloads,
+            "edges": edge_payloads,
+            "related_memories": related_memories,
+            "count": {
+                "nodes": len(node_payloads),
+                "edges": len(edge_payloads),
+                "related_memories": len(related_memories),
+            },
+            "trace_ids": [trace_id],
+        },
+        cognitive_hint=(
+            "Use graph neighbors to reconstruct associative context around a "
+            "memory. If exact conversation wording matters, open the source "
+            "session as well."
+        ),
+        suggested_next_actions=[
+            "Use related memories only when their relation is relevant",
+            "Open source sessions for exact provenance-sensitive claims",
+        ],
+        confidence=0.95,
     )
 
 
@@ -1368,8 +1587,16 @@ def create_memory_proposal_from_review_candidate(
         content=request.content,
         reason_for_storage=request.reason_for_storage,
         expected_future_use=request.expected_future_use,
-        confidence=request.confidence,
-        salience=request.salience,
+        confidence=(
+            request.confidence
+            if request.confidence is not None
+            else NEUTRAL_STORED_CONFIDENCE
+        ),
+        salience=(
+            request.salience
+            if request.salience is not None
+            else NEUTRAL_STORED_SALIENCE
+        ),
         evidence=_string(candidate.get("evidence")),
         source_session_id=context.session_id,
         source_turn_id=context.turn_id,
@@ -1396,9 +1623,9 @@ def _memory_request_from_review_candidate(
             candidate.get("reason_for_storage") or candidate.get("reason")
         ),
         "expected_future_use": candidate.get("expected_future_use"),
-        "confidence": candidate.get("confidence", 0.7),
-        "salience": candidate.get("salience", 0.7),
-        "scope": candidate.get("scope") or "session",
+        "confidence": candidate.get("confidence"),
+        "salience": candidate.get("salience"),
+        "scope": candidate.get("scope") or DEFAULT_MEMORY_SCOPE,
         "tags": candidate.get("tags") or [],
         "metadata": {
             "proposal_origin": "maintenance.memory_review",
@@ -1421,7 +1648,7 @@ def _proposal_decision_for_request(
     ]
     candidates = repositories.list_memories(
         db,
-        scope=request.scope,
+        scope=None,
         include_low_confidence=True,
     )
     facts_by_memory = _facts_by_memory(db, candidates)
@@ -1552,8 +1779,8 @@ def _transient_memory(request: MemoryWriteBody) -> MemoryRecord:
         content=request.content,
         reason_for_storage=request.reason_for_storage,
         expected_future_use=request.expected_future_use,
-        confidence=request.confidence,
-        salience=request.salience,
+        confidence=NEUTRAL_STORED_CONFIDENCE,
+        salience=NEUTRAL_STORED_SALIENCE,
         tags_json=request.tags,
         metadata_json=request.metadata,
     )
@@ -1734,30 +1961,18 @@ def _invalid_lifecycle(message: str) -> MemoryOperationResult:
 
 
 def _evaluate_write_policy(request: MemoryWriteBody) -> dict[str, Any]:
-    if request.confidence < MIN_WRITE_CONFIDENCE:
-        return {
-            "accepted": False,
-            "reason": "confidence below v0 write threshold",
-            "thresholds": {
-                "min_confidence": MIN_WRITE_CONFIDENCE,
-                "min_salience": MIN_WRITE_SALIENCE,
-            },
-        }
-    if request.salience < MIN_WRITE_SALIENCE:
-        return {
-            "accepted": False,
-            "reason": "salience below v0 write threshold",
-            "thresholds": {
-                "min_confidence": MIN_WRITE_CONFIDENCE,
-                "min_salience": MIN_WRITE_SALIENCE,
-            },
-        }
     return {
         "accepted": True,
-        "reason": "candidate passed v0 confidence, salience, and shape checks",
-        "thresholds": {
-            "min_confidence": MIN_WRITE_CONFIDENCE,
-            "min_salience": MIN_WRITE_SALIENCE,
+        "reason": (
+            "candidate passed backend shape checks; dynamic retrieval scores "
+            "are computed at search time, not stored from model-supplied "
+            "confidence or salience"
+        ),
+        "deprecated_model_fields": {
+            "confidence": request.confidence,
+            "salience": request.salience,
+            "tags": request.tags,
+            "metadata_keys": sorted(request.metadata.keys()),
         },
     }
 
@@ -1766,8 +1981,7 @@ def _find_duplicate(db: Session, request: MemoryWriteBody) -> MemoryRecord | Non
     normalized = _normalize_memory_text(request.content)
     for memory in repositories.list_memories(
         db,
-        memory_types=[request.memory_type],
-        scope=request.scope,
+        scope=None,
         include_low_confidence=True,
     ):
         if _normalize_memory_text(memory.content) == normalized:
@@ -1781,6 +1995,7 @@ def _score_memories(
     *,
     facts_by_memory: dict[str, list[MemoryFact]] | None = None,
     sparse_matches: dict[str, Any] | None = None,
+    graph_signals: dict[str, Any] | None = None,
 ) -> list[tuple[MemoryRecord, float, str]]:
     query_text = query.lower()
     tokens = set(query_tokens(query))
@@ -1788,14 +2003,13 @@ def _score_memories(
     scored: list[tuple[MemoryRecord, float, str]] = []
     facts_by_memory = facts_by_memory or {}
     sparse_matches = sparse_matches or {}
+    graph_signals = graph_signals or {}
 
     for memory in memories:
         haystack = " ".join(
             item
             for item in [
                 memory.content,
-                memory.reason_for_storage,
-                memory.expected_future_use or "",
                 memory.memory_type,
                 " ".join(memory.tags_json),
                 fact_search_text(facts_by_memory.get(memory.id, [])),
@@ -1813,9 +2027,14 @@ def _score_memories(
         score = 0.0
         reasons: list[str] = []
         sparse_match = sparse_matches.get(memory.id)
+        graph_signal = graph_signals.get(memory.id)
+        graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
         if sparse_match is not None:
             score += sparse_match.score * 2.5
             reasons.append(sparse_match.why_relevant)
+        if graph_signal is not None and graph_score > 0:
+            score += graph_score
+            reasons.append(getattr(graph_signal, "why_relevant", "graph expansion"))
         if entity_supported:
             score += 3.0
             reasons.append("query entity support")
@@ -1844,14 +2063,56 @@ def _score_memories(
         if score <= 0:
             continue
 
-        score *= 1.0 + memory.salience + memory.confidence
         scored.append((memory, score, "; ".join(reasons)))
 
     return sorted(
         scored,
-        key=lambda item: (item[1], item[0].salience, item[0].created_at),
+        key=lambda item: (item[1], item[0].created_at),
         reverse=True,
     )
+
+
+def _hybrid_base_scores_from_memory_search(
+    scored: list[tuple[MemoryRecord, float, str]],
+    sparse_matches: dict[str, Any],
+) -> dict[str, HybridBaseScore]:
+    return {
+        memory.id: HybridBaseScore(
+            score=score,
+            reason=reason,
+            sparse_score=(
+                sparse_matches[memory.id].score
+                if memory.id in sparse_matches
+                else 0.0
+            ),
+            strong_signal=True,
+        )
+        for memory, score, reason in scored
+    }
+
+
+def _memory_scores_from_hybrid(
+    entries: list[Any],
+    scored: list[tuple[MemoryRecord, float, str]],
+) -> list[tuple[MemoryRecord, float, str]]:
+    base_reason_by_id = {memory.id: reason for memory, _, reason in scored}
+    results: list[tuple[MemoryRecord, float, str]] = []
+    for entry in entries:
+        reason = entry.why_relevant
+        if entry.memory_id in base_reason_by_id and base_reason_by_id[entry.memory_id]:
+            reason = entry.why_relevant
+        results.append((entry.memory, entry.score, reason))
+    return results
+
+
+def _expanded_retrieval_query(query: str, *, memory_types: list[str]) -> str:
+    # `types` are model-supplied retrieval hints, not evidence that a memory is
+    # semantically relevant. Folding them into the query makes broad labels such
+    # as "user_preference" match unrelated memories. Keep the natural-language
+    # query as the active retrieval surface; type hints remain visible in traces
+    # and can be used by dedicated typed/embedded retrieval stages later.
+    _ = memory_types
+    return query
 
 
 def _supports_query_entity(
@@ -1964,6 +2225,84 @@ def _trace_memory_write(
         },
     )
 
+
+def _graph_neighborhood(
+    db: Session,
+    *,
+    root: MemoryGraphNode,
+    depth: int,
+    limit: int,
+    include_inactive: bool,
+) -> tuple[list[MemoryGraphNode], list[MemoryGraphEdge]]:
+    all_edges = repositories.list_memory_graph_edges(limit=2000, db=db)
+    all_nodes = {node.id: node for node in repositories.list_memory_graph_nodes(db, limit=2000)}
+    node_ids: set[str] = {root.id}
+    frontier: set[str] = {root.id}
+    selected_edges: dict[str, MemoryGraphEdge] = {}
+    for _ in range(depth):
+        next_frontier: set[str] = set()
+        for edge in all_edges:
+            if not include_inactive and edge.status != "active":
+                continue
+            if edge.source_node_id not in frontier and edge.target_node_id not in frontier:
+                continue
+            selected_edges.setdefault(edge.id, edge)
+            other_id = (
+                edge.target_node_id
+                if edge.source_node_id in frontier
+                else edge.source_node_id
+            )
+            if other_id not in node_ids:
+                next_frontier.add(other_id)
+        node_ids.update(next_frontier)
+        frontier = next_frontier
+        if not frontier or len(node_ids) >= limit:
+            break
+    nodes = [
+        node
+        for node_id in list(node_ids)[:limit]
+        if (node := all_nodes.get(node_id)) is not None
+        and (include_inactive or node.status == "active")
+    ]
+    allowed = {node.id for node in nodes}
+    edges = [
+        edge
+        for edge in selected_edges.values()
+        if edge.source_node_id in allowed and edge.target_node_id in allowed
+    ][:limit]
+    return nodes, edges
+
+
+def _graph_node_payload(node: MemoryGraphNode) -> dict[str, Any]:
+    return {
+        "id": node.id,
+        "node_key": node.node_key,
+        "type": node.node_type,
+        "label": node.label,
+        "scope": node.scope,
+        "status": node.status,
+        "aliases": node.aliases_json,
+        "source_memory_id": node.source_memory_id,
+        "source_fact_id": node.source_fact_id,
+        "source_session_id": node.source_session_id,
+        "metadata": node.metadata_json,
+    }
+
+
+def _graph_edge_payload(edge: MemoryGraphEdge) -> dict[str, Any]:
+    return {
+        "id": edge.id,
+        "relation": edge.relation,
+        "status": edge.status,
+        "source_node_id": edge.source_node_id,
+        "target_node_id": edge.target_node_id,
+        "source_memory_id": edge.source_memory_id,
+        "source_fact_id": edge.source_fact_id,
+        "source_session_id": edge.source_session_id,
+        "metadata": edge.metadata_json,
+    }
+
+
 def _memory_payload(
     memory: MemoryRecord,
     *,
@@ -1977,8 +2316,6 @@ def _memory_payload(
         "content": memory.content,
         "reason_for_storage": memory.reason_for_storage,
         "expected_future_use": memory.expected_future_use,
-        "confidence": memory.confidence,
-        "salience": memory.salience,
         "created_by": memory.created_by,
         "source_session_id": memory.source_session_id,
         "source_turn_id": memory.source_turn_id,
@@ -2009,8 +2346,6 @@ def memory_proposal_payload(proposal: MemoryProposal) -> dict[str, Any]:
             "content": proposal.content,
             "reason_for_storage": proposal.reason_for_storage,
             "expected_future_use": proposal.expected_future_use,
-            "confidence": proposal.confidence,
-            "salience": proposal.salience,
             "tags": proposal.tags_json,
             "evidence": proposal.evidence,
             "facts": proposal.candidate_facts_json,
@@ -2060,8 +2395,8 @@ def apply_create_memory_proposal(
         content=proposal.content,
         reason_for_storage=proposal.reason_for_storage,
         expected_future_use=proposal.expected_future_use,
-        confidence=proposal.confidence,
-        salience=proposal.salience,
+        confidence=NEUTRAL_STORED_CONFIDENCE,
+        salience=NEUTRAL_STORED_SALIENCE,
         created_by="maintenance",
         source_session_id=proposal.source_session_id,
         source_turn_id=proposal.source_turn_id,
@@ -2359,6 +2694,29 @@ def _generic_conflict_tokens() -> set[str]:
 
 def _normalize_memory_text(value: str) -> str:
     return " ".join(value.casefold().split())
+
+
+def _normalize_freeform_label(value: str) -> str:
+    cleaned = re.sub(r"[^0-9A-Za-zÀ-ÖØ-öø-ÿ_ -]+", " ", value.strip().casefold())
+    cleaned = re.sub(r"[\s-]+", "_", cleaned)
+    cleaned = re.sub(r"_+", "_", cleaned).strip("_")
+    return cleaned[:80] or DEFAULT_MEMORY_SCOPE
+
+
+def _backend_memory_metadata_from_write(request: MemoryWriteBody) -> dict[str, Any]:
+    ignored: dict[str, Any] = {}
+    if request.confidence is not None:
+        ignored["confidence"] = request.confidence
+    if request.salience is not None:
+        ignored["salience"] = request.salience
+    if request.tags:
+        ignored["tags"] = request.tags
+    if request.metadata:
+        ignored["metadata"] = request.metadata
+    return {
+        "write_policy": "backend_owned_dynamic_retrieval_scores_v1",
+        "agent_supplied_fields_ignored_for_ranking": ignored,
+    }
 
 
 def _tokens(value: str) -> list[str]:

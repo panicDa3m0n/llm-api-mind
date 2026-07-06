@@ -4,7 +4,7 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-05-25.maintenance-proposals-v1"
+MIND_API_SCHEMA_VERSION = "2026-06-26.digital-organs-standalone-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -58,30 +58,22 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
         "status": "implemented",
         "purpose": (
             "Autonomously write a reusable, sourceable memory candidate after "
-            "the v0 policy accepts it."
+            "backend shape policy accepts it. Backend owns provenance, tags, "
+            "metadata, and retrieval scores."
         ),
         "body_schema": {
             "type": "object",
             "properties": {
                 "type": {
                     "type": "string",
-                    "enum": [
-                        "project_fact",
-                        "user_preference",
-                        "decision",
-                        "correction",
-                        "task_context",
-                        "behavioral_pattern",
-                        "episodic",
-                    ],
                     "description": (
-                        "Semantic category for the memory. Use user_preference "
-                        "for personal preferences/facts, project_fact for stable "
-                        "project state, decision for accepted choices, correction "
-                        "for user corrections, task_context for useful temporary "
-                        "context/checkpoints, behavioral_pattern for recurring "
-                        "interaction patterns, and episodic for compact session "
-                        "anchors."
+                        "Short natural semantic category for the memory. Prefer "
+                        "stable labels such as user_preference, project_fact, "
+                        "decision, correction, task_context, behavioral_pattern, "
+                        "episodic, lesson, workflow, or other precise labels "
+                        "when those fit. The backend accepts free labels and "
+                        "uses them as semantic retrieval surfaces, not rigid "
+                        "truth enums."
                     ),
                 },
                 "content": {
@@ -96,52 +88,15 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "type": "string",
                     "description": "When this memory is expected to help.",
                 },
-                "confidence": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 0.7,
-                    "description": (
-                        "How confident Scarlet is that the memory content is "
-                        "sourceable and correctly stated. Values below the v0 "
-                        "threshold are rejected."
-                    ),
-                },
-                "salience": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 0.7,
-                    "description": (
-                        "How useful this memory is expected to be in future "
-                        "turns. Values below the v0 threshold are rejected."
-                    ),
-                },
                 "scope": {
                     "type": "string",
-                    "enum": ["project", "user", "session"],
-                    "default": "project",
+                    "default": "general",
                     "description": (
-                        "Where the memory should normally apply: project for "
-                        "LLM API Mind work, user for personal/user-specific "
-                        "continuity, session for short-lived session context."
-                    ),
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": (
-                        "Short retrieval tags. Use narrow lowercase concepts "
-                        "such as api-mind, preference, chocolate, milestone, or "
-                        "retrieval."
-                    ),
-                },
-                "metadata": {
-                    "type": "object",
-                    "description": (
-                        "Optional non-provenance metadata supplied by Scarlet. "
-                        "Do not put ids, timestamps, session ids, turn ids, or "
-                        "trace provenance here because the backend owns them."
+                        "Cognitive area/purpose of the memory, not privacy or "
+                        "authorization. Use labels such as user, project, "
+                        "session, metacognitive, workflow, preference, or a "
+                        "more precise free label. Future user isolation belongs "
+                        "to backend user ids, not this field."
                     ),
                 },
             },
@@ -157,10 +112,7 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "content": "The owner wants API Mind to be treated as Scarlet's internal cognition.",
                     "reason_for_storage": "Stable behavior correction for future turns.",
                     "expected_future_use": "Guide future prompt and API design answers.",
-                    "confidence": 0.9,
-                    "salience": 0.85,
                     "scope": "project",
-                    "tags": ["api-mind", "cognition"],
                 },
             }
         ],
@@ -172,6 +124,7 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
         "purpose": (
             "Search Scarlet's active memories and return sourceable results "
             "with provenance, confidence, salience, and relevance scores."
+            "with provenance and query-time relevance scores."
         ),
         "body_schema": {
             "type": "object",
@@ -186,31 +139,21 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                 },
                 "types": {
                     "type": "array",
-                    "items": {
-                        "type": "string",
-                        "enum": [
-                            "project_fact",
-                            "user_preference",
-                            "decision",
-                            "correction",
-                            "task_context",
-                            "behavioral_pattern",
-                            "episodic",
-                        ],
-                    },
+                    "items": {"type": "string"},
                     "description": (
-                        "Optional memory type filter. Omit or use an empty list "
-                        "to search all memory types."
+                        "Optional semantic type hints. They are appended to the "
+                        "retrieval query and should not be used as a rigid "
+                        "filter unless Scarlet intentionally wants to narrow "
+                        "the search by label."
                     ),
                 },
                 "scope": {
                     "type": ["string", "null"],
-                    "enum": ["project", "user", "session", None],
-                    "default": "project",
+                    "default": None,
                     "description": (
-                        "Optional scope filter. Use null to search all scopes; "
-                        "use user for personal memories, project for project "
-                        "state, and session for session-scoped anchors."
+                        "Optional exact cognitive scope filter. Omit or use "
+                        "null to search all scopes. Scope is not a privacy or "
+                        "authorization boundary."
                     ),
                 },
                 "top_k": {
@@ -295,10 +238,61 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                 "intent": "Find durable project context before answering.",
                 "body": {
                     "query": "API Mind internal cognition",
-                    "scope": "project",
+                    "scope": None,
                     "top_k": 5,
                     "time": {"preset": "last_7_days", "basis": "source_conversation"},
                 },
+            }
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/memory/graph",
+        "status": "implemented",
+        "purpose": (
+            "Navigate the derived memory knowledge graph around a memory id. "
+            "Use it when a retrieved memory may need associative context, "
+            "nearby memories, lifecycle links, facts, or session/entity "
+            "connections beyond direct semantic search."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "memory_id": {
+                    "type": "string",
+                    "description": "Memory id to use as graph root, for example mem_...",
+                },
+                "depth": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3,
+                    "default": 1,
+                    "description": "Maximum graph hops to inspect from the memory root.",
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 30,
+                    "description": "Maximum graph nodes/edges to return.",
+                },
+                "include_inactive": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": (
+                        "When true, include inactive/deprecated graph nodes and "
+                        "edges as inspectable history."
+                    ),
+                },
+            },
+            "required": ["memory_id"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/memory/graph",
+                "intent": "Inspect associative context around a retrieved memory.",
+                "body": {"memory_id": "mem_example", "depth": 2, "limit": 30},
             }
         ],
     },
@@ -727,8 +721,9 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
         "purpose": (
             "Run one LLM-backed internal metacognitive step before answering. "
             "This is the single metacognition route: critique, claim checks, "
-            "workspace notes, and reflection are returned inside this result "
-            "instead of separate cognitive endpoints."
+            "workspace notes, reflection, and previous-turn thinking "
+            "retrospection are returned inside this result instead of separate "
+            "cognitive endpoints."
         ),
         "body_schema": {
             "type": "object",
@@ -743,6 +738,13 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                         "synthesizer",
                         "empathy",
                         "memory_curator",
+                        "review_previous_turn",
+                        "detect_reasoning_drift",
+                        "explain_tool_choice",
+                        "recover_open_loops",
+                        "compare_answer_to_reasoning",
+                        "extract_reasoning_digest",
+                        "memory_from_reasoning",
                     ],
                     "default": "critic",
                     "description": (
@@ -750,7 +752,12 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                         "to find weaknesses, validator to check claims, planner "
                         "to plan work, synthesizer to combine evidence, empathy "
                         "for relational nuance, and memory_curator for memory "
-                        "state review."
+                        "state review. Use review_previous_turn, "
+                        "detect_reasoning_drift, explain_tool_choice, "
+                        "recover_open_loops, compare_answer_to_reasoning, "
+                        "extract_reasoning_digest, or memory_from_reasoning "
+                        "when Scarlet needs controlled access to previous-turn "
+                        "thinking as process evidence."
                     ),
                 },
                 "objective": {
@@ -801,6 +808,29 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "default": 6,
                     "description": "Maximum number of findings to request from the reviewer.",
                 },
+                "turn_scope": {
+                    "type": "string",
+                    "enum": ["none", "previous"],
+                    "default": "none",
+                    "description": (
+                        "Which stored turn to package for retrospection. Use "
+                        "previous to inspect the previous completed turn's user "
+                        "message, final answer, public notes, tool calls, events, "
+                        "and provider thinking. Retrospective modes default to "
+                        "previous when this field is omitted."
+                    ),
+                },
+                "detail": {
+                    "type": "string",
+                    "enum": ["digest", "excerpt", "raw"],
+                    "default": "digest",
+                    "description": (
+                        "How much prior thinking to include in the internal "
+                        "retrospection pack. Prefer digest for normal use, "
+                        "excerpt for debugging drift, and raw only for explicit "
+                        "deep inspection because it is token-heavy."
+                    ),
+                },
             },
             "required": ["objective"],
             "accepted_aliases": {
@@ -810,6 +840,8 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                 "purpose": "objective",
                 "question": "objective and focus_question when missing",
                 "context": "known_evidence summary when known_evidence is missing",
+                "reasoning_scope": "turn_scope",
+                "reasoning_detail": "detail",
             },
         },
         "examples": [
@@ -826,15 +858,517 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "uncertainties": ["Mind API schema may have changed."],
                     "draft_answer": "Scarlet can use the current schema correctly.",
                 },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/metacognition/step",
+                "intent": "Retrospect previous thinking to detect drift before answering.",
+                "body": {
+                    "mode": "detect_reasoning_drift",
+                    "objective": "Compare the previous turn's request, reasoning, tool actions, and final answer.",
+                    "focus_question": "Did my final answer lose an important assumption or action from the previous reasoning?",
+                    "turn_scope": "previous",
+                    "detail": "digest",
+                    "known_evidence": [
+                        "User asked whether Scarlet can inspect prior reasoning."
+                    ],
+                },
             }
         ],
     },
     {
         "method": "POST",
-        "path": "/mind/attention/context",
-        "status": "planned",
-        "purpose": "Build an attention context pack after memory is available.",
-        "body_schema": None,
+        "path": "/mind/focus",
+        "status": "implemented",
+        "purpose": (
+            "Manage Scarlet's current foreground focus as a profile-scoped "
+            "attention state. Focus is separate from semantic memory and does "
+            "not filter memory retrieval by default."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "set",
+                        "update",
+                        "hold",
+                        "shift",
+                        "defer",
+                        "resolve",
+                        "impossible",
+                        "read",
+                        "list",
+                        "search",
+                        "timeline",
+                    ],
+                    "description": (
+                        "Lifecycle operation. set creates or replaces the "
+                        "active focus; shift intentionally moves from the "
+                        "current focus to a new one; update/hold keep the same "
+                        "focus; defer/resolve/impossible archive it; read/list/"
+                        "search inspect active or historical focus records; "
+                        "timeline inspects focus records and transition edges "
+                        "as Scarlet's foreground-attention movement history."
+                    ),
+                },
+                "focus_id": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional focus id. Omit it for operations that target "
+                        "the current active focus."
+                    ),
+                },
+                "object": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "The thing Scarlet is intentionally holding in the "
+                        "foreground. Required for set and shift."
+                    ),
+                },
+                "type": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Short natural focus category, such as conversation, "
+                        "research, relationship, debugging, memory_review, "
+                        "decision, or another precise free label."
+                    ),
+                },
+                "intensity": {
+                    "type": ["number", "null"],
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": (
+                        "How strongly this focus should remain foregrounded. "
+                        "It is a focus-state value, not a memory score."
+                    ),
+                },
+                "duration_policy": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Natural duration hint such as this_turn, until_resolved, "
+                        "until_interrupted, later_today, or another explicit policy."
+                    ),
+                },
+                "reason": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Why Scarlet is setting, holding, shifting, deferring, "
+                        "or closing this focus."
+                    ),
+                },
+                "resolution": {
+                    "type": ["string", "null"],
+                    "description": "Required for resolve unless reason explains the resolution.",
+                },
+                "impossible_reason": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Required for impossible unless reason explains why "
+                        "the focus cannot be completed now."
+                    ),
+                },
+                "status": {
+                    "type": ["string", "null"],
+                    "enum": [
+                        "active",
+                        "held",
+                        "deferred",
+                        "resolved",
+                        "impossible",
+                        "superseded",
+                        None,
+                    ],
+                    "description": "Optional list/search status filter.",
+                },
+                "query": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional focus archive search phrase. This is simple "
+                        "archive lookup, not semantic memory retrieval."
+                    ),
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Maximum focus archive rows to return.",
+                },
+                "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Pagination offset for list/search.",
+                },
+                "metadata": {
+                    "type": "object",
+                    "default": {},
+                    "description": (
+                        "Optional compact debug metadata. Backend owns profile "
+                        "id and source provenance."
+                    ),
+                },
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/focus",
+                "intent": "Set Scarlet's current foreground focus.",
+                "body": {
+                    "action": "set",
+                    "object": "Complete the focus organ design without touching memory retrieval.",
+                    "type": "research",
+                    "intensity": 0.75,
+                    "duration_policy": "until_resolved",
+                    "reason": "This is the thread Scarlet should keep foregrounded.",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/focus",
+                "intent": "Resolve the active focus after finishing the thread.",
+                "body": {
+                    "action": "resolve",
+                    "resolution": "The focus organ slice was completed and verified.",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/focus",
+                "intent": "Inspect how Scarlet's foreground focus moved over time.",
+                "body": {
+                    "action": "timeline",
+                    "limit": 10,
+                },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/volition",
+        "status": "implemented",
+        "purpose": (
+            "Manage Scarlet's latent self-generated intentions. Volition is "
+            "separate from memory, focus, and tasks; normal active chat does "
+            "not receive automatic intention retrieval in this first slice."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "create",
+                        "read",
+                        "list_active",
+                        "list_due",
+                        "search",
+                        "update",
+                        "defer",
+                        "review",
+                        "promote_to_focus_candidate",
+                        "resolve",
+                        "mark_impossible",
+                        "deprecate",
+                    ],
+                    "description": (
+                        "Lifecycle operation. create stores a latent intention; "
+                        "read/list_active/list_due/search inspect the register; "
+                        "list_due returns open intentions whose review time has "
+                        "arrived; update/defer/review maintain open intentions; "
+                        "resolve/mark_impossible/deprecate close them; "
+                        "promote_to_focus_candidate returns a /mind/focus "
+                        "candidate without changing active focus."
+                    ),
+                },
+                "intention_id": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Target intention id. Required for read, update, defer, "
+                        "review, promote_to_focus_candidate, resolve, "
+                        "mark_impossible, and deprecate."
+                    ),
+                },
+                "desire": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "The latent self-generated direction Scarlet wants to "
+                        "keep alive. Required for create."
+                    ),
+                },
+                "origin": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Natural origin label such as scarlet, user_inspired, "
+                        "metacognitive, session_close, or autonomous_cycle."
+                    ),
+                },
+                "horizon": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Natural time horizon such as this_session, later_today, "
+                        "short_term, long_term, or open_ended."
+                    ),
+                },
+                "intensity": {
+                    "type": ["number", "null"],
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": (
+                        "How strongly the intention matters to Scarlet's "
+                        "continuity. This is not a memory relevance score."
+                    ),
+                },
+                "autonomy_level": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "How self-owned the intention is, such as "
+                        "self_generated, user_influenced, maintenance_seeded, "
+                        "or autonomous_cycle."
+                    ),
+                },
+                "reason": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Why this is a real internal direction rather than a "
+                        "task, memory, or answer requirement. Required for "
+                        "create and deprecate."
+                    ),
+                },
+                "next_possible_reflection": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional next internal reflection Scarlet or a future "
+                        "autonomous cycle could run."
+                    ),
+                },
+                "next_review_at": {
+                    "type": ["string", "null"],
+                    "description": "Optional ISO datetime for future review scheduling.",
+                },
+                "review_interval_seconds": {
+                    "type": ["integer", "null"],
+                    "minimum": 1,
+                    "description": "Optional repeat-review interval hint.",
+                },
+                "resolution": {
+                    "type": ["string", "null"],
+                    "description": "Required for resolve unless reason explains closure.",
+                },
+                "impossible_reason": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Required for mark_impossible unless reason explains "
+                        "why the intention cannot continue."
+                    ),
+                },
+                "status": {
+                    "type": ["string", "null"],
+                    "enum": [
+                        "active",
+                        "deferred",
+                        "in_review",
+                        "resolved",
+                        "impossible",
+                        "deprecated",
+                        None,
+                    ],
+                    "description": (
+                        "Optional status for search/update/review. Use "
+                        "dedicated close actions for terminal statuses."
+                    ),
+                },
+                "query": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional archive search phrase. This is simple lookup, "
+                        "not semantic memory retrieval."
+                    ),
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Maximum intention rows to return.",
+                },
+                "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Pagination offset for list/search.",
+                },
+                "include_unscheduled": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": (
+                        "Only for list_due. When true, also include open "
+                        "intentions that do not yet have next_review_at, useful "
+                        "for future autonomous cycles that want a fuller queue."
+                    ),
+                },
+                "links": {
+                    "type": "array",
+                    "default": [],
+                    "description": (
+                        "Optional links to related internal evidence. Items use "
+                        "target_type, target_id, relation, and optional metadata. "
+                        "Use only when there is a real source link."
+                    ),
+                },
+                "metadata": {
+                    "type": "object",
+                    "default": {},
+                    "description": (
+                        "Optional compact debug metadata. Backend owns profile "
+                        "id and source provenance."
+                    ),
+                },
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/volition",
+                "intent": "Store a latent internal intention.",
+                "body": {
+                    "action": "create",
+                    "desire": "Understand whether my public notes help the owner follow my internal work without making simple chats heavy.",
+                    "origin": "scarlet",
+                    "horizon": "short_term",
+                    "intensity": 0.68,
+                    "autonomy_level": "self_generated",
+                    "reason": "This is an internal research direction about my own behavior, not a user task.",
+                    "next_possible_reflection": "Review future chats where notes either helped or became too verbose.",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/volition",
+                "intent": "Inspect open latent intentions.",
+                "body": {
+                    "action": "list_active",
+                    "limit": 5,
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/volition",
+                "intent": "Inspect intentions whose review moment has arrived.",
+                "body": {
+                    "action": "list_due",
+                    "limit": 5,
+                    "include_unscheduled": False,
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/volition",
+                "intent": "Convert an intention into a focus candidate without applying it automatically.",
+                "body": {
+                    "action": "promote_to_focus_candidate",
+                    "intention_id": "intent_example",
+                    "reason": "This latent direction is now relevant enough to become foreground attention.",
+                },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/affect",
+        "status": "implemented",
+        "purpose": (
+            "Inspect Scarlet's backend-appraised affect state and affective "
+            "prototypes. Affect is read-only from Mind API: Scarlet can read "
+            "what the backend appraised, but cannot choose or mutate emotions "
+            "through this endpoint."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["read", "list", "prototypes"],
+                    "description": (
+                        "read returns the latest or targeted affect state; list "
+                        "returns affect history with optional filters; "
+                        "prototypes returns the backend emotion prototypes."
+                    ),
+                },
+                "affect_id": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional affect state id for read. Omit it to read "
+                        "the latest stored state for Scarlet's profile."
+                    ),
+                },
+                "emotion": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional list filter, such as curiosity, tenderness, "
+                        "frustration, caution, relief, enthusiasm, or sadness."
+                    ),
+                },
+                "mode": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Optional list filter for appraisal mode, usually "
+                        "shadow or model."
+                    ),
+                },
+                "status": {
+                    "type": ["string", "null"],
+                    "description": "Optional list/read filter for affect lifecycle status.",
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                    "description": "Maximum affect states to return for list.",
+                },
+                "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                    "description": "Pagination offset for list.",
+                },
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/affect",
+                "intent": "Inspect Scarlet's current backend-appraised affective state.",
+                "body": {
+                    "action": "read",
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/affect",
+                "intent": "Inspect recent frustration states for calibration.",
+                "body": {
+                    "action": "list",
+                    "emotion": "frustration",
+                    "limit": 5,
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/affect",
+                "intent": "Inspect the backend affect prototypes.",
+                "body": {
+                    "action": "prototypes",
+                },
+            },
+        ],
     },
 ]
 

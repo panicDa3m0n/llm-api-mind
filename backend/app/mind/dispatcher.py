@@ -11,6 +11,7 @@ from app.mind.memory import (
     handle_memory_deprecate,
     handle_memory_facts,
     handle_memory_facts_backfill,
+    handle_memory_graph,
     handle_memory_read,
     handle_memory_search,
     handle_memory_supersede,
@@ -21,6 +22,8 @@ from app.mind.episodic import (
     handle_session_summarize,
     handle_sessions_list,
 )
+from app.mind.affect import handle_affect
+from app.mind.focus import handle_focus
 from app.mind.metacognition import handle_metacognition_step
 from app.mind.schema import (
     build_mind_schema,
@@ -30,6 +33,7 @@ from app.mind.schema import (
     route_usage_guide,
     schema_metadata,
 )
+from app.mind.volition import handle_volition
 
 
 class MindAPIError(BaseModel):
@@ -114,16 +118,22 @@ def dispatch_mind_api(
             cognitive_hint=(
                 "Use this schema to choose implemented Mind API routes. "
                 "Semantic memory, episodic session recall, and the single "
-                "LLM-backed metacognition route are available. Runtime events "
-                "are backend-owned rather than a model-facing route; attention "
-                "remains planned; reflection stays inside the single "
-                "metacognition route for now."
+                "LLM-backed metacognition route are available. Previous-turn "
+                "thinking retrospection is part of the metacognition route. "
+                "Runtime events are backend-owned rather than a model-facing "
+                "route; focus is available as a dedicated foreground-attention "
+                "state route; volition is available as a manual latent-intention "
+                "register; affect is available as a read-only backend-appraised "
+                "state route; reflection stays inside the single metacognition "
+                "route for now."
             ),
             suggested_next_actions=[
                 "Call implemented routes only",
+                "Use /mind/focus to set, inspect, shift, defer, resolve, or archive foreground focus",
+                "Use /mind/volition to create, inspect, review, or close latent self-generated intentions",
+                "Use /mind/affect to inspect current affect state or prototypes without mutating emotions",
                 "Use memory lifecycle routes when persistent context conflicts",
                 "Use session recall routes when a memory's source conversation matters",
-                "Continue without cognitive state for planned routes",
             ],
             confidence=1.0,
         )
@@ -159,6 +169,13 @@ def dispatch_mind_api(
     if method == "POST" and path == "/mind/memory/facts/backfill":
         return _memory_response(
             handle_memory_facts_backfill(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method in {"GET", "POST"} and path == "/mind/memory/graph":
+        return _memory_response(
+            handle_memory_graph(body, context, intent=request.intent),
             method=method,
             path=path,
         )
@@ -214,6 +231,27 @@ def dispatch_mind_api(
     if method == "POST" and path == "/mind/metacognition/step":
         return _operation_response(
             handle_metacognition_step(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/focus":
+        return _operation_response(
+            handle_focus(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/volition":
+        return _operation_response(
+            handle_volition(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/affect":
+        return _operation_response(
+            handle_affect(body, context, intent=request.intent),
             method=method,
             path=path,
         )

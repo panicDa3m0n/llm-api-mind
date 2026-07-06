@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from typing import Any
 
-from app.mind.facts import fact_search_text
 from app.storage.models import MemoryFact, MemoryGraphNode, MemoryRecord
 
 
@@ -15,11 +15,7 @@ AGENT_SUPPLIED_MEMORY_FIELDS = [
     "content",
     "reason_for_storage",
     "expected_future_use",
-    "confidence",
-    "salience",
     "scope",
-    "tags",
-    "semantic_metadata",
 ]
 BACKEND_OWNED_MEMORY_FIELDS = [
     "id",
@@ -34,6 +30,9 @@ BACKEND_OWNED_MEMORY_FIELDS = [
     "surface_key",
     "embedding_status",
     "graph_keys",
+    "tags_json",
+    "metadata_json",
+    "usage_count",
 ]
 
 TYPE_SURFACE_KIND = {
@@ -44,6 +43,25 @@ TYPE_SURFACE_KIND = {
     "project_fact": ("project_fact_text", "project_fact"),
     "task_context": ("task_context_text", "task"),
     "user_preference": ("preference_text", "preference"),
+}
+
+PRIMARY_CONTENT_SURFACE_KINDS = {
+    "content_chunk_text",
+    "memory_text",
+    *(surface_kind for surface_kind, _ in TYPE_SURFACE_KIND.values()),
+}
+CANONICAL_FACT_SURFACE_KINDS = {"fact_bundle_text", "fact_text"}
+ASSOCIATIVE_SURFACE_KINDS = {"graph_node_profile", "session_summary"}
+SUPPORT_SURFACE_KINDS = {
+    "future_use_text",
+    "temporal_text",
+    "conflict_guard_text",
+}
+PROMOTABLE_SURFACE_ROLES = {
+    "primary_content",
+    "canonical_fact",
+    "associative_graph",
+    "episodic_context",
 }
 
 
@@ -60,6 +78,7 @@ class SurfaceDraft:
     source_turn_id: str | None = None
     source_message_id: str | None = None
     source_trace_id: str | None = None
+    surface_key_suffix: str | None = None
 
 
 def surface_taxonomy_manifest() -> dict[str, Any]:
@@ -76,14 +95,58 @@ def surface_taxonomy_manifest() -> dict[str, Any]:
             ],
             "surfaces_are": "derived_rebuildable_indexes",
             "agent_does_not_write_surfaces_directly": True,
+            "active_retrieval_policy": (
+                "Content and canonical-fact surfaces may promote a memory. "
+                "Future-use, temporal, and conflict/lifecycle surfaces are "
+                "supporting evidence and must not select a memory by themselves."
+            ),
         },
         "agent_supplied_memory_fields": AGENT_SUPPLIED_MEMORY_FIELDS,
         "backend_owned_memory_fields": BACKEND_OWNED_MEMORY_FIELDS,
+        "retrieval_roles": [
+            {
+                "role": "primary_content",
+                "surface_kinds": sorted(PRIMARY_CONTENT_SURFACE_KINDS),
+                "active_rank_eligible": True,
+                "purpose": "Direct recall from the actual memory claim/content.",
+            },
+            {
+                "role": "canonical_fact",
+                "surface_kinds": sorted(CANONICAL_FACT_SURFACE_KINDS),
+                "active_rank_eligible": True,
+                "purpose": "Recall through canonical entity/predicate/value facts.",
+            },
+            {
+                "role": "associative_graph",
+                "surface_kinds": sorted(ASSOCIATIVE_SURFACE_KINDS),
+                "active_rank_eligible": True,
+                "purpose": "Associative recall through graph/session nodes.",
+            },
+            {
+                "role": "supporting_context",
+                "surface_kinds": sorted(SUPPORT_SURFACE_KINDS),
+                "active_rank_eligible": False,
+                "purpose": (
+                    "Corroborate, explain, or time/lifecycle-anchor a memory "
+                    "already retrieved through a promotable route."
+                ),
+            },
+        ],
         "memory_surface_kinds": [
             {
                 "kind": "memory_text",
                 "dimensions": ["semantic", "canonical_summary"],
                 "purpose": "General semantic recall of the whole memory.",
+            },
+            {
+                "kind": "content_chunk_text",
+                "dimensions": ["semantic", "content_chunk"],
+                "purpose": (
+                    "Sentence/paragraph-level recall for longer memories. "
+                    "Multiple chunk surfaces can point to the same memory; the "
+                    "backend deduplicates by memory id before Scarlet sees the "
+                    "memory packet."
+                ),
             },
             {
                 "kind": "future_use_text",
@@ -130,9 +193,20 @@ def compile_memory_surface_drafts(
             surface_kind="memory_text",
             content=_memory_text(memory, facts=facts),
             dimensions=["semantic", "canonical_summary"],
-            embedding_role="dense_sparse_primary",
+            embedding_role="primary_content",
         )
     ]
+    for index, chunk in enumerate(_content_chunks(memory.content), start=1):
+        drafts.append(
+            _memory_surface(
+                memory,
+                surface_kind="content_chunk_text",
+                content=_content_chunk_text(memory, chunk=chunk, index=index),
+                dimensions=["semantic", "content_chunk"],
+                embedding_role="primary_content_chunk",
+                surface_key_suffix=f"chunk:{index}",
+            )
+        )
     type_spec = TYPE_SURFACE_KIND.get(memory.memory_type)
     if type_spec is not None:
         surface_kind, dimension = type_spec
@@ -142,7 +216,7 @@ def compile_memory_surface_drafts(
                 surface_kind=surface_kind,
                 content=_type_specific_text(memory, dimension=dimension),
                 dimensions=["semantic", dimension],
-                embedding_role="dense_sparse_type_specific",
+                embedding_role="primary_type_content",
             )
         )
     if memory.expected_future_use or memory.reason_for_storage:
@@ -152,7 +226,7 @@ def compile_memory_surface_drafts(
                 surface_kind="future_use_text",
                 content=_future_use_text(memory),
                 dimensions=["future_use", "retrieval_instruction"],
-                embedding_role="dense_sparse_intent",
+                embedding_role="support_future_use",
             )
         )
     drafts.append(
@@ -161,7 +235,7 @@ def compile_memory_surface_drafts(
             surface_kind="temporal_text",
             content=_temporal_text(memory, facts=facts),
             dimensions=["temporal", "provenance"],
-            embedding_role="sparse_temporal_filter_support",
+            embedding_role="support_temporal",
         )
     )
     if facts:
@@ -171,7 +245,7 @@ def compile_memory_surface_drafts(
                 surface_kind="fact_bundle_text",
                 content=_fact_bundle_text(memory, facts=facts),
                 dimensions=["facts", "entity_predicate_value"],
-                embedding_role="dense_sparse_fact_bridge",
+                embedding_role="canonical_fact_bridge",
             )
         )
     if _needs_conflict_guard(memory):
@@ -181,7 +255,7 @@ def compile_memory_surface_drafts(
                 surface_kind="conflict_guard_text",
                 content=_conflict_guard_text(memory),
                 dimensions=["conflict", "lifecycle"],
-                embedding_role="dense_sparse_conflict_detection",
+                embedding_role="support_lifecycle_conflict",
             )
         )
     return drafts
@@ -213,6 +287,7 @@ def compile_fact_surface_drafts(
                     "confidence": fact.confidence,
                     "salience": fact.salience,
                     "surface_origin": "memory_fact",
+                    "active_rank_eligible": True,
                 },
             ),
         )
@@ -235,9 +310,28 @@ def compile_graph_node_surface_draft(node: MemoryGraphNode) -> SurfaceDraft:
                 "node_key": node.node_key,
                 "node_type": node.node_type,
                 "surface_origin": "memory_graph_node",
+                "active_rank_eligible": True,
             },
         ),
     )
+
+
+def surface_retrieval_role(surface_kind: str) -> str:
+    if surface_kind in PRIMARY_CONTENT_SURFACE_KINDS:
+        return "primary_content"
+    if surface_kind in CANONICAL_FACT_SURFACE_KINDS:
+        return "canonical_fact"
+    if surface_kind == "session_summary":
+        return "episodic_context"
+    if surface_kind in ASSOCIATIVE_SURFACE_KINDS:
+        return "associative_graph"
+    if surface_kind in SUPPORT_SURFACE_KINDS:
+        return "supporting_context"
+    return "unknown"
+
+
+def surface_can_promote_active(surface_kind: str) -> bool:
+    return surface_retrieval_role(surface_kind) in PROMOTABLE_SURFACE_ROLES
 
 
 def _memory_surface(
@@ -247,6 +341,7 @@ def _memory_surface(
     content: str,
     dimensions: list[str],
     embedding_role: str,
+    surface_key_suffix: str | None = None,
 ) -> SurfaceDraft:
     return SurfaceDraft(
         target_type="memory",
@@ -258,14 +353,15 @@ def _memory_surface(
         source_session_id=memory.source_session_id,
         source_turn_id=memory.source_turn_id,
         source_message_id=memory.source_message_id,
+        surface_key_suffix=surface_key_suffix,
         metadata=_surface_metadata(
             dimensions=dimensions,
             embedding_role=embedding_role,
             extra={
                 "memory_type": memory.memory_type,
-                "confidence": memory.confidence,
-                "salience": memory.salience,
+                "memory_scope": memory.scope,
                 "surface_origin": "memory_record",
+                "surface_key_suffix": surface_key_suffix,
             },
         ),
     )
@@ -297,10 +393,6 @@ def _memory_text(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
             f"Scope: {memory.scope}",
             f"Status: {memory.status}",
             f"Content: {memory.content}",
-            f"Reason: {memory.reason_for_storage}",
-            f"Future use: {memory.expected_future_use or ''}",
-            f"Tags: {', '.join(memory.tags_json)}" if memory.tags_json else "",
-            fact_search_text(facts),
         ]
         if item
     )
@@ -312,11 +404,43 @@ def _type_specific_text(memory: MemoryRecord, *, dimension: str) -> str:
         for item in [
             f"{dimension.replace('_', ' ').title()} memory",
             f"Content: {memory.content}",
-            f"Why it matters: {memory.reason_for_storage}",
-            f"Expected future use: {memory.expected_future_use or ''}",
-            f"Tags: {', '.join(memory.tags_json)}" if memory.tags_json else "",
         ]
         if item
+    )
+
+
+def _content_chunks(content: str) -> list[str]:
+    normalized = " ".join(content.split())
+    if len(normalized) < 220:
+        return []
+    raw_parts = [
+        part.strip()
+        for part in re.split(r"(?<=[.!?;:])\s+|\n+", normalized)
+        if part.strip()
+    ]
+    chunks: list[str] = []
+    buffer = ""
+    for part in raw_parts:
+        candidate = f"{buffer} {part}".strip() if buffer else part
+        if len(candidate) <= 420:
+            buffer = candidate
+            continue
+        if buffer:
+            chunks.append(buffer)
+        buffer = part
+    if buffer:
+        chunks.append(buffer)
+    return chunks[:12]
+
+
+def _content_chunk_text(memory: MemoryRecord, *, chunk: str, index: int) -> str:
+    return "\n".join(
+        [
+            f"Memory {memory.id} content chunk {index}",
+            f"Type: {memory.memory_type}",
+            f"Scope: {memory.scope}",
+            f"Content chunk: {chunk}",
+        ]
     )
 
 

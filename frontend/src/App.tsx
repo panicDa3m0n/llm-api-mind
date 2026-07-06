@@ -68,7 +68,14 @@ type StepSummary = {
   notes: number;
 };
 
-type DashboardTab = "stream" | "memories" | "profile" | "settings";
+type DashboardTab =
+  | "memories"
+  | "actions"
+  | "model"
+  | "events"
+  | "warnings"
+  | "settings"
+  | "profile";
 
 type SettingsDraft = {
   timezone: string;
@@ -91,7 +98,7 @@ export function App() {
   const [lastTurn, setLastTurn] = useState<ChatTurn | null>(null);
   const [turnSteps, setTurnSteps] = useState<Record<string, AgentStep[]>>({});
   const [isStreaming, setIsStreaming] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>("stream");
+  const [activeTab, setActiveTab] = useState<DashboardTab>("actions");
   const [runtimeSettings, setRuntimeSettings] = useState<RuntimeSettings | null>(null);
   const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>({
     timezone: "Europe/Rome",
@@ -104,11 +111,13 @@ export function App() {
   const [memoryScope, setMemoryScope] = useState<"all" | "user" | "project">("all");
   const [dashboardMemories, setDashboardMemories] = useState<DashboardMemories | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const toolUseSeenRef = useRef(false);
+  const toolInputBlockIdsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     fetchHealth()
-      .then((result) => setHealth(`${result.status} - ${result.model}`))
+      .then((result) =>
+        setHealth(`${result.status} - ${result.model} - ${result.database.profile}`)
+      )
       .catch(() => setHealth("offline"));
     void refreshSessions();
     void refreshDashboardData();
@@ -344,7 +353,7 @@ export function App() {
       case "turn_started": {
         const userMessage = event.data.user_message as ChatMessage;
         const startedTurnId = String(event.data.turn_id);
-        toolUseSeenRef.current = false;
+        toolInputBlockIdsRef.current = {};
         setSelectedTurnId(startedTurnId);
         setTraces([]);
         setTurnSteps((current) => ({ ...current, [startedTurnId]: [] }));
@@ -365,6 +374,7 @@ export function App() {
           id: "runtime-start",
           kind: "runtime",
           seq: eventSeq(event),
+          phase: "completed",
           title: "Turn started",
           body: startedTurnId,
           status: "done"
@@ -391,6 +401,8 @@ export function App() {
           kind: "runtime",
           seq: eventSeq(event),
           modelStep: numericValue(event.data.step),
+          blockId: `model-${String(event.data.step ?? "1")}`,
+          phase: "streaming",
           title: `MiniMax request #${String(event.data.step ?? "1")}`,
           body: `model: ${String(event.data.model ?? "MiniMax-M3")}`,
           status: "active"
@@ -414,11 +426,40 @@ export function App() {
           id: `memory-context-${String(event.data.trace_id ?? "pending")}`,
           kind: "memory",
           seq: eventSeq(event),
+          blockId: `memory-context-${String(event.data.trace_id ?? "pending")}`,
+          phase: "completed",
           title: memoryContextTitle(payload),
           body: memoryContextSummary(payload),
           data: payload,
           status: "done"
         });
+        }
+        break;
+
+      case "metacognitive_context":
+        {
+          const payload = {
+            trace_id: event.data.trace_id,
+            schema_version: event.data.schema_version,
+            mode: event.data.mode,
+            model_facing: event.data.model_facing,
+            selection: event.data.selection,
+            triggers: event.data.triggers,
+            lessons: event.data.lessons,
+            runtime_inputs: event.data.runtime_inputs,
+            policy: event.data.policy
+          };
+          upsertStep(turnId, {
+            id: `metacognitive-context-${String(event.data.trace_id ?? "pending")}`,
+            kind: "metacognition",
+            seq: eventSeq(event),
+            blockId: `metacognitive-context-${String(event.data.trace_id ?? "pending")}`,
+            phase: "completed",
+            title: metacognitiveContextTitle(payload),
+            body: metacognitiveContextSummary(payload),
+            data: payload,
+            status: "done"
+          });
         }
         break;
 
@@ -434,6 +475,8 @@ export function App() {
             id: `runtime-context-${String(event.data.trace_id ?? "pending")}`,
             kind: "runtime",
             seq: eventSeq(event),
+            blockId: `runtime-context-${String(event.data.trace_id ?? "pending")}`,
+            phase: "completed",
             title: runtimeContextTitle(payload),
             body: runtimeContextSummary(payload),
             data: payload,
@@ -444,145 +487,228 @@ export function App() {
 
       case "thinking_start":
         upsertStep(turnId, {
-          id: `thinking-start-${String(event.data.model_step ?? "1")}-${String(
-            event.data.index ?? "0"
-          )}`,
-          kind: "runtime",
+          id: contentBlockStepId("thinking", event.data),
+          kind: "thinking",
           seq: eventSeq(event),
+          blockId: contentBlockStepId("thinking", event.data),
           modelStep: numericValue(event.data.model_step),
-          title: "Thinking block started",
-          body: `content block ${String(event.data.index ?? "0")}`,
-          status: "done"
+          phase: "streaming",
+          title: `Thinking - model step ${String(event.data.model_step ?? "1")}`,
+          body: "",
+          data: event.data,
+          status: "active"
         });
         break;
 
       case "thinking_delta":
         appendStepText(
           turnId,
-          `thinking-live-${String(event.data.model_step ?? "1")}-${String(
-            event.data.index ?? "0"
-          )}`,
+          contentBlockStepId("thinking", event.data),
           {
             kind: "thinking",
             seq: eventSeq(event),
             modelStep: numericValue(event.data.model_step),
+            blockId: contentBlockStepId("thinking", event.data),
+            phase: "streaming",
             title: `Thinking - model step ${String(event.data.model_step ?? "1")}`,
-            text: String(event.data.text ?? "")
+            text: String(event.data.text ?? ""),
+            data: event.data
           }
         );
         break;
 
-      case "tool_use_start":
-        toolUseSeenRef.current = true;
+      case "thinking_captured":
         upsertStep(turnId, {
-          id: `tool-use-start-${String(event.data.provider_tool_use_id ?? Date.now())}`,
-          kind: "tool",
+          id: contentBlockStepId("thinking", event.data),
+          kind: "thinking",
           seq: eventSeq(event),
+          blockId: contentBlockStepId("thinking", event.data),
           modelStep: numericValue(event.data.model_step),
-          title: `Prepare tool call: ${String(event.data.tool_name ?? "tool")}`,
-          body: `provider id: ${String(event.data.provider_tool_use_id ?? "pending")}`,
-          status: "active"
-        });
-        break;
-
-      case "tool_input_delta":
-        appendStepText(
-          turnId,
-          `tool-input-live-${String(event.data.model_step ?? "1")}-${String(
-            event.data.index ?? "0"
-          )}`,
-          {
-            kind: "tool",
-            seq: eventSeq(event),
-            modelStep: numericValue(event.data.model_step),
-            title: "Tool arguments stream",
-            text: String(event.data.partial_json ?? "")
-          }
-        );
-        break;
-
-      case "tool_call":
-        toolUseSeenRef.current = true;
-        upsertStep(turnId, {
-          id: `tool-call-${String(event.data.provider_tool_use_id ?? Date.now())}`,
-          kind: classifyToolStepKind(event.data.arguments),
-          seq: eventSeq(event),
-          modelStep: numericValue(event.data.model_step),
-          title: toolCallTitle(event.data.arguments, event.data.tool_name),
-          body: toolCallSummary(event.data.arguments),
+          phase: "captured",
+          title: `Thinking - model step ${String(event.data.model_step ?? "1")}`,
+          body: String(event.data.text ?? ""),
           data: event.data,
           status: "done"
         });
         break;
 
+      case "tool_use_start": {
+        const blockKey = streamBlockKey(event.data);
+        const toolStepId = toolStepIdFromProvider(event.data.provider_tool_use_id);
+        toolInputBlockIdsRef.current[blockKey] = toolStepId;
+        upsertStep(turnId, {
+          id: toolStepId,
+          kind: "tool",
+          seq: eventSeq(event),
+          blockId: toolStepId,
+          modelStep: numericValue(event.data.model_step),
+          phase: "created",
+          title: `Prepare tool call: ${String(event.data.tool_name ?? "tool")}`,
+          body: `provider id: ${String(event.data.provider_tool_use_id ?? "pending")}`,
+          data: {
+            ...event.data,
+            lifecycle_phase: "created"
+          },
+          status: "active"
+        });
+        break;
+      }
+
+      case "tool_input_delta":
+        appendStepText(
+          turnId,
+          toolInputBlockIdsRef.current[streamBlockKey(event.data)] ??
+            `tool-input-${String(event.data.model_step ?? "1")}-${String(
+              event.data.index ?? "0"
+            )}`,
+          {
+            kind: "tool",
+            seq: eventSeq(event),
+            modelStep: numericValue(event.data.model_step),
+            blockId:
+              toolInputBlockIdsRef.current[streamBlockKey(event.data)] ??
+              `tool-input-${String(event.data.model_step ?? "1")}-${String(
+                event.data.index ?? "0"
+              )}`,
+            phase: "streaming",
+            title: "Tool input in streaming",
+            text: String(event.data.partial_json ?? ""),
+            data: {
+              ...event.data,
+              lifecycle_phase: "streaming"
+            }
+          }
+        );
+        break;
+
+      case "tool_call":
+        upsertStep(turnId, {
+          id: toolStepIdFromProvider(event.data.provider_tool_use_id),
+          kind: classifyToolStepKind(event.data.arguments),
+          seq: eventSeq(event),
+          blockId: toolStepIdFromProvider(event.data.provider_tool_use_id),
+          modelStep: numericValue(event.data.model_step),
+          phase: "executing",
+          title: toolCallTitle(event.data.arguments, event.data.tool_name),
+          body: toolCallSummary(event.data.arguments),
+          data: {
+            ...event.data,
+            lifecycle_phase: "executing"
+          },
+          status: "active"
+        });
+        break;
+
       case "tool_result":
         upsertStep(turnId, {
-          id: `tool-result-${String(event.data.tool_call_id ?? Date.now())}`,
+          id: toolStepIdFromProvider(
+            event.data.provider_tool_use_id ?? event.data.tool_call_id
+          ),
           kind: classifyToolResultKind(event.data),
           seq: eventSeq(event),
+          blockId: toolStepIdFromProvider(
+            event.data.provider_tool_use_id ?? event.data.tool_call_id
+          ),
           modelStep: numericValue(event.data.model_step),
-          title: toolResultTitle(event.data),
+          phase: event.data.status === "error" ? "failed" : "completed",
+          title: toolCallTitle(event.data.arguments, event.data.tool_name),
           body: toolResultSummary(event.data),
-          data: event.data,
+          data: {
+            ...event.data,
+            lifecycle_phase: event.data.status === "error" ? "failed" : "completed"
+          },
           status: event.data.status === "error" ? "error" : "done"
         });
         break;
 
       case "text_start":
         upsertStep(turnId, {
-          id: `text-start-${String(event.data.model_step ?? "1")}-${String(
-            event.data.index ?? "0"
-          )}`,
-          kind: "runtime",
+          id: contentBlockStepId("content", event.data),
+          kind: "note",
           seq: eventSeq(event),
+          blockId: contentBlockStepId("content", event.data),
           modelStep: numericValue(event.data.model_step),
-          title: "Final text block started",
-          body: `content block ${String(event.data.index ?? "0")}`,
-          status: "done"
+          phase: "streaming",
+          title: "Testo pubblico in streaming",
+          body: "",
+          data: {
+            ...event.data,
+            provisional_kind: "assistant_public_text",
+            lifecycle_phase: "streaming"
+          },
+          status: "active"
         });
         break;
 
       case "text_delta": {
         const delta = String(event.data.text ?? "");
-        const isProgressNote =
-          !toolUseSeenRef.current && numericValue(event.data.model_step) === 1;
-        if (!isProgressNote) {
-          setMessages((current) =>
-            current.map((message) =>
-              message.id === `stream-assistant-${turnId}`
-                ? { ...message, content: `${message.content}${delta}` }
-                : message
-            )
-          );
-        }
         appendStepText(
           turnId,
-          `${isProgressNote ? "note" : "answer"}-live-${String(
-            event.data.model_step ?? "1"
-          )}-${String(
-            event.data.index ?? "0"
-          )}`,
+          contentBlockStepId("content", event.data),
           {
-            kind: isProgressNote ? "note" : "answer",
+            kind: "note",
             seq: eventSeq(event),
             modelStep: numericValue(event.data.model_step),
-            title: isProgressNote ? "Nota pubblica di lavoro" : "Risposta finale",
-            text: delta
+            blockId: contentBlockStepId("content", event.data),
+            phase: "streaming",
+            title: "Testo pubblico in streaming",
+            text: delta,
+            data: {
+              ...event.data,
+              provisional_kind: "assistant_public_text",
+              lifecycle_phase: "streaming"
+            }
           }
         );
         break;
       }
 
-      case "model_stop":
+      case "assistant_note":
         upsertStep(turnId, {
-          id: `model-stop-${String(event.data.seq ?? Date.now())}`,
-          kind: "runtime",
+          id: contentBlockStepId("content", event.data),
+          kind: "note",
           seq: eventSeq(event),
+          blockId: contentBlockStepId("content", event.data),
           modelStep: numericValue(event.data.model_step),
-          title: "Model step stopped",
-          body: String(event.data.stop_reason ?? "unknown"),
+          phase: "completed",
+          title: "Nota pubblica di lavoro",
+          body: String(event.data.text ?? ""),
+          data: {
+            ...event.data,
+            final_kind: "assistant_note",
+            lifecycle_phase: "completed"
+          },
           status: "done"
         });
+        break;
+
+      case "assistant_answer":
+        setMessages((current) =>
+          current.map((message) =>
+            message.id === `stream-assistant-${turnId}`
+              ? { ...message, content: String(event.data.text ?? "") }
+              : message
+          )
+        );
+        upsertStep(turnId, {
+          id: contentBlockStepId("content", event.data),
+          kind: "answer",
+          seq: eventSeq(event),
+          blockId: contentBlockStepId("content", event.data),
+          modelStep: numericValue(event.data.model_step),
+          phase: "completed",
+          title: "Risposta finale",
+          body: String(event.data.text ?? ""),
+          data: {
+            ...event.data,
+            final_kind: "assistant_answer",
+            lifecycle_phase: "completed"
+          },
+          status: "done"
+        });
+        break;
+
+      case "model_stop":
         break;
 
       case "turn_complete": {
@@ -605,6 +731,8 @@ export function App() {
           id: "runtime-complete",
           kind: "runtime",
           seq: eventSeq(event),
+          blockId: "runtime-complete",
+          phase: "persisted",
           title: "Turn persisted",
           body: `${turn.trace_ids.length} trace records`,
           status: "done"
@@ -614,10 +742,14 @@ export function App() {
           fetchTraces(turn.turn_id),
           fetchEvents({ turnId: turn.turn_id })
         ]).then(([loadedTraces, loadedEvents]) => {
+          const persistedSteps = stepsFromEvents(loadedEvents, loadedTraces);
           setTraces(loadedTraces);
           setTurnSteps((current) => ({
             ...current,
-            [turn.turn_id]: stepsFromEvents(loadedEvents, loadedTraces)
+            [turn.turn_id]: reconcileTurnSteps(
+              current[turn.turn_id] ?? [],
+              persistedSteps
+            )
           }));
         });
         void refreshSessions();
@@ -671,9 +803,12 @@ export function App() {
     next: {
       kind: AgentStep["kind"];
       seq: number;
+      blockId?: string;
       modelStep?: number;
+      phase?: AgentStep["phase"];
       title: string;
       text: string;
+      data?: Record<string, unknown>;
     }
   ) {
     setTurnSteps((current) => {
@@ -688,9 +823,12 @@ export function App() {
               id,
               kind: next.kind,
               seq: next.seq,
+              blockId: next.blockId ?? id,
               modelStep: next.modelStep,
+              phase: next.phase ?? "streaming",
               title: next.title,
               body: next.text,
+              data: next.data,
               status: "active"
             }
           ])
@@ -700,7 +838,22 @@ export function App() {
         ...current,
         [turnId]: sortSteps(
           steps.map((step) =>
-            step.id === id ? { ...step, body: `${step.body}${next.text}` } : step
+            step.id === id
+              ? {
+                  ...step,
+                  kind: next.kind,
+                  title: next.title || step.title,
+                  body: `${step.body}${next.text}`,
+                  blockId: next.blockId ?? step.blockId ?? id,
+                  modelStep: next.modelStep ?? step.modelStep,
+                  phase: next.phase ?? step.phase ?? "streaming",
+                  data: {
+                    ...(step.data ?? {}),
+                    ...(next.data ?? {})
+                  },
+                  status: "active"
+                }
+              : step
           )
         )
       };
@@ -711,7 +864,9 @@ export function App() {
     setTurnSteps((current) => ({
       ...current,
       [turnId]: (current[turnId] ?? []).map((step) =>
-        step.status === "active" ? { ...step, status: "done" } : step
+        step.status === "active"
+          ? { ...step, status: "done", phase: step.phase ?? "completed" }
+          : step
       )
     }));
   }
@@ -772,6 +927,10 @@ export function App() {
               <ShieldCheck size={14} aria-hidden="true" />
               {runtimeSettings?.country_label ?? "Italia"}
             </span>
+            <span>
+              <Database size={14} aria-hidden="true" />
+              {runtimeSettings?.database.profile ?? "prod"}
+            </span>
           </div>
           <small>
             Lingua {runtimeSettings?.language_label ?? "Italiano"} · Fonte:{" "}
@@ -823,10 +982,18 @@ export function App() {
             <button
               className="icon-command"
               type="button"
-              onClick={() => setActiveTab("stream")}
-              title="Apri stream agente"
+              onClick={() => setActiveTab("actions")}
+              title="Apri inspector sessione"
             >
               <PanelRight size={16} aria-hidden="true" />
+            </button>
+            <button
+              className="icon-command"
+              type="button"
+              onClick={() => setActiveTab("settings")}
+              title="Impostazioni e viste globali"
+            >
+              <Settings size={16} aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -838,35 +1005,11 @@ export function App() {
               <span>Apri una sessione o scrivi a Scarlet.</span>
             </div>
           ) : (
-            messages.map((message) => (
-              <article className={`message ${message.role}`} key={message.id}>
-                <div className="message-icon">
-                  {message.role === "user" ? (
-                    <UserRound size={16} aria-hidden="true" />
-                  ) : (
-                    <Bot size={16} aria-hidden="true" />
-                  )}
-                </div>
-                <div className="message-body">
-                  <div className="message-meta">
-                    <span>{message.role === "user" ? "Tu" : "Scarlet"}</span>
-                    {message.turn_id ? (
-                      <button
-                        type="button"
-                        className="link-button"
-                        onClick={() => loadTraces(message.turn_id!)}
-                      >
-                        evidenze
-                      </button>
-                    ) : null}
-                  </div>
-                  {message.role === "assistant" && message.turn_id ? (
-                    <AgentTimeline steps={turnSteps[message.turn_id] ?? []} />
-                  ) : null}
-                  <p>{message.content || (message.role === "assistant" ? "..." : "")}</p>
-                </div>
-              </article>
-            ))
+            <ConversationFlow
+              messages={messages}
+              onLoadTraces={loadTraces}
+              turnSteps={turnSteps}
+            />
           )}
         </div>
 
@@ -884,46 +1027,48 @@ export function App() {
         </form>
       </section>
 
-      <aside className="trace-pane" aria-label="Dashboard Scarlet">
+      <aside className="trace-pane" aria-label={dashboardSectionLabel(activeTab)}>
         <div className="pane-header compact">
           <div>
-            <div className="section-label">Dashboard</div>
+            <div className="section-label">{dashboardSectionLabel(activeTab)}</div>
             <h2>{dashboardTitle(activeTab, selectedTurnId)}</h2>
           </div>
-          <div className="dashboard-tabs" role="tablist" aria-label="Pannelli dashboard">
-            <TabButton
-              active={activeTab === "stream"}
-              icon={<Activity size={15} aria-hidden="true" />}
-              label="Stream"
-              onClick={() => setActiveTab("stream")}
-            />
-            <TabButton
+          <div className="dashboard-tabs" role="tablist" aria-label="Pannelli inspector sessione">
+          <TabButton
               active={activeTab === "memories"}
-              icon={<Archive size={15} aria-hidden="true" />}
+              icon={<BookOpen size={15} aria-hidden="true" />}
               label="Memorie"
               onClick={() => setActiveTab("memories")}
             />
             <TabButton
-              active={activeTab === "profile"}
-              icon={<UserCog size={15} aria-hidden="true" />}
-              label="Profilo"
-              onClick={() => setActiveTab("profile")}
+              active={activeTab === "actions"}
+              icon={<Activity size={15} aria-hidden="true" />}
+              label="Azioni"
+              onClick={() => setActiveTab("actions")}
             />
             <TabButton
-              active={activeTab === "settings"}
-              icon={<Settings size={15} aria-hidden="true" />}
-              label="Impost."
-              onClick={() => setActiveTab("settings")}
+              active={activeTab === "model"}
+              icon={<Gauge size={15} aria-hidden="true" />}
+              label="Modello"
+              onClick={() => setActiveTab("model")}
+            />
+            <TabButton
+              active={activeTab === "events"}
+              icon={<ListChecks size={15} aria-hidden="true" />}
+              label="Eventi"
+              onClick={() => setActiveTab("events")}
+            />
+            <TabButton
+              active={activeTab === "warnings"}
+              icon={<AlertTriangle size={15} aria-hidden="true" />}
+              label="Avvisi"
+              onClick={() => setActiveTab("warnings")}
             />
           </div>
         </div>
 
         <DashboardPanel
           activeTab={activeTab}
-          dashboardMemories={dashboardMemories}
-          memoryScope={memoryScope}
-          onMemoryScopeChange={(scope) => void handleMemoryScopeChange(scope)}
-          onRefreshDashboard={() => void refreshDashboardData()}
           runtimeSettings={runtimeSettings}
           selectedStepSummary={selectedStepSummary}
           selectedSteps={selectedSteps}
@@ -936,6 +1081,275 @@ export function App() {
         />
       </aside>
     </main>
+  );
+}
+
+function ConversationFlow({
+  messages,
+  onLoadTraces,
+  turnSteps
+}: {
+  messages: ChatMessage[];
+  onLoadTraces: (turnId: string) => void;
+  turnSteps: Record<string, AgentStep[]>;
+}) {
+  return (
+    <>
+      {messages.map((message) => {
+        if (message.role === "assistant") {
+          return (
+            <AssistantTurnBlocks
+              key={message.id}
+              message={message}
+              onLoadTraces={onLoadTraces}
+              steps={message.turn_id ? turnSteps[message.turn_id] ?? [] : []}
+            />
+          );
+        }
+        return (
+          <UserMessageBlock
+            key={message.id}
+            message={message}
+            onLoadTraces={onLoadTraces}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function UserMessageBlock({
+  message,
+  onLoadTraces
+}: {
+  message: ChatMessage;
+  onLoadTraces: (turnId: string) => void;
+}) {
+  return (
+    <article className="chat-flow-card user-message-block">
+      <div className="flow-card-icon">
+        <UserRound size={16} aria-hidden="true" />
+      </div>
+      <div className="flow-card-body">
+        <FlowCardHeader
+          label="Utente"
+          title="Tu"
+          badge={formatSessionTime(message.created_at)}
+          onInspect={message.turn_id ? () => onLoadTraces(message.turn_id!) : undefined}
+        />
+        <p>{message.content}</p>
+      </div>
+    </article>
+  );
+}
+
+function AssistantTurnBlocks({
+  message,
+  onLoadTraces,
+  steps
+}: {
+  message: ChatMessage;
+  onLoadTraces: (turnId: string) => void;
+  steps: AgentStep[];
+}) {
+  const visibleSteps = centerFlowSteps(steps);
+  const hasAnswerBlock = visibleSteps.some((step) => step.kind === "answer");
+  if (visibleSteps.length === 0) {
+    return (
+      <article className="chat-flow-card answer-flow-block">
+        <div className="flow-card-icon assistant">
+          <Bot size={16} aria-hidden="true" />
+        </div>
+        <div className="flow-card-body">
+          <FlowCardHeader
+            label="Risposta finale"
+            title="Scarlet"
+            badge={message.turn_id ? "evidenze" : undefined}
+            onInspect={message.turn_id ? () => onLoadTraces(message.turn_id!) : undefined}
+          />
+          <AnswerBlock text={message.content || "..."} data={message.metadata} />
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <section className="assistant-flow" aria-label="Blocchi risposta Scarlet">
+      {visibleSteps.map((step, index) => (
+        <FlowStepCard
+          index={index + 1}
+          key={step.id}
+          onInspect={message.turn_id ? () => onLoadTraces(message.turn_id!) : undefined}
+          step={step}
+        />
+      ))}
+      {!hasAnswerBlock && message.content ? (
+        <article className="chat-flow-card answer-flow-block">
+          <div className="flow-card-index">{visibleSteps.length + 1}</div>
+          <div className="flow-card-icon assistant">
+            <Bot size={16} aria-hidden="true" />
+          </div>
+          <div className="flow-card-body">
+            <FlowCardHeader
+              label="Risposta finale"
+              title="Scarlet"
+              badge="fallback"
+              onInspect={message.turn_id ? () => onLoadTraces(message.turn_id!) : undefined}
+            />
+            <AnswerBlock text={message.content} data={message.metadata} />
+          </div>
+        </article>
+      ) : null}
+    </section>
+  );
+}
+
+function FlowStepCard({
+  index,
+  onInspect,
+  step
+}: {
+  index: number;
+  onInspect?: () => void;
+  step: AgentStep;
+}) {
+  return (
+    <article className={`chat-flow-card flow-step-card ${step.kind} ${step.status}`}>
+      <div className="flow-card-index">{index}</div>
+      <div className="flow-card-icon">{stepIcon(step.kind)}</div>
+      <div className="flow-card-body">
+        <FlowCardHeader
+          label={stepKindLabel(step.kind)}
+          title={centerStepTitle(step)}
+          badge={stepBadge(step)}
+          onInspect={onInspect}
+        />
+        <CenterStepContent step={step} />
+      </div>
+    </article>
+  );
+}
+
+function FlowCardHeader({
+  badge,
+  label,
+  onInspect,
+  title
+}: {
+  badge?: string;
+  label: string;
+  onInspect?: () => void;
+  title: string;
+}) {
+  return (
+    <div className="flow-card-header">
+      <div>
+        <small>{label}</small>
+        <strong>{title}</strong>
+      </div>
+      <div className="flow-card-actions">
+        {badge ? <span>{badge}</span> : null}
+        {onInspect ? (
+          <button
+            className="mini-icon-button"
+            type="button"
+            onClick={onInspect}
+            title="Apri dettagli tecnici"
+          >
+            <Braces size={14} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function CenterStepContent({ step }: { step: AgentStep }) {
+  if (isToolExchangeStep(step)) {
+    return <ToolExchangeBlock step={step} />;
+  }
+  if (step.kind === "memory") {
+    return <CenterMemoryBlock data={step.data} fallback={step.body} />;
+  }
+  if (step.kind === "runtime" && recordArray(step.data?.blocks).length > 0) {
+    return <CenterRuntimeContextBlock data={step.data} fallback={step.body} />;
+  }
+  if (step.kind === "thinking") {
+    return <ThinkingBlock text={step.body} active={step.status === "active"} data={step.data} />;
+  }
+  if (step.kind === "note") {
+    return <PublicNoteBlock text={step.body} data={step.data} />;
+  }
+  if (step.kind === "answer") {
+    return <AnswerBlock text={step.body} data={step.data} />;
+  }
+  return <RuntimeEventBlock step={step} />;
+}
+
+function CenterMemoryBlock({
+  data,
+  fallback
+}: {
+  data?: Record<string, unknown>;
+  fallback: string;
+}) {
+  const selected = recordArray(data?.selected);
+  const nearMiss = recordArray(data?.near_miss);
+  const conflicts = recordArray(data?.conflicts);
+  return (
+    <div className="center-summary-block memory-summary-block">
+      <div className="summary-row">
+        <span>{selected.length} selezionate</span>
+        <span>{nearMiss.length} near miss</span>
+        <span>{conflicts.length} conflitti</span>
+      </div>
+      {selected.length > 0 ? (
+        <div className="compact-memory-list">
+          {selected.slice(0, 3).map((memory) => (
+            <CompactMemory memory={memory} key={stringValue(memory.id) || JSON.stringify(memory)} />
+          ))}
+        </div>
+      ) : (
+        <p>{fallback || "Nessuna memoria automatica selezionata per questo turno."}</p>
+      )}
+      <JsonDetails label="Dettaglio memoria automatica" value={data} />
+    </div>
+  );
+}
+
+function CenterRuntimeContextBlock({
+  data,
+  fallback
+}: {
+  data?: Record<string, unknown>;
+  fallback: string;
+}) {
+  const blocks = recordArray(data?.blocks);
+  const labels = blocks
+    .map((block) => runtimeBlockLabel(stringValue(block.type)))
+    .filter(Boolean);
+  return (
+    <div className="center-summary-block runtime-summary-block">
+      <div className="summary-row">
+        <span>{stringValue(data?.schema_version) || "runtime context"}</span>
+        <span>{blocks.length} blocchi</span>
+      </div>
+      <p>{labels.length > 0 ? labels.join(", ") : fallback}</p>
+      <details className="code-details">
+        <summary>
+          <span>Blocchi di contesto</span>
+          <Braces size={14} aria-hidden="true" />
+        </summary>
+        <div className="runtime-compact-list">
+          {blocks.map((block) => (
+            <RuntimeContextCard
+              block={block}
+              key={stringValue(block.id) || stringValue(block.type) || JSON.stringify(block)}
+            />
+          ))}
+        </div>
+      </details>
+    </div>
   );
 }
 
@@ -966,10 +1380,6 @@ function TabButton({
 
 function DashboardPanel({
   activeTab,
-  dashboardMemories,
-  memoryScope,
-  onMemoryScopeChange,
-  onRefreshDashboard,
   runtimeSettings,
   selectedStepSummary,
   selectedSteps,
@@ -981,10 +1391,6 @@ function DashboardPanel({
   onSettingsSave
 }: {
   activeTab: DashboardTab;
-  dashboardMemories: DashboardMemories | null;
-  memoryScope: "all" | "user" | "project";
-  onMemoryScopeChange: (scope: "all" | "user" | "project") => void;
-  onRefreshDashboard: () => void;
   runtimeSettings: RuntimeSettings | null;
   selectedStepSummary: StepSummary;
   selectedSteps: AgentStep[];
@@ -996,39 +1402,16 @@ function DashboardPanel({
   onSettingsSave: () => void;
 }) {
   if (activeTab === "memories") {
+    const memorySteps = selectedSteps.filter(
+      (step) => step.kind === "memory" || isMemoryToolStep(step)
+    );
     return (
-      <div className="dashboard-panel">
-        <div className="panel-toolbar">
-          <div>
-            <div className="section-label">Memoria semantica</div>
-            <h3>{dashboardMemories?.total ?? 0} memorie attive</h3>
-          </div>
-          <button className="icon-command" type="button" onClick={onRefreshDashboard} title="Aggiorna">
-            <RefreshCcw size={16} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="segmented-control">
-          {(["all", "user", "project"] as const).map((scope) => (
-            <button
-              className={memoryScope === scope ? "active" : ""}
-              key={scope}
-              type="button"
-              onClick={() => onMemoryScopeChange(scope)}
-            >
-              {scope === "all" ? "Tutte" : scope === "user" ? "Utente" : "Progetto"}
-            </button>
-          ))}
-        </div>
-        <div className="dashboard-scroll">
-          {dashboardMemories?.memories.length ? (
-            dashboardMemories.memories.map((memory) => (
-              <DashboardMemoryCard memory={memory} key={memory.id} />
-            ))
-          ) : (
-            <div className="empty-state">Nessuna memoria da mostrare.</div>
-          )}
-        </div>
-      </div>
+      <InspectorPanel
+        empty="Nessuna memoria usata nel turno selezionato."
+        steps={memorySteps}
+        title="Memorie della conversazione"
+        subtitle="Retrieval automatico e operazioni memoria usate da Scarlet"
+      />
     );
   }
 
@@ -1187,6 +1570,11 @@ function DashboardPanel({
             </label>
           </div>
           <div className="soft-note">
+            Database attivo:{" "}
+            <strong>{runtimeSettings?.database.profile ?? "prod"}</strong>
+            {runtimeSettings?.codex_test ? " · isolamento Codex test attivo" : ""}
+          </div>
+          <div className="soft-note">
             Questi valori entrano nel runtime context del prossimo turno. Scarlet li
             tratta come profilo attivo, confine privacy, locale operativo, fonte per
             ora reale e lingua predefinita.
@@ -1197,6 +1585,43 @@ function DashboardPanel({
           </button>
         </div>
       </div>
+    );
+  }
+
+  if (activeTab === "actions") {
+    return (
+      <InspectorPanel
+        empty="Nessuna azione tool nel turno selezionato."
+        steps={selectedSteps.filter((step) => isToolExchangeStep(step))}
+        title="Azioni agente"
+        subtitle="Tool call, session recall, schema, memoria e metacognizione"
+      />
+    );
+  }
+
+  if (activeTab === "model") {
+    return <ModelInputPanel traces={traces} />;
+  }
+
+  if (activeTab === "events") {
+    return (
+      <InspectorPanel
+        empty="Nessun evento interno nel turno selezionato."
+        steps={selectedSteps.filter((step) => isSystemEventStep(step))}
+        title="Eventi interni"
+        subtitle="Runtime, persistenza, manutenzione e segnali non mostrati nel centro chat"
+      />
+    );
+  }
+
+  if (activeTab === "warnings") {
+    return (
+      <InspectorPanel
+        empty="Nessun warning o errore nel turno selezionato."
+        steps={selectedSteps.filter((step) => step.status === "error")}
+        title="Warning ed errori"
+        subtitle="Errori tool, provider, manutenzione o runtime"
+      />
     );
   }
 
@@ -1238,6 +1663,349 @@ function DashboardPanel({
             )}
           </div>
         </details>
+      </div>
+    </div>
+  );
+}
+
+function ModelInputPanel({ traces }: { traces: TraceItem[] }) {
+  const requestTrace = latestTraceByKind(traces, "llm.request");
+  if (!requestTrace) {
+    return (
+      <div className="dashboard-panel">
+        <div className="empty-state">
+          Seleziona un turno completato per vedere l'input reale inviato al modello.
+        </div>
+      </div>
+    );
+  }
+
+  const payload = requestTrace.payload;
+  const providerMessages = recordArray(payload.provider_messages);
+  const tools = recordArray(payload.tools);
+  const stats = recordValue(payload.provider_message_stats) ?? {};
+  const runtimeContextText = stringValue(payload.runtime_context);
+  const parsedRuntimeContext = parseRuntimeContextEnvelope(runtimeContextText);
+  const compatibilityKeys = parsedRuntimeContext
+    ? runtimeCompatibilityKeys(parsedRuntimeContext)
+    : [];
+
+  return (
+    <div className="dashboard-panel model-input-panel">
+      <div className="panel-toolbar">
+        <div>
+          <div className="section-label">Input modello</div>
+          <h3>Richiesta effettiva a MiniMax</h3>
+          <p>System, runtime context, cronologia provider-native e schema tool.</p>
+        </div>
+        <span className="count-pill">{providerMessages.length} msg</span>
+      </div>
+
+      <div className="metrics event-metrics">
+        <Metric label="Modello" value={stringValue(payload.model) || "n/a"} />
+        <Metric label="Stream" value={String(Boolean(payload.stream))} />
+        <Metric label="Max token" value={stringValue(payload.max_tokens) || "default"} />
+        <Metric label="History" value={stringValue(payload.provider_history_source) || "n/a"} />
+        <Metric label="Blocchi" value={stringValue(stats.content_block_count) || "0"} />
+        <Metric label="Approx token" value={stringValue(stats.approx_tokens) || "n/a"} />
+      </div>
+
+      <div className="dashboard-scroll model-input-scroll">
+        <ModelSystemReadout payload={payload} />
+        <ModelRuntimeContextReadout
+          compatibilityKeys={compatibilityKeys}
+          raw={runtimeContextText}
+          runtimeContext={parsedRuntimeContext}
+        />
+        <ProviderMessagesReadout messages={providerMessages} stats={stats} />
+        <ToolSchemaReadout tools={tools} />
+        <JsonDetails label="Trace llm.request completa" value={payload} />
+      </div>
+    </div>
+  );
+}
+
+function ModelSystemReadout({ payload }: { payload: Record<string, unknown> }) {
+  const baseSystem = stringValue(payload.base_system);
+  const effectiveSystem = stringValue(payload.system);
+  const runtimeContext = stringValue(payload.runtime_context);
+  return (
+    <section className="model-section system-section">
+      <div className="model-section-header">
+        <div>
+          <small>Blocco model-facing</small>
+          <strong>System prompt + runtime context</strong>
+        </div>
+        <span>{stringValue(payload.system_source) || "system"}</span>
+      </div>
+      <div className="evidence-grid">
+        <EvidenceMetric label="Prompt base" value={`${baseSystem.length} chars`} />
+        <EvidenceMetric label="Runtime" value={`${runtimeContext.length} chars`} />
+        <EvidenceMetric label="System effettivo" value={`${effectiveSystem.length} chars`} />
+        <EvidenceMetric label="Prompt path" value={stringValue(payload.system_path)} />
+      </div>
+      <div className="soft-note">
+        MiniMax riceve un solo campo system: il prompt base di Scarlet seguito dal
+        blocco <code>&lt;runtime_context&gt;</code> generato dal backend.
+      </div>
+      <TextDetails label="Prompt base Scarlet" text={baseSystem} />
+      <TextDetails label="Runtime context iniettato nel system" text={runtimeContext} />
+      <TextDetails label="System completo inviato al modello" text={effectiveSystem} />
+    </section>
+  );
+}
+
+function ModelRuntimeContextReadout({
+  compatibilityKeys,
+  raw,
+  runtimeContext
+}: {
+  compatibilityKeys: string[];
+  raw: string;
+  runtimeContext: Record<string, unknown> | null;
+}) {
+  if (!runtimeContext) {
+    return (
+      <section className="model-section runtime-section">
+        <div className="model-section-header">
+          <div>
+            <small>Runtime context</small>
+            <strong>Parsing non disponibile</strong>
+          </div>
+        </div>
+        <div className="warning-note">
+          Il runtime context esiste nella trace, ma non e stato possibile leggerlo
+          come JSON strutturato.
+        </div>
+        <TextDetails label="Runtime context raw" text={raw} />
+      </section>
+    );
+  }
+
+  const blocks = recordArray(runtimeContext.blocks);
+  return (
+    <section className="model-section runtime-section">
+      <div className="model-section-header">
+        <div>
+          <small>Blocco model-facing</small>
+          <strong>Runtime context canonico</strong>
+        </div>
+        <span>{stringValue(runtimeContext.schema_version) || "runtime"}</span>
+      </div>
+      <div className="summary-row">
+        <span>{blocks.length} blocchi canonici</span>
+        <span>{compatibilityKeys.length} mirror compatibilita</span>
+        {stringValue(runtimeContext.generated_at) ? (
+          <span>{formatSessionTime(stringValue(runtimeContext.generated_at))}</span>
+        ) : null}
+      </div>
+      {compatibilityKeys.length > 0 ? (
+        <div className="soft-note">
+          Campi mirror ancora presenti per compatibilita: {compatibilityKeys.join(", ")}.
+          Sono dati model-facing duplicati rispetto ai blocchi e da valutare in una
+          futura ottimizzazione payload.
+        </div>
+      ) : null}
+      <RuntimeContextBlock data={runtimeContext} fallback="Runtime context model-facing" />
+    </section>
+  );
+}
+
+function ProviderMessagesReadout({
+  messages,
+  stats
+}: {
+  messages: Record<string, unknown>[];
+  stats: Record<string, unknown>;
+}) {
+  return (
+    <section className="model-section provider-section">
+      <div className="model-section-header">
+        <div>
+          <small>Blocco model-facing</small>
+          <strong>Cronologia provider-native</strong>
+        </div>
+        <span>{messages.length} messaggi</span>
+      </div>
+      <div className="evidence-grid">
+        <EvidenceMetric label="Content block" value={stringValue(stats.content_block_count)} />
+        <EvidenceMetric label="JSON chars" value={stringValue(stats.json_chars)} />
+        <EvidenceMetric label="Approx token" value={stringValue(stats.approx_tokens)} />
+      </div>
+      <div className="provider-message-list">
+        {messages.map((message, index) => (
+          <ProviderMessageCard
+            index={index + 1}
+            key={`${index}-${stringValue(message.role)}-${formatJson(message).length}`}
+            message={message}
+          />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ProviderMessageCard({
+  index,
+  message
+}: {
+  index: number;
+  message: Record<string, unknown>;
+}) {
+  const role = stringValue(message.role) || "message";
+  const contentBlocks = recordArray(message.content);
+  const textContent = stringValue(message.content);
+  return (
+    <details className="provider-message-card">
+      <summary>
+        <span className={`provider-role ${role}`}>{role}</span>
+        <strong>Messaggio {index}</strong>
+        <small>{contentBlocks.length || (textContent ? 1 : 0)} blocchi</small>
+      </summary>
+      {contentBlocks.length > 0 ? (
+        <div className="provider-content-list">
+          {contentBlocks.map((block, blockIndex) => (
+            <ProviderContentBlock
+              block={block}
+              index={blockIndex + 1}
+              key={`${blockIndex}-${stringValue(block.type)}-${formatJson(block).length}`}
+            />
+          ))}
+        </div>
+      ) : (
+        <p className="provider-text-content">{textContent || "Messaggio senza content leggibile."}</p>
+      )}
+      <JsonDetails label="Messaggio provider raw" value={message} />
+    </details>
+  );
+}
+
+function ProviderContentBlock({
+  block,
+  index
+}: {
+  block: Record<string, unknown>;
+  index: number;
+}) {
+  const type = stringValue(block.type) || "content";
+  return (
+    <article className={`provider-content-block ${type}`}>
+      <div className="provider-content-header">
+        <span>{index}</span>
+        <strong>{providerBlockLabel(type)}</strong>
+        <small>{providerBlockSummary(block)}</small>
+      </div>
+      <p>{providerBlockPreview(block)}</p>
+      <JsonDetails label="Blocco provider raw" value={block} />
+    </article>
+  );
+}
+
+function ToolSchemaReadout({ tools }: { tools: Record<string, unknown>[] }) {
+  return (
+    <section className="model-section tool-schema-section">
+      <div className="model-section-header">
+        <div>
+          <small>Blocco model-facing</small>
+          <strong>Schema tool disponibili</strong>
+        </div>
+        <span>{tools.length} tool</span>
+      </div>
+      {tools.length === 0 ? (
+        <div className="empty-state">Nessuno schema tool inviato al modello.</div>
+      ) : (
+        <div className="tool-schema-list">
+          {tools.map((tool, index) => (
+            <ToolSchemaCard index={index + 1} key={`${index}-${stringValue(tool.name)}`} tool={tool} />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function ToolSchemaCard({
+  index,
+  tool
+}: {
+  index: number;
+  tool: Record<string, unknown>;
+}) {
+  const inputSchema = recordValue(tool.input_schema) ?? {};
+  const properties = recordValue(inputSchema.properties) ?? {};
+  const required = arrayOfStrings(inputSchema.required);
+  return (
+    <details className="tool-schema-card">
+      <summary>
+        <span>{index}</span>
+        <strong>{stringValue(tool.name) || "tool"}</strong>
+        <small>{required.length} required</small>
+      </summary>
+      <p>{stringValue(tool.description) || "Nessuna descrizione."}</p>
+      <div className="schema-property-list">
+        {Object.entries(properties).map(([name, property]) => {
+          const propertyRecord = recordValue(property) ?? {};
+          return (
+            <div className="schema-property" key={name}>
+              <strong>
+                {name}
+                {required.includes(name) ? " *" : ""}
+              </strong>
+              <span>{stringValue(propertyRecord.type) || "value"}</span>
+              <p>{stringValue(propertyRecord.description) || "Parametro senza descrizione."}</p>
+            </div>
+          );
+        })}
+      </div>
+      <JsonDetails label="Schema tool raw" value={tool} />
+    </details>
+  );
+}
+
+function InspectorPanel({
+  empty,
+  steps,
+  subtitle,
+  title
+}: {
+  empty: string;
+  steps: AgentStep[];
+  subtitle: string;
+  title: string;
+}) {
+  const ordered = sortSteps(mergeAgentSteps(steps));
+  return (
+    <div className="dashboard-panel">
+      <div className="panel-toolbar">
+        <div>
+          <div className="section-label">Inspector sessione</div>
+          <h3>{title}</h3>
+          <p>{subtitle}</p>
+        </div>
+        <span className="count-pill">{ordered.length}</span>
+      </div>
+      <div className="dashboard-scroll inspector-list">
+        {ordered.length === 0 ? (
+          <div className="empty-state">{empty}</div>
+        ) : (
+          ordered.map((step, index) => (
+            <details className={`inspector-item ${step.kind} ${step.status}`} key={step.id}>
+              <summary>
+                <span className="inspector-index">{index + 1}</span>
+                <span className="inspector-icon">{stepIcon(step.kind)}</span>
+                <span className="inspector-summary">
+                  <small>{stepKindLabel(step.kind)}</small>
+                  <strong>{centerStepTitle(step)}</strong>
+                </span>
+                <span className="inspector-status">{step.phase || step.status}</span>
+              </summary>
+              <div className="inspector-body">
+                <AgentStepContent step={step} />
+                <JsonDetails label="Raw blocco" value={step.data ?? { body: step.body }} />
+              </div>
+            </details>
+          ))
+        )}
       </div>
     </div>
   );
@@ -1325,6 +2093,7 @@ function AgentTimeline({
                 </div>
                 <div className="operation-badges">
                   {step.modelStep ? <small>model {step.modelStep}</small> : null}
+                  {step.phase ? <small>{step.phase}</small> : null}
                   {step.data?.event_type ? <small>{stringValue(step.data.event_type)}</small> : null}
                   <small>{step.status}</small>
                 </div>
@@ -1348,20 +2117,26 @@ function StepStat({ label, value }: { label: string; value: number }) {
 }
 
 function AgentStepContent({ step }: { step: AgentStep }) {
+  if (isToolExchangeStep(step)) {
+    return <ToolExchangeBlock step={step} />;
+  }
   if (step.kind === "runtime" && recordArray(step.data?.blocks).length > 0) {
     return <RuntimeContextBlock data={step.data} fallback={step.body} />;
   }
   if (step.kind === "memory") {
     return <MemoryContextBlock data={step.data} fallback={step.body} />;
   }
+  if (
+    step.kind === "metacognition" &&
+    stringValue(step.data?.operation) === "metacognitive.context"
+  ) {
+    return <MetacognitiveContextBlock data={step.data} fallback={step.body} />;
+  }
   if (step.kind === "thinking") {
-    return <ThinkingBlock text={step.body} />;
+    return <ThinkingBlock text={step.body} active={step.status === "active"} data={step.data} />;
   }
   if (step.kind === "note") {
-    return <PublicNoteBlock text={step.body} />;
-  }
-  if (step.kind === "tool") {
-    return <ToolCallBlock data={step.data} fallback={step.body} />;
+    return <PublicNoteBlock text={step.body} data={step.data} />;
   }
   if (
     step.kind === "result" ||
@@ -1372,7 +2147,7 @@ function AgentStepContent({ step }: { step: AgentStep }) {
     return <ToolResultBlock data={step.data} fallback={step.body} />;
   }
   if (step.kind === "answer") {
-    return <AnswerBlock text={step.body} />;
+    return <AnswerBlock text={step.body} data={step.data} />;
   }
   return <RuntimeEventBlock step={step} />;
 }
@@ -1449,6 +2224,9 @@ function RuntimeBlockContent({
   }
   if (type === "scarlet_state") {
     return <ScarletStateReadout content={content} />;
+  }
+  if (type === "metacognitive_context") {
+    return <MetacognitiveRuntimeReadout content={content} />;
   }
   return <JsonDetails label="Dati blocco" value={content} />;
 }
@@ -1627,6 +2405,10 @@ function ScarletStateReadout({ content }: { content: Record<string, unknown> }) 
   );
 }
 
+function MetacognitiveRuntimeReadout({ content }: { content: Record<string, unknown> }) {
+  return <MetacognitiveLessonList data={content} compact />;
+}
+
 function SessionSummaryCard({ session }: { session: Record<string, unknown> }) {
   const summary = recordValue(session.summary);
   const memoryIds = arrayOfStrings(session.memory_ids);
@@ -1723,6 +2505,80 @@ function MemoryContextBlock({
   );
 }
 
+function MetacognitiveContextBlock({
+  data,
+  fallback
+}: {
+  data?: Record<string, unknown>;
+  fallback: string;
+}) {
+  if (!data) {
+    return <pre>{fallback || "..."}</pre>;
+  }
+  const mode = stringValue(data.mode) || "shadow";
+  const modelFacing = data.model_facing === true;
+  const selection = recordValue(data.selection);
+  const selectedCount =
+    numericValue(selection?.selected_count) ?? recordArray(data.lessons).length;
+
+  return (
+    <div className="structured-block metacognitive-context-block">
+      <div className="summary-row">
+        <span>{mode}</span>
+        <span>{modelFacing ? "inviato al modello" : "solo shadow/debug"}</span>
+        <span>{selectedCount} lezioni candidate</span>
+      </div>
+      <MetacognitiveLessonList data={data} />
+      <JsonDetails label="Metacognitive context JSON" value={data} />
+    </div>
+  );
+}
+
+function MetacognitiveLessonList({
+  data,
+  compact = false
+}: {
+  data: Record<string, unknown>;
+  compact?: boolean;
+}) {
+  const lessons = recordArray(data.lessons);
+  const triggers = recordArray(data.triggers);
+  if (lessons.length === 0) {
+    return (
+      <div className="soft-note">
+        Nessuna lezione metacognitiva selezionata per questo turno.
+      </div>
+    );
+  }
+  return (
+    <div className="metacognitive-lesson-list">
+      {lessons.slice(0, compact ? 2 : 5).map((lesson, index) => {
+        const trigger = recordValue(triggers[index]);
+        return (
+          <article
+            className="metacognitive-lesson-card"
+            key={stringValue(lesson.id) || JSON.stringify(lesson)}
+          >
+            <div className="context-card-header">
+              <div>
+                <small>{stringValue(trigger?.id) || "trigger"}</small>
+                <strong>{stringValue(lesson.title) || stringValue(lesson.id)}</strong>
+              </div>
+              {percentValue(lesson.confidence) ? (
+                <span>{percentValue(lesson.confidence)}</span>
+              ) : null}
+            </div>
+            <p>{truncate(stringValue(lesson.lesson), compact ? 220 : 360)}</p>
+            {!compact && stringValue(lesson.recommended_action) ? (
+              <div className="soft-note">{stringValue(lesson.recommended_action)}</div>
+            ) : null}
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 function MemoryCard({ memory }: { memory: Record<string, unknown> }) {
   const tags = arrayOfStrings(memory.tags).slice(0, 5);
   const facts = recordArray(memory.facts);
@@ -1756,24 +2612,56 @@ function MemoryCard({ memory }: { memory: Record<string, unknown> }) {
   );
 }
 
-function PublicNoteBlock({ text }: { text: string }) {
-  return <div className="public-note">{text.trim() || "..."}</div>;
+function PublicNoteBlock({
+  text,
+  data
+}: {
+  text: string;
+  data?: Record<string, unknown>;
+}) {
+  return (
+    <div className="public-note">
+      <p>{text.trim() || "..."}</p>
+      <BlockTechnicalDetails label="Dettagli nota" value={data} />
+    </div>
+  );
 }
 
-function ThinkingBlock({ text }: { text: string }) {
+function ThinkingBlock({
+  text,
+  active,
+  data
+}: {
+  text: string;
+  active: boolean;
+  data?: Record<string, unknown>;
+}) {
+  const preview = firstLine(text) || "Thinking in attesa...";
   return (
-    <details className="thinking-block">
+    <details className="thinking-block" open={active || undefined}>
       <summary>
-        <span>Reasoning stream</span>
-        <strong>{text.length} chars</strong>
+        <span>{preview}</span>
+        <strong>{active ? "stream" : `${text.length} chars`}</strong>
       </summary>
       <pre>{text.trim() || "..."}</pre>
+      <BlockTechnicalDetails label="Dettagli thinking" value={data} />
     </details>
   );
 }
 
-function AnswerBlock({ text }: { text: string }) {
-  return <div className="answer-block">{text.trim() || "..."}</div>;
+function AnswerBlock({
+  text,
+  data
+}: {
+  text: string;
+  data?: Record<string, unknown>;
+}) {
+  return (
+    <div className="answer-block">
+      <p>{text.trim() || "..."}</p>
+      <BlockTechnicalDetails label="Dettagli risposta" value={data} />
+    </div>
+  );
 }
 
 function RuntimeEventBlock({ step }: { step: AgentStep }) {
@@ -1812,32 +2700,65 @@ function RuntimeEventBlock({ step }: { step: AgentStep }) {
   );
 }
 
-function ToolCallBlock({
-  data,
-  fallback
-}: {
-  data?: Record<string, unknown>;
-  fallback: string;
-}) {
-  const source = recordValue(data?.arguments) ?? data;
+function ToolExchangeBlock({ step }: { step: AgentStep }) {
+  const data = step.data;
+  const fallback = step.body;
+  const argumentsPayload = recordValue(data?.arguments);
+  const source = argumentsPayload ?? data;
   if (!source) {
     return <pre>{fallback || "..."}</pre>;
   }
   const method = stringValue(source.method);
   const path = stringValue(source.path);
   const intent = stringValue(source.intent);
-  const body = recordValue(source.body);
+  const resultEnvelope = recordValue(data?.result);
+  const result = recordValue(resultEnvelope?.result);
+  const error = recordValue(resultEnvelope?.error);
+  const phase = step.phase || stringValue(data?.lifecycle_phase);
+  const statusLabel = phase || (step.status === "active" ? "in corso" : step.status);
+  const streamedInput = !argumentsPayload && fallback ? fallback : "";
+  const readableRoute = method || path ? (
+    <>
+      <span>{method || "CALL"}</span>
+      <code>{path || "unknown path"}</code>
+    </>
+  ) : (
+    <>
+      <span>CALL</span>
+      <code>preparazione input</code>
+    </>
+  );
   return (
-    <div className="structured-block tool-block">
-      <div className="tool-route">
-        <span>{method || "CALL"}</span>
-        <code>{path || "unknown path"}</code>
+    <details className={`tool-exchange ${step.status}`}>
+      <summary>
+        <span className="tool-route">{readableRoute}</span>
+        <strong>{statusLabel}</strong>
+      </summary>
+      <div className="tool-exchange-body">
+        {intent ? <p className="tool-intent">{intent}</p> : null}
+        {resultEnvelope ? (
+          <div className="tool-readable-output">
+            <ResultSummary result={result} error={error} fallback={fallback} />
+          </div>
+        ) : (
+          <div className="soft-note">
+            {streamedInput
+              ? "Scarlet sta componendo gli argomenti della chiamata."
+              : "Chiamata preparata. Output non ancora disponibile."}
+          </div>
+        )}
+        <div className="tool-panes">
+          <section>
+            <strong>Input completo</strong>
+            <pre>{streamedInput || formatJson(source)}</pre>
+          </section>
+          <section>
+            <strong>Output completo</strong>
+            <pre>{resultEnvelope ? formatJson(resultEnvelope) : "In attesa del risultato."}</pre>
+          </section>
+        </div>
       </div>
-      {intent ? <p>{intent}</p> : null}
-      {body && Object.keys(body).length > 0 ? (
-        <JsonDetails label="Parametri tecnici" value={body} />
-      ) : null}
-    </div>
+    </details>
   );
 }
 
@@ -2058,6 +2979,18 @@ function JsonDetails({
   );
 }
 
+function TextDetails({ label, text }: { label: string; text: string }) {
+  return (
+    <details className="code-details">
+      <summary>
+        <span>{label}</span>
+        <Braces size={14} aria-hidden="true" />
+      </summary>
+      <pre>{text || "..."}</pre>
+    </details>
+  );
+}
+
 function ClaimList({ items }: { items: Record<string, unknown>[] }) {
   if (items.length === 0) {
     return null;
@@ -2171,6 +3104,12 @@ function stepKindLabel(kind: AgentStep["kind"]): string {
   return "Runtime";
 }
 
+function stepBadge(step: AgentStep): string {
+  const phase = step.phase || stringValue(step.data?.lifecycle_phase);
+  const model = step.modelStep ? `model ${step.modelStep}` : "";
+  return [model, phase || step.status].filter(Boolean).join(" / ");
+}
+
 function runtimeBlockLabel(type: string): string {
   if (type === "session_context") {
     return "Contesto sessione";
@@ -2181,20 +3120,42 @@ function runtimeBlockLabel(type: string): string {
   if (type === "scarlet_state") {
     return "Stato Scarlet";
   }
+  if (type === "metacognitive_context") {
+    return "Metacognitive context";
+  }
   return "Runtime context";
 }
 
 function dashboardTitle(tab: DashboardTab, selectedTurnId: string | null): string {
-  if (tab === "stream") {
-    return selectedTurnId ?? "stream non selezionato";
-  }
   if (tab === "memories") {
-    return "memorie semantiche";
+    return "memorie della chat";
+  }
+  if (tab === "actions") {
+    return "azioni agente";
+  }
+  if (tab === "model") {
+    return "input modello";
+  }
+  if (tab === "events") {
+    return "eventi sistema";
+  }
+  if (tab === "warnings") {
+    return "warning";
   }
   if (tab === "profile") {
     return "profilo utente";
   }
   return "impostazioni";
+}
+
+function dashboardSectionLabel(tab: DashboardTab): string {
+  if (tab === "settings" || tab === "profile") {
+    return "Centro controllo Scarlet";
+  }
+  if (tab === "model") {
+    return "Inspector modello";
+  }
+  return "Inspector sessione";
 }
 
 function memoryContextTitle(data: Record<string, unknown>): string {
@@ -2216,6 +3177,28 @@ function memoryContextSummary(data: Record<string, unknown>): string {
     return "Nessuna memoria persistente selezionata per questo turno.";
   }
   return "Contesto memoria calcolato.";
+}
+
+function metacognitiveContextTitle(data: Record<string, unknown>): string {
+  const mode = stringValue(data.mode) || "shadow";
+  const selection = recordValue(data.selection);
+  const count = numericValue(selection?.selected_count) ?? recordArray(data.lessons).length;
+  if (data.model_facing === true) {
+    return `Metacognitive context (${count})`;
+  }
+  return `Shadow metacognitivo ${mode} (${count})`;
+}
+
+function metacognitiveContextSummary(data: Record<string, unknown>): string {
+  const selection = recordValue(data.selection);
+  const count = numericValue(selection?.selected_count) ?? recordArray(data.lessons).length;
+  if (count === 0) {
+    return "Nessuna lezione metacognitiva selezionata.";
+  }
+  if (data.model_facing === true) {
+    return `${count} lezioni candidate iniettate nel runtime context per test controllato.`;
+  }
+  return `${count} lezioni candidate generate per osservazione, non iniettate nel modello.`;
 }
 
 function runtimeContextTitle(data: Record<string, unknown>): string {
@@ -2370,6 +3353,59 @@ function toolResultSummary(value: unknown): string {
   return formatJson(source?.result ?? value);
 }
 
+function centerFlowSteps(steps: AgentStep[]): AgentStep[] {
+  return sortSteps(mergeAgentSteps(steps)).filter((step) => {
+    if (step.kind === "answer" || step.kind === "note" || step.kind === "thinking") {
+      return true;
+    }
+    if (isToolExchangeStep(step)) {
+      return true;
+    }
+    if (step.kind === "memory" && !isToolExchangeStep(step)) {
+      return true;
+    }
+    if (
+      step.kind === "metacognition" &&
+      stringValue(step.data?.operation) === "metacognitive.context"
+    ) {
+      return true;
+    }
+    return step.kind === "runtime" && recordArray(step.data?.blocks).length > 0;
+  });
+}
+
+function centerStepTitle(step: AgentStep): string {
+  if (isToolExchangeStep(step)) {
+    const args = recordValue(step.data?.arguments) ?? step.data;
+    return toolCallTitle(args, step.data?.tool_name ?? "mind_api");
+  }
+  if (step.kind === "memory" && !isToolExchangeStep(step)) {
+    return "Memorie automatiche del turno";
+  }
+  if (
+    step.kind === "metacognition" &&
+    stringValue(step.data?.operation) === "metacognitive.context"
+  ) {
+    return "Shadow metacognitivo";
+  }
+  if (step.kind === "runtime" && recordArray(step.data?.blocks).length > 0) {
+    return "Contesto iniziale di Scarlet";
+  }
+  return step.title;
+}
+
+function isMemoryToolStep(step: AgentStep): boolean {
+  const args = recordValue(step.data?.arguments);
+  return stringValue(args?.path).includes("/mind/memory");
+}
+
+function isSystemEventStep(step: AgentStep): boolean {
+  if (centerFlowSteps([step]).length > 0) {
+    return false;
+  }
+  return step.kind === "runtime" || !isToolExchangeStep(step);
+}
+
 function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
   const steps: AgentStep[] = [];
   let seq = 1;
@@ -2389,6 +3425,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         id: `trace-memory-context-${trace.id}`,
         kind: "memory",
         seq: seq++,
+        blockId: `memory-context-${trace.id}`,
+        phase: "persisted",
         title: memoryContextTitle(payload),
         body: memoryContextSummary(payload),
         data: payload,
@@ -2401,6 +3439,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         id: `trace-runtime-context-${trace.id}`,
         kind: "runtime",
         seq: seq++,
+        blockId: `runtime-context-${trace.id}`,
+        phase: "persisted",
         title: runtimeContextTitle(trace.payload),
         body: runtimeContextSummary(trace.payload),
         data: trace.payload,
@@ -2413,6 +3453,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         id: `trace-request-${trace.id}`,
         kind: "runtime",
         seq: seq++,
+        blockId: `model-request-${trace.id}`,
+        phase: "persisted",
         title: "Persisted model request",
         body: `tools: ${Array.isArray(trace.payload.tools) ? trace.payload.tools.length : 0}`,
         status: "done"
@@ -2434,6 +3476,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         id: `trace-tool-${trace.id}`,
         kind: classifyToolStepKind(argumentsPayload),
         seq: seq++,
+        blockId: toolStepIdFromProvider(trace.payload.provider_tool_use_id),
+        phase: "executing",
         title: toolCallTitle(argumentsPayload, trace.payload.tool_name),
         body: toolCallSummary(argumentsPayload),
         data: {
@@ -2446,6 +3490,8 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         id: `trace-result-${trace.id}`,
         kind: classifyToolResultKind(resultPayload),
         seq: seq++,
+        blockId: toolStepIdFromProvider(trace.payload.provider_tool_use_id),
+        phase: trace.payload.status === "error" ? "failed" : "completed",
         title: toolResultTitle(resultPayload),
         body: toolResultSummary(resultPayload),
         data: resultPayload,
@@ -2463,6 +3509,10 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
             id: `trace-thinking-${trace.id}-${steps.length}`,
             kind: "thinking",
             seq: seq++,
+            blockId: `thinking-${String(responseStep.block.model_step ?? "trace")}-${String(
+              responseStep.block.index ?? steps.length
+            )}`,
+            phase: "persisted",
             title: "Provider thinking block",
             body: responseStep.block.thinking,
             status: "done"
@@ -2477,6 +3527,10 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
             id: `trace-${isProgressNote ? "note" : "answer"}-${trace.id}-${steps.length}`,
             kind: isProgressNote ? "note" : "answer",
             seq: seq++,
+            blockId: `content-${String(responseStep.block.model_step ?? "trace")}-${String(
+              responseStep.block.index ?? steps.length
+            )}`,
+            phase: "persisted",
             title: isProgressNote ? "Nota pubblica di lavoro" : "Risposta finale",
             body: responseStep.block.text,
             status: "done"
@@ -2486,7 +3540,7 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
     }
   }
 
-  return sortSteps(steps);
+  return sortSteps(mergeAgentSteps(steps));
 }
 
 function stepsFromEvents(
@@ -2498,15 +3552,18 @@ function stepsFromEvents(
   }
 
   const steps = events
-    .map((event) => stepFromEvent(event))
+    .map((event) => stepFromEvent(event, undefined, fallbackTraces))
     .filter((step): step is AgentStep => Boolean(step));
 
-  return sortSteps(steps.length > 0 ? steps : stepsFromTraces(fallbackTraces));
+  return sortSteps(
+    mergeAgentSteps(steps.length > 0 ? steps : stepsFromTraces(fallbackTraces))
+  );
 }
 
 function stepFromEvent(
   event: CognitiveEvent,
-  seqOverride?: number
+  seqOverride?: number,
+  fallbackTraces: TraceItem[] = []
 ): AgentStep | null {
   const payload = event.payload ?? {};
   const base = {
@@ -2519,6 +3576,8 @@ function stepFromEvent(
       id: event.id,
       kind: "memory",
       ...base,
+      blockId: `memory-context-${String(payload.trace_id ?? event.id)}`,
+      phase: "persisted",
       title: memoryContextTitle(payload),
       body: memoryContextSummary(payload),
       data: payload
@@ -2530,18 +3589,38 @@ function stepFromEvent(
       id: event.id,
       kind: "runtime",
       ...base,
+      blockId: `runtime-context-${String(payload.trace_id ?? event.id)}`,
+      phase: "persisted",
       title: runtimeContextTitle(payload),
       body: runtimeContextSummary(payload),
       data: payload
     };
   }
 
-  if (event.type === "mind.tool_call.started") {
+  if (
+    event.type === "metacognitive.context.shadowed" ||
+    event.type === "metacognitive.context.injected"
+  ) {
     return {
       id: event.id,
+      kind: "metacognition",
+      ...base,
+      blockId: `metacognitive-context-${String(payload.trace_id ?? event.id)}`,
+      phase: "persisted",
+      title: metacognitiveContextTitle(payload),
+      body: metacognitiveContextSummary(payload),
+      data: payload
+    };
+  }
+
+  if (event.type === "mind.tool_call.started") {
+    return {
+      id: toolStepIdFromProvider(payload.provider_tool_use_id),
       kind: classifyToolStepKind(payload.arguments),
       ...base,
-      status: "done",
+      blockId: toolStepIdFromProvider(payload.provider_tool_use_id),
+      phase: "created",
+      status: "active",
       title: toolCallTitle(payload.arguments, "mind_api"),
       body: toolCallSummary(payload.arguments),
       data: {
@@ -2557,34 +3636,79 @@ function stepFromEvent(
     event.type === "mind.tool_call.completed" ||
     event.type === "mind.tool_call.failed"
   ) {
+    const trace = matchingToolTrace(event, fallbackTraces);
+    const tracePayload = trace?.payload ?? {};
+    const argumentsPayload =
+      recordValue(payload.arguments) ?? recordValue(tracePayload.arguments) ?? {};
+    const fullResult = tracePayload.result ?? {
+      ok: event.type === "mind.tool_call.completed",
+      result: payload.result_summary
+    };
     const resultPayload = {
       tool_name: "mind_api",
-      arguments: payload.arguments,
-      result: {
-        ok: event.type === "mind.tool_call.completed",
-        result: payload.result_summary
-      },
-      status: event.status,
-      latency_ms: payload.latency_ms,
-      tool_call_id: event.tool_call_id,
+      arguments: argumentsPayload,
+      provider_tool_use_id:
+        payload.provider_tool_use_id ?? tracePayload.provider_tool_use_id ?? event.tool_call_id,
+      result: fullResult,
+      result_summary: payload.result_summary,
+      status: tracePayload.status ?? event.status,
+      latency_ms: tracePayload.latency_ms ?? payload.latency_ms,
+      tool_call_id: event.tool_call_id ?? tracePayload.tool_call_id,
+      trace_id: trace?.id,
       event_type: event.type,
       event_seq: event.seq
     };
     return {
-      id: event.id,
+      id: toolStepIdFromProvider(payload.provider_tool_use_id ?? event.tool_call_id),
       kind: classifyToolResultKind(resultPayload),
       ...base,
-      title: toolResultTitle(resultPayload),
+      blockId: toolStepIdFromProvider(payload.provider_tool_use_id ?? event.tool_call_id),
+      phase: event.type === "mind.tool_call.failed" ? "failed" : "completed",
+      title: toolCallTitle(argumentsPayload, "mind_api"),
       body: toolResultSummary(resultPayload),
       data: resultPayload
     };
   }
 
+  if (
+    event.type === "mind.tool_use.started" ||
+    event.type === "mind.tool_call.requested" ||
+    event.type === "mind.tool_call.result_returned" ||
+    event.type === "llm.request.started" ||
+    event.type === "llm.request.stopped" ||
+    event.type === "llm.text.started" ||
+    event.type === "llm.thinking.started" ||
+    event.type === "llm.response.completed" ||
+    event.type === "message.user.persisted" ||
+    event.type === "message.assistant.persisted"
+  ) {
+    return null;
+  }
+
+  if (event.type === "llm.thinking.captured") {
+    const thinkingText =
+      stringValue(payload.text) || recoverThinkingTextFromTraces(payload, fallbackTraces);
+    return {
+      id: contentBlockStepId("thinking", payload),
+      kind: "thinking",
+      ...base,
+      blockId: contentBlockStepId("thinking", payload),
+      phase: "captured",
+      modelStep: numericValue(payload.model_step),
+      title: `Thinking - model step ${stringValue(payload.model_step) || "?"}`,
+      body: thinkingText,
+      data: payload
+    };
+  }
+
   if (event.type === "assistant.note.emitted") {
     return {
-      id: event.id,
+      id: contentBlockStepId("content", payload),
       kind: "note",
       ...base,
+      blockId: contentBlockStepId("content", payload),
+      phase: "completed",
+      modelStep: numericValue(payload.model_step),
       title: "Nota pubblica di lavoro",
       body: stringValue(payload.text) || "",
       data: payload
@@ -2593,9 +3717,12 @@ function stepFromEvent(
 
   if (event.type === "assistant.answer.completed") {
     return {
-      id: event.id,
+      id: contentBlockStepId("content", payload),
       kind: "answer",
       ...base,
+      blockId: contentBlockStepId("content", payload),
+      phase: "completed",
+      modelStep: numericValue(payload.model_step),
       title: "Risposta finale",
       body: stringValue(payload.text) || "",
       data: payload
@@ -2606,6 +3733,8 @@ function stepFromEvent(
     id: event.id,
     kind: "runtime",
     ...base,
+    blockId: event.id,
+    phase: base.status === "error" ? "failed" : "persisted",
     title: eventTitle(event),
     body: eventSummary(event),
     data: {
@@ -2649,6 +3778,65 @@ function responseStepsFromTrace(
     }
   }
   return steps;
+}
+
+function recoverThinkingTextFromTraces(
+  payload: Record<string, unknown>,
+  traces: TraceItem[]
+): string {
+  const providerMessageId = stringValue(payload.provider_message_id);
+  const preferredIndex = numericValue(payload.index);
+
+  for (const trace of traces) {
+    if (trace.kind !== "llm.response") {
+      continue;
+    }
+    const rawMessages = recordArray(trace.payload.raw_provider_messages);
+    for (const rawMessage of rawMessages) {
+      const message = recordValue(rawMessage);
+      if (!message) {
+        continue;
+      }
+      if (
+        providerMessageId &&
+        stringValue(message.id) &&
+        stringValue(message.id) !== providerMessageId
+      ) {
+        continue;
+      }
+      const content = recordArray(message.content);
+      if (typeof preferredIndex === "number") {
+        const indexed = recordValue(content[preferredIndex]);
+        const thinking = stringValue(indexed?.thinking);
+        if (thinking) {
+          return thinking;
+        }
+      }
+      for (const block of content) {
+        const record = recordValue(block);
+        const thinking = stringValue(record?.thinking);
+        if (record?.type === "thinking" && thinking) {
+          return thinking;
+        }
+      }
+    }
+  }
+  return "";
+}
+
+function matchingToolTrace(event: CognitiveEvent, traces: TraceItem[]): TraceItem | undefined {
+  const payload = event.payload ?? {};
+  const toolCallId = event.tool_call_id;
+  const providerToolUseId = stringValue(payload.provider_tool_use_id);
+  return traces.find((trace) => {
+    if (trace.kind !== "mind.tool_call") {
+      return false;
+    }
+    return (
+      (toolCallId && stringValue(trace.payload.tool_call_id) === toolCallId) ||
+      (providerToolUseId && stringValue(trace.payload.provider_tool_use_id) === providerToolUseId)
+    );
+  });
 }
 
 function eventTitle(event: CognitiveEvent): string {
@@ -2705,6 +3893,12 @@ function eventTitle(event: CognitiveEvent): string {
   }
   if (event.type === "maintenance.memory_review.completed") {
     return "Review memorie mancate";
+  }
+  if (event.type === "metacognitive.context.shadowed") {
+    return "Shadow metacognitivo generato";
+  }
+  if (event.type === "metacognitive.context.injected") {
+    return "Metacognitive context iniettato";
   }
   return event.type;
 }
@@ -2827,11 +4021,93 @@ function eventSummary(event: CognitiveEvent): string {
       .filter(Boolean)
       .join(" - ");
   }
+  if (
+    event.type === "metacognitive.context.shadowed" ||
+    event.type === "metacognitive.context.injected"
+  ) {
+    const selection = recordValue(payload.selection);
+    const lessons = numericValue(selection?.selected_count) ?? recordArray(payload.lessons).length;
+    return [
+      stringValue(payload.mode),
+      `${lessons} lezioni`,
+      payload.model_facing === true ? "model-facing" : "debug-only"
+    ]
+      .filter(Boolean)
+      .join(" - ");
+  }
   return formatJson(payload);
 }
 
 function sortSteps(steps: AgentStep[]): AgentStep[] {
   return [...steps].sort((left, right) => left.seq - right.seq);
+}
+
+function mergeAgentSteps(steps: AgentStep[]): AgentStep[] {
+  const merged = new Map<string, AgentStep>();
+  for (const step of sortSteps(steps)) {
+    const existing = merged.get(step.id);
+    if (!existing) {
+      merged.set(step.id, step);
+      continue;
+    }
+    merged.set(step.id, {
+      ...existing,
+      ...step,
+      seq: Math.min(existing.seq, step.seq),
+      title: step.title || existing.title,
+      body: step.body || existing.body,
+      data: {
+        ...(existing.data ?? {}),
+        ...(step.data ?? {})
+      },
+      status: step.status === "error" ? "error" : step.status
+    });
+  }
+  return [...merged.values()];
+}
+
+function reconcileTurnSteps(liveSteps: AgentStep[], persistedSteps: AgentStep[]): AgentStep[] {
+  if (persistedSteps.length === 0) {
+    return sortSteps(liveSteps);
+  }
+  const usedLiveIds = new Set<string>();
+  const reconciled = persistedSteps.map((persisted) => {
+    const live = liveSteps.find((candidate) => {
+      if (usedLiveIds.has(candidate.id)) {
+        return false;
+      }
+      return (
+        candidate.id === persisted.id ||
+        Boolean(candidate.blockId && candidate.blockId === persisted.blockId) ||
+        Boolean(candidate.blockId && candidate.blockId === persisted.id) ||
+        Boolean(persisted.blockId && persisted.blockId === candidate.id)
+      );
+    });
+    if (!live) {
+      return {
+        ...persisted,
+        phase: persisted.phase ?? "persisted"
+      };
+    }
+    usedLiveIds.add(live.id);
+    return {
+      ...live,
+      ...persisted,
+      seq: Math.min(live.seq, persisted.seq),
+      blockId: persisted.blockId ?? live.blockId,
+      phase: persisted.phase ?? "persisted",
+      body: persisted.body || live.body,
+      data: {
+        ...(live.data ?? {}),
+        ...(persisted.data ?? {})
+      },
+      status: persisted.status
+    };
+  });
+  const orphanLiveSteps = liveSteps.filter(
+    (step) => step.status === "active" && !usedLiveIds.has(step.id)
+  );
+  return sortSteps(mergeAgentSteps([...reconciled, ...orphanLiveSteps]));
 }
 
 function summarizeSteps(steps: AgentStep[]): StepSummary {
@@ -2875,6 +4151,51 @@ function summarizeSteps(steps: AgentStep[]): StepSummary {
 
 function eventSeq(event: StreamEvent): number {
   return numericValue(event.data.seq) ?? Date.now();
+}
+
+function contentBlockStepId(prefix: "thinking" | "content", data: Record<string, unknown>): string {
+  return `${prefix}-${String(data.model_step ?? "1")}-${String(data.index ?? "0")}`;
+}
+
+function toolStepIdFromProvider(value: unknown): string {
+  return `tool-${String(value || "pending")}`;
+}
+
+function streamBlockKey(data: Record<string, unknown>): string {
+  return `${String(data.model_step ?? "1")}-${String(data.index ?? "0")}`;
+}
+
+function isToolExchangeStep(step: AgentStep): boolean {
+  if (
+    ![
+      "tool",
+      "result",
+      "schema",
+      "session",
+      "metacognition",
+      "memory"
+    ].includes(step.kind)
+  ) {
+    return false;
+  }
+  return Boolean(recordValue(step.data?.arguments) || step.data?.provider_tool_use_id);
+}
+
+function firstLine(text: string): string {
+  return truncate(text.trim().split(/\r?\n/).find(Boolean) || "", 140);
+}
+
+function BlockTechnicalDetails({
+  label,
+  value
+}: {
+  label: string;
+  value: unknown;
+}) {
+  if (!value || (isRecord(value) && Object.keys(value).length === 0)) {
+    return null;
+  }
+  return <JsonDetails label={label} value={value} />;
 }
 
 function numericValue(value: unknown): number | undefined {
@@ -2930,6 +4251,90 @@ function countCapabilityStatus(
     return 0;
   }
   return Object.values(capabilities).filter((value) => value === status).length;
+}
+
+function latestTraceByKind(traces: TraceItem[], kind: string): TraceItem | null {
+  for (let index = traces.length - 1; index >= 0; index -= 1) {
+    if (traces[index].kind === kind) {
+      return traces[index];
+    }
+  }
+  return null;
+}
+
+function parseRuntimeContextEnvelope(value: string): Record<string, unknown> | null {
+  if (!value.trim()) {
+    return null;
+  }
+  const match = value.match(/<runtime_context>\s*([\s\S]*?)\s*<\/runtime_context>/);
+  const rawJson = match ? match[1] : value;
+  try {
+    const parsed = JSON.parse(rawJson);
+    return recordValue(parsed) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function runtimeCompatibilityKeys(runtimeContext: Record<string, unknown>): string[] {
+  return [
+    "memory_context",
+    "mind_schema",
+    "temporal_context",
+    "recent_runtime_events",
+    "capabilities"
+  ].filter((key) => Object.prototype.hasOwnProperty.call(runtimeContext, key));
+}
+
+function providerBlockLabel(type: string): string {
+  if (type === "thinking") {
+    return "Thinking provider-visible";
+  }
+  if (type === "text") {
+    return "Testo agente";
+  }
+  if (type === "tool_use") {
+    return "Tool use";
+  }
+  if (type === "tool_result") {
+    return "Tool result";
+  }
+  return type || "Content block";
+}
+
+function providerBlockSummary(block: Record<string, unknown>): string {
+  const type = stringValue(block.type);
+  if (type === "tool_use") {
+    return [stringValue(block.name), stringValue(block.id)].filter(Boolean).join(" - ");
+  }
+  if (type === "tool_result") {
+    return stringValue(block.tool_use_id) || "risultato tool";
+  }
+  const text = stringValue(block.text) || stringValue(block.thinking);
+  return text ? `${text.length} chars` : "strutturato";
+}
+
+function providerBlockPreview(block: Record<string, unknown>): string {
+  const type = stringValue(block.type);
+  if (type === "thinking") {
+    return truncate(firstLine(stringValue(block.thinking)), 240) || "Thinking vuoto.";
+  }
+  if (type === "text") {
+    return truncate(firstLine(stringValue(block.text)), 240) || "Testo vuoto.";
+  }
+  if (type === "tool_use") {
+    const input = recordValue(block.input) ?? {};
+    return truncate(
+      [stringValue(block.name) || "tool", stringValue(input.path), stringValue(input.intent)]
+        .filter(Boolean)
+        .join(" - "),
+      260
+    );
+  }
+  if (type === "tool_result") {
+    return truncate(firstLine(formatJson(block.content)), 260);
+  }
+  return truncate(firstLine(formatJson(block)), 260);
 }
 
 function truncate(value: string, maxLength: number): string {

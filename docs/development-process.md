@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-05-28
-Current app version: V1.4.1
+Last updated: 2026-06-26
+Current app version: V1.21.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -117,3 +117,6 @@ V1.0.1 baseline includes:
   timezone;
 - Tailwind dashboard with chat, sessions, agent stream, memory, profile, and
   settings.
+- Codex test database isolation through startup-level `CODEX_TEST`, used for
+  evaluator experiments that must exercise real endpoints without mutating the
+  production/laboratory Scarlet DB.

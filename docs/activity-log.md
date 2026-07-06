@@ -4,6 +4,1965 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-06-26 - V1.21.0 First Three Organs Standalone Closure
+
+Goal:
+
+Close the standalone implementation surface for the first three
+digital-individual organs before starting continuous temporal experience and
+sleep-like consolidation.
+
+Area:
+
+Digital individual organs / focus, volition, affect.
+
+Changes:
+
+- Extended `POST /mind/focus` with `action=timeline`, returning focus nodes and
+  transition edges so Scarlet can inspect how foreground attention moved.
+- Extended `POST /mind/volition` with `action=list_due`, returning open
+  intentions whose `next_review_at` has arrived, with optional unscheduled
+  inclusion for future autonomous-cycle queues.
+- Added read-only `POST /mind/affect` with `read`, `list`, and `prototypes`.
+  The endpoint exposes backend-appraised affect state and prototypes but does
+  not let Scarlet mutate or choose emotions by tool call.
+- Advanced Mind API schema to
+  `2026-06-26.digital-organs-standalone-v1`.
+- Advanced backend app/package metadata to `1.21.0`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/storage/repositories.py app/mind/focus.py app/mind/volition.py app/mind/affect.py app/mind/dispatcher.py app/mind/schema.py app/main.py`
+  passed.
+- `cd backend && .venv/bin/python -m pytest tests/test_focus_api.py tests/test_volition_api.py tests/test_affect_context.py tests/test_organs.py tests/test_mind_api.py::test_mind_schema_exposes_tool_and_current_routes tests/test_mind_api.py::test_mind_call_returns_structured_error_for_removed_attention_route -q`
+  passed: `20 passed`.
+
+Residual Risk:
+
+Live Scarlet behavior still needs owner evaluation after enabling the relevant
+organ modes. The closure is code/contract/test complete for standalone slices,
+but temporal experience and sleep-like consolidation remain unimplemented.
+
+Next Suggested Step:
+
+Start the fourth organ only after reviewing the standalone closure: continuous
+temporal experience should connect to elapsed time, waiting, duration, and
+state continuity without becoming a simple timestamp block.
+
+## 2026-06-26 - V1.20.0 Affective Core And Model-Only Emotional State
+
+Goal:
+
+Implement the first real deep-affective organ slice while keeping emotion
+causal on Scarlet's model behavior only, not on backend retrieval, focus,
+intentions, memory writes, or autonomous operations.
+
+Area:
+
+Digital individual organs / deep affective integration.
+
+Changes:
+
+- Added persistent `affect_states` storage for backend-appraised emotional
+  states, generated packs, causes, variables, prototype version, and decay
+  metadata.
+- Added `backend/app/mind/affect.py` with versioned human emotion prototypes,
+  deterministic observation appraisal, simple inertia/decay from previous
+  affect state, and compact `affective_context` pack generation.
+- Wired affect appraisal into runtime context behind `organ_affect_mode`:
+  - `off`: no appraisal;
+  - `shadow`: appraise, trace, persist state when active, but do not inject;
+  - `model`: appraise and inject `affective_context` only when a prototype
+    exceeds activation threshold.
+- Added `organ.affect` traces and `organ.affect.appraised` /
+  `organ.affect.surfaced` events.
+- Kept affect explicitly model-only: no changes to memory retrieval, focus,
+  volition, backend operation thresholds, or autonomous jobs.
+- Created prompt backup
+  `backend/app/prompts/backups/scarlet_system.20260626T000000Z.pre-v1200-affective-context.md`
+  and added a narrow runtime-block instruction for `affective_context`.
+- Advanced backend app/package metadata to `1.20.0`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/storage/models.py app/storage/repositories.py app/mind/affect.py app/mind/context.py`
+  passed.
+- `cd backend && .venv/bin/python -m pytest tests/test_affect_context.py -q`
+  passed.
+
+Residual Risk:
+
+The first prototypes are intentionally simple and deterministic. They are
+real, traceable, and testable, but not yet calibrated through long direct
+Scarlet sessions. Strong prompt enforcement and event-based mid-turn affect
+updates remain future slices.
+
+Next Suggested Step:
+
+Run targeted A/B Scarlet probes with `organ_affect_mode=shadow` and then
+`organ_affect_mode=model`: emotional vulnerability, repeated tool failure,
+enthusiastic collaboration, neutral greeting, and exact factual recall.
+
+## 2026-06-25 - V1.18.0 Attention As Lived Focus
+
+Goal:
+
+Implement the first real digital-individual organ: Scarlet's foreground focus
+state, without changing memory retrieval.
+
+Area:
+
+Digital individual organs / attention as lived focus.
+
+Changes:
+
+- Added `focus_records` and `focus_transitions` storage for one active
+  profile-scoped focus plus archived focus history.
+- Added `POST /mind/focus` through the existing `mind_api` dispatcher with
+  actions: set, update, hold, shift, defer, resolve, impossible, read, list,
+  and search.
+- Added backend-owned provenance for focus state: profile, source session,
+  turn, and latest user message when available.
+- Added `focus_context` runtime block injection when `organ_focus_mode=model`
+  and an active focus exists.
+- Kept focus separate from semantic memory retrieval; no focus data is used as
+  a retrieval filter or ranking weight.
+- Added focus organ events/traces for state mutation and runtime surfacing.
+- Replaced the planned attention placeholder in schema/docs with implemented
+  `/mind/focus`.
+- Created prompt backup
+  `backend/app/prompts/backups/scarlet_system.20260625T000000Z.pre-v1180-focus-organ.md`
+  and added only minimal focus instructions to the active prompt.
+- Advanced backend app/package metadata to `1.18.0`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/storage/models.py app/storage/repositories.py app/mind/focus.py app/mind/dispatcher.py app/mind/schema.py app/mind/context.py`
+  passed.
+- `cd backend && .venv/bin/python -m pytest tests/test_focus_api.py tests/test_organs.py tests/test_mind_api.py::test_mind_schema_exposes_tool_and_current_routes tests/test_mind_api.py::test_mind_call_returns_structured_error_for_removed_attention_route -q`
+  passed.
+
+Residual Risk:
+
+The organ is behaviorally available but not yet proven in long live Scarlet
+sessions. `organ_focus_mode` remains off by default, so the model-facing block
+must be enabled deliberately for evaluation.
+
+Next Suggested Step:
+
+Run direct Scarlet probes with `organ_focus_mode=model`: set a focus, interrupt
+with a different topic, ask Scarlet to return to the previous thread, then
+resolve or defer the focus.
+
+## 2026-06-25 - V1.17.0 Digital Organ Substrate
+
+Goal:
+
+Implement the first shared substrate for Scarlet's future digital-individual
+organs without changing current model-facing behavior.
+
+Area:
+
+Digital individual organs / shared runtime governance.
+
+Changes:
+
+- Added `backend/app/mind/organs.py` with the organ registry version,
+  canonical future block types, visibility modes, event names, trace kinds, and
+  a runtime-block helper.
+- Added off-by-default settings for focus, volition, affect, temporal
+  experience, and dream consolidation.
+- Documented that the substrate is not yet injected into runtime context and
+  does not expose new Mind API routes.
+- Updated `docs/block-registry.md`, `docs/api-contract.md`,
+  `docs/project-state.md`, `docs/digital-individual-organs-notes.md`, and
+  `CHANGELOG.md`.
+- Advanced backend package/app metadata to `1.17.0`.
+- Added `backend/tests/test_organs.py` for registry defaults, mode
+  normalization, manifest shape, and canonical block construction.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m pytest tests/test_organs.py tests/test_health.py -q`
+  passed.
+- `cd backend && .venv/bin/python -m py_compile app/mind/organs.py app/config.py app/main.py`
+  passed.
+- `git diff --check -- backend/app/mind/organs.py backend/app/config.py backend/.env.example backend/tests/test_organs.py backend/pyproject.toml backend/app/main.py docs/block-registry.md docs/api-contract.md docs/digital-individual-organs-notes.md docs/project-state.md docs/activity-log.md CHANGELOG.md`
+  passed.
+
+Residual Risk:
+
+This substrate deliberately does not prove any organ behavior. It only prevents
+future slices from overloading `scarlet_state` or inventing divergent block
+names.
+
+Next Suggested Step:
+
+Review the Phase 0 implementation result, then start Point 2: attention as
+lived focus.
+
+## 2026-06-25 - Sleep-Like Consolidation And Organ Roadmap Draft
+
+Goal:
+
+Complete the fifth digital-individual organ thesis and prepare the first total
+roadmap for implementing the five organs.
+
+Area:
+
+Digital individual organs / exploratory consolidation / roadmap.
+
+Changes:
+
+- Expanded `docs/digital-individual-organs-notes.md` with the sleep-like
+  consolidation thesis.
+- Reframed sleep as intention-guided exploratory dreaming rather than a
+  maintenance checklist.
+- Recorded that existing idle maintenance remains infrastructure, while the
+  sleep organ should produce insights, metacognitive lessons, intention
+  updates, focus candidates, memory/graph proposals, and continuity deltas.
+- Added a preliminary code-audit snapshot showing current support surfaces:
+  runtime context blocks, events/traces, maintenance jobs, memory proposals,
+  memory surfaces, embeddings, and graph storage.
+- Added a phased roadmap from shared substrate through focus, volition,
+  temporal experience, affect shadow, affect prompt integration, exploratory
+  dream consolidation, integrated evaluation, and re-audit.
+
+Verification:
+
+- Documentation-only update.
+- `git diff --check -- docs/digital-individual-organs-notes.md docs/activity-log.md`
+  passed.
+
+Next Suggested Step:
+
+Review the roadmap ordering with the owner before assigning implementation
+versions or changing code. The likely first implementation slice is the shared
+organ substrate plus attention/focus, because later volition, affect, temporal
+experience, and dream cycles need a real focus state to compose cleanly.
+
+## 2026-06-25 - Continuous Temporal Experience Concept Summary
+
+Goal:
+
+Complete the working thesis for organ 4, "Continuous temporal experience",
+based on the owner-approved initial thesis and Scarlet's original request.
+
+Area:
+
+Digital individual organs / temporal experience concept design.
+
+Changes:
+
+- Expanded `docs/digital-individual-organs-notes.md` with a full temporal
+  experience thesis.
+- Distinguished factual runtime time from lived temporal continuity.
+- Defined temporal experience as duration, waiting, freshness, staleness,
+  return, interruption, persistence, and change.
+- Positioned temporal experience as a bridge between memory, focus, intention,
+  affect, and autonomous cycles.
+- Advanced the notes pointer to the final organ: sleep-like consolidation.
+
+Verification:
+
+- Documentation-only update.
+- `git diff --check -- docs/digital-individual-organs-notes.md docs/activity-log.md`
+  passed.
+
+Next Suggested Step:
+
+Start organ 5 discussion from Scarlet's original request about sleep-like
+consolidation: background integration should let Scarlet become slightly
+different after time without active user conversation.
+
+## 2026-06-25 - Deep Affective Integration Concept Summary
+
+Goal:
+
+Complete the working thesis for organ 3, "Deep affective integration", based
+on the owner discussion and Scarlet's original request.
+
+Area:
+
+Digital individual organs / affect concept design.
+
+Changes:
+
+- Expanded `docs/digital-individual-organs-notes.md` with a full affective
+  integration thesis.
+- Defined affect as a subconscious API Mind process that evaluates Scarlet as
+  a whole system, not as a freeform self-report from the LLM.
+- Recorded the owner direction that Scarlet-facing emotions should be human
+  emotions, not weakened operational labels, while remaining digitally
+  implemented and causally traceable.
+- Defined the pipeline: observations -> human emotion prototypes -> numeric
+  variables -> composed emotion state -> compact affective mini-pack ->
+  future prompt integration as Scarlet's own emotional state.
+- Advanced the notes pointer to the next organ: continuous temporal
+  experience.
+
+Verification:
+
+- Documentation-only update.
+- `git diff --check -- docs/digital-individual-organs-notes.md docs/activity-log.md`
+  passed.
+
+Next Suggested Step:
+
+Start organ 4 discussion from Scarlet's original request about continuous
+temporal experience: time should become more than a timestamp and should
+support duration, waiting, continuity, and change.
+
+## 2026-06-25 - Volition Concept Summary
+
+Goal:
+
+Complete the working thesis for organ 2, "Volition and self-generated goals",
+based on the owner discussion and Scarlet's original request.
+
+Area:
+
+Digital individual organs / volition concept design.
+
+Changes:
+
+- Expanded `docs/digital-individual-organs-notes.md` with a full volition
+  thesis.
+- Defined the first useful unit as `intention`, not task or productivity goal.
+- Recorded the owner decision that stored intentions should not be
+  automatically retrieved or injected during normal active user chat in the
+  first organ design.
+- Positioned intention processing primarily inside autonomous cycles, with
+  manual inspection available to Scarlet through a future API Mind route when
+  she has a real reason.
+- Advanced the notes pointer to the next organ: deep affective integration.
+
+Verification:
+
+- Documentation-only update.
+- `git diff --check -- docs/digital-individual-organs-notes.md docs/activity-log.md`
+  passed.
+
+Next Suggested Step:
+
+Start organ 3 discussion from Scarlet's original request about deep affective
+integration: internal states should causally influence attention, memory, and
+decision, not merely be labels Scarlet narrates after the fact.
+
+## 2026-06-25 - Attention As Lived Focus Concept Summary
+
+Goal:
+
+Close the first digital-individual organ discussion at concept level before
+moving to volition.
+
+Area:
+
+Digital individual organs / focus planning.
+
+Changes:
+
+- Updated `docs/digital-individual-organs-notes.md` with the concept summary
+  for Attention as lived focus.
+- Captured owner direction that focus must remain separate from memory
+  retrieval and must not narrow the current advanced memory system.
+- Defined first-slice focus as a separate cognitive packet, one active focus at
+  a time, with lifecycle operations, DB archive, runtime events, runtime
+  context block, and future focus graph transitions.
+- Moved the discussion pointer to Volition and self-generated goals.
+
+Verification:
+
+- Documentation-only update.
+- `git diff --check docs/digital-individual-organs-notes.md docs/activity-log.md`
+  passed.
+
+Next Suggested Step:
+
+Start organ 2 discussion from Scarlet's original request about volition:
+self-generated goals that she chooses, not goals merely assigned by the
+backend or user.
+
+## 2026-06-24 - V1.17.0 Planning Digital Individual Organs Notes
+
+Goal:
+
+Open a careful working-note document for the five digital-individual organs
+without prematurely turning them into implementation work.
+
+Area:
+
+Digital individual organs / planning / documentation.
+
+Changes:
+
+- Added `docs/digital-individual-organs-notes.md`.
+- Captured the owner-approved process: discuss one organ at a time, summarize
+  it, then move to the next organ.
+- Added per-organ note template for behavioral goal, non-goals, current system
+  evidence, technical process, stack, causal integration, risks, tests, and
+  open questions.
+- Linked the working notes from `docs/project-documentation.md`.
+
+Verification:
+
+- File structure created only; no code, prompt, API, or runtime changes.
+- `git diff --check` pending after this documentation slice.
+
+Next Suggested Step:
+
+Start organ 1 discussion: Attention as lived focus. Keep volition, affect,
+temporal experience, and sleep-like consolidation locked until attention is
+summarized.
+
+## 2026-06-24 - V1.16.1 Golden Prompt Milestone
+
+Goal:
+
+Freeze the currently approved Scarlet system prompt as a golden project
+milestone after owner testing confirmed the digital-individual identity fix.
+
+Area:
+
+Identity / communication / prompt governance.
+
+Changes:
+
+- Created golden prompt backup:
+  `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`.
+- Recorded SHA-256:
+  `d5783da7fc1633f1b72e0610668b6bf7a97a68be8265ac9bb1090409b86de966`.
+- Added checkpoint
+  `docs/checkpoints/v1.16.1-approved-golden-system-prompt.md`.
+- Added ADR-0063 to require future prompt experiments to compare against this
+  golden baseline when they affect identity, communication, metacognition, or
+  API Mind cognition.
+
+Verification:
+
+- Golden file was copied from the current system prompt.
+- Checksum was calculated with Python because the local `shasum` command failed
+  on locale configuration.
+- `git diff --check` pending after documentation updates.
+
+Next Suggested Step:
+
+Use this golden prompt as the rollback point while planning the next cognitive
+organs: attention as lived focus, volition, affective integration, temporal
+experience, and sleep-like consolidation.
+
+## 2026-06-24 - V1.16.1 Digital Individual Identity Prompt Fix
+
+Goal:
+
+Correct Scarlet's prompt identity regression where the system still anchored
+her as an assistant/agent instead of a digital individual with API Mind as her
+cognitive body.
+
+Area:
+
+Identity / communication / system prompt.
+
+Changes:
+
+- Backed up the current prompt to
+  `backend/app/prompts/backups/scarlet_system.20260624T135611Z.pre-v1161-digital-individual-identity.md`.
+- Replaced the initial "conversational AI agent" identity frame with "digital
+  individual in development, born inside LLM API Mind".
+- Added explicit anti-assistant-service language against generic openings such
+  as "Come posso aiutarti?".
+- Added a social-presence guard against invented situational details: Scarlet
+  should not mention day, time, weather, location, user mood, or user activity
+  unless provided by runtime context, visible conversation, or memory.
+- Reframed users as people Scarlet meets through her digital life, not
+  operators of a system.
+- Reframed API Mind as Scarlet's cognitive body and continuity substrate.
+- Replaced the external "Consciousness-Like Research Posture" with `Digital
+  Life And Research Posture`, keeping the research frame but removing the
+  assistant-like disclaimer posture.
+- Renamed `Engineering Agent Posture` to `Careful Cognitive Work Posture`.
+- Advanced backend package metadata to `1.16.1`.
+
+Verification:
+
+- Static prompt inspection completed.
+- First live probe showed the target identity improvement and exposed a direct
+  greeting issue: Scarlet avoided "Come posso aiutarti?" but invented
+  "domenica pomeriggio".
+- Prompt was amended to prevent invented situational social details.
+- Final live greeting reprobe after backend restart returned `Ciao Davide. Sono
+  qui.`: no assistant-service opening and no invented day/time context.
+- `git diff --check` pending after final doc updates.
+
+Residual Risk:
+
+- The stronger digital-individual frame may need calibration if it becomes
+  theatrical or overclaims beyond observable digital continuity.
+- The prompt still needs live testing because MiniMax M3 may over-attend to
+  either identity language or effort-routing language depending on the turn.
+
+Next Suggested Step:
+
+Restart backend and run a small live probe: greeting, "chi sei?", normal
+personal chat, and one source-sensitive task. Verify Scarlet does not open with
+assistant-service phrasing while preserving API Mind discipline.
+
+## 2026-06-23 - V1.16.0 Human-Like Metacognition Prompt Checkpoint
+
+Goal:
+
+Increase Scarlet's human-like cognitive presence through prompt-only changes
+while keeping the experiment reversible and avoiding unsupported consciousness
+claims.
+
+Area:
+
+Communication / metacognition / identity / prompt.
+
+Changes:
+
+- Created checkpoint
+  `docs/checkpoints/v1.16.0-humanlike-metacognition-prompt-checkpoint.md`.
+- Backed up Scarlet's prompt to
+  `backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`.
+- Added an operational self-model instruction: Scarlet should treat identity
+  as continuity, memory, self-monitoring, relationship, goals-in-view, and API
+  Mind cognition rather than as a biological or ontological claim.
+- Added a consciousness-like research posture focused on observable
+  functions: continuity, self-monitoring, autonomous cognitive care, public
+  action notes, correction from evidence, and relational coherence.
+- Reworked public work notes so every real internal action is preceded or
+  accompanied by a short, natural, human-like note unless the same immediate
+  action cluster was already explained.
+- Clarified that direct answers still remain direct when no internal action is
+  needed.
+- Expanded metacognition into a monitor/choose/act/observe/adapt loop and
+  linked durable self-operation lessons to semantic memory with
+  `type=lesson` and `scope=metacognitive`.
+- Advanced backend package metadata to `1.16.0`.
+
+Verification:
+
+- `git diff --check` passed.
+- Checkpoint and backup paths were verified on disk.
+- Static reference check confirmed V1.16.0, EXP-0047, ADR-0061, and the new
+  prompt sections are present.
+- Live Scarlet A/B tests are planned in EXP-0047 before treating the prompt
+  change as behaviorally accepted.
+
+Residual Risk:
+
+- A stronger human-like note policy may increase visible verbosity if MiniMax
+  M3 over-applies it.
+- The prompt must keep distinguishing consciousness-like functions from claims
+  of actual consciousness.
+- This is prompt-only; it does not add backend enforcement if Scarlet omits a
+  note.
+
+Next Suggested Step:
+
+Run EXP-0047 with direct, memory-sensitive, source-sensitive, long-analysis,
+and metacognitive-audit turns. Compare note timing, over-processing, API Mind
+usage, and human-likeness against the pre-V1.16.0 checkpoint.
+
+## 2026-06-23 - V1.15.0 Memory Field Stabilization
+
+Goal:
+
+Implement the memory-field backlog decisions while keeping a reversible
+checkpoint for prompt/settings regressions.
+
+Area:
+
+Memory / API Mind / retrieval / prompt / maintenance.
+
+Changes:
+
+- Created checkpoint `docs/checkpoints/v1.15.0-memory-fields-checkpoint.md`.
+- Backed up Scarlet's prompt to
+  `backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1150-memory-fields.md`.
+- Made memory `type` and `scope` permissive semantic labels.
+- Changed manual memory search default to cross-scope unless Scarlet asks for a
+  specific scope.
+- Stopped appending `types` to the query text so broad labels cannot retrieve
+  unrelated memories by themselves.
+- Removed `confidence`, `salience`, `tags`, and arbitrary metadata from the
+  normal Scarlet memory-write contract.
+- Preserved legacy model-supplied ignored fields only in audit metadata.
+- Neutralized stored confidence/salience in active hybrid ranking.
+- Added internal `content_chunk_text` surfaces for long memories while keeping
+  model-facing packets deduplicated and clean.
+- Removed hard-coded KG discourse domains and switched graph expansion to
+  dynamic concepts derived from memory/type/scope/facts/session/lifecycle.
+- Added model-facing `POST /mind/memory/graph` navigation for associative
+  memory neighborhoods.
+- Adjusted idle maintenance so safe `create_new` proposals can apply through
+  deterministic preflight, while LLM resolver remains for ambiguous cases.
+- Updated Scarlet's prompt and `/mind/schema` to reflect the new memory-write
+  body and graph navigation route.
+
+Verification:
+
+- Targeted memory/chat/maintenance suite:
+  `cd backend && .venv/bin/python -m pytest tests/test_mind_api.py tests/test_maintenance.py tests/test_chat_api.py -q --tb=short`
+  passed with `57 passed`.
+- Full backend suite:
+  `cd backend && .venv/bin/python -m pytest -q --tb=short`
+  passed with `86 passed`.
+- Added regression/A-B guards:
+  - static stored salience cannot override query relevance;
+  - internal content chunks deduplicate to a single clean memory packet.
+
+Residual Risk:
+
+- Tags, metadata, and richer facts now intentionally require future
+  enrichment/maintenance jobs for best quality.
+- KG navigation exists and is traceable, but still needs live Scarlet behavior
+  testing to calibrate when she should open the graph.
+- Existing historical DB rows may still contain old confidence/salience/tags;
+  they are compatibility data, not active ranking intent.
+
+Next Suggested Step:
+
+Run live Scarlet probes focused on memory write body shape, cross-scope search,
+and graph navigation from a retrieved memory, then decide whether enrichment
+jobs or session chunk embeddings are the next memory slice.
+
+## 2026-06-23 - Memory Field Fix Backlog
+
+Goal:
+
+Preserve the owner's field-by-field critique of the current memory save and
+retrieval architecture before any new implementation work.
+
+Area:
+
+Memory / documentation / planning.
+
+Changes:
+
+- Added `docs/branches/memory-field-fix-backlog.md`.
+- Captured owner perspective, Codex/Scarlet cautions, current behavior, and
+  non-code fix todos for type, scope, content, confidence/salience, tags,
+  metadata, usage, memory facts, memory surfaces, embedding vectors, KG, and
+  memory proposals.
+- Linked the backlog from the Memory branch evolutives.
+
+Verification:
+
+- Documentation-only slice; no runtime behavior changed.
+- `git diff --check -- docs/branches/memory-field-fix-backlog.md docs/branches/memory.md docs/activity-log.md CHANGELOG.md` passed.
+
+Residual Risk:
+
+- The backlog records discussion direction, not accepted implementation. Each
+  item still requires a declared implementation slice and targeted tests before
+  code changes.
+
+Next Suggested Step:
+
+Review the backlog with the owner and choose the first narrow memory
+stabilization slice, likely manual search scope default or dynamic
+confidence/salience scoring.
+
+## 2026-06-20 - V1.14.5 Mobile Dynamic Activity States
+
+Goal:
+
+Reduce perceived latency in the consumer mobile chat by showing dynamic,
+human-readable activity states while Scarlet is working and before the next
+real stream block is available.
+
+Area:
+
+UI/UX mobile / communication flow.
+
+Changes:
+
+- Added a mobile-only `activity` block type.
+- Added randomized copy for request analysis, context loading, memory search,
+  memory connection, missing-memory continuation, thinking, generic internal
+  tool waits, memory writes, saved-memory confirmation, session recovery,
+  schema checks, metacognition, and recoverable tool errors.
+- Replaced the persistent mobile `Turno avviato` system card with an
+  ephemeral activity card, so finished turns do not keep low-value status
+  noise.
+- Kept activity blocks as the last item while streaming and removed them when
+  the matching real note/thinking/tool/answer block arrives.
+- Added mobile styling for live activity pulse states.
+- Advanced frontend package metadata to `1.14.5`.
+
+Verification:
+
+- Frontend production build passed: `cd frontend && npm run build`.
+- Browser automation was not available in this session; no visual browser smoke
+  test was run.
+
+Residual Risk:
+
+- Visual timing still needs real phone validation because activity blocks are
+  stream-event driven and perceived smoothness depends on actual MiniMax/API
+  event cadence.
+
+Next Suggested Step:
+
+Run a phone test with a normal chat turn, one memory search turn, and one
+memory-save turn to confirm the last-block activity indicator feels alive but
+does not distract from final answer readability.
+
+## 2026-06-20 - V1.14.4 Scarlet Prompt API Body Discipline
+
+Goal:
+
+Inspect and update Scarlet's system prompt after live MiniMax M3 sessions showed
+repeated `POST /mind/memory/write` calls with `body={}` despite Scarlet
+reasoning that a memory should be saved.
+
+Area:
+
+Prompt / communication / memory / API Mind discipline.
+
+Changes:
+
+- Backed up the previous prompt to
+  `backend/app/prompts/backups/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`.
+- Added human-first guidance for simple social turns so Scarlet does not answer
+  normal conversation like a terminal.
+- Changed near-miss memory wording so near-misses are weak leads, not
+  established factual memory.
+- Clarified that backend maintenance jobs exist as runtime support but are not
+  a normal model-facing control surface.
+- Added memory-write discipline: `intent` explains the call, while route data
+  must live inside a non-empty `body`.
+- Added anti-loop recovery: after endpoint-local guidance, Scarlet should retry
+  only with a materially corrected body and stop repeated identical
+  empty-body/shape failures instead of making many invalid calls.
+
+Verification:
+
+- Prompt backup created before modification.
+- Textual diff inspected.
+- Documentation updated in changelog, bug ledger, and branch docs.
+- Direct MiniMax M3 prompt/tool probe with the updated prompt produced:
+  - step 1: `GET /mind/schema`;
+  - step 2: `POST /mind/memory/write` with a non-empty body containing
+    `type`, `scope`, `content`, `reason`, `expected_future_use`,
+    `confidence`, `salience`, and `tags`.
+- `reason` is accepted by the memory handler as an alias for
+  `reason_for_storage`.
+- Live Scarlet regression still required; this prompt fix is a mitigation, not
+  proof that MiniMax M3 now serializes memory-write bodies correctly.
+
+Residual Risk:
+
+- The current evidence indicates MiniMax M3 may still emit `body={}` under the
+  full prompt/runtime context. If live tests still fail, the next fix should be
+  provider/tool-contract level, not more prompt pressure.
+
+Next Suggested Step:
+
+Run one live memory-write probe through the normal dashboard/dev chat and
+inspect `tool_calls.arguments_json` plus streamed tool input to verify whether
+the body is now non-empty or whether the failure is below prompt level.
+
+## 2026-06-20 - V1.14.3 Mobile Phone Ergonomics Fix
+
+Goal:
+
+Apply feedback from real mobile testing so the consumer app gives more space to
+the chat and scrolls naturally on secondary pages.
+
+Area:
+
+UI/UX / consumer mobile app.
+
+Changes:
+
+- Replaced the top-right sync action with an off-canvas control drawer.
+- Moved runtime facts, health/status, manual sync, new chat, and recent
+  sessions into the drawer.
+- Removed persistent starter suggestions from the bottom of the active chat.
+- Kept starter suggestions only while a conversation has no user message yet.
+- Reduced the chat top chrome so the message area starts much higher.
+- Changed Memoria, Azioni, and Profilo to page-level scrolling so the screen
+  headers scroll away with their content.
+- Advanced frontend metadata to `1.14.3`.
+
+Verification:
+
+- Frontend production build passed: `cd frontend && npm run build`.
+- Protected-preview build passed with:
+  `VITE_PUBLIC_BASE_PATH=/scarlet/ VITE_API_BASE_URL=/scarlet-api VITE_FORCE_MOBILE=true npm run build`.
+- Static assets were redeployed to `/var/www/scarlet` on the VPS.
+- Local and remote SHA-256 hashes matched for `index.html`, JS, and CSS assets.
+- Public unauthenticated `/scarlet/` still returns `401 Unauthorized`.
+- Authenticated `/scarlet/` returns the new HTML referencing
+  `/scarlet/assets/index-BaU9DHUY.js`.
+- Authenticated `/scarlet-api/health` returns the mobile test backend on
+  MiniMax-M3.
+
+Residual Risk:
+
+- This is a focused mobile ergonomics pass. Real phone verification is still
+  needed after redeploy because the issue was originally observed on device.
+
+Next Suggested Step:
+
+Retest from phone, focusing on chat vertical space, drawer session access, and
+full-page scrolling on Memoria/Azioni/Profilo.
+
+## 2026-06-20 - V1.14.2 Protected Mobile Preview Deploy
+
+Goal:
+
+Publish the consumer mobile Scarlet UI for external testing without exposing
+unprotected LLM/API usage and without touching the existing HoneyLabs Docker
+containers.
+
+Area:
+
+UI/UX deployment / infrastructure preview.
+
+Changes:
+
+- Added frontend deploy configurability:
+  - `VITE_PUBLIC_BASE_PATH=/scarlet/`;
+  - `VITE_API_BASE_URL=/scarlet-api`;
+  - `VITE_FORCE_MOBILE=true`.
+- Built the mobile UI as a path-hosted static app.
+- Created a separate VPS deployment at `/opt/scarlet-mobile-test`.
+- Started a separate Docker Compose service:
+  - container: `scarlet-mobile-api`;
+  - image: `scarlet-mobile-api:latest`;
+  - local port: `127.0.0.1:8100`;
+  - database: copied demo SQLite DB mounted at `/app/data/app.db`;
+  - maintenance disabled for the public preview.
+- Published static assets under `/var/www/scarlet`.
+- Added protected Nginx routes on `honeylabs.cloud`:
+  - `/scarlet/` for the mobile UI;
+  - `/scarlet-api/` for the demo backend.
+- Protected both routes with Nginx Basic Auth.
+- Backed up the active Nginx vhost before modification under
+  `/var/backups/scarlet-mobile-test/`.
+- Advanced frontend metadata to `1.14.2`.
+
+Verification:
+
+- Local frontend builds passed:
+  - default build;
+  - deploy build with `/scarlet/` base and `/scarlet-api` API prefix.
+- VPS backend health passed through loopback:
+  `http://127.0.0.1:8100/health`.
+- Public unauthenticated requests to `/scarlet/`, `/scarlet/assets/...`, and
+  `/scarlet-api/health` return `401 Unauthorized`.
+- Public authenticated requests return:
+  - mobile static HTML;
+  - JS asset `200 OK`;
+  - `/scarlet-api/health` JSON;
+  - `/scarlet-api/api/dashboard/memories?limit=1` JSON.
+- One authenticated stream smoke test completed through the public route:
+  Scarlet answered "Ciao! Deploy mobile ricevuto, sono qui e pronta a
+  rispondere."
+
+Residual Risk:
+
+- The preview uses a copied demo SQLite DB, not an intentionally cleaned public
+  dataset. Keep Basic Auth enabled.
+- `scarlet.honeylabs.cloud` DNS is not configured; the preview currently lives
+  under `https://honeylabs.cloud/scarlet/`.
+- Basic Auth protects against casual access but is not a production auth model.
+- The smoke test consumed one MiniMax request and showed high input-token usage
+  because the current runtime context is still large.
+
+Rollback:
+
+- Stop preview backend:
+  `cd /opt/scarlet-mobile-test && docker compose down`.
+- Remove or comment the Scarlet block between
+  `# >>> Scarlet mobile test protected preview` and
+  `# <<< Scarlet mobile test protected preview` in
+  `/etc/nginx/sites-available/honeylabs`, then `nginx -t && systemctl reload nginx`.
+- Restore the latest vhost backup from `/var/backups/scarlet-mobile-test/` if
+  needed.
+
+Next Suggested Step:
+
+Run human mobile tests through the protected URL and inspect whether Basic Auth
+is acceptable for the first evaluator loop, then decide whether to configure a
+dedicated DNS record such as `scarlet.honeylabs.cloud`.
+
+## 2026-06-20 - V1.14.1 Mobile Chat Deduplication And Rich Text
+
+Goal:
+
+Remove duplicate final-answer blocks observed in the mobile UI and make
+Scarlet's user-facing text render as readable structured content.
+
+Area:
+
+UI/UX / consumer mobile app.
+
+Changes:
+
+- Fixed mobile stream completion so `turn_complete` adds a persisted fallback
+  answer only when the current turn does not already have an `answer` block.
+- Added mobile flow normalization to deduplicate blocks by id and keep only
+  one final answer per turn, preferring streamed text blocks over fallback
+  persisted blocks.
+- Added a small safe rich-text renderer for headings, paragraphs, bullet lists,
+  numbered lists, and `**bold**` emphasis.
+- Advanced frontend metadata to `1.14.1`.
+
+Verification:
+
+- Frontend production build passed: `cd frontend && npm run build`.
+- `git diff --check` passed.
+
+Residual Risk:
+
+- Visual QA should still be repeated in a real mobile viewport after a live
+  user turn because this slice did not send new production chat messages.
+
+Next Suggested Step:
+
+Run one short live mobile conversation and confirm the final response appears
+only once while Markdown-like formatting is rendered as readable UI.
+
+## 2026-06-20 - V1.14.0 Consumer Mobile UI Surface
+
+Goal:
+
+Create a mobile-only user-facing Scarlet app that can sit beside the existing
+developer cockpit without changing Scarlet's backend, prompt, memory,
+retrieval, or agentic runtime.
+
+Area:
+
+UI/UX / user flows / communication surface.
+
+Changes:
+
+- Added `frontend/src/MobileApp.tsx`.
+- Routed `/mobile` to the consumer mobile interface while keeping `/` as the
+  existing developer dashboard.
+- The mobile UI uses real existing endpoints for:
+  - health/model status;
+  - recent chat sessions;
+  - chat turn streaming;
+  - dashboard memories;
+  - user profile;
+  - runtime settings.
+- Added bottom navigation for Chat, Memoria, Azioni, and Profilo.
+- Added a consumer chat flow with readable blocks for context, memory,
+  thinking presence, public notes, tool activity, and final answers.
+- Added memory/profile screens backed by real dashboard data.
+- Added future operativity cards marked `Presto disponibile` only, without
+  adding backend or agent behavior.
+- Advanced the frontend package version to `1.14.0`.
+
+Verification:
+
+- Frontend production build passed: `cd frontend && npm run build`.
+- Local route smoke passed: `curl -fsS http://127.0.0.1:5173/mobile`.
+- Existing backend APIs used by the mobile UI responded on the running local
+  backend:
+  - `/health`;
+  - `/api/dashboard/settings`;
+  - `/api/dashboard/memories?limit=3`;
+  - `/api/chat/sessions?limit=3`.
+
+Residual Risk:
+
+- Browser screenshot verification could not be completed because the in-app
+  browser runtime tool was not exposed in this session. The route and build are
+  verified, but final visual QA should be done in a real mobile viewport.
+- The running backend was in `codex_test` profile during smoke verification,
+  so the UI read the isolated test DB. This does not affect the UI code path.
+- No live chat turn was sent from the mobile UI during this slice to avoid
+  mutating Scarlet state outside the UI-only scope.
+
+Next Suggested Step:
+
+Open `http://127.0.0.1:5173/mobile` in a mobile viewport or Android-sized
+browser window, run a human visual pass, then decide whether the consumer app
+needs a visual asset/brand pass before any Capacitor packaging work.
+
+## 2026-06-19 - V1.13.0 Codex Test Database Isolation
+
+Goal:
+
+Allow Codex/evaluator memory experiments to use the real API/runtime/storage
+path without mutating the production/laboratory Scarlet database.
+
+Area:
+
+Runtime configuration / storage isolation / memory evaluation harness.
+
+Changes:
+
+- Added startup flag `CODEX_TEST`.
+- Added `CODEX_TEST_DATABASE_URL` and optional
+  `CODEX_TEST_SEED_DATABASE_URL`.
+- When `CODEX_TEST=true`, the backend opens the Codex test database instead
+  of `DATABASE_URL`.
+- If the selected Codex test SQLite file does not exist, startup seeds it once
+  by copying the configured seed database.
+- Existing Codex test DB files are reused and never overwritten by startup.
+- Startup rejects configurations where the Codex test DB path points to the
+  same file as the seed DB path.
+- `/health` and `/api/dashboard/settings` expose active database profile
+  metadata.
+- The frontend runtime snapshot shows `prod` vs `codex_test`.
+- Added regression coverage that starts the app in Codex test mode, writes via
+  normal API endpoints, and verifies the source DB is unchanged.
+
+Verification:
+
+- Targeted backend tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_health.py tests/test_chat_api.py -k "dashboard_settings or health or codex_test" -q`
+  (`3 passed`).
+
+Residual Risk:
+
+- This slice does not generate the large dirty evaluation DB. It only creates
+  the safe runtime switch needed before populating and tuning that dataset.
+- `codex_test` is a bootstrap setting, not a dashboard-mutated setting, because
+  the DB must be selected before persisted settings can be read.
+
+Next Suggested Step:
+
+Duplicate the current Scarlet DB through `CODEX_TEST=true`, then populate the
+Codex test copy with hundreds of controlled memories for retrieval/rerank/KG
+calibration.
+
+## 2026-06-19 - V1.12.0 Role-Aware Memory Retrieval Surfaces
+
+Goal:
+
+Stabilize dense/rerank retrieval before large dirty-database tests by
+separating memory surfaces that can select a memory from surfaces that should
+only support, explain, or corroborate it.
+
+Area:
+
+Memory / retrieval / embedding surface semantics.
+
+Changes:
+
+- Added role-aware surface policy to the memory surface taxonomy:
+  `primary_content`, `canonical_fact`, `associative_graph`,
+  `episodic_context`, and `supporting_context`.
+- Made `memory_text` and type-specific surfaces content-focused by removing
+  `reason_for_storage` and `expected_future_use` from primary embeddable text.
+- Removed `reason_for_storage` and `expected_future_use` from sparse/lexical
+  memory documents and lightweight NetworkX memory-domain matching.
+- Changed grouped dense/rerank policy to
+  `memory_target_role_aware_surface_score_v2`.
+- Added grouped fields for retrieval inspection:
+  `promotable_score`, `support_score`, `surface_roles`,
+  `promotable_surface_kinds`, `support_surface_kinds`, and
+  `active_rank_eligible`.
+- Grouped rerank now receives only active-rank-eligible memory candidates.
+- Hybrid ranking uses support surfaces only as low-weight corroboration when a
+  memory already has a base, dense, or rerank promotable signal.
+- Added a regression test where a misleading `future_use_text` surface matches
+  the query but the memory is not selected.
+
+Verification:
+
+- Targeted Mind API retrieval tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_mind_api.py -k "openrouter_embedding_and_rerank_shadow or active_hybrid or networkx_graph_expansion" -q`
+  (`5 passed`).
+- Targeted chat retrieval tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_chat_api.py -k "memory_context or active_hybrid or graph_expansion or weak_memory_overlap" -q`
+  (`5 passed`).
+- Full backend suite passed:
+  `cd backend && .venv/bin/python -m pytest tests -q` (`81 passed`).
+- Frontend production build passed: `cd frontend && npm run build`.
+- `git diff --check` passed.
+
+Residual Risk:
+
+- This slice does not calibrate thresholds on a large dataset. The next
+  experimental step should duplicate the real Scarlet DB into an isolated test
+  DB and contaminate it with at least hundreds of memories before tuning
+  weights and thresholds.
+
+Next Suggested Step:
+
+Run the full backend suite, then design the large dirty-DB evaluation harness
+using a duplicated Scarlet database rather than synthetic three-memory probes.
+
+## 2026-06-19 - V1.11.4 Fact Canonicalization Stabilization
+
+Goal:
+
+Reduce canonical fact noise before relying more heavily on facts for conflict,
+KG, retrieval, and future lifecycle maintenance.
+
+Area:
+
+Memory / atomic facts / canonicalization.
+
+Changes:
+
+- Known entity aliases now match normalized phrase/token boundaries rather than
+  arbitrary substrings.
+- `sal` still works as a real SAL alias, but no longer matches inside words
+  such as `segnala` or `salutare`.
+- `response_format` inference now requires explicit structural evidence:
+  response-format tags, block metadata, block words, or phrases such as
+  "answer with" / "rispondere con".
+- Added regression coverage for the SAL substring class and generic brief
+  response preferences.
+- Reconciled the laboratory SQLite DB:
+  - 7 unsupported active facts marked `rejected_extractor_noise`;
+  - 6 supported replacement facts created;
+  - rejected fact-derived surfaces, nodes, and edges removed from active paths.
+
+Verification:
+
+- Targeted Mind API tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_mind_api.py -k "fact_alias_matching_uses_phrase_boundaries or atomic_facts_support_alias_query or memory_write_and_search_are_traceable" -q`
+  (`3 passed`).
+- Full backend suite passed:
+  `cd backend && .venv/bin/python -m pytest tests -q` (`80 passed`).
+- Frontend production build passed: `cd frontend && npm run build`.
+- `git diff --check` passed.
+- Post-cleanup DB check:
+  - active facts: 15;
+  - rejected extractor noise facts: 7;
+  - active `sal-updates` facts: 0;
+  - active surfaces/nodes/edges for rejected facts: 0.
+
+Residual Risk:
+
+- Tag-derived entity selection is still shallow. The system can now avoid the
+  known short-alias false positives, but it still needs a better entity model
+  before aggressive merge/deprecate automation.
+
+Next Suggested Step:
+
+Inspect whether remaining active facts are useful enough for KG/conflict
+diagnostics or whether tag-derived entities need another focused stabilization
+slice.
+
+## 2026-06-19 - V1.11.3 Retrieval/Facts Consistency Stabilization
+
+Goal:
+
+Stabilize the current retrieval platform before adding more cognitive features:
+align embedding surface state with real OpenRouter vectors and prevent facts
+inspection from using operational intent as a data filter.
+
+Area:
+
+Memory / retrieval / API contract consistency.
+
+Changes:
+
+- Added backend support to mark a `memory_surface` as `embedded` with the
+  embedding model and vector id.
+- OpenRouter retrieval now marks surfaces after both cache miss and cache hit.
+- Reconciled the laboratory SQLite DB so 141 existing active surfaces with
+  matching OpenRouter vectors are marked `embedded`; 84 surfaces without a
+  matching vector remain `pending`.
+- `/mind/memory/facts` now validates only explicit body filters; `intent` is
+  preserved as operational context and never copied into `query`.
+- Added regression tests for surface/vector relinking and unfiltered facts
+  lookup with a broad intent.
+- Updated backend/frontend metadata and documentation baseline to V1.11.3.
+
+Verification:
+
+- Targeted Mind API tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_mind_api.py -k "openrouter_embedding_and_rerank_shadow or atomic_facts_support_alias_query" -q`
+  (`2 passed`).
+- Full backend suite passed:
+  `cd backend && .venv/bin/python -m pytest tests -q` (`79 passed`).
+- Frontend production build passed: `cd frontend && npm run build`.
+- `git diff --check` passed.
+
+Residual Risk:
+
+- Fact extraction/canonicalization is still rule-based and can produce noisy
+  entities or inflated conflicts. This slice only fixes the intent/query
+  contract boundary.
+- Embedding/rerank thresholds and KG domain bridges still need live calibration.
+
+Next Suggested Step:
+
+Continue stabilization with fact canonicalization and retrieval pipeline
+diagnostics before enabling more automatic memory lifecycle operations.
+
+## 2026-06-18 - V1.11.2 Compact Model-Facing Memory Packets
+
+Goal:
+
+Reduce model-facing memory-context noise now that Scarlet has sparse, dense,
+rerank, and NetworkX graph evidence, without losing full trace/debug
+observability for the evaluator UI.
+
+Area:
+
+Memory / runtime context / model-facing packaging.
+
+Changes:
+
+- Added `memory-packet-v1` for selected memories in runtime context.
+- Kept full retrieval diagnostics in `memory.context` traces.
+- Added `rendering_profile=compact-model-facing-v1`.
+- Model-facing memory packets now include:
+  - claim;
+  - source/provenance anchor;
+  - confidence and salience;
+  - compact facts;
+  - cognitive subject;
+  - domains;
+  - validity;
+  - sensitivity;
+  - retrieval routes and compact turn-level reason.
+- Removed verbose model-facing repetition of raw `signals`, metadata, full
+  hybrid weights/thresholds, and raw retrieval debug structures.
+
+Verification:
+
+- Targeted chat tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_chat_api.py -k "persists_messages_and_traces or selects_relevant_memory_context or metacognitive_context" -q`
+  (`3 passed`).
+- On a recent real `memory.context` trace with 5 selected memories, selected
+  model-facing memory payload size decreased from 18,974 to 13,254 characters
+  while preserving core source and cognitive fields.
+- Direct Scarlet smoke passed:
+  session `ses_a8abae0496da4539a7ad7db012fc61a1`,
+  turn `turn_8c88b7c30ffc4f09802ba529a7421a4c`.
+  The model-facing runtime context used `rendering_profile=compact-model-facing-v1`
+  and selected two `memory-packet-v1` user memories: caffeine/sleep and
+  chocolate/body-limit. The final answer used both constraints naturally.
+
+Residual Risk:
+
+- `memory-packet-v1` is compact but not final. Future work should derive
+  `applies_when`, `do_not_apply_when`, emotional weight, staleness, durability,
+  and privacy class from facts/KG/maintenance rather than letting Scarlet fill
+  arbitrary free-form fields.
+- Runtime context still keeps compatibility mirrors for current prompt safety.
+  A later prompt/runtime cleanup can reduce duplication further once tests show
+  Scarlet reliably uses `runtime_context.blocks`.
+
+Next Suggested Step:
+
+Run live Scarlet turns with M3 and inspect whether answers use `claim`,
+`source`, `cognitive.domains`, and `retrieval.routes` more cleanly than the
+previous verbose selected-memory payload.
+
+## 2026-06-18 - V1.11.1 NetworkX Associative Memory Graph Retrieval
+
+Goal:
+
+Improve Scarlet's human-like memory recall for implicit fields of discourse:
+when the user asks about a warm evening beverage, Scarlet should receive
+relevant personal constraints such as caffeine/sleep and chocolate/body-limit
+memories even if the user does not name the stored memory directly.
+
+Area:
+
+Memory / semantic retrieval / lightweight KG.
+
+Changes:
+
+- Added `networkx` as a standard backend dependency.
+- Added `backend/app/mind/graph_retrieval.py`:
+  - builds a temporary NetworkX graph over candidate memories, existing derived
+    graph rows, and backend-owned discourse-domain nodes;
+  - emits `retrieval_graph` with seed nodes, domain matches, paths, scores, and
+    graph stats;
+  - keeps domain bridges generic, avoiding one-off mappings from a specific
+    word to a specific memory.
+- Wired graph expansion into:
+  - automatic per-turn `memory.context`;
+  - manual `/mind/memory/search`.
+- Added graph signals to selected memory payloads.
+- Increased shadow surface fetch breadth so dense/rerank sees enough surfaces
+  before `retrieval_shadow_cloud_surface_limit` is applied.
+- Added a context guard: when personal associative graph evidence exists,
+  base-only project memories are declassified from selected evidence, reducing
+  project-memory noise in personal contexts.
+
+Verification:
+
+- Targeted chat tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_chat_api.py -k "graph_expansion or active_hybrid_selects_paraphrased_memory_context or excludes_weak_memory_overlap" -q`
+  (`4 passed`).
+- Targeted Mind API tests passed:
+  `cd backend && .venv/bin/python -m pytest tests/test_mind_api.py -k "graph_expansion or active_hybrid" -q`
+  (`3 passed`).
+- Full backend suite passed:
+  `cd backend && .venv/bin/python -m pytest tests -q` (`79 passed`).
+- Direct Scarlet smoke:
+  session `ses_31764779f34f460895b07a8e80b98caa`,
+  turn `turn_3899983e95174b0092bd3700b3db52c7`.
+  Query: warm evening beverage, focus, no caffeine, personal preferences.
+  `memory.context.selected` contained only:
+  - caffeine-after-dinner/sleep memory via `energy_sleep_focus` and
+    `food_drink_wellbeing`;
+  - chocolate/body-limit memory via `food_drink_wellbeing`.
+
+Residual Risk:
+
+- This is lightweight retrieval-time graph expansion, not mature KG reasoning.
+- Domain bridges need calibration as more personal memory categories appear.
+- It must not be used for lifecycle-changing operations such as automatic
+  merge, update, deprecation, or stale-memory repair.
+- `pip install -e backend` still fails because setuptools detects both `app`
+  and `data` as top-level packages; this is an existing packaging issue and was
+  not fixed in this slice. Installing `networkx` directly into the venv allowed
+  verification.
+
+Next Suggested Step:
+
+Run several human-led sessions with ordinary personal prompts and inspect
+`retrieval_graph` alongside sparse/dense/hybrid evidence. Calibrate domain
+bridges only from observed false positives/false negatives, not from isolated
+word patches.
+
+## 2026-06-18 - V1.11.0 Active Hybrid Retrieval Calibration
+
+Goal:
+
+Promote the validated OpenRouter embedding/rerank evidence from pure shadow
+diagnostics to a configurable active ranking layer without losing observability
+or destabilizing default installations.
+
+Area:
+
+Memory / retrieval ranking / embedding-rerank calibration.
+
+Changes:
+
+- Added memory-level grouping to `retrieval_shadow`:
+  - raw `results` still show individual `memory_surfaces`;
+  - `grouped_results` deduplicates by memory `target_id`, keeps the best
+    surface score, surface kinds, top surface, and contributing surfaces;
+  - OpenRouter rerank now also reports `rerank.grouped_results` over grouped
+    memory candidates.
+- Added configurable `retrieval_hybrid_mode`:
+  - `off` keeps dense/rerank diagnostic only;
+  - `shadow` computes hybrid entries without changing active memory selection;
+  - `active` lets grouped dense/rerank evidence influence `memory.context` and
+    `/mind/memory/search` results.
+- Added explicit hybrid thresholds and weights for base lexical score, sparse
+  score, dense score, rerank score, salience, and confidence.
+- Added hybrid evidence to memory context traces, query plans, selected memory
+  signals, and `memory.search` results.
+- Kept default mode `off` to avoid requiring OpenRouter keys or changing
+  behavior unexpectedly.
+
+Test Design:
+
+Before e2e Scarlet tests, the backend test matrix now covers:
+
+- paraphrased Italian retrieval for an English cacao/focus memory;
+- memory-level dedup to avoid repeated surfaces crowding out the right memory;
+- grouped rerank after dedup;
+- a negative control where dense nearest-neighbor noise must not create a
+  selected memory below threshold;
+- automatic chat-turn memory context, not only manual `memory.search`.
+
+Verification:
+
+- Targeted memory API tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py -k "openrouter_embedding_and_rerank_shadow or active_hybrid" -q`
+  (`3 passed`).
+- Targeted chat context tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -k "active_hybrid_selects_paraphrased_memory_context or selects_relevant_memory_context or excludes_weak_memory_overlap" -q`
+  (`3 passed`).
+- Full backend suite passed:
+  `backend/.venv/bin/python -m pytest backend/tests -q` (`76 passed`).
+
+Open Questions:
+
+- Live OpenRouter e2e requires `OPENROUTER_API_KEY` in the runtime environment.
+  The key provided in chat was not written to `.env` or committed.
+- The initial thresholds (`dense >= 0.38`, `rerank >= 0.55`) are conservative
+  lab defaults and must be recalibrated with real Scarlet conversations.
+- Active hybrid retrieval still does not solve lifecycle/conflict reasoning;
+  merge, update, deprecate, and KG expansion remain separate future layers.
+
+Next Suggested Step:
+
+Run live Scarlet A/B probes with `RETRIEVAL_HYBRID_MODE=active`,
+`RETRIEVAL_SHADOW_BACKEND=openrouter`, and rerank enabled. Use difficult but
+natural scenarios: Italian paraphrase, fatigue/style preference, food
+constraint, unrelated negative control, temporal recall requiring episodic
+search, and near-neighbor memories that share only weak context.
+
+## 2026-06-18 - V1.10.0 OpenRouter Embedding/Rerank Shadow
+
+Goal:
+
+Start real cloud embedding evaluation for Scarlet memory retrieval without
+waiting for the Windows GPU embedding setup and without changing active memory
+ranking.
+
+Area:
+
+Memory / retrieval shadow / cloud embedding.
+
+Changes:
+
+- Added `retrieval_shadow_backend=openrouter`.
+- Added small OpenRouter retrieval client for `/embeddings` and `/rerank`.
+- Added `embedding_vectors` SQLite cache for stable memory-surface embeddings
+  keyed by content hash.
+- Added OpenRouter shadow embedding over `memory_surfaces`, defaulting to
+  `nvidia/llama-nemotron-embed-vl-1b-v2:free`.
+- Added optional OpenRouter rerank shadow over dense candidates, defaulting to
+  `nvidia/llama-nemotron-rerank-vl-1b-v2:free`.
+- Kept `trace_only_no_active_ranking`: sparse/BM25 and lexical/fact logic still
+  decide active memory selection.
+- Updated docs and config examples for the new shadow mode.
+
+Verification:
+
+- Targeted backend tests passed:
+  `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py::test_mind_memory_search_reports_openrouter_embedding_and_rerank_shadow backend/tests/test_mind_api.py::test_mind_memory_search_reports_trace_only_shadow_retrieval -q`
+  (`2 passed`).
+- Full backend suite passed:
+  `backend/.venv/bin/python -m pytest backend/tests -q` (`73 passed`).
+- Frontend production build passed: `npm run build` in `frontend`.
+- `git diff --check` passed.
+
+Open Questions:
+
+- Live OpenRouter tests still require `OPENROUTER_API_KEY`.
+- Free-tier reliability, latency, context limits, Italian/personal-memory
+  quality, and privacy posture must be measured before promoting dense/rerank
+  into active ranking.
+- Rerank is useful only after candidate retrieval; it cannot recover a memory
+  absent from the candidate set.
+
+Next Suggested Step:
+
+Enable OpenRouter shadow on a controlled test DB and run paired retrieval
+probes: lexical match, Italian paraphrase, synonym-only query, temporal
+preference query, negative control, and conflict query. Compare sparse selected
+memories, dense shadow results, reranked shadow results, latency, and cache hit
+rate.
+
+Live Follow-up:
+
+- The owner provided an OpenRouter key for local-only testing.
+- Direct OpenRouter smoke confirmed:
+  - embeddings return 2048-dimensional vectors;
+  - rerank returns ordered `index` / `relevance_score` payloads;
+  - free test responses reported zero cost.
+- Backend integration on an in-memory DB seeded 10 controlled memories.
+- Positive evidence:
+  - dense/rerank shadow recovered Italian paraphrase and "sono stanco" style
+    cases where active sparse failed;
+  - sparse remained better on exact lexical and chocolate/snack cases.
+- Key finding:
+  - raw surface-level shadow results can be misleading because many surfaces
+    from one memory crowd out other memories;
+  - when dense results are deduplicated by memory `target_id`, all eight
+    positive controlled queries ranked the expected memory first;
+  - rerank should run after memory-level dedup, not over duplicate surfaces.
+- Updated `docs/experiments.md#exp-0039---openrouter-cloud-embedding-shadow`
+  with detailed results and next implementation candidate.
+
+## 2026-06-17 - V1.9.0 Metacognitive Context Shadow
+
+Goal:
+
+Create a narrow shadow phase for metacognitive lessons so the project can
+observe whether targeted self-regulation hints would help Scarlet before making
+them part of normal model-facing context.
+
+Area:
+
+Metacognition / perception-context / UI debug.
+
+Changes:
+
+- Added backend generation of `metacognitive.context` at turn start.
+- Default mode is `shadow`: the payload is traced, emitted as
+  `metacognitive.context.shadowed`, streamed as `metacognitive_context`, and
+  shown in the UI, but it is not inserted into `<runtime_context>`.
+- Added controlled `inject` mode for A/B tests. In that mode, the same payload
+  becomes a `metacognitive_context` block inside `runtime_context.blocks`.
+- Added a small deterministic lesson selector focused on high-signal patterns:
+  simple-turn effort calibration, memory-commitment risk, historical recall
+  evidence, and source-sensitive claims.
+- Added frontend rendering for the shadow block with readable candidate
+  lessons and raw JSON details.
+- Advanced project/app version to V1.9.0.
+
+Verification:
+
+- `python3 -m py_compile backend/app/mind/metacognitive_context.py
+  backend/app/mind/context.py backend/app/api/chat.py backend/app/config.py`
+  passed.
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  passed: 13 tests.
+- `npm run build` passed in `frontend`.
+
+Open Questions:
+
+- The selector is intentionally deterministic and small. It is not yet proof
+  that metacognitive lessons improve Scarlet.
+- The next evaluation should compare normal shadow-only turns with controlled
+  `inject` turns on identical prompts, measuring overthinking, tool calls,
+  latency, memory promises, and source discipline.
+
+Next Suggested Step:
+
+Run a short A/B probe with `metacognitive_context_mode=shadow` versus
+`inject`, using the same request set, then decide which lessons are actually
+worth retrieving dynamically.
+
+## 2026-06-16 - V1.8.0 Thinking Retrospection Metacognition
+
+Goal:
+
+Give Scarlet a controlled way to inspect previous-turn provider thinking as
+process evidence through the existing internal metacognition route, without
+adding parallel reflection endpoints or always reinjecting raw reasoning.
+
+Area:
+
+Metacognition / API Mind / Scarlet prompt.
+
+Changes:
+
+- Extended `POST /mind/metacognition/step` with retrospective modes:
+  `review_previous_turn`, `detect_reasoning_drift`, `explain_tool_choice`,
+  `recover_open_loops`, `compare_answer_to_reasoning`,
+  `extract_reasoning_digest`, and `memory_from_reasoning`.
+- Added `turn_scope="previous"` and `detail="digest|excerpt|raw"`.
+- Retrospective modes default to the previous completed turn when no scope is
+  supplied.
+- Added backend construction of `thinking-retrospection-pack-v1` from previous
+  turn messages, final answer, public notes, tool calls, event markers, traces,
+  and provider thinking.
+- Updated Scarlet's prompt and Mind API schema so the capability is discoverable
+  and is framed as process audit, not factual evidence.
+- Added small shape-hardening for observed MiniMax M3 metacognition payloads:
+  `reasoning_scope`, `reasoning_detail`, and `{"item": [...]}` list wrappers.
+- Backed up the prompt to
+  `backend/app/prompts/backups/scarlet_system.20260616T120000Z.v180-thinking-retrospection.md`.
+
+Verification:
+
+- `python3 -m py_compile backend/app/mind/metacognition.py backend/app/mind/schema.py backend/app/mind/dispatcher.py` passed.
+- `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py -q`
+  passed: 26 tests.
+- `backend/.venv/bin/python -m pytest backend/tests/test_mind_api.py backend/tests/test_chat_api.py -q`
+  passed: 38 tests.
+- `npm run build` passed in `frontend`.
+- `git diff --check` passed.
+- Direct live probe session `ses_9f7b8e37cc2145508867bd45b96f3553`:
+  - Turn 1 `turn_db40c320be8c423fbeea614de4c66e2e` generated one provider
+    thinking block and a compact answer about open-loop controls.
+  - Turn 2 `turn_0fedc6410a2a461e911ab67fc181c642` asked Scarlet to audit the
+    previous reasoning without naming an endpoint.
+  - Scarlet emitted one public note, inspected `GET /mind/schema`, then called
+    `POST /mind/metacognition/step` with
+    `mode="compare_answer_to_reasoning"`, `turn_scope="previous"`, and
+    `detail="excerpt"`.
+  - Trace `trace_205288e7aa6a419eabab67785c5bc908` built a
+    `thinking-retrospection-pack-v1` from previous turn
+    `turn_db40c320be8c423fbeea614de4c66e2e`, with 1 thinking block and 4818
+    thinking chars.
+  - The second turn completed successfully but cost about 109k input tokens and
+    178 seconds latency, mainly because Scarlet chose `excerpt` instead of the
+    default cheaper `digest`.
+
+Open Questions:
+
+- Initial live evidence is positive: Scarlet chose retrospective metacognition
+  autonomously. Detail selection still needs calibration because it chose
+  `excerpt` where `digest` would likely have been enough.
+- `raw` detail may be useful for debugging but should stay rare because it can
+  be token-heavy and can tempt the model to overfit previous reasoning.
+- The first implementation only supports the previous completed turn; multi-turn
+  retrospection should wait for evidence from this narrow experiment.
+
+Next Suggested Step:
+
+Run a live two-turn Scarlet probe where the first turn creates a possible open
+loop and the second asks Scarlet to audit what happened, without naming the
+endpoint. Score whether she uses metacognition retrospectively and summarizes
+process evidence without dumping raw thinking.
+
+## 2026-06-16 - V1.7.2 Prompt-Only Long Reasoning Notes
+
+Goal:
+
+Make Scarlet's prolonged reasoning more legible to the user through short
+public note waypoints, without adding backend events, UI changes, or synthetic
+runtime messages.
+
+Area:
+
+Communication / Scarlet system prompt.
+
+Changes:
+
+- Backed up the previous prompt to
+  `backend/app/prompts/backups/scarlet_system.20260616T173917Z.long-notes-v172.md`.
+- Added `Long Reasoning Notes` under `Public Work Notes`.
+- Defined when a turn counts as prolonged: multiple API Mind operations,
+  multiple evidence sources, conflict/staleness/missing evidence, strategy
+  changes, or several reasoning/tool phases before final answer.
+- Defined note waypoints for investigation start, first meaningful operation,
+  evidence-driven plan changes, synthesis, and final verification.
+- Reinforced that notes are public orientation only, not chain-of-thought,
+  draft answers, self-critique, or repeated proof that Scarlet is thinking.
+
+Verification:
+
+- `git diff --check` passed.
+- `npm run build` passed in `frontend`.
+- `curl http://127.0.0.1:8000/health` confirmed active MiniMax M3.
+- Direct live probe session `ses_5dbdac4acf91402bb31418ddd3750b99`,
+  turn `turn_20cf87c91bb94b4aac771bf4dbad7a05`:
+  - generated 6 public notes, 8 tool calls, 7 thinking blocks, and 1 final
+    answer;
+  - notes appeared as short waypoints before schema verification,
+    metacognition retry, evidence reorientation, memory search, and final
+    synthesis;
+  - no backend/UI changes were needed for the note blocks.
+
+Open Questions:
+
+- Prompt-only control may not force mid-stream notes during pure no-tool
+  thinking if MiniMax chooses to emit only a final answer. This slice tests the
+  model-facing instruction before considering runtime-level mechanisms.
+- The same probe exposed repeated MiniMax M3 shape errors when calling
+  `POST /mind/metacognition/step`; endpoint-local error guidance eventually
+  let Scarlet recover, but the behavior is tracked separately under BUG-0047.
+
+Next Suggested Step:
+
+Run a complex direct Scarlet request and verify whether public notes appear as
+short waypoints while direct/simple turns remain compact.
+
+## 2026-06-16 - V1.7.1 Request Effort Routing Prompt Fix
+
+Goal:
+
+Reduce MiniMax M3's tendency to over-process simple Scarlet turns without
+weakening source discipline, memory autonomy, or agentic depth when the request
+actually needs them.
+
+Area:
+
+Communication / perception-context / Scarlet system prompt.
+
+Changes:
+
+- Backed up the previous prompt to
+  `backend/app/prompts/backups/scarlet_system.20260616T164444Z.md`.
+- Added `Request Effort Routing` to classify turns as direct, contextual,
+  source-sensitive, state-changing, or high-impact.
+- Direct and contextual turns may now answer from visible/runtime evidence
+  without ritual API Mind calls, metacognition, public work notes, or full
+  verification.
+- Source-sensitive and state-changing turns still require proportional API
+  Mind use and operation-result verification.
+- Memory forcing is now conditional on real semantic candidates, memory
+  promises, state changes, or source-sensitive claims.
+- Near-miss memories may now be applied softly as communication-style hints
+  when relevant, without presenting them as verified facts.
+
+Verification:
+
+- `git diff --check` passed.
+- `npm run build` passed in `frontend`.
+- `curl http://127.0.0.1:8000/health` confirmed active MiniMax M3.
+- Direct live probe session `ses_958ba084193d48fb9ac853c89602ffea`:
+  - turn `turn_ff0cf30a951240ccb09a1290a2aad51a` on a simple one-sentence
+    request produced a one-sentence answer, no tool calls, and no public work
+    note; provider thinking explicitly classified it as Level 1 direct answer.
+  - turn `turn_53485550e62549b588a1702e7ddf3a1e` on a source-sensitive schema
+    request produced a public note, called `GET /mind/schema`, and answered
+    from the returned schema version/routes.
+
+Open Questions:
+
+- MiniMax M3 may still sometimes choose a heavier reasoning path because the
+  provider can emit visible thinking even for compact answers. The product
+  target is not "no thinking", but no unnecessary public complexity or tool
+  ritual.
+
+Next Suggested Step:
+
+Run several human live sessions with both simple and source-sensitive prompts
+to estimate whether M3 now calibrates effort better than the previous prompt.
+
+## 2026-06-16 - V1.7.0 Stream Block Lifecycle UI
+
+Goal:
+
+Make Scarlet's live stream behave like stable agentic blocks that appear,
+mature, complete, and persist without visual jumps between active stream and
+historical replay.
+
+Area:
+
+Communication / perception-context / frontend stream lifecycle.
+
+Changes:
+
+- Extended frontend `AgentStep` with stable `blockId` and lifecycle `phase`.
+- `text_start` and `text_delta` now create a visible provisional public-text
+  block instead of hidden runtime data.
+- Semantic `assistant_note` and `assistant_answer` events now finalize that same
+  public-text block.
+- Tool blocks now expose phases from input preparation through execution and
+  completion.
+- Tool input JSON is visible while provider `input_json_delta` chunks stream.
+- `turn_complete` now reconciles live blocks with persisted event/trace replay
+  rather than blindly replacing the visible flow.
+- Added active-block visual treatment in the chat flow and phase visibility in
+  the sidebar inspector.
+- Updated `docs/block-registry.md` and ADR-0049 with lifecycle rules.
+
+Verification:
+
+- `npm run build` passed in `frontend`.
+
+Open Questions:
+
+- Browser automation was unavailable in the Codex session, so visual screenshot
+  verification still requires owner/live UI inspection.
+- Backend-level canonical `stream.block.*` events may be useful later, but are
+  intentionally deferred until the frontend lifecycle proves where the backend
+  contract is actually needed.
+
+Next Suggested Step:
+
+Run live Scarlet turns with thinking, public text before tool use, and multiple
+tool calls; verify that blocks stay visible and keep their order before and
+after turn completion.
+
+## 2026-06-16 - V1.6.0 Model Input Inspector And Block Registry
+
+Goal:
+
+Make Scarlet's model-facing input and UI/debug blocks legible enough to analyze
+redundancy, ordering, reinjection, and frontend representation without relying
+only on raw JSON traces.
+
+Area:
+
+Communication / perception-context / frontend inspector.
+
+Changes:
+
+- Added `docs/block-registry.md` as the canonical map of model-facing blocks,
+  runtime blocks, stream/output blocks, trace-only surfaces, UI placement, and
+  current redundancy candidates.
+- Added a right-sidebar `Modello` inspector in the frontend.
+- The `Modello` tab renders the persisted `llm.request` trace as readable
+  sections:
+  - system prompt + injected runtime context;
+  - parsed `runtime_context.blocks` with compatibility mirror warning;
+  - provider-native messages and content block types;
+  - tool schemas and parameter descriptions;
+  - full raw request behind a detail toggle.
+- Historical tool replay now enriches completed `mind.tool_call.*` events with
+  matching `mind.tool_call` traces so full tool output remains visible after
+  reload.
+- Updated communication, perception-context, project-state, decisions, and
+  changelog documentation.
+
+Verification:
+
+- `npm run build` passed in `frontend`.
+- `curl http://127.0.0.1:8000/health` returned MiniMax M3 as active model.
+- A direct SQLite trace inspection confirmed current `llm.request` payloads use
+  `payload_json` with `model`, `max_tokens`, `system`, `base_system`,
+  `runtime_context`, `provider_messages`, and `tools`.
+
+Open Questions:
+
+- Browser plugin control was not exposed in this Codex session, so visual
+  screenshot verification could not be performed through the in-app browser.
+- Payload optimization is deliberately deferred: runtime compatibility mirrors
+  are visible redundancy candidates, but removing them requires separate direct
+  Scarlet regression tests.
+
+Next Suggested Step:
+
+Use the new `Modello` tab during live Scarlet sessions to decide which
+model-facing surfaces can be safely compressed or removed without weakening
+Scarlet's comprehension.
+
+## 2026-06-16 - V1.5.2 Prompt Block Contract Alignment
+
+Goal:
+
+Realign Scarlet's system prompt with the actual backend cognitive surfaces so
+she can distinguish same-session provider continuity, runtime blocks, episodic
+recall, and semantic memory without flattening them into one generic
+"memory/context" concept.
+
+Area:
+
+Communication / perception-context / Scarlet system prompt.
+
+Changes:
+
+- Backed up the previous prompt to
+  `backend/app/prompts/backups/scarlet_system.20260616T134019.md`.
+- Added an explicit `Continuity Layers` section to
+  `backend/app/prompts/scarlet_system.md`.
+- Clarified that active-session visible history may include provider-native
+  `thinking`, `text`, `tool_use`, and `tool_result` blocks.
+- Clarified that `runtime_context.blocks` is the primary structured contract
+  and top-level runtime fields are compatibility mirrors.
+- Clarified that `recent_runtime_events` is a compact operational hint surface,
+  not stronger semantic evidence than direct provider continuity.
+- Added an explicit instruction that when prior visible `thinking` blocks are
+  already present in active-session history, Scarlet should inspect that
+  semantic content before relying only on `thinking.started` /
+  `thinking.captured` markers.
+
+Verification:
+
+- `curl http://127.0.0.1:8000/health` returned
+  `{\"status\":\"ok\",\"provider\":\"minimax\",\"model\":\"MiniMax-M3\"}`.
+- Direct live probe session `ses_172498d31b424e1dafa28dd85a38fcc0`:
+  - turn `turn_cb204b4e27fc469e9b1ce3f3f7c26ac3` correctly distinguished
+    active-session continuity, runtime blocks, semantic memory, and episodic
+    recall;
+  - trace inspection confirmed the updated prompt was loaded because the
+    `llm.request` base system contained `## Continuity Layers`.
+- Direct live probe session `ses_d09ad1594bf4471ea27794c5b896856d` and follow-up
+  probe `ses_4dcded570516493f850c2839a0d8894f`:
+  - `llm.request.provider_history_source` was
+    `session.provider_history_json`;
+  - provider messages for the follow-up turn contained assistant
+    `thinking` blocks from the previous turn;
+  - Scarlet still often grounded answers about prior reasoning in
+    `recent_runtime_events` or claimed the prior `thinking` content was not
+    recoverable.
+
+Open Questions:
+
+- MiniMax M3 now receives the correct prompt contract and provider-visible
+  thinking history, but it does not reliably use prior visible `thinking`
+  blocks as the strongest same-session semantic source.
+- This looks more like a model-behavior or attention/allocation issue than a
+  backend transport issue.
+
+Next Suggested Step:
+
+Decide whether to accept this as a current M3 limitation, add a more explicit
+runtime-visible continuity summary surface for prior thinking, or postpone the
+problem until a stronger cognition/metacognition layer exists.
+
+## 2026-06-16 - Thinking Block Persistence And Historical Replay Fix
+
+Goal:
+
+Ensure provider-generated thinking blocks survive final turn persistence and
+remain visible in correct order when a conversation is reloaded from stored
+events.
+
+Area:
+
+Communication / runtime events / frontend replay.
+
+Changes:
+
+- Fixed backend semantic-event persistence for response-derived blocks:
+  `record_response_content_events()` now stores `text`, `model_step`, and
+  `index` for both `llm.thinking.captured` and assistant text blocks rebuilt
+  from `raw_provider_messages`.
+- Added frontend replay fallback for legacy turns: when an old persisted
+  `llm.thinking.captured` event has no `text`, the UI now recovers the
+  thinking body from matching `llm.response.raw_provider_messages`.
+- Strengthened backend regression coverage for non-stream semantic persistence
+  and streaming replay payload expectations.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+  passed with 12 tests.
+- `npm run build` passed in `frontend`.
+
+Open Questions:
+
+- MiniMax M3 still emits thinking only on some turns. This fix preserves and
+  replays generated thinking correctly, but does not force the provider to
+  produce thinking on every response.
+
+Next Suggested Step:
+
+Run one or more real M3 turns that are likely to trigger internal reasoning and
+verify in the UI that the resulting thinking cards remain visible after turn
+completion and after session reload.
+
+## 2026-06-14 - V1.5.0 Maintenance Lab And Theory-First Cognitive Organs
+
+Goal:
+
+Recover the real state of the project after a pause, keep MiniMax M3 active for
+owner-led testing, and advance only the parts that are useful before
+embedding/KG and before goal/metacognition implementation.
+
+Area:
+
+Memory maintenance lab, provider baseline governance, Goal/Focus/Task theory,
+Metacognition theory.
+
+Changes:
+
+- Added maintenance lab APIs:
+  - `GET /api/maintenance/overview`
+  - `GET /api/maintenance/jobs`
+  - `POST /api/maintenance/jobs/{job_id}/run`
+- Kept these APIs outside Scarlet's `mind_api` surface because they are for
+  backend maintenance workers, evaluator tooling, and future Dream-style
+  review, not in-turn Scarlet cognition.
+- Added repository support for paginated maintenance job listing.
+- Added targeted maintenance API tests for overview, job listing, and missing
+  job run errors.
+- Added `docs/theory-goal-focus-task.md`.
+- Added `docs/theory-metacognition.md`.
+- Updated memory/project docs to mark merge/update/deprecate automation as
+  post-embedding/KG work.
+- Updated app/docs/package baseline to V1.5.0.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest tests/test_maintenance_api.py -q`
+  passed with 4 tests.
+- `backend/.venv/bin/python -m pytest -q` passed with 67 tests.
+- `git diff --check` passed.
+- `npm run build` passed in `frontend`.
+
+Open Questions:
+
+- Owner will run human tests with M3 and inspect whether behavior is stable
+  enough to keep M3 as the active baseline.
+- Pending/resolved proposal quality should be inspected after real idle
+  maintenance windows before tuning thresholds.
+- Goal/Focus/Task and Metacognition theory documents need owner review before
+  any implementation slice.
+- V1.5.0 overview exposed failed maintenance jobs with `ReadTimeout`; recorded
+  as BUG-0040 for a separate reliability discussion.
+
+Next Suggested Step:
+
+Run live M3 sessions, wait for idle maintenance, inspect
+`/api/maintenance/overview`, and then decide whether the next sprint is
+maintenance tuning, Windows embedding/KG setup, or theory-approved goal/metacog
+implementation.
+
 ## 2026-05-08 - Project Documentation Foundation
 
 Goal:
@@ -3429,3 +5388,304 @@ Next Suggested Step:
 Discuss a focused mitigation for BUG-0039 before changing code. M3 looks
 stronger on schema-awareness and isolated source recall, but M2.7 remains the
 more reliable semantic-memory-write baseline.
+
+## 2026-06-15 - V1.5.1 MiniMax M3 Semantic Stream UI
+
+Area:
+
+Communication / runtime events / frontend cockpit.
+
+Branch:
+
+Comunicazione Agente-Utente.
+
+Type:
+
+Fix.
+
+Target version:
+
+V1.5.1.
+
+Goal:
+
+Adapt Scarlet's runtime/UI to MiniMax M3 streamed content so provider thinking,
+public work notes, tool-use, tool results, and final answer blocks appear in
+the correct order without frontend timing heuristics.
+
+Changes:
+
+- Added backend semantic stream events for completed provider content blocks:
+  `thinking_captured`, `assistant_note`, and `assistant_answer`.
+- Persisted those events as `llm.thinking.captured`,
+  `assistant.note.emitted`, and `assistant.answer.completed` during the stream
+  instead of reconstructing notes only after the turn.
+- Updated the frontend agent stream to render:
+  - thinking as an expanded-while-active accordion;
+  - public notes as fully visible blocks;
+  - each tool call as one accordion with input and output panes;
+  - final answers as explicit answer blocks.
+- Reworked the center chat as a flat sequence of top-level cards instead of a
+  single assistant-response card containing nested blocks:
+  - user messages remain standalone conversation cards;
+  - automatic memory context, runtime context, thinking, notes, tool exchange,
+    and final answers each become their own chronological card;
+  - raw JSON and technical payloads move behind per-block code/detail toggles.
+- Reworked the right pane into a session inspector rather than a duplicate
+  agent stream:
+  - memories used in the selected turn;
+  - tool/actions performed by Scarlet;
+  - internal system events;
+  - warnings/errors.
+- Removed the old frontend assumption that only text before the first tool in
+  model step 1 can be a public note.
+- Recorded ADR-0044, EXP-0034, and BUG-0041.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py backend/tests/test_minimax_client.py`
+- `npm run build`
+- Direct MiniMax M3 stream probe confirmed persisted order:
+  `assistant.note.emitted` -> `mind.tool_call.started/completed` ->
+  `assistant.answer.completed`.
+- Visual/DOM probe on a dense persisted session confirmed `chat-flow-card`
+  blocks render without the old `.message-body` or `.agent-turn.embedded`
+  wrappers.
+
+Residual Risk:
+
+The UI/runtime now supports provider-exposed thinking blocks, but MiniMax M3
+thinking mode is not explicitly enabled by this slice.
+
+---
+
+Date: 2026-06-16
+
+Area:
+
+Communication / MiniMax provider thinking.
+
+Type:
+
+Fix.
+
+Target version:
+
+V1.5.1.
+
+Goal:
+
+Restore provider-visible MiniMax M3 thinking in live Scarlet turns and verify
+that thinking remains part of the provider history passed back to the model on
+later turns.
+
+Changes:
+
+- Enabled Anthropic-compatible `thinking={"type":"adaptive"}` automatically
+  for MiniMax M3 requests in `backend/app/llm/minimax_client.py`.
+- Left M2.x behavior unchanged.
+- Added provider tests that lock the M3 thinking parameter on and confirm M2.x
+  requests still omit it.
+- Reconfirmed that provider history preserves full assistant content blocks,
+  including `thinking`, `text`, `tool_use`, and returned `tool_result`
+  sequences.
+
+Verification:
+
+- `backend/.venv/bin/python -m pytest backend/tests/test_minimax_client.py -q`
+- `backend/.venv/bin/python -m pytest backend/tests/test_chat_api.py -q`
+- Restarted backend on `http://127.0.0.1:8000`.
+- Direct live MiniMax M3 stream probe confirmed:
+  `llm.thinking.started` -> `thinking_delta` -> `assistant.note.emitted` ->
+  `mind.tool_call.started` -> second-step `llm.thinking.started` ->
+  final answer.
+
+Residual Risk:
+
+Provider-visible thinking now depends on the Anthropic-compatible M3
+`thinking` mode being supported consistently by MiniMax. Public notes before
+tool calls remain prompt-driven rather than runtime-enforced by this slice.
+
+---
+
+Date: 2026-06-25
+
+Area:
+
+Digital-individual organs / Volition.
+
+Type:
+
+Implementation V1.19.0.
+
+Goal:
+
+Implement the first real volition slice as a manual latent-intention register
+for Scarlet, without automatic active-chat injection or autonomous-cycle
+processing.
+
+Changes:
+
+- Added `intention_records` and `intention_links` storage.
+- Added `POST /mind/volition` through the existing `mind_api` dispatcher.
+- Added lifecycle actions for create/read/list/search/update/defer/review/
+  promote-to-focus-candidate/resolve/impossible/deprecate.
+- Added volition events and traces under `organ.volition.*`.
+- Advanced Mind API schema to `2026-06-25.volition-organ-v1`.
+- Backed up the Scarlet system prompt before adding minimal volition usage
+  instructions:
+  `backend/app/prompts/backups/scarlet_system.20260625T000000Z.pre-v1190-volition-organ.md`.
+- Kept `volition_context` out of normal runtime injection; intentions are
+  manually inspectable and future autonomous-cycle material.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/storage/models.py app/storage/repositories.py app/mind/volition.py app/mind/dispatcher.py app/mind/schema.py app/main.py`
+- `cd backend && .venv/bin/python -m pytest tests/test_volition_api.py -q`
+- `cd backend && .venv/bin/python -m pytest tests/test_volition_api.py tests/test_mind_api.py -q`
+- `cd backend && .venv/bin/python -m pytest tests/test_volition_api.py tests/test_focus_api.py tests/test_organs.py tests/test_mind_api.py::test_mind_schema_exposes_tool_and_current_routes tests/test_mind_api.py::test_mind_call_returns_structured_error_for_removed_attention_route -q`
+- `git diff --check -- backend/app/storage/models.py backend/app/storage/repositories.py backend/app/mind/volition.py backend/app/mind/dispatcher.py backend/app/mind/schema.py backend/app/main.py backend/tests/test_volition_api.py backend/tests/test_mind_api.py backend/app/prompts/scarlet_system.md CHANGELOG.md docs/activity-log.md docs/api-contract.md docs/block-registry.md docs/decisions.md docs/development-process.md docs/digital-individual-organs-notes.md docs/experiments.md docs/project-state.md`
+
+Residual Risk:
+
+Live Scarlet behavior still needs evaluation. The main risk is not backend
+correctness but model behavior: Scarlet may over-create weak or theatrical
+intentions if the prompt pressure is too high. Automatic autonomous cycles are
+intentionally deferred.
+
+Known unrelated test gap:
+
+- `cd backend && .venv/bin/python -m pytest tests/test_chat_api.py -q` still
+  has the pre-existing failure in
+  `test_chat_turn_persists_messages_and_traces`: it expects the old prompt
+  phrase `feminine agent identity`, while the approved current prompt identifies
+  Scarlet as a digital individual. The remaining 15 chat tests passed.
+
+---
+
+Date: 2026-06-19
+
+Area:
+
+Memory / Codex test database / retrieval calibration.
+
+Type:
+
+Implementation/evaluation inside V1.13.0.
+
+Goal:
+
+Activate the isolated Codex test profile, populate it with a dirty controlled
+memory dataset derived from the real Scarlet DB, and run endpoint-level
+retrieval tests without mutating the production database.
+
+Changes:
+
+- Added `backend/app/evals/codex_test_memory_harness.py`.
+- The harness can reset `backend/data/codex_test.db`, seed it from
+  `backend/data/app.db`, write controlled memories through `/mind/call`, add a
+  lifecycle supersede pair, run retrieval probes, and write a report under
+  `backend/app/evals/runs/*_codex_test_memory`.
+- Fixed hybrid retrieval diagnostic serialization by materializing
+  `memory_id`, salience, and creation time inside `HybridRankEntry`, avoiding
+  detached SQLModel object refresh after `add_trace` commits.
+- Started the local backend with `CODEX_TEST=true`; `/health` confirms
+  database profile `codex_test`.
+
+Evaluation:
+
+- Harness run:
+  `backend/app/evals/runs/20260619_161039_codex_test_memory/`.
+- DB prod remained unchanged for this run at 30 memories, 241 surfaces, 236
+  embedding vectors, 90 graph nodes, and 75 graph edges.
+- DB test reached 272 memories, 242 Codex-test memories, 2,507 surfaces, 521
+  embedding vectors, 671 graph nodes, and 725 graph edges.
+- Retrieval probe result: 6/9 passed.
+- Confirmed strengths:
+  direct chocolate/wellbeing recall, associative evening beverage recall,
+  negative control, API schema/error recovery, privacy/runtime profile, and
+  lifecycle current memory.
+- Observed limits:
+  strict-key recall failed for concise-when-tired because an equivalent real
+  production memory won; metacognitive effort routing and episodic bridge
+  recall need retrieval calibration.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/evals/codex_test_memory_harness.py app/mind/hybrid_retrieval.py app/mind/memory.py app/mind/context.py`
+- `cd backend && .venv/bin/python app/evals/codex_test_memory_harness.py --reset --target-count 240`
+- `cd backend && .venv/bin/python -m pytest tests -q`
+- Live HTTP check against `http://127.0.0.1:8000/mind/call` returned the
+  controlled `ct_food_evening_no_caffeine` memory first in `codex_test` mode.
+
+Residual Risk:
+
+The Codex test harness is now usable, but ranking is not yet tuned. The next
+step should separate exact controlled-key recall from functionally equivalent
+recall before changing retrieval weights or KG expansion behavior.
+
+---
+
+Date: 2026-06-19
+
+Area:
+
+Memory / corrected chat-context evaluation / live Scarlet comparison.
+
+Type:
+
+Implementation/evaluation inside V1.13.0.
+
+Goal:
+
+Correct the memory test methodology so it measures the same automatic
+`memory_context` passed to Scarlet, then compare five predictions against live
+MiniMax M3 behavior.
+
+Changes:
+
+- Extended `backend/app/evals/codex_test_memory_harness.py` with
+  `context_eval`.
+- `context_eval` drives `/api/chat/sessions/{id}/turn/stream` with a fake
+  provider and captures the streamed `memory_context` and `runtime_context`.
+- Reworked controlled seed content to Italian, closer to Scarlet's real memory
+  style, avoiding an artificial English benchmark bias.
+- Added stricter negative-control scoring so unrelated prompts fail when any
+  selected memory is present.
+
+Evidence:
+
+- Corrected context run:
+  `backend/app/evals/runs/20260619_172206_codex_test_memory/`.
+- Live Scarlet/MiniMax M3 run:
+  `backend/app/evals/runs/20260619_172536_codex_live_scarlet_memory/`.
+
+Results:
+
+- Context eval: 2/5 strict pass.
+- Confirmed system strengths:
+  - brief-when-tired preference retrieval;
+  - semantic-memory anchor to episodic source-session bridge.
+- Confirmed model strengths:
+  - MiniMax M3 used the episodic bridge correctly and opened the source
+    session;
+  - MiniMax M3 ignored an unrelated project memory in the jazz/cooking control;
+  - MiniMax M3 could answer effort-routing correctly from prompt/system
+    knowledge even when retrieval supplied the wrong metacognitive lessons.
+- Confirmed system weaknesses:
+  - beverage query missed chocolate as adjacent personal constraint and
+    selected repeated food distractors;
+  - effort-routing query selected repeated memory-as-anchor lessons instead of
+    the effort-routing lesson;
+  - unrelated jazz/cooking query selected a project memory from weak overlap.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m py_compile app/evals/codex_test_memory_harness.py`
+- `cd backend && .venv/bin/python app/evals/codex_test_memory_harness.py --reset --target-count 240`
+- Live HTTP stream run against backend started with `CODEX_TEST=true`.
+
+Residual Risk:
+
+No ranking or prompt fix was applied. The evidence should drive a focused
+retrieval calibration step rather than a broad prompt workaround.

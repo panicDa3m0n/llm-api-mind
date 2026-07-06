@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.4.1.
+App baseline: V1.11.0.
 
 Current scope:
 
@@ -17,14 +17,22 @@ Current scope:
   maintenance jobs, tool calls, memories, memory facts, memory proposals,
   memory surfaces, memory graph nodes/edges, session summaries, and app
   settings;
-- optional retrieval shadow adapter over `memory_surfaces` for local deterministic
-  plumbing tests or Milvus Lite trace-only comparison;
+- optional retrieval shadow adapter over `memory_surfaces` for local
+  deterministic plumbing tests, Milvus Lite trace-only comparison, or
+  OpenRouter cloud embedding/rerank shadow evaluation;
+- optional active hybrid memory retrieval that groups dense/rerank evidence by
+  memory and can rank `memory.context` / `memory.search` when explicitly
+  enabled;
+- metacognitive context shadow traces for evaluator-visible candidate lessons,
+  with controlled injection mode for A/B tests;
 - backend-owned memory surface taxonomy for derived cognitive retrieval
   facets; Scarlet writes canonical memory fields, not surface internals;
 - model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
-- schema-versioned API Mind discovery plus one LLM-backed internal metacognition route;
+- schema-versioned API Mind discovery plus one LLM-backed internal metacognition
+  route with previous-turn thinking retrospection;
 - Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;
-- maintenance API access for pending memory proposal review and archival;
+- maintenance API access for overview, job inspection/manual lab run, pending
+  memory proposal review, and archival;
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
 - automatic Memory Context Pipeline v0 traces before model requests;
 - runtime event control plane for UI activity blocks, next-turn context, and
@@ -79,6 +87,46 @@ USER_PRIVACY_SCOPE=local_single_user
 
 Persisted `/api/dashboard/settings` values override these defaults for future
 runtime-context turns.
+
+Metacognitive context defaults to shadow mode:
+
+```txt
+METACOGNITIVE_CONTEXT_MODE=shadow
+METACOGNITIVE_CONTEXT_MAX_LESSONS=3
+```
+
+`shadow` records and streams candidate lessons without sending them to the
+model. Use `inject` only for controlled A/B tests where the same block should
+enter `runtime_context.blocks`.
+
+Cloud retrieval shadow can be enabled without changing Scarlet's active memory
+ranking:
+
+```txt
+OPENROUTER_API_KEY=...
+RETRIEVAL_SHADOW_ENABLED=true
+RETRIEVAL_SHADOW_BACKEND=openrouter
+RETRIEVAL_SHADOW_EMBEDDING_MODEL=nvidia/llama-nemotron-embed-vl-1b-v2:free
+RETRIEVAL_SHADOW_RERANK_ENABLED=false
+RETRIEVAL_SHADOW_RERANK_MODEL=nvidia/llama-nemotron-rerank-vl-1b-v2:free
+```
+
+The OpenRouter path writes diagnostic `retrieval_shadow` payloads only while
+hybrid mode is off. Surface embeddings are cached in SQLite by content hash;
+query embeddings are generated per search. Rerank is an optional second-stage
+comparison over dense candidates, not a replacement for embedding retrieval.
+
+To test real hybrid ranking over grouped dense/rerank evidence, enable it
+explicitly:
+
+```txt
+RETRIEVAL_HYBRID_MODE=active
+RETRIEVAL_HYBRID_MIN_DENSE_SCORE=0.38
+RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.55
+```
+
+Use `RETRIEVAL_HYBRID_MODE=shadow` when you want hybrid scores in traces
+without changing selected memories.
 
 If the same session receives another user turn before the timer expires, the
 older pending job is superseded. Jobs for other sessions continue independently.

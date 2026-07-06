@@ -47,8 +47,6 @@ Required JSON shape:
       "content": "compact sourceable semantic memory candidate",
       "reason_for_storage": "why this may help future Scarlet",
       "expected_future_use": "when this may matter later",
-      "confidence": 0.0,
-      "salience": 0.0,
       "tags": ["tag"],
       "evidence": "short transcript-grounded evidence",
       "write_recommended": true
@@ -89,8 +87,6 @@ Required JSON shape:
 }
 """
 
-SAFE_AUTO_CREATE_MIN_CONFIDENCE = 0.95
-SAFE_AUTO_CREATE_MIN_SALIENCE = 0.9
 SAFE_AUTO_CREATE_MIN_ACTION_CONFIDENCE = 0.8
 LLM_APPLY_CREATE_MIN_CONFIDENCE = 0.85
 
@@ -701,8 +697,7 @@ def _safe_auto_create(proposal: Any) -> bool:
     return (
         proposal.proposed_action == "create_new"
         and proposal.action_confidence >= SAFE_AUTO_CREATE_MIN_ACTION_CONFIDENCE
-        and proposal.confidence >= SAFE_AUTO_CREATE_MIN_CONFIDENCE
-        and proposal.salience >= SAFE_AUTO_CREATE_MIN_SALIENCE
+        and bool(proposal.evidence)
         and not proposal.similar_memory_ids_json
         and not decision.get("conflicting_fact_ids")
         and not decision.get("matching_fact_ids")
@@ -1015,8 +1010,6 @@ def _normalize_memory_review(parsed: dict[str, Any]) -> dict[str, Any]:
                     "reason_for_storage": _string(candidate.get("reason_for_storage"))
                     or "Idle memory review identified this as future-useful.",
                     "expected_future_use": _string(candidate.get("expected_future_use")),
-                    "confidence": _score(candidate.get("confidence"), default=0.7),
-                    "salience": _score(candidate.get("salience"), default=0.7),
                     "tags": _list_of_strings(candidate.get("tags"))[:12],
                     "evidence": _string(candidate.get("evidence")),
                     "write_recommended": bool(candidate.get("write_recommended")),

@@ -8,7 +8,26 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlmodel import Session
 
+from app.mind.affect import build_affective_context
 from app.mind.facts import fact_payload, fact_search_text
+from app.mind.graph_retrieval import (
+    build_memory_graph_expansion,
+    graph_signals_by_memory,
+)
+from app.mind.hybrid_retrieval import (
+    HybridBaseScore,
+    hybrid_rank_status_payload,
+    rank_hybrid_memories,
+)
+from app.mind.metacognitive_context import (
+    build_metacognitive_context_payload,
+    metacognitive_context_runtime_block,
+)
+from app.mind.organs import (
+    ORGAN_EVENT_TYPES,
+    build_organ_runtime_block,
+    organ_runtime_modes,
+)
 from app.runtime.events import compact_event_for_context
 from app.runtime.preferences import RuntimePreferences
 from app.mind.schema import MIND_API_ROUTES, schema_metadata
@@ -29,6 +48,8 @@ RECENT_DIALOGUE_LIMIT = 8
 INTERNAL_CANDIDATE_LIMIT = 20
 MODEL_SELECTED_LIMIT = 5
 NEAR_MISS_MIN_SCORE = 1.5
+MODEL_MEMORY_PACKET_VERSION = "memory-packet-v1"
+MODEL_RUNTIME_CONTEXT_PROFILE = "compact-model-facing-v1"
 
 @dataclass(frozen=True)
 class MemoryCandidateScore:
@@ -41,6 +62,10 @@ class MemoryCandidateScore:
     generic_overlap: list[str]
     tag_overlap: list[str]
     strong_signal: bool
+    graph_score: float = 0.0
+    graph_signal: dict[str, Any] | None = None
+    hybrid_score: float | None = None
+    hybrid_signals: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -50,6 +75,8 @@ class MemoryContextBuild:
     runtime_context: str
     runtime_trace_id: str
     runtime_payload: dict[str, Any]
+    metacognitive_trace_id: str | None = None
+    metacognitive_payload: dict[str, Any] | None = None
 
 
 def build_memory_context(
@@ -116,6 +143,14 @@ def build_memory_context(
             limit=INTERNAL_CANDIDATE_LIMIT * 4,
         )
     )
+    graph_expansion = build_memory_graph_expansion(
+        db,
+        query=sparse_query,
+        memories=candidates,
+        facts_by_memory=facts_by_memory,
+        limit=INTERNAL_CANDIDATE_LIMIT,
+    )
+    graph_signals = graph_signals_by_memory(graph_expansion)
     retrieval_shadow = run_memory_surface_shadow_search(
         db,
         query=sparse_query,
@@ -123,13 +158,28 @@ def build_memory_context(
         settings=settings,
         limit=MODEL_SELECTED_LIMIT,
     )
-    ranked = _rank_candidates(
+    ranked_base = _rank_candidates(
         candidates,
         current_user_message=current_user_message.content,
         recent_dialogue=recent_dialogue,
         facts_by_memory=facts_by_memory,
         sparse_matches=sparse_matches,
-    )[:INTERNAL_CANDIDATE_LIMIT]
+        graph_signals=graph_signals,
+    )
+    hybrid_plan = rank_hybrid_memories(
+        candidates,
+        base_scores=_hybrid_base_scores_from_context(ranked_base),
+        retrieval_shadow=retrieval_shadow,
+        settings=settings,
+        limit=INTERNAL_CANDIDATE_LIMIT,
+    )
+    if hybrid_plan.active:
+        ranked = _context_candidates_from_hybrid(
+            hybrid_plan.entries,
+            base_ranked=ranked_base,
+        )
+    else:
+        ranked = ranked_base[:INTERNAL_CANDIDATE_LIMIT]
     selected_ranked, near_miss_ranked, excluded_ranked = _classify_candidates(ranked)
 
     near_miss = [
@@ -170,7 +220,9 @@ def build_memory_context(
             "sparse_query": _truncate(sparse_query, 1500),
             "retrieval_stages": ["fts5_sparse_v1", "lexical_guard_v1"],
             "retrieval_readiness": retrieval_stage_manifest(),
+            "retrieval_graph": graph_expansion,
             "retrieval_shadow": retrieval_shadow,
+            "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
         },
         "selected": selected,
         "near_miss": near_miss,
@@ -193,6 +245,27 @@ def build_memory_context(
         payload=payload,
     )
     payload["trace_id"] = trace.id
+    metacognitive_payload = _build_metacognitive_context(
+        chat_session=chat_session,
+        turn_id=turn_id,
+        current_user_message=current_user_message,
+        history=history,
+        memory_context=payload,
+        timestamp=timestamp,
+        runtime_preferences=preferences,
+        settings=settings,
+    )
+    metacognitive_trace_id: str | None = None
+    if metacognitive_payload is not None:
+        metacognitive_trace = repositories.add_trace(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn_id,
+            kind="metacognitive.context",
+            payload=metacognitive_payload,
+        )
+        metacognitive_payload["trace_id"] = metacognitive_trace.id
+        metacognitive_trace_id = metacognitive_trace.id
     runtime_payload = build_runtime_context_payload(
         db,
         chat_session=chat_session,
@@ -205,6 +278,8 @@ def build_memory_context(
         temporal_context=temporal_context,
         timestamp=timestamp,
         runtime_preferences=preferences,
+        metacognitive_context=metacognitive_payload,
+        settings=settings,
     )
     runtime_trace = repositories.add_trace(
         db,
@@ -221,6 +296,8 @@ def build_memory_context(
         runtime_context=runtime_context,
         runtime_trace_id=runtime_trace.id,
         runtime_payload=runtime_payload,
+        metacognitive_trace_id=metacognitive_trace_id,
+        metacognitive_payload=metacognitive_payload,
     )
 
 
@@ -237,7 +314,27 @@ def build_runtime_context_payload(
     temporal_context: dict[str, Any],
     timestamp: datetime,
     runtime_preferences: RuntimePreferences,
+    metacognitive_context: dict[str, Any] | None = None,
+    settings: Any | None = None,
 ) -> dict[str, Any]:
+    focus_block = _focus_context_block(
+        db,
+        chat_session=chat_session,
+        turn_id=turn_id,
+        runtime_preferences=runtime_preferences,
+        settings=settings,
+    )
+    affective_build = build_affective_context(
+        db,
+        chat_session=chat_session,
+        turn_id=turn_id,
+        current_user_message=current_user_message,
+        memory_context=memory_context,
+        recent_events=recent_events,
+        timestamp=timestamp,
+        runtime_preferences=runtime_preferences,
+        settings=settings,
+    )
     blocks = [
         _session_context_block(db, chat_session=chat_session),
         _message_context_block(
@@ -250,14 +347,26 @@ def build_runtime_context_payload(
             capabilities=capabilities,
             runtime_preferences=runtime_preferences,
         ),
+    ]
+    if focus_block is not None:
+        blocks.append(focus_block)
+    if affective_build is not None and affective_build.block is not None:
+        blocks.append(affective_build.block)
+    blocks.append(
         _scarlet_state_block(
             current_user_message=current_user_message,
             timestamp=timestamp,
-        ),
-    ]
+            focus_context_active=focus_block is not None,
+            affective_context_active=affective_build is not None
+            and affective_build.block is not None,
+        )
+    )
+    if metacognitive_context and metacognitive_context.get("model_facing") is True:
+        blocks.append(metacognitive_context_runtime_block(metacognitive_context))
     model_memory_context = _model_memory_context(memory_context)
     return {
         "schema_version": "runtime-context-v1",
+        "rendering_profile": MODEL_RUNTIME_CONTEXT_PROFILE,
         "generated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
         "session_id": chat_session.id,
         "turn_id": turn_id,
@@ -270,6 +379,7 @@ def build_runtime_context_payload(
                 "session": "stable continuity context for this chat session",
                 "turn": "current message perception for this model turn",
                 "dynamic": "backend-seeded mutable Scarlet state until state APIs exist",
+                "profile": "profile-scoped state that can persist across sessions",
             },
             "source_priority": [
                 "runtime_context.blocks",
@@ -297,6 +407,33 @@ def build_runtime_context_payload(
         "recent_runtime_events": recent_events,
         "capabilities": capabilities,
     }
+
+
+def _build_metacognitive_context(
+    *,
+    chat_session: ChatSession,
+    turn_id: str,
+    current_user_message: Message,
+    history: list[Message],
+    memory_context: dict[str, Any],
+    timestamp: datetime,
+    runtime_preferences: RuntimePreferences,
+    settings: Any | None,
+) -> dict[str, Any] | None:
+    mode = str(getattr(settings, "metacognitive_context_mode", "shadow")).lower()
+    if mode == "off":
+        return None
+    return build_metacognitive_context_payload(
+        chat_session=chat_session,
+        turn_id=turn_id,
+        current_user_message=current_user_message,
+        history=history,
+        memory_context=memory_context,
+        timestamp=timestamp,
+        runtime_preferences=runtime_preferences,
+        mode=mode,
+        max_lessons=int(getattr(settings, "metacognitive_context_max_lessons", 3)),
+    )
 
 
 def render_runtime_context(
@@ -333,7 +470,22 @@ def _model_memory_context(memory_context: dict[str, Any]) -> dict[str, Any]:
     return {
         "searched": memory_context["searched"],
         "trace_id": memory_context.get("trace_id"),
-        "selected": memory_context["selected"],
+        "packet_profile": {
+            "version": MODEL_MEMORY_PACKET_VERSION,
+            "purpose": (
+                "Compact model-facing memory evidence. Full retrieval debug "
+                "signals remain in the memory.context trace."
+            ),
+            "policy": {
+                "selected_are_evidence_not_absolute_truth": True,
+                "open_source_when_exact_origin_or_current_reliability_matters": True,
+                "do_not_infer_absence_from_excluded_summaries": True,
+            },
+        },
+        "selected": [
+            _model_memory_packet(item)
+            for item in memory_context["selected"]
+        ],
         "near_miss": [
             _candidate_summary(item)
             for item in memory_context["near_miss"]
@@ -344,6 +496,174 @@ def _model_memory_context(memory_context: dict[str, Any]) -> dict[str, Any]:
         ],
         "conflicts": memory_context["conflicts"],
         "negative_evidence": memory_context["negative_evidence"],
+    }
+
+
+def _model_memory_packet(item: dict[str, Any]) -> dict[str, Any]:
+    facts = item.get("facts") if isinstance(item.get("facts"), list) else []
+    source = _model_memory_source(item)
+    cognitive = _model_memory_cognitive_payload(item, facts=facts)
+    retrieval = _model_memory_retrieval_payload(item)
+    return {
+        "memory_packet_version": MODEL_MEMORY_PACKET_VERSION,
+        "id": item.get("id"),
+        "type": item.get("type"),
+        "scope": item.get("scope"),
+        "status": item.get("status"),
+        "claim": _truncate(str(item.get("content") or ""), 900),
+        "reason_for_storage": _truncate(
+            str(item.get("reason_for_storage") or ""),
+            500,
+        ),
+        "expected_future_use": _truncate(
+            str(item.get("expected_future_use") or ""),
+            500,
+        ),
+        "source_session_id": item.get("source_session_id"),
+        "source": source,
+        "cognitive": cognitive,
+        "retrieval": retrieval,
+        "facts": [_compact_fact_payload(fact) for fact in facts[:5]],
+    }
+
+
+def _model_memory_source(item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "source_session_id": item.get("source_session_id"),
+        "source_turn_id": item.get("source_turn_id"),
+        "source_message_id": item.get("source_message_id"),
+        "recorded_at": item.get("created_at"),
+        "updated_at": item.get("updated_at"),
+        "last_used_at": item.get("last_used_at"),
+    }
+
+
+def _model_memory_cognitive_payload(
+    item: dict[str, Any],
+    *,
+    facts: list[Any],
+) -> dict[str, Any]:
+    domains = _model_memory_domains(item)
+    return {
+        "subject": _model_memory_subject(item),
+        "domains": domains,
+        "validity": _model_memory_validity(item, facts=facts),
+        "sensitivity": _model_memory_sensitivity(item),
+    }
+
+
+def _model_memory_retrieval_payload(item: dict[str, Any]) -> dict[str, Any]:
+    signals = item.get("signals") if isinstance(item.get("signals"), dict) else {}
+    graph = signals.get("graph") if isinstance(signals.get("graph"), dict) else None
+    hybrid = signals.get("hybrid") if isinstance(signals.get("hybrid"), dict) else None
+    routes: list[str] = []
+    if float(signals.get("sparse_score") or 0.0) > 0:
+        routes.append("sparse")
+    if graph:
+        routes.append("associative_graph")
+    if isinstance(hybrid, dict) and hybrid.get("dense_signal"):
+        routes.append("embedding")
+    if isinstance(hybrid, dict) and hybrid.get("rerank_signal"):
+        routes.append("rerank")
+    if not routes and signals:
+        routes.append("lexical_or_base")
+    payload: dict[str, Any] = {
+        "classification": item.get("classification"),
+        "score": item.get("score"),
+        "why_this_turn": _truncate(str(item.get("why_relevant") or ""), 260),
+        "routes": routes,
+        "strong_signal": signals.get("strong_signal"),
+    }
+    if graph:
+        payload["graph"] = {
+            "score": graph.get("score"),
+            "domains": graph.get("domains", []),
+        }
+    if isinstance(hybrid, dict):
+        payload["hybrid"] = {
+            "dense_score": hybrid.get("dense_score"),
+            "rerank_score": hybrid.get("rerank_score"),
+            "dense_signal": hybrid.get("dense_signal"),
+            "rerank_signal": hybrid.get("rerank_signal"),
+        }
+    return payload
+
+
+def _model_memory_domains(item: dict[str, Any]) -> list[str]:
+    domains: list[str] = []
+    signals = item.get("signals") if isinstance(item.get("signals"), dict) else {}
+    graph = signals.get("graph") if isinstance(signals.get("graph"), dict) else {}
+    for domain in graph.get("domains", []):
+        if isinstance(domain, str) and domain not in domains:
+            domains.append(domain)
+    item_type = item.get("type")
+    scope = item.get("scope")
+    if isinstance(scope, str) and scope:
+        domains.append(f"scope:{scope}")
+    if isinstance(item_type, str) and item_type:
+        domains.append(f"type:{item_type}")
+    for tag in item.get("tags", [])[:5]:
+        if isinstance(tag, str) and tag:
+            domains.append(f"tag:{tag}")
+    return domains[:10]
+
+
+def _model_memory_subject(item: dict[str, Any]) -> str:
+    scope = item.get("scope")
+    item_type = item.get("type")
+    if scope == "user":
+        return "active_user"
+    if item_type in {"behavioral_pattern", "correction"}:
+        return "scarlet_behavior"
+    if scope == "project":
+        return "project_or_system"
+    return "unspecified"
+
+
+def _model_memory_validity(
+    item: dict[str, Any],
+    *,
+    facts: list[Any],
+) -> dict[str, Any]:
+    ranges = [
+        {
+            "valid_from": fact.get("valid_from"),
+            "valid_to": fact.get("valid_to"),
+            "status": fact.get("status"),
+        }
+        for fact in facts
+        if isinstance(fact, dict)
+        and (fact.get("valid_from") is not None or fact.get("valid_to") is not None)
+    ]
+    status = item.get("status")
+    return {
+        "status": status,
+        "kind": "time_bound" if ranges else "active_until_updated_or_deprecated",
+        "fact_validity_ranges": ranges[:5],
+    }
+
+
+def _model_memory_sensitivity(item: dict[str, Any]) -> str:
+    if item.get("scope") == "user":
+        return "user_profile_memory"
+    if item.get("scope") == "project":
+        return "project_operational_memory"
+    return "normal_memory"
+
+
+def _compact_fact_payload(fact: Any) -> dict[str, Any]:
+    if not isinstance(fact, dict):
+        return {"value": fact}
+    return {
+        "id": fact.get("id"),
+        "entity": fact.get("entity"),
+        "predicate": fact.get("predicate"),
+        "value": fact.get("value"),
+        "status": fact.get("status"),
+        "confidence": fact.get("confidence"),
+        "salience": fact.get("salience"),
+        "valid_from": fact.get("valid_from"),
+        "valid_to": fact.get("valid_to"),
     }
 
 
@@ -505,7 +825,14 @@ def _scarlet_state_block(
     *,
     current_user_message: Message,
     timestamp: datetime,
+    focus_context_active: bool = False,
+    affective_context_active: bool = False,
 ) -> dict[str, Any]:
+    focus_value = (
+        "See focus_context.current_focus. This legacy field is no longer the lived focus source."
+        if focus_context_active
+        else _truncate(current_user_message.content, 180)
+    )
     return {
         "id": "scarlet.dynamic_state",
         "type": "scarlet_state",
@@ -516,12 +843,18 @@ def _scarlet_state_block(
             "state_policy": (
                 "Backend-seeded operational state. It is not a claim of human "
                 "emotion; it is a compact control surface for focus, tone, and "
-                "open loops until dedicated state APIs exist."
+                "open loops until dedicated state APIs exist. When a dedicated "
+                "organ block exists, prefer that organ block over this legacy "
+                "placeholder."
             ),
-            "focus": _truncate(current_user_message.content, 180),
+            "focus": focus_value,
             "interaction_mode": "collaborative_lab",
             "confidence_posture": "verify_before_claiming",
-            "mood_expression": "curious_focused",
+            "mood_expression": (
+                "See affective_context.current_emotion. This legacy field is no longer the emotional-state source."
+                if affective_context_active
+                else "curious_focused"
+            ),
             "active_goal": (
                 "Answer the current user using visible conversation, runtime "
                 "context, and API Mind evidence when needed."
@@ -533,6 +866,83 @@ def _scarlet_state_block(
             "updated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
         },
     }
+
+
+def _focus_context_block(
+    db: Session,
+    *,
+    chat_session: ChatSession,
+    turn_id: str,
+    runtime_preferences: RuntimePreferences,
+    settings: Any | None,
+) -> dict[str, Any] | None:
+    modes = organ_runtime_modes(settings) if settings is not None else {}
+    if modes.get("focus", "off") != "model":
+        return None
+    owner_profile_id = runtime_preferences.profile_id or "local-user"
+    focus = repositories.get_active_focus(db, owner_profile_id=owner_profile_id)
+    if focus is None:
+        return None
+    transitions = repositories.list_focus_transitions(
+        db,
+        owner_profile_id=owner_profile_id,
+        focus_id=focus.id,
+        limit=5,
+    )
+    block = build_organ_runtime_block(
+        block_type="focus_context",
+        content={
+            "current_focus": {
+                "id": focus.id,
+                "object": focus.focus_object,
+                "type": focus.focus_type,
+                "status": focus.status,
+                "intensity": focus.intensity,
+                "duration_policy": focus.duration_policy,
+                "reason": focus.reason,
+                "source_session_id": focus.source_session_id,
+                "source_turn_id": focus.source_turn_id,
+                "source_message_id": focus.source_message_id,
+                "created_at": focus.created_at.isoformat(),
+                "updated_at": focus.updated_at.isoformat(),
+            },
+            "recent_transitions": [
+                {
+                    "id": transition.id,
+                    "from_focus_id": transition.from_focus_id,
+                    "to_focus_id": transition.to_focus_id,
+                    "relation": transition.relation,
+                    "reason": transition.reason,
+                    "created_at": transition.created_at.isoformat(),
+                }
+                for transition in transitions
+            ],
+            "usage": {
+                "treat_as": "foreground_attention_state",
+                "not_a_memory": True,
+                "does_not_limit_memory_retrieval": True,
+                "update_through": "POST /mind/focus",
+            },
+        },
+    )
+    repositories.add_event(
+        db,
+        session_id=chat_session.id,
+        turn_id=turn_id,
+        event_type=ORGAN_EVENT_TYPES["focus"]["surfaced"],
+        payload={
+            "block_id": block["id"],
+            "focus_id": focus.id,
+            "object": focus.focus_object,
+            "type": focus.focus_type,
+            "intensity": focus.intensity,
+        },
+        source="runtime_context",
+        actor="backend",
+        visibility="debug",
+        status="completed",
+    )
+    return block
 
 
 def _session_context_payload(
@@ -642,8 +1052,6 @@ def _compact_memory_payload(memory: MemoryRecord) -> dict[str, Any]:
         "scope": memory.scope,
         "status": memory.status,
         "content": _truncate(memory.content, 700),
-        "confidence": memory.confidence,
-        "salience": memory.salience,
         "source_session_id": memory.source_session_id,
         "source_turn_id": memory.source_turn_id,
         "tags": memory.tags_json,
@@ -721,6 +1129,7 @@ def _rank_candidates(
     recent_dialogue: list[dict[str, Any]],
     facts_by_memory: dict[str, list[MemoryFact]],
     sparse_matches: dict[str, Any] | None = None,
+    graph_signals: dict[str, Any] | None = None,
 ) -> list[MemoryCandidateScore]:
     current_text = _normalize_text(current_user_message)
     current_tokens = set(_tokens(current_user_message))
@@ -740,6 +1149,7 @@ def _rank_candidates(
     context_tokens = set(_tokens(context_text))
     scores: list[MemoryCandidateScore] = []
     sparse_matches = sparse_matches or {}
+    graph_signals = graph_signals or {}
 
     for memory in memories:
         haystack = _memory_search_text(memory, facts=facts_by_memory.get(memory.id, []))
@@ -769,9 +1179,14 @@ def _rank_candidates(
         reasons: list[str] = []
         sparse_match = sparse_matches.get(memory.id)
         sparse_score = sparse_match.score if sparse_match is not None else 0.0
+        graph_signal = graph_signals.get(memory.id)
+        graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
         if sparse_match is not None:
             score += sparse_score * 2.0
             reasons.append(sparse_match.why_relevant)
+        if graph_signal is not None and graph_score > 0:
+            score += graph_score
+            reasons.append(getattr(graph_signal, "why_relevant", "graph expansion"))
         if entity_supported:
             score += 3.0
             reasons.append("query entity support")
@@ -791,13 +1206,13 @@ def _rank_candidates(
         if score <= 0:
             continue
 
-        score *= 1.0 + memory.confidence + memory.salience
         if entity_groups:
             strong_signal = entity_supported
         else:
             strong_signal = (
                 len(current_overlap) >= 2
                 or bool(tag_overlap)
+                or graph_score >= 2.0
                 or (len(signal_tokens) <= 2 and bool(current_overlap))
             )
         scores.append(
@@ -811,12 +1226,23 @@ def _rank_candidates(
                 generic_overlap=generic_overlap,
                 tag_overlap=tag_overlap,
                 strong_signal=strong_signal,
+                graph_score=graph_score,
+                graph_signal=(
+                    {
+                        "score": round(graph_score, 6),
+                        "why_relevant": getattr(graph_signal, "why_relevant", ""),
+                        "domains": getattr(graph_signal, "domains", []),
+                        "paths": getattr(graph_signal, "paths", [])[:5],
+                    }
+                    if graph_signal is not None
+                    else None
+                ),
             )
         )
 
     return sorted(
         scores,
-        key=lambda item: (item.score, item.memory.salience, item.memory.created_at),
+        key=lambda item: (item.score, item.memory.created_at),
         reverse=True,
     )
 
@@ -831,8 +1257,23 @@ def _classify_candidates(
     selected: list[MemoryCandidateScore] = []
     near_miss: list[MemoryCandidateScore] = []
     excluded: list[MemoryCandidateScore] = []
+    has_user_associative_context = any(
+        item.memory.scope == "user" and item.graph_score >= 2.0
+        for item in ranked
+    )
 
     for item in ranked:
+        if (
+            has_user_associative_context
+            and item.graph_score <= 0
+            and not _has_confirmed_hybrid_signal(item)
+            and (item.memory.scope == "project" or item.score < 0.3)
+        ):
+            if item.score >= NEAR_MISS_MIN_SCORE:
+                near_miss.append(item)
+            else:
+                excluded.append(item)
+            continue
         if item.strong_signal:
             selected.append(item)
         elif item.score >= NEAR_MISS_MIN_SCORE:
@@ -840,6 +1281,73 @@ def _classify_candidates(
         else:
             excluded.append(item)
     return selected, near_miss, excluded
+
+
+def _has_confirmed_hybrid_signal(item: MemoryCandidateScore) -> bool:
+    signals = item.hybrid_signals or {}
+    return bool(signals.get("dense_signal") or signals.get("rerank_signal"))
+
+
+def _hybrid_base_scores_from_context(
+    ranked: list[MemoryCandidateScore],
+) -> dict[str, HybridBaseScore]:
+    return {
+        item.memory.id: HybridBaseScore(
+            score=item.score,
+            reason=item.why_relevant,
+            sparse_score=item.sparse_score,
+            strong_signal=item.strong_signal,
+        )
+        for item in ranked
+    }
+
+
+def _context_candidates_from_hybrid(
+    entries: list[Any],
+    *,
+    base_ranked: list[MemoryCandidateScore],
+) -> list[MemoryCandidateScore]:
+    base_by_id = {item.memory.id: item for item in base_ranked}
+    candidates: list[MemoryCandidateScore] = []
+    for entry in entries:
+        base = base_by_id.get(entry.memory_id)
+        if base is not None:
+            candidates.append(
+                MemoryCandidateScore(
+                    memory=entry.memory,
+                    score=entry.score,
+                    why_relevant=entry.why_relevant,
+                    sparse_score=base.sparse_score,
+                    current_overlap=base.current_overlap,
+                    context_overlap=base.context_overlap,
+                    generic_overlap=base.generic_overlap,
+                    tag_overlap=base.tag_overlap,
+                    graph_score=base.graph_score,
+                    graph_signal=base.graph_signal,
+                    strong_signal=entry.strong_signal,
+                    hybrid_score=entry.score,
+                    hybrid_signals=entry.signals,
+                )
+            )
+            continue
+        candidates.append(
+            MemoryCandidateScore(
+                memory=entry.memory,
+                score=entry.score,
+                why_relevant=entry.why_relevant,
+                sparse_score=float(entry.signals.get("sparse_score", 0.0)),
+                current_overlap=[],
+                context_overlap=[],
+                generic_overlap=[],
+                tag_overlap=[],
+                graph_score=0.0,
+                graph_signal=None,
+                strong_signal=entry.strong_signal,
+                hybrid_score=entry.score,
+                hybrid_signals=entry.signals,
+            )
+        )
+    return candidates
 
 
 def _candidate_payload(
@@ -858,8 +1366,6 @@ def _candidate_payload(
         "content": record.content,
         "reason_for_storage": record.reason_for_storage,
         "expected_future_use": record.expected_future_use,
-        "confidence": record.confidence,
-        "salience": record.salience,
         "source_session_id": record.source_session_id,
         "source_turn_id": record.source_turn_id,
         "source_message_id": record.source_message_id,
@@ -874,6 +1380,7 @@ def _candidate_payload(
         "why_relevant": item.why_relevant,
         "signals": {
             "sparse_score": round(item.sparse_score, 4),
+            "graph_score": round(item.graph_score, 4),
             "current_overlap": item.current_overlap,
             "context_overlap": item.context_overlap,
             "generic_overlap": item.generic_overlap,
@@ -881,6 +1388,11 @@ def _candidate_payload(
             "strong_signal": item.strong_signal,
         },
     }
+    if item.graph_signal is not None:
+        payload["signals"]["graph"] = item.graph_signal
+    if item.hybrid_signals is not None:
+        payload["signals"]["hybrid"] = item.hybrid_signals
+        payload["hybrid_score"] = round(item.hybrid_score or item.score, 4)
     if facts is not None:
         payload["facts"] = [fact_payload(fact) for fact in facts]
     return payload
@@ -943,8 +1455,6 @@ def _memory_search_text(
         item
         for item in [
             memory.content,
-            memory.reason_for_storage,
-            memory.expected_future_use or "",
             memory.memory_type,
             memory.scope,
             " ".join(memory.tags_json),

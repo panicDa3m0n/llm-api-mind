@@ -1,7 +1,7 @@
 # Memory Robustness Roadmap
 
 Status: active planning  
-Last updated: 2026-05-24
+Last updated: 2026-06-18
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -78,6 +78,55 @@ Scarlet must prove she follows `source_session_id` into transcripts when exact
 provenance matters. The current fact extractor is
 deterministic and narrow by design; it covers observed Zero-Luce/SAL-style
 patterns and controlled predicates, not open-ended semantic understanding.
+
+## 1.1 V1.5.0 Pre/Post Embedding Boundary
+
+Status: accepted planning boundary
+
+The current Mac environment should not be used to finalize local embedding
+models. Dense embedding and KG-heavy experiments are planned for the Windows
+machine with RTX 4070 Ti Super and high-performance CPU.
+
+What should advance before embedding/KG:
+
+- maintain and inspect the existing idle maintenance pipeline;
+- inspect real `memory_proposals` quality after live sessions;
+- keep proposal creation, deterministic rejection/duplicate archive, cautious
+  auto-create, and LLM batched resolution observable;
+- improve lab surfaces for maintenance jobs and proposal ledgers;
+- improve semantic memory surfaces and provenance fields only when they are
+  backend-deterministic or clearly useful to future embedding/KG;
+- document expected theory for goals and metacognition without adding premature
+  operational APIs.
+- use lightweight NetworkX graph expansion for retrieval-time associative recall
+  when it is traceable, non-mutating, and does not drive lifecycle decisions.
+- keep model-facing selected-memory packets compact through `memory-packet-v1`,
+  with full retrieval/debug evidence preserved in traces instead of repeated in
+  Scarlet's runtime context.
+
+What should wait until embedding/KG evidence exists:
+
+- automatic merge of similar memories;
+- automatic update versus deprecation decisions for stale facts;
+- semantic duplicate detection beyond current conservative preflight;
+- hybrid sparse + dense + graph reranking;
+- stale-memory repair that relies on similarity, entity resolution, or temporal
+  contradiction scoring.
+- rich cognitive memory parameters such as `applies_when`,
+  `do_not_apply_when`, `emotional_weight`, `staleness`, `durability`,
+  `privacy_class`, and `relationship_anchor` unless they can be derived and
+  maintained from facts, KG, embedding evidence, or maintenance reviews.
+
+Why:
+
+The current sparse and lexical layers are useful but not strong enough to be the
+authority for lifecycle-changing operations. A wrong retrieval match can create
+more damage during merge/update/deprecation than during ordinary recall,
+because it mutates Scarlet's durable cognitive state. V1.11.1 allows
+NetworkX-based graph expansion as retrieval evidence only: it can help Scarlet
+notice associative context, but it must not auto-merge, update, or deprecate
+memory until dense retrieval and mature knowledge-graph evidence improve the
+matching substrate.
 
 ## 2. External Pattern Analysis
 
@@ -629,9 +678,10 @@ and cognition routes correctly before retrieval hardening continues.
 
 Next M4 step:
 
-Run Milvus Lite or another vector backend in shadow mode over
-`memory_surfaces`, compare sparse/dense/hybrid candidates in traces, and only
-then decide whether to change the active ranking policy.
+Run active-hybrid OpenRouter retrieval and, later, Milvus Lite or another vector
+backend over `memory_surfaces`; compare sparse/dense/grouped-rerank/hybrid
+candidates in traces and calibrate thresholds before making hybrid retrieval
+the default path.
 
 Add in order:
 
@@ -641,8 +691,13 @@ Add in order:
 3. Next: entity-aware relevance guard.
 4. Next: better `selected` vs `near_miss` vs `excluded` thresholds from live
    evidence.
-5. Optional dense retrieval only after lexical/entity behavior is stable.
-6. Rank fusion only when sparse and dense retrieval both exist.
+5. Implemented: optional dense/rerank grouping over `memory_surfaces`.
+6. Implemented: configurable hybrid rank fusion in `off|shadow|active` mode.
+7. Implemented: role-aware surface gating. Content/fact surfaces may promote a
+   memory; future-use, temporal, and lifecycle guard surfaces only support or
+   explain candidates found through stronger routes.
+8. Next: entity-aware relevance guard and threshold tuning from dirty-DB
+   evidence.
 
 Acceptance:
 

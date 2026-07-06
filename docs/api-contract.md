@@ -55,12 +55,22 @@ Backend-owned fields:
 
 Scarlet-owned fields:
 
-- semantic memory content, type, reason, expected future use, confidence,
-  salience, scope, tags, and non-provenance metadata;
+- semantic memory content, semantic `type`, semantic `scope`, reason, and
+  expected future use;
 - memory/session/fact search queries, filters, selected existing target ids,
   and lifecycle reasons;
 - metacognitive objective, mode, focus question, internal prompt, evidence
   summary, uncertainties, draft answer, and previous-step summaries.
+
+Backend-owned or backend-derived memory fields:
+
+- memory ids, status, provenance, source session/turn/message/trace ids,
+  timestamps, lifecycle links, usage counters, derived tags, derived metadata,
+  memory facts, retrieval surfaces, graph nodes/edges, embedding vectors, and
+  query-time relevance signals;
+- legacy `confidence` and `salience` storage columns are retained for
+  compatibility/audit, but direct Scarlet writes now store neutral values and
+  active ranking must compute relevance for the current query.
 
 Implementation note:
 
@@ -265,6 +275,142 @@ The top-level `memory_context`, `temporal_context`, `mind_schema`,
 compatibility. New code should treat `blocks` as the canonical runtime context
 shape because each block declares scope, lifetime, and source.
 
+V1.11.2 adds `rendering_profile=compact-model-facing-v1`.
+
+Selected memories inside the model-facing runtime context use
+`memory-packet-v1`:
+
+```json
+{
+  "memory_packet_version": "memory-packet-v1",
+  "id": "mem_...",
+  "type": "user_preference",
+  "scope": "user",
+  "status": "active",
+  "claim": "The remembered claim or preference, compacted for model use.",
+  "reason_for_storage": "...",
+  "expected_future_use": "...",
+  "source_session_id": "ses_...",
+  "source": {
+    "source_session_id": "ses_...",
+    "source_turn_id": "turn_...",
+    "source_message_id": null,
+    "recorded_at": "...",
+    "updated_at": "...",
+    "last_used_at": "..."
+  },
+  "cognitive": {
+    "subject": "active_user",
+    "domains": ["scope:user", "type:user_preference"],
+    "validity": {
+      "status": "active",
+      "kind": "active_until_updated_or_deprecated",
+      "fact_validity_ranges": []
+    },
+    "sensitivity": "user_profile_memory"
+  },
+  "retrieval": {
+    "classification": "selected",
+    "score": 0.72,
+    "why_this_turn": "compact explanation of the turn-level match",
+    "routes": ["associative_graph", "embedding"],
+    "strong_signal": true
+  },
+  "facts": []
+}
+```
+
+Full `signals`, raw shadow/rerank payloads, thresholds, weights, metadata, and
+long diagnostic traces remain available in the associated `memory.context`
+trace. They are intentionally not repeated in the model-facing packet.
+
+### Metacognitive Context Shadow
+
+Status: implemented as V1.9.0 shadow/debug surface
+
+Purpose:
+
+Generate candidate metacognitive lessons before the model request without
+changing Scarlet's normal behavior. This is not a Mind API endpoint and is not
+visible to Scarlet unless controlled injection is enabled.
+
+Configuration:
+
+```txt
+METACOGNITIVE_CONTEXT_MODE=off|shadow|inject
+METACOGNITIVE_CONTEXT_MAX_LESSONS=1..5
+```
+
+Default:
+
+```txt
+METACOGNITIVE_CONTEXT_MODE=shadow
+```
+
+Trace shape:
+
+```json
+{
+  "kind": "metacognitive.context",
+  "payload": {
+    "operation": "metacognitive.context",
+    "schema_version": "metacognitive-context-shadow-v1",
+    "mode": "shadow",
+    "model_facing": false,
+    "selection": {
+      "selected_count": 1,
+      "max_lessons": 3,
+      "negative_evidence": "selected_lessons_available"
+    },
+    "triggers": [
+      {"id": "source_sensitive_claim_signal", "confidence": 0.84}
+    ],
+    "lessons": [
+      {
+        "id": "source_sensitive_claim_guard",
+        "title": "Verifica i claim source-sensitive",
+        "recommended_action": "..."
+      }
+    ]
+  }
+}
+```
+
+Runtime event:
+
+```txt
+metacognitive.context.shadowed
+```
+
+Stream event:
+
+```txt
+metacognitive_context
+```
+
+Controlled injection:
+
+When `METACOGNITIVE_CONTEXT_MODE=inject`, the payload is also added as:
+
+```json
+{
+  "id": "turn.metacognitive_context",
+  "type": "metacognitive_context",
+  "scope": "turn",
+  "lifetime": "turn",
+  "source": "backend.shadow_metacognition"
+}
+```
+
+inside `runtime_context.blocks`.
+
+Policy:
+
+- `shadow` mode is evaluator-visible only and must not influence the model.
+- `inject` mode is for controlled A/B tests only.
+- Candidate lessons must stay few and trigger-matched; generic advice blocks
+  are considered a regression risk.
+
 Trace shape:
 
 ```json
@@ -343,7 +489,22 @@ Required behavior:
   world data, recent runtime events, and API Mind schema/capability metadata.
 - `scarlet_state` is backend-seeded operational state for focus and open loops;
   it is not a claim of human emotion and is expected to become API-managed in a
-  future slice.
+  future slice. When `affective_context` is present, it supersedes
+  `scarlet_state.mood_expression` as the emotional-state source.
+- Digital-individual organ block names are defined in
+  `backend/app/mind/organs.py`. `focus_context` is implemented and can be
+  injected when `organ_focus_mode=model` and an active focus exists.
+  `affective_context` is implemented and can be appraised in
+  `organ_affect_mode=shadow` or injected in `organ_affect_mode=model` when an
+  affect prototype crosses threshold. The other organ block types,
+  `volition_context`, `temporal_experience`, and `continuity_delta`, remain off
+  by default until their focused implementation slices wire them into runtime
+  context or API Mind.
+- `affective_context` is backend-appraised Scarlet emotional state for the
+  current turn. It affects model behavior only: tone, caution, warmth,
+  curiosity, relational posture, and response style. It must not mutate memory
+  retrieval, focus, intentions, memory writes, backend thresholds, or
+  autonomous jobs.
 - The backend may inspect more candidates internally than it injects into the model request.
 - Selected candidates are the only memory records that should be treated as evidence by the model.
 - Near misses and exclusions remain trace evidence for debugging and evaluation.
@@ -358,12 +519,23 @@ Current retrieval plan:
 3. Implemented: simple conflict grouping over selected active memories that appear to describe the same subject.
 4. Implemented: temporal filters for manual memory/session search, resolved by
    the backend from runtime time rather than by model-side date arithmetic.
+5. Implemented as V1.10.0 shadow: OpenRouter cloud embedding comparison over
+   stable `memory_surfaces`, with SQLite cache keyed by surface content hash.
+6. Implemented as V1.10.0 shadow: optional OpenRouter rerank comparison over
+   dense candidates.
+7. Implemented as V1.11.0: memory-level grouped dense/rerank candidates and
+   configurable `retrieval_hybrid_mode=off|shadow|active`.
+8. Implemented as V1.11.1: NetworkX associative graph expansion over
+   backend-owned memory domains, surfaced as `retrieval_graph` in
+   `memory.context` and `/mind/memory/search`.
 
 Deferred retrieval plan:
 
-- Dense embeddings for paraphrases.
+- Default promotion of active hybrid ranking after live Scarlet calibration.
 - Hybrid sparse+dense rank fusion.
-- Cross-encoder reranking.
+- Promotion of cross-encoder reranking from shadow evidence to active ranking.
+- Mature KG entity resolution and graph traversal beyond lightweight
+  field-of-discourse domains.
 - Post-response validator for unverifiable memory claims.
 
 ## Implemented System API
@@ -388,7 +560,13 @@ Response:
   "app": "LLM API Mind",
   "environment": "local",
   "provider": "minimax",
-  "model": "MiniMax-M3"
+  "model": "MiniMax-M3",
+  "database": {
+    "profile": "prod",
+    "codex_test": false,
+    "database_url": "sqlite:///./data/app.db",
+    "seed_database_url": "sqlite:///./data/app.db"
+  }
 }
 ```
 
@@ -399,6 +577,15 @@ No custom errors yet.
 Trace Behavior:
 
 No persistent trace yet. This endpoint is a process health check, not an agent turn.
+
+Codex test isolation:
+
+- `CODEX_TEST=false` keeps the normal `DATABASE_URL` runtime.
+- `CODEX_TEST=true` opens `CODEX_TEST_DATABASE_URL`.
+- If the Codex test database is a missing SQLite file, it is copied once from
+  `CODEX_TEST_SEED_DATABASE_URL` when configured, otherwise from `DATABASE_URL`.
+- Existing Codex test databases are reused and never overwritten by startup.
+- Startup fails if the Codex test SQLite path is the same file as the seed path.
 
 Example:
 
@@ -488,7 +675,10 @@ Tables:
 - `maintenance_jobs`: backend-owned asynchronous maintenance jobs, currently
   used for per-session idle maintenance after completed turns.
 - `tool_calls`: structured model-facing tool calls, arguments, results, status, and latency.
-- `memories`: Scarlet's persistent Memory v0 records with source provenance, confidence, salience, metadata, usage counts, and timestamps.
+- `memories`: Scarlet's persistent Memory v0 records with source provenance,
+  semantic type/scope, content, reason, expected future use, lifecycle status,
+  usage counts, timestamps, and legacy confidence/salience columns retained for
+  compatibility/audit but not active ranking.
 - `memory_facts`: canonical facts linked to memories, with entity, predicate,
   value JSON, temporal fields, source provenance, lifecycle status, and
   fact-level supersession links.
@@ -506,7 +696,7 @@ Tables:
   are rebuildable and are not canonical memory state.
 - `memory_graph_nodes`: derived graph-ready nodes for memories, facts, entities
   and sessions, including stable node keys, labels, aliases, scope, status,
-  salience/confidence, and source provenance.
+  legacy score slots, and source provenance.
 - `memory_graph_edges`: derived graph-ready relationships such as `has_fact`,
   `about_entity`, `evidenced_by_session`, `supersedes`, `superseded_by`, and
   fact-level lifecycle edges. These rows prepare future graph expansion while
@@ -573,7 +763,8 @@ Current emitted event types include:
 - streamed provider milestones such as `mind.tool_call.requested`,
   `mind.tool_call.result_returned`, and `llm.request.stopped`
 - `assistant.note.emitted`, `assistant.answer.completed`
-- `llm.thinking.captured` with metadata only, not raw private thinking text.
+- `llm.thinking.captured` with provider-exposed thinking text and metadata for
+  evaluator/debug UI rendering.
 - `maintenance.job.scheduled`, `maintenance.job.started`,
   `maintenance.job.completed`, `maintenance.job.skipped`,
   `maintenance.job.failed`
@@ -590,8 +781,9 @@ Runtime use:
   the same session supersedes or skips the older pending job; other sessions
   are independent.
 - The idle job currently runs `sessions.summarize`, missed semantic memory
-  review, and pending memory proposal creation. It does not write active
-  semantic memories automatically.
+  review, proposal creation, cautious deterministic resolution, conservative
+  auto-create for very safe candidates, and one optional batched LLM resolver
+  for ambiguous candidates.
 
 ### GET /api/debug/events
 
@@ -645,6 +837,13 @@ Response:
   "user_display_name": "Utente locale",
   "privacy_scope": "local_single_user",
   "source": "environment_defaults",
+  "codex_test": false,
+  "database": {
+    "profile": "prod",
+    "codex_test": false,
+    "database_url": "sqlite:///./data/app.db",
+    "seed_database_url": "sqlite:///./data/app.db"
+  },
   "options": {
     "languages": [{ "code": "it", "label": "Italiano" }],
     "timezones": [{ "id": "Europe/Rome", "label": "Italia - Europe/Rome" }],
@@ -664,6 +863,10 @@ Purpose:
 
 Persist runtime preferences. Persisted dashboard settings override environment
 defaults on the next chat turn.
+
+`codex_test` is intentionally not mutable through this endpoint. It is a
+bootstrap/runtime isolation flag because the backend must choose the database
+before it can read persisted dashboard settings.
 
 Request:
 
@@ -971,12 +1174,18 @@ Current event types:
 - `model_request`: a provider request step started.
 - `thinking_start`: provider-exposed thinking block started.
 - `thinking_delta`: provider-exposed thinking text delta for debug inspection.
+- `thinking_captured`: completed provider-exposed thinking block, emitted after
+  a provider message closes so clients can collapse it as one UI block.
 - `tool_use_start`: provider tool-use block started.
 - `tool_input_delta`: partial JSON input streamed by the provider for the tool call.
 - `tool_call`: normalized tool call before backend dispatch.
 - `tool_result`: normalized result returned by the backend dispatcher.
 - `text_start`: final text block started.
-- `text_delta`: assistant response text delta.
+- `text_delta`: provider text delta before semantic classification.
+- `assistant_note`: completed public work note derived from provider text in a
+  message that also contains `tool_use`.
+- `assistant_answer`: completed final answer derived from provider text in an
+  `end_turn` message without tool calls.
 - `model_stop`: provider stop reason for the current model step.
 - `turn_complete`: final `ChatTurnResponse` after messages, traces, and turn status are persisted.
 - `error`: recoverable stream error object.
@@ -1003,6 +1212,17 @@ during the turn. Events created before the provider stream starts
 milestones, Mind API tool-call lifecycle events, assistant public notes, final
 answer, `turn.completed`, and `maintenance.job.scheduled` are emitted as they
 are persisted.
+
+V1.5.1 semantic block contract:
+
+- provider `thinking` content becomes `thinking_captured` and persisted
+  `llm.thinking.captured`;
+- provider `text` content in a message that stops for `tool_use` becomes
+  `assistant_note` and persisted `assistant.note.emitted`;
+- provider `text` content in the final `end_turn` message becomes
+  `assistant_answer` and persisted `assistant.answer.completed`;
+- clients should render semantic block events rather than infer note/final
+  roles from `text_delta` timing.
 
 ### GET /api/chat/sessions/{session_id}/messages
 
@@ -1072,7 +1292,7 @@ Response:
 {
   "ok": true,
   "result": {
-    "schema_version": "2026-05-25.maintenance-proposals-v1",
+    "schema_version": "2026-06-26.digital-organs-standalone-v1",
     "schema_digest": "sha256:...",
     "tool": {
       "name": "mind_api",
@@ -1148,6 +1368,21 @@ Response:
       {
         "method": "POST",
         "path": "/mind/metacognition/step",
+        "status": "implemented"
+      },
+      {
+        "method": "POST",
+        "path": "/mind/focus",
+        "status": "implemented"
+      },
+      {
+        "method": "POST",
+        "path": "/mind/volition",
+        "status": "implemented"
+      },
+      {
+        "method": "POST",
+        "path": "/mind/affect",
         "status": "implemented"
       }
     ],
@@ -1241,7 +1476,7 @@ Structured route errors return `200` with `ok=false` so the model can recover fr
   "ok": false,
   "result": {
     "schema": {
-      "schema_version": "2026-05-25.maintenance-proposals-v1",
+      "schema_version": "2026-06-26.digital-organs-standalone-v1",
       "schema_digest": "sha256:...",
       "schema_route": "GET /mind/schema"
     },
@@ -1553,8 +1788,9 @@ Purpose:
 
 Run one LLM-backed internal metacognitive step before answering. This is the
 single metacognition route: critique, claim checks, temporary workspace,
-reflection, and next-action planning are returned inside this result instead
-of separate cognitive endpoints.
+reflection, next-action planning, and controlled previous-turn thinking
+retrospection are returned inside this result instead of separate cognitive
+endpoints.
 
 Model-facing call shape:
 
@@ -1591,7 +1827,55 @@ planner
 synthesizer
 empathy
 memory_curator
+review_previous_turn
+detect_reasoning_drift
+explain_tool_choice
+recover_open_loops
+compare_answer_to_reasoning
+extract_reasoning_digest
+memory_from_reasoning
 ```
+
+Retrospective modes:
+
+- `review_previous_turn`: inspect the previous completed turn as a whole;
+- `detect_reasoning_drift`: compare reasoning, evidence, actions, and final
+  answer for drift;
+- `explain_tool_choice`: explain why a previous tool was used or skipped;
+- `recover_open_loops`: find unresolved checks, promises, or action candidates;
+- `compare_answer_to_reasoning`: compare final answer against the prior
+  reasoning process;
+- `extract_reasoning_digest`: compact prior thinking into a process digest;
+- `memory_from_reasoning`: identify memory candidates that appeared in reasoning.
+
+Retrospection fields:
+
+```json
+{
+  "turn_scope": "previous",
+  "detail": "digest"
+}
+```
+
+- `turn_scope`: `none` or `previous`; retrospective modes default to
+  `previous` when omitted.
+- `detail`: `digest`, `excerpt`, or `raw`; use `digest` by default because
+  previous thinking can be token-heavy.
+- aliases: `reasoning_scope` maps to `turn_scope`; `reasoning_detail` maps to
+  `detail`.
+
+When a previous-turn retrospection pack is available, the backend includes:
+
+- previous user messages;
+- previous assistant final messages;
+- public notes emitted during the previous turn;
+- tool-call input/output summaries;
+- relevant event markers;
+- provider thinking blocks at the requested detail level.
+
+Prior thinking is process evidence only. It can explain Scarlet's assumptions,
+drift, tool choices, open loops, or missed memory candidates, but it does not
+prove external facts.
 
 Response result includes:
 
@@ -1600,9 +1884,15 @@ Response result includes:
 - `review.claim_checks`
 - `review.missing_evidence`
 - `review.recommended_internal_actions`
+- `review.reasoning_digest`
+- `review.drift_findings`
+- `review.open_loops`
+- `review.tool_use_assessment`
+- `review.memory_candidates_from_reasoning`
 - `review.should_continue`
 - `review.next_focus_question`
 - `review.public_summary`
+- `retrospection`
 - `trace_ids`
 - `model`
 - `usage`
@@ -1619,7 +1909,205 @@ Trace Behavior:
 Creates `mind.metacognition.step`. If the reviewer returns malformed JSON, the
 backend performs one internal JSON repair attempt and records
 `json_repair_applied=true` plus the initial and repair provider payloads in the
-trace.
+trace. When retrospection is requested, the trace also stores the generated
+`thinking-retrospection-pack-v1` so the audit can be reproduced.
+
+### POST /mind/focus through mind_api
+
+Status: implemented
+
+Purpose:
+
+Manage Scarlet's foreground attention state. Focus is profile-scoped, archived
+when it leaves the foreground, and separate from semantic memory. It does not
+filter or narrow memory retrieval by default.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/focus",
+  "intent": "Set Scarlet's foreground focus for this thread.",
+  "body": {
+    "action": "set",
+    "object": "Complete the focus organ without changing memory retrieval.",
+    "type": "research",
+    "intensity": 0.75,
+    "duration_policy": "until_resolved",
+    "reason": "This is the foreground thread Scarlet wants to hold."
+  }
+}
+```
+
+Supported actions:
+
+- `set`: create a new active focus, superseding any previous active focus.
+- `shift`: intentionally move from the current focus to a new focus.
+- `update`: change the current or specified focus.
+- `hold`: reaffirm the current focus without closing it.
+- `defer`: archive the focus as deferred.
+- `resolve`: archive the focus as resolved.
+- `impossible`: archive the focus as impossible with a reason.
+- `read`: inspect the active or specified focus.
+- `list`: list focus archive records.
+- `search`: search focus archive records with a simple archive query.
+- `timeline`: inspect focus records plus transition edges to understand how
+  Scarlet's foreground attention moved over time.
+
+Backend-owned fields:
+
+- `owner_profile_id`;
+- source session, turn, and message provenance when available;
+- active-focus invariant;
+- timestamps;
+- transition edges;
+- focus events and traces.
+
+Result includes:
+
+- `active_focus`, `closed_focus`, or `items` depending on action;
+- `transition` when the action creates a focus transition;
+- `focus_policy` describing one-active-focus behavior and separation from
+  memory retrieval.
+
+Runtime behavior:
+
+When `organ_focus_mode=model` and an active focus exists, the backend injects a
+`focus_context` block into `<runtime_context>.blocks`. The legacy
+`scarlet_state.focus` field becomes only a compatibility pointer and should not
+be treated as the lived focus source.
+
+### POST /mind/volition through mind_api
+
+Status: implemented
+
+Purpose:
+
+Manage Scarlet's latent self-generated intentions. Volition is profile-scoped,
+archived when closed, and separate from semantic memory, foreground focus, and
+future task systems. Active user chat does not receive automatic intention
+retrieval in this slice.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/volition",
+  "intent": "Store a latent internal intention.",
+  "body": {
+    "action": "create",
+    "desire": "Understand whether my public notes help the owner follow my internal work without making simple chats heavy.",
+    "origin": "scarlet",
+    "horizon": "short_term",
+    "intensity": 0.68,
+    "autonomy_level": "self_generated",
+    "reason": "This is an internal research direction about my own behavior, not a user task.",
+    "next_possible_reflection": "Review future chats where notes either helped or became too verbose."
+  }
+}
+```
+
+Supported actions:
+
+- `create`: store a latent self-generated intention.
+- `read`: inspect one intention by id.
+- `list_active`: list open intentions (`active`, `deferred`, `in_review`).
+- `list_due`: list open intentions whose `next_review_at` has arrived; future
+  autonomous cycles can optionally include unscheduled open intentions.
+- `search`: search the intention archive with a simple lookup query.
+- `update`: update non-terminal intention fields.
+- `defer`: keep the intention latent but deferred.
+- `review`: mark a review, increment review count, and optionally update
+  scheduling/reflection fields.
+- `promote_to_focus_candidate`: return a suggested `/mind/focus` call body
+  without changing active focus.
+- `resolve`: close an intention as resolved.
+- `mark_impossible`: close an intention as impossible with a reason.
+- `deprecate`: close an intention as no longer valid.
+
+Backend-owned fields:
+
+- `owner_profile_id`;
+- source session, turn, and message provenance when available;
+- current active focus provenance when available;
+- timestamps;
+- lifecycle events and traces;
+- link ids and link timestamps.
+
+Result includes:
+
+- `intention`, `closed_intention`, or `items` depending on action;
+- `links` when related internal evidence was attached;
+- `focus_candidate` for `promote_to_focus_candidate`;
+- `volition_policy` describing manual visibility and separation from memory,
+  focus, and tasks.
+
+Runtime behavior:
+
+No `volition_context` block is injected into normal active chat in V1.19.0,
+even when intentions exist. Scarlet can inspect intentions manually through
+`POST /mind/volition` when the conversation or her metacognition gives a real
+reason. Future autonomous cycles are expected to become the main consumer of
+intention batches.
+
+### POST /mind/affect through mind_api
+
+Status: implemented
+
+Purpose:
+
+Read Scarlet's backend-appraised affect state and affect prototypes. This is an
+introspection route, not an emotion-writing route. Scarlet can inspect what API
+Mind appraised, but cannot choose, overwrite, or falsify emotion state through
+this endpoint.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/affect",
+  "intent": "Inspect Scarlet's current backend-appraised affective state.",
+  "body": {
+    "action": "read"
+  }
+}
+```
+
+Supported actions:
+
+- `read`: return the latest stored affect state, or a specific state by
+  `affect_id`.
+- `list`: inspect recent affect states with optional `emotion`, `mode`, and
+  `status` filters.
+- `prototypes`: return the current human emotion prototypes used by the
+  backend appraisal engine.
+
+Backend-owned fields:
+
+- `owner_profile_id`;
+- source session and turn provenance;
+- emotion prototype version;
+- variable scores, causes, tendencies, generated pack, timestamps, and decay
+  metadata.
+
+Result includes:
+
+- `affect_state` for `read`;
+- `items` for `list`;
+- emotion prototype descriptions for `prototypes`;
+- `affect_policy`, which states that affect is read-only, backend-appraised,
+  model-behavior-only, and does not mutate memory, focus, intentions, or
+  backend operations.
+
+Runtime behavior:
+
+`POST /mind/affect` is available for inspection through API Mind. Runtime
+injection remains controlled by `organ_affect_mode`: `shadow` appraises and
+persists without model-facing block injection, while `model` injects compact
+`affective_context` only when a real affect signal crosses threshold.
 
 ### POST /mind/memory/write through mind_api
 
@@ -1641,15 +2129,12 @@ Model-facing call shape:
     "content": "For SAL updates, use three blocks: what changed, verification, risks and next step.",
     "reason_for_storage": "Stable project communication preference.",
     "expected_future_use": "Apply to future SAL reports.",
-    "confidence": 0.9,
-    "salience": 0.8,
-    "scope": "project",
-    "tags": ["sal", "format"]
+    "scope": "project"
   }
 }
 ```
 
-Canonical memory types:
+Recommended memory type examples:
 
 ```txt
 project_fact
@@ -1659,15 +2144,22 @@ correction
 task_context
 behavioral_pattern
 episodic
+lesson
 ```
 
-Canonical scopes:
+Recommended scope examples:
 
 ```txt
 project
 user
 session
+metacognitive
 ```
+
+`type` and `scope` are semantic labels, not strict privacy/security controls.
+The backend normalizes obvious aliases but does not require Scarlet to know a
+closed enum forever. Future multi-user isolation must use backend-owned user
+identity/profile fields, not `scope`.
 
 Response result:
 
@@ -1685,8 +2177,6 @@ Response result:
     "content": "...",
     "source_session_id": "ses_...",
     "source_turn_id": "turn_...",
-    "confidence": 0.9,
-    "salience": 0.8,
     "usage_count": 0,
     "facts": []
   },
@@ -1696,21 +2186,30 @@ Response result:
 
 Compatibility normalization:
 
-Memory v0 accepts common model-shaped aliases and normalizes them before validation:
+Memory v0 accepts common model-shaped aliases and normalizes them before
+validation:
 
 - `pref`, `preference`, `preferenza`, `standard_preference`, `operational_preference` -> `user_preference`
 - `nota_operativa`, `operational_note` -> `task_context`
 - `why`, `reason`, `rationale` -> `reason_for_storage`
 - `use`, `future_use`, `use_during` -> `expected_future_use`
-- qualitative `confidence` or `salience` values such as `high`, `medium`, `low`, `alta`, `media`, `bassa`
-- model-suggested `id` -> `metadata.model_suggested_id`
-- harmless extra fields -> `metadata.model_extra`
+
+Deprecated model-supplied fields:
+
+- direct Scarlet writes should not send `confidence`, `salience`, `tags`, or
+  arbitrary `metadata`;
+- if those fields arrive from older prompts/models, the backend preserves them
+  only under audit metadata such as
+  `metadata.agent_supplied_fields_ignored_for_ranking`;
+- they do not become active ranking fields and are not surfaced in the normal
+  model-facing memory packet.
 
 Errors:
 
 - `memory.context_required`: memory write needs session context so it can be traced.
 - `memory.invalid_write`: required shape is missing after normalization.
-- `memory.policy_rejected`: confidence or salience is below the v0 write policy threshold.
+- `memory.policy_rejected`: reserved for structural or policy rejection; static
+  model-supplied confidence/salience no longer gate writes.
 
 Trace Behavior:
 
@@ -1728,8 +2227,8 @@ Status: implemented
 Purpose:
 
 Search active Memory v0 records and return sourceable context with provenance,
-confidence, salience, usage metadata, temporal filter metadata, and sparse
-retrieval relevance scores.
+usage metadata, temporal filter metadata, sparse/dense/KG retrieval evidence,
+and query-time relevance scores.
 
 Model-facing call shape:
 
@@ -1738,7 +2237,7 @@ Model-facing call shape:
   "method": "POST",
   "path": "/mind/memory/search",
   "intent": "Find the owner's SAL format preference.",
-  "body": {
+    "body": {
     "query": "SAL format preference",
     "types": ["user_preference"],
     "scope": "project",
@@ -1758,6 +2257,10 @@ Compatibility behavior:
 - `limit` maps to `top_k`.
 - `when`, `period`, and `date_range` map to `time`.
 - if `query` is omitted, tool-level `intent` is used as the query fallback.
+- `types` are semantic hints. They are not appended to the natural-language
+  query and should not select unrelated memories by themselves.
+- `scope` defaults to cross-scope search. Use it only when the intended
+  cognitive area is known.
 
 Temporal behavior:
 
@@ -1775,10 +2278,13 @@ Temporal behavior:
 
 Retrieval behavior:
 
-Memory search now builds a derived SQLite FTS5/BM25 sparse document for
-candidate memories and combines sparse score, lexical overlap, tag overlap,
-confidence, and salience. The canonical memory rows remain the source of truth;
-the sparse index is derived and rebuildable.
+Memory search builds derived SQLite FTS5/BM25 sparse documents, deterministic
+content/fact surfaces, optional dense/rerank shadow results, and NetworkX
+associative graph evidence. Static stored confidence/salience are legacy audit
+columns and are not active ranking features. Query-time relevance is computed
+from the current request, selected retrieval stages, and rerank/hybrid signals.
+The canonical memory rows remain the source of truth; indexes are derived and
+rebuildable.
 
 V1.3.0 also synchronizes retrieval-readiness artifacts whenever memory
 documents are synced or memory/fact lifecycle operations run. These artifacts
@@ -1830,7 +2336,11 @@ Response result:
       "memory_graph_v1",
       "memory_surface_taxonomy_v1",
       "embedding_index_shadow_ready_v1",
-      "vector_shadow_adapter_v1"
+      "vector_shadow_adapter_v1",
+      "openrouter_embedding_shadow_v1",
+      "openrouter_rerank_shadow_v1",
+      "memory_grouped_dense_v1",
+      "hybrid_retrieval_v1"
     ],
     "surface_taxonomy": {
       "taxonomy_version": "memory-surface-taxonomy-v1",
@@ -1842,22 +2352,114 @@ Response result:
   },
   "retrieval_shadow": {
     "enabled": true,
-    "backend": "local",
-    "embedding_model": "local_hash_embedding_v1",
-    "vector_dim": 64,
+    "backend": "openrouter",
+    "embedding_model": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "vector_dim": 2048,
     "ranking_policy": "trace_only_no_active_ranking",
     "operation": "memory.surface_shadow_search",
     "status": "completed",
     "ok": true,
+    "embedding_cache": {
+      "surface_count": 12,
+      "hits": 8,
+      "misses": 4,
+      "inserted": 4,
+      "query_embedded": true
+    },
     "results": [
       {
         "surface_id": "surf_...",
         "target_type": "memory",
         "target_id": "mem_...",
         "surface_kind": "memory_text",
-        "score": 0.62,
-        "backend": "local",
+        "surface_role": "primary_content",
+        "active_rank_eligible": true,
+        "score": 0.82,
+        "backend": "openrouter",
         "content_hash": "..."
+      }
+    ],
+    "grouped_results": [
+      {
+        "target_type": "memory",
+        "target_id": "mem_...",
+        "score": 0.82,
+        "raw_score": 0.91,
+        "promotable_score": 0.82,
+        "support_score": 0.91,
+        "active_rank_eligible": true,
+        "backend": "openrouter",
+        "embedding_model": "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+        "surface_count": 4,
+        "surface_kinds": ["memory_text", "future_use_text"],
+        "surface_roles": ["primary_content", "supporting_context"],
+        "promotable_surface_kinds": ["memory_text"],
+        "support_surface_kinds": ["future_use_text"],
+        "top_surface_id": "surf_promotable_...",
+        "top_surface_kind": "memory_text",
+        "top_surface_role": "primary_content",
+        "top_surface_score": 0.82,
+        "top_support_surface_id": "surf_support_...",
+        "top_support_surface_kind": "future_use_text",
+        "top_support_surface_score": 0.91,
+        "ranking_policy": "memory_target_role_aware_surface_score_v2",
+        "contributing_surfaces": []
+      }
+    ],
+    "rerank": {
+      "enabled": false,
+      "model": "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
+      "status": "disabled",
+      "results": [],
+      "grouped_status": "disabled",
+      "grouped_results": []
+    }
+  },
+  "retrieval_hybrid": {
+    "enabled": true,
+    "ok": true,
+    "mode": "active",
+    "active": true,
+    "ranking_policy": "sparse_dense_memory_group_hybrid_v1",
+    "status": "completed",
+    "dense_group_count": 8,
+    "rerank_group_count": 8,
+    "thresholds": {
+      "min_dense_score": 0.38,
+      "min_rerank_score": 0.55
+    },
+    "weights": {
+      "base": 0.35,
+      "sparse": 0.15,
+      "dense": 0.35,
+      "rerank": 0.2,
+      "support": 0.05,
+      "salience": 0.0,
+      "confidence": 0.0
+    },
+    "deprecated_weights": {
+      "stored_salience": 0.05,
+      "stored_confidence": 0.05,
+      "policy": "stored confidence/salience are retained for legacy audit only and do not affect active ranking"
+    },
+    "entries": [
+      {
+        "memory_id": "mem_...",
+        "score": 0.918,
+        "strong_signal": true,
+        "why_relevant": "dense memory-level match score=0.822 support=0.910 surface=memory_text signal=true",
+        "signals": {
+          "dense_score": 0.822,
+          "rerank_score": 0.91,
+          "support_score": 0.91,
+          "dense_signal": true,
+          "rerank_signal": true,
+          "base_signal": false,
+          "surface_roles": ["primary_content", "supporting_context"],
+          "promotable_surface_kinds": ["memory_text"],
+          "support_surface_kinds": ["future_use_text"],
+          "active_rank_eligible": true
+        }
       }
     ]
   },
@@ -1869,11 +2471,12 @@ Response result:
       "content": "...",
       "source_session_id": "ses_...",
       "source_turn_id": "turn_...",
-      "confidence": 0.95,
-      "salience": 0.9,
       "usage_count": 1,
       "score": 2.375,
       "why_relevant": "FTS5/BM25 sparse match; token overlap: formato, sal",
+      "retrieval_signals": {
+        "hybrid": null
+      },
       "facts": []
     }
   ],
@@ -1894,6 +2497,95 @@ Search scoring includes fact text when facts exist, so aliases such as
 `Zero Light protocol` can match a canonical `protocollo-zero-luce` fact even
 when the narrative memory used another language. This is still sparse lexical
 retrieval, not dense semantic embedding.
+
+`retrieval_shadow.results` is raw surface-level evidence. It is useful for
+debugging but can contain several surfaces from the same memory.
+`retrieval_shadow.grouped_results` deduplicates those surfaces by
+`target_id`, keeps the best surface score, and preserves contributing surfaces
+for inspection. When `RETRIEVAL_SHADOW_RERANK_ENABLED=true`,
+`retrieval_shadow.rerank.results` reports raw surface rerank while
+`retrieval_shadow.rerank.grouped_results` reports rerank over memory-level
+grouped candidates.
+
+`retrieval_hybrid` is the active promotion layer. With
+`RETRIEVAL_HYBRID_MODE=off`, dense/rerank evidence is only diagnostic. With
+`shadow`, the backend computes hybrid entries but does not change selected
+memories. With `active`, memory context and memory search can use grouped
+dense/rerank evidence plus sparse/base scores and graph signals to rank
+returned memories. Stored confidence/salience are intentionally neutral in the
+active ranker. Thresholds are explicit because vector search always has
+nearest neighbors, including for unrelated negative-control queries.
+
+### POST /mind/memory/graph through mind_api
+
+Status: implemented
+
+Purpose:
+
+Navigate associative context around a known memory id. This is a model-facing
+doorway from one retrieved memory into nearby memories, facts, lifecycle links,
+session/source nodes, and backend-derived concept nodes. Scarlet should use it
+when a memory looks like one piece of a wider cluster, not for every ordinary
+answer.
+
+Model-facing call shape:
+
+```json
+{
+  "method": "POST",
+  "path": "/mind/memory/graph",
+  "intent": "Inspect memories near the chocolate constraint.",
+  "body": {
+    "memory_id": "mem_...",
+    "depth": 1,
+    "limit": 12,
+    "include_inactive": false
+  }
+}
+```
+
+Response result:
+
+```json
+{
+  "operation": "memory.graph",
+  "memory_id": "mem_...",
+  "root_memory": {
+    "id": "mem_...",
+    "type": "user_preference",
+    "scope": "user",
+    "content": "..."
+  },
+  "nodes": [
+    {
+      "id": "node_...",
+      "node_type": "memory",
+      "node_key": "memory:mem_...",
+      "label": "...",
+      "source_memory_id": "mem_..."
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge_...",
+      "source_node_key": "memory:mem_...",
+      "target_node_key": "type:user_preference",
+      "relation": "has_type"
+    }
+  ],
+  "count": {
+    "nodes": 8,
+    "edges": 10
+  },
+  "trace_ids": ["trace_..."]
+}
+```
+
+Trace Behavior:
+
+Every successful graph navigation creates `mind.memory.graph`. Returned graph
+nodes/edges are explanatory associative context; they are not proof by
+themselves. Source memories, facts, and sessions remain the sourceable evidence.
 
 ### GET /mind/memory/{memory_id} through mind_api
 
@@ -1984,6 +2676,10 @@ Compatibility behavior:
   `response-format` canonicalize to `response_format`;
 - `status` defaults to `active`; set `include_inactive=true` to inspect
   deprecated facts.
+- The top-level `intent` field is operational trace context only. It is never
+  used as an implicit `query`; callers must provide `body.query`, `body.entity`,
+  `body.predicate`, or `body.memory_id` when they want filtered facts. An empty
+  body returns active facts according to the default filters.
 
 Response result:
 
@@ -2116,6 +2812,140 @@ Trace Behavior:
 
 Creates `memory.conflicts` and the model-facing `mind.tool_call`.
 
+### GET /api/maintenance/overview
+
+Status: implemented
+
+Purpose:
+
+Return a compact laboratory overview of backend-owned maintenance state. This
+endpoint is not model-facing API Mind. It is for evaluator tooling, dashboards,
+and future maintenance workers that need to inspect job/proposal health before
+adding more automation.
+
+Query:
+
+```txt
+recent_limit=8   recent jobs/proposals to include, 1..30
+```
+
+Response result:
+
+```json
+{
+  "operation": "maintenance.overview",
+  "generated_at": "2026-06-14T12:00:00+00:00",
+  "settings": {
+    "enabled": true,
+    "idle_seconds": 900,
+    "worker_interval_seconds": 5.0,
+    "job_batch_size": 5
+  },
+  "jobs": {
+    "counts_by_status": { "pending": 1, "completed": 4 },
+    "counts_by_kind": { "session.idle_maintenance": 5 },
+    "due_pending_count": 0,
+    "due_pending_has_more": false,
+    "recent": []
+  },
+  "memory_proposals": {
+    "counts_by_status": { "pending": 2, "applied_create": 3 },
+    "counts_by_action": { "create_new": 4, "review_similar": 1 },
+    "counts_by_risk": { "low": 3, "medium": 2 },
+    "recent": []
+  },
+  "memories": {
+    "created_by_maintenance": 3
+  },
+  "lab_guidance": [
+    "Inspect pending proposals before adding new maintenance processes."
+  ]
+}
+```
+
+### GET /api/maintenance/jobs
+
+Status: implemented
+
+Purpose:
+
+Inspect backend-owned maintenance jobs with pagination. This is the primary
+debug surface for session idle summarize/review jobs, skipped jobs, failed
+jobs, and pending due jobs. It is not visible to Scarlet through `mind_api`.
+
+Query:
+
+```txt
+status=pending                  optional status filter
+kind=session.idle_maintenance   optional kind filter
+session_id=ses_...              optional session filter
+limit=20                        number of jobs returned, 1..100
+offset=0                        pagination offset
+```
+
+Response result:
+
+```json
+{
+  "operation": "maintenance.jobs.list",
+  "status": "pending",
+  "kind": null,
+  "session_id": null,
+  "limit": 20,
+  "offset": 0,
+  "returned": 1,
+  "has_more": false,
+  "next_offset": null,
+  "jobs": [
+    {
+      "id": "mnt_...",
+      "kind": "session.idle_maintenance",
+      "status": "pending",
+      "session_id": "ses_...",
+      "trigger_turn_id": "turn_...",
+      "trigger_event_id": "evt_...",
+      "due_at": "2026-06-14T12:15:00+00:00",
+      "started_at": null,
+      "completed_at": null,
+      "superseded_by_job_id": null,
+      "idempotency_key": "session.idle_maintenance:ses_...:turn_...",
+      "input": {},
+      "result": {},
+      "error": null,
+      "created_at": "2026-06-14T12:00:00+00:00",
+      "updated_at": "2026-06-14T12:00:00+00:00"
+    }
+  ]
+}
+```
+
+### POST /api/maintenance/jobs/{job_id}/run
+
+Status: implemented
+
+Purpose:
+
+Run one pending maintenance job immediately from the laboratory surface. This
+is intended for controlled evaluation and debugging, not for Scarlet's in-turn
+API Mind cognition.
+
+Response result:
+
+```json
+{
+  "operation": "maintenance.jobs.run",
+  "job_id": "mnt_...",
+  "result": {
+    "job_id": "mnt_...",
+    "status": "completed"
+  }
+}
+```
+
+Errors:
+
+- `404 maintenance_job.not_found`: no job exists for the supplied id.
+
 ### GET /api/maintenance/memory/proposals
 
 Status: implemented
@@ -2219,7 +3049,8 @@ Current proposed actions:
 - `noop_duplicate`: an equivalent active memory or active canonical fact exists.
 - `review_similar`: similar active memories exist; review before writing.
 - `needs_review`: validation or canonical fact conflicts require review.
-- `reject_candidate`: write policy rejects confidence or salience.
+- `reject_candidate`: write policy rejects unsupported, malformed, too noisy,
+  or unsafe candidates.
 
 Current proposal statuses:
 
@@ -2518,6 +3349,9 @@ POST /mind/memory/propose
 POST /mind/memory/compact
 GET  /api/maintenance/memory/proposals                         implemented
 POST /api/maintenance/memory/proposals/{proposal_id}/archive    implemented
+GET  /api/maintenance/overview                                  implemented
+GET  /api/maintenance/jobs                                      implemented
+POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
 
 ## Planned Mind API
@@ -2526,7 +3360,6 @@ POST /api/maintenance/memory/proposals/{proposal_id}/archive    implemented
 GET  /mind/state
 POST /mind/memory/propose
 POST /mind/memory/compact
-POST /mind/attention/context
 ```
 
 ## Contract Entry Template

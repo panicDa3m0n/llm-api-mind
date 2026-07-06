@@ -65,16 +65,19 @@ GENERIC_TAGS = {
     "user-preference",
 }
 
-RESPONSE_FORMAT_MARKERS = {
-    "answer",
-    "blocchi",
-    "blocks",
-    "formato",
-    "format",
-    "rispondere",
-    "risposta",
-    "response",
-}
+RESPONSE_FORMAT_PHRASES = [
+    "answer with",
+    "answer using",
+    "respond with",
+    "respond using",
+    "rispondi con",
+    "rispondere con",
+    "risposta con",
+    "formato risposta",
+    "formato di risposta",
+    "response format",
+    "answer format",
+]
 
 BLOCK_ALIASES = [
     ("Contesto", ["contesto", "context"]),
@@ -153,10 +156,13 @@ def canonical_entity_for_memory(memory: MemoryRecord) -> str | None:
 
     haystack = normalize_text(_memory_text(memory))
     for canonical, aliases in KNOWN_ENTITY_ALIASES.items():
-        if any(alias in haystack for alias in aliases):
+        if any(_contains_normalized_phrase(haystack, alias) for alias in aliases):
             return canonical
 
-    protocol_match = re.search(r"\b(?:protocollo|protocol)\s+([a-z0-9]+(?:\s+[a-z0-9]+)?)", haystack)
+    protocol_match = re.search(
+        r"\b(?:protocollo|protocol)\s+([a-z0-9]+(?:\s+[a-z0-9]+)?)",
+        haystack,
+    )
     if protocol_match:
         return canonicalize_entity(f"protocollo {protocol_match.group(1)}")
 
@@ -175,9 +181,8 @@ def canonical_predicate_for_memory(memory: MemoryRecord) -> str | None:
         if predicate in CONTROLLED_PREDICATES:
             return predicate
 
-    tokens = set(_tokens(_memory_text(memory)))
     tags = {slugify(tag) for tag in memory.tags_json}
-    if tokens & RESPONSE_FORMAT_MARKERS or tags & {"formato-risposta", "response-format"}:
+    if _has_response_format_signal(memory, tags=tags):
         return "response_format"
     if memory.memory_type == "decision":
         return "project_decision"
@@ -290,6 +295,22 @@ def _extract_blocks(memory: MemoryRecord) -> list[str]:
     return [label for _, label in sorted(positions)]
 
 
+def _has_response_format_signal(memory: MemoryRecord, *, tags: set[str]) -> bool:
+    metadata = memory.metadata_json or {}
+    for key in ("blocchi", "blocks"):
+        value = metadata.get(key)
+        if isinstance(value, list) and any(str(item).strip() for item in value):
+            return True
+    if tags & {"formato-risposta", "response-format"}:
+        return True
+
+    haystack = normalize_text(_memory_text(memory))
+    if any(_contains_normalized_phrase(haystack, phrase) for phrase in RESPONSE_FORMAT_PHRASES):
+        return True
+    tokens = set(haystack.split())
+    return "blocchi" in tokens or "blocks" in tokens
+
+
 def _canonical_block_label(value: str) -> str:
     normalized = normalize_text(value)
     for canonical, aliases in BLOCK_ALIASES:
@@ -316,10 +337,6 @@ def _memory_text(memory: MemoryRecord) -> str:
     )
 
 
-def _tokens(value: str) -> list[str]:
-    return re.findall(r"\w+", normalize_text(value))
-
-
 def slugify(value: str) -> str:
     normalized = normalize_text(value)
     return re.sub(r"[^a-z0-9]+", "-", normalized).strip("-")
@@ -332,6 +349,20 @@ def normalize_text(value: str) -> str:
         .decode("ascii")
     )
     return " ".join(ascii_value.casefold().replace("-", " ").split())
+
+
+def _contains_normalized_phrase(haystack: str, phrase: str) -> bool:
+    phrase_tokens = normalize_text(phrase).split()
+    if not phrase_tokens:
+        return False
+    haystack_tokens = haystack.split()
+    phrase_length = len(phrase_tokens)
+    if phrase_length > len(haystack_tokens):
+        return False
+    for index in range(len(haystack_tokens) - phrase_length + 1):
+        if haystack_tokens[index : index + phrase_length] == phrase_tokens:
+            return True
+    return False
 
 
 def _isoformat(value: Any) -> str | None:

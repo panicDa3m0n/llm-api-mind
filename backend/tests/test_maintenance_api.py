@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
@@ -5,6 +7,7 @@ from sqlmodel import Session
 from app.config import Settings
 from app.main import create_app
 from app.storage import repositories
+from app.storage.models import utc_now
 
 
 def make_client(db_engine: Engine) -> TestClient:
@@ -115,3 +118,72 @@ def test_maintenance_memory_proposal_archive_returns_404_for_missing_id(
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "memory_proposal.not_found"
+
+
+def test_maintenance_overview_and_jobs_expose_lab_state(db_engine: Engine) -> None:
+    client = make_client(db_engine)
+    session = client.post("/api/chat/sessions", json={"title": "Maintenance lab"}).json()
+    with Session(db_engine) as db:
+        turn = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        )
+        job, _ = repositories.schedule_session_maintenance_job(
+            db,
+            kind="session.idle_maintenance",
+            session_id=session["id"],
+            trigger_turn_id=turn.id,
+            trigger_event_id=None,
+            due_at=utc_now() + timedelta(minutes=15),
+            input_payload={"trigger": "test"},
+        )
+        repositories.upsert_memory_proposal(
+            db,
+            idempotency_key="memory_proposal:test_maintenance_api:overview",
+            source="maintenance.memory_review",
+            proposed_action="create_new",
+            action_confidence=0.9,
+            risk="low",
+            candidate_type="user_preference",
+            candidate_scope="user",
+            content="The user likes maintenance dashboards.",
+            reason_for_storage="Useful lab preference candidate.",
+            source_session_id=session["id"],
+            maintenance_job_id=job.id,
+            tags=["maintenance"],
+            decision={"proposed_action": "create_new"},
+        )
+        job_id = job.id
+
+    overview_response = client.get("/api/maintenance/overview")
+
+    assert overview_response.status_code == 200
+    overview = overview_response.json()
+    assert overview["operation"] == "maintenance.overview"
+    assert overview["settings"]["enabled"] is False
+    assert overview["jobs"]["counts_by_status"]["pending"] == 1
+    assert overview["memory_proposals"]["counts_by_status"]["pending"] == 1
+    assert overview["memory_proposals"]["counts_by_action"]["create_new"] == 1
+    assert overview["jobs"]["recent"][0]["id"] == job_id
+
+    jobs_response = client.get(
+        "/api/maintenance/jobs",
+        params={"status": "pending", "limit": 10},
+    )
+
+    assert jobs_response.status_code == 200
+    jobs = jobs_response.json()
+    assert jobs["operation"] == "maintenance.jobs.list"
+    assert jobs["returned"] == 1
+    assert jobs["jobs"][0]["id"] == job_id
+    assert jobs["jobs"][0]["session_id"] == session["id"]
+
+
+def test_maintenance_job_run_returns_404_for_missing_id(db_engine: Engine) -> None:
+    client = make_client(db_engine)
+
+    response = client.post("/api/maintenance/jobs/mnt_missing/run")
+
+    assert response.status_code == 404
+    assert response.json()["detail"]["code"] == "maintenance_job.not_found"

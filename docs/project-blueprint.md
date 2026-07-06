@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.4.1
+Version: 1.13.0
 Status: active experimental runtime
-Last updated: 2026-05-31
+Last updated: 2026-06-19
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -89,7 +89,8 @@ It should provide:
 - suggested next actions when appropriate;
 - state summaries;
 - memory and attention support;
-- internal metacognition through one traceable route;
+- internal metacognition through one traceable route, including controlled
+  previous-turn thinking retrospection;
 - event handling;
 - asynchronous background processes.
 
@@ -491,7 +492,9 @@ This route gives Scarlet one traceable internal cognitive operation:
 - next-action planning.
 
 Visible metacognition remains only the public summary layer. Internal
-metacognition should be structured and traceable, not raw reasoning text.
+metacognition should be structured and traceable. From V1.8.0, controlled
+previous-turn thinking retrospection can inspect reasoning as process evidence,
+but it must not treat prior thinking as factual proof about the outside world.
 
 ### 6.4 Memory Context Pipeline v0
 
@@ -1429,12 +1432,12 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Verify episodic recall through live Scarlet conversations that follow memory source_session_id into full transcripts.
-2. Use runtime events to design the first background memory-maintenance trigger without adding model-facing endpoints.
-3. Improve retrieval with entity-aware guards, then SQLite FTS5/BM25.
-4. Add proposal inbox and compaction.
-5. Add CLI/debug memory views and broader memory evals.
-6. Re-test response-control guardrails after lifecycle/retrieval/episodic evidence is stronger.
+1. Keep MiniMax M3 active for owner-led human evaluation, with M2.7 rollback via MINIMAX_MODEL.
+2. Inspect real idle maintenance output through maintenance overview/jobs/proposals before adding new background processes.
+3. Keep memory merge/update/deprecate automation conservative until embedding/KG evidence is available from the Windows GPU setup.
+4. Review Goal/Focus/Task theory before implementing a real operational-management organ.
+5. Review Metacognition theory before changing the current single metacognition path.
+6. Defer brittle natural-answer validators and product UX polish until the underlying cognition branches justify them.
 ```
 
 The first milestone is not "digital mind". The first milestone is:

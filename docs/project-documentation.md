@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-05-31
-App baseline: V1.4.1
+Last updated: 2026-06-19
+App baseline: V1.13.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -45,6 +45,7 @@ discussed before a new fix is attempted.
 - `docs/bug-ledger.md`: known bugs, root causes, and monitoring items.
 - `docs/experiments.md`: hypotheses, live probes, and results.
 - `docs/api-contract.md`: implemented and planned API contracts.
+- `docs/block-registry.md`: runtime/model/UI block map for Scarlet turns.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: project-visible change history.
 
@@ -53,6 +54,17 @@ discussed before a new fix is attempted.
 - `docs/memory-roadmap.md`: detailed memory system roadmap.
 - `docs/cognitive-api-roadmap.md`: schema discipline and internal
   metacognition roadmap.
+
+## Theory Documents
+
+- `docs/theory-goal-focus-task.md`: owner-review theory for Scarlet's future
+  goal, focus, open-loop, and task organ.
+- `docs/theory-metacognition.md`: owner-review theory for Scarlet's future
+  metacognitive organ and its distinction from notes, maintenance, and
+  validators.
+- `docs/digital-individual-organs-notes.md`: active working notes for the five
+  next digital-individual organs: lived attention, volition, affective
+  integration, temporal experience, and sleep-like consolidation.
 
 ## Agentic Branch Documents
 

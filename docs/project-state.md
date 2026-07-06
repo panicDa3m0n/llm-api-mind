@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-05-28
-App baseline: V1.4.1
+Last updated: 2026-06-26
+App baseline: V1.21.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -31,15 +31,46 @@ system is a local agentic runtime for Scarlet with:
   MiniMax M2.7 retained as the model-comparison baseline;
 - persistent chat sessions, provider-native history, messages, turns, traces,
   tool calls, runtime events, maintenance jobs, semantic memories, atomic
-  facts, episodic session summaries, derived memory surfaces, and graph-ready
-  memory nodes/edges;
+  facts, episodic session summaries, derived memory surfaces, cached embedding
+  vectors, and graph-ready memory nodes/edges;
 - a single model-facing cognitive tool, `mind_api`;
 - schema-discoverable API Mind routes for memory, session recall, and one
   internal metacognition step;
 - automatic per-turn memory retrieval and runtime context injection;
+- optional OpenRouter cloud embedding/rerank retrieval over `memory_surfaces`,
+  with raw shadow traces, memory-level grouping, and explicit hybrid promotion
+  mode for controlled active ranking;
+- role-aware memory surface ranking: primary content and canonical-fact
+  surfaces can promote memories, while future-use, temporal, and lifecycle
+  guard surfaces act as support/corroboration only;
+- Codex test database isolation through startup-level `CODEX_TEST`, allowing
+  evaluator experiments to run through the same backend endpoints on a seeded
+  DB copy without mutating the production/laboratory Scarlet DB;
+- active NetworkX associative graph expansion over memory domains, used to
+  surface field-of-discourse personal memories such as food/drink/body limits
+  even when the user does not name the stored memory directly;
+- compact model-facing memory packets (`memory-packet-v1`) in runtime context,
+  while full retrieval diagnostics remain in `memory.context` traces for UI,
+  debugging, and evaluator analysis;
+- metacognitive-context shadow generation for evaluator-visible candidate
+  lessons, with controlled injection available only for A/B tests;
 - live streaming of model/provider/runtime events into the frontend cockpit;
 - an experimental React cockpit for chat, recent sessions, structured agent
-  stream, and raw trace inspection.
+  stream, model-input inspection, and raw trace inspection.
+- a separate `/mobile` React consumer UI for normal users, using the existing
+  chat, session, memory, profile, and settings APIs while future operativity is
+  shown only as `Presto disponibile`.
+
+V1.5.0 orientation:
+
+- keep MiniMax M3 as the active baseline so the owner can run broader human
+  tests, with immediate rollback available through `MINIMAX_MODEL=MiniMax-M2.7`;
+- expose backend-owned maintenance state through evaluator APIs without adding
+  new model-facing `mind_api` routes;
+- keep memory lifecycle automation conservative until embedding/KG evidence
+  improves similarity, stale-memory, and conflict detection;
+- treat goal/focus/task and metacognition as theory-first branches before
+  implementing new organs.
 
 Core code evidence:
 
@@ -57,6 +88,7 @@ Core code evidence:
 - Runtime events: `backend/app/runtime/events.py`
 - Idle maintenance: `backend/app/runtime/maintenance.py`
 - Frontend cockpit: `frontend/src/App.tsx`, `frontend/src/styles.css`
+- Consumer mobile UI: `frontend/src/MobileApp.tsx`
 
 ## 1.1 Agentic Branch Map
 
@@ -81,13 +113,13 @@ L5 Mature lab-core
 | Identita e relazione | L2/L3 | `docs/branches/identity-relationship.md` |
 | Memoria | L4+ | `docs/branches/memory.md` |
 | Apprendimento e adattamento | L2 | `docs/branches/learning-adaptation.md` |
-| Metacognizione | L2/L3 | `docs/branches/metacognition.md` |
+| Metacognizione | L3 | `docs/branches/metacognition.md` |
 | Gestione operativa | L2 | `docs/branches/operational-management.md` |
 | Autonomia decisionale | L2 | `docs/branches/decision-autonomy.md` |
 | Operativita su mondo esterno | L1 | `docs/branches/external-operativity.md` |
 | Operazioni e funzioni avanzate | L1 | `docs/branches/advanced-operations.md` |
 | Governance, privacy e sicurezza | L2 | `docs/branches/governance-privacy-safety.md` |
-| Emotivita computazionale | L1/L2 | `docs/branches/computational-affect.md` |
+| Emotivita computazionale | L2/L3 | `docs/branches/computational-affect.md` |
 | Multi-agente e sub-processi | L1 | `docs/branches/multi-agent-subprocesses.md` |
 
 Each branch document tracks philosophy, evidence, current state, prior work,
@@ -104,12 +136,21 @@ Implemented:
 - SQLite storage initialized through `init_db`, with migration support for
   existing laboratory databases.
 - Repository-versioned lab database policy for `backend/data/app.db`.
+- Digital-individual organ substrate registry in `backend/app/mind/organs.py`,
+  with reserved block names, visibility modes, event names, trace kinds, and
+  off-by-default feature flags. V1.21.0 closes the standalone surface for the
+  first three organs: focus, volition, and affect.
+- Affective core V1.20.0/V1.21.0: `affect_states`, deterministic human emotion
+  prototypes, `organ.affect` traces/events, shadow appraisal, optional
+  `affective_context` model injection behind `organ_affect_mode=model`, and
+  read-only `/mind/affect` inspection.
 - Pytest coverage across health, storage, chat, Mind API, provider selection,
   MiniMax streaming, and eval runner.
 
 Confirmed:
 
-- Backend test suite currently passes at `65 passed`.
+- Backend test suite currently passes at `81 passed` on the last full sweep;
+  V1.5.0 added targeted maintenance API coverage.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
 
@@ -125,6 +166,9 @@ Implemented:
 
 - `LLM_PROVIDER=minimax|qwen`.
 - MiniMax M3 remains the default MiniMax baseline from V1.4.1.
+- V1.7.1 keeps MiniMax M3 as the active baseline but adds prompt-level
+  request-effort routing so M3 does not treat every ordinary response as a full
+  source-sensitive investigation.
 - MiniMax M2.7 remains available as the direct A/B baseline by setting
   `MINIMAX_MODEL=MiniMax-M2.7`.
 - Qwen is available as an A/B comparison provider without changing Scarlet,
@@ -141,6 +185,9 @@ Confirmed:
 - Provider-native tool history now persists across turns.
 - MiniMax M3 can answer and perform Anthropic-style `tool_use` through the
   current MiniMax Anthropic-compatible endpoint on realistic prompts.
+- The V1.7.1 prompt fix is designed to preserve M3's deep reasoning and tool
+  use while reducing unnecessary public notes, schema checks, and full
+  verification on simple/contextual turns.
 
 Still monitoring:
 
@@ -190,12 +237,13 @@ mind_api(method, path, body, intent)
 ```
 
 Implemented routes in current schema version
-`2026-05-25.maintenance-proposals-v1`:
+`2026-06-26.digital-organs-standalone-v1`:
 
 - `GET /mind/schema`
 - `POST /mind/memory/write`
 - `POST /mind/memory/search`
 - `GET /mind/memory/{memory_id}`
+- `POST /mind/memory/graph`
 - `GET /mind/memory/facts`
 - `POST /mind/memory/facts/backfill`
 - `GET /mind/memory/conflicts`
@@ -205,10 +253,9 @@ Implemented routes in current schema version
 - `GET /mind/sessions/{session_id}`
 - `POST /mind/sessions/{session_id}/summarize`
 - `POST /mind/metacognition/step`
-
-Planned route still exposed:
-
-- `POST /mind/attention/context`
+- `POST /mind/focus`
+- `POST /mind/volition`
+- `POST /mind/affect`
 
 Confirmed:
 
@@ -221,6 +268,14 @@ Confirmed:
   are backend-owned.
 - Unknown/unavailable routes return structured recoverable errors with current
   schema metadata and route suggestions.
+- V1.18.0 replaces the old planned attention placeholder with implemented
+  `/mind/focus`, a lifecycle route for Scarlet's foreground attention state.
+- V1.19.0 adds `/mind/volition`, a manual latent-intention register for
+  Scarlet's self-generated directions. It is not automatically injected into
+  active chat.
+- V1.21.0 adds `/mind/focus action=timeline`,
+  `/mind/volition action=list_due`, and read-only `/mind/affect`, closing the
+  standalone surfaces for the first three digital-individual organs.
 
 Primary docs:
 
@@ -236,8 +291,11 @@ Implemented:
 - Memory write/search/read/conflicts/deprecate/supersede.
 - Source provenance on memory records:
   `source_session_id`, `source_turn_id`, `source_message_id`.
-- `confidence`, `salience`, `scope`, type, status, tags, usage count, and
-  metadata.
+- semantic `type`, semantic `scope`, content, reason, expected future use,
+  status, usage count, timestamps, and legacy confidence/salience columns kept
+  for compatibility/audit rather than active ranking.
+- Tags, metadata, facts, surfaces, graph rows, embeddings, provenance, and
+  query-time relevance are backend-owned or maintenance-derived.
 - Backend-owned deterministic fields for ids, timestamps, provenance, traces,
   and lifecycle metadata.
 - Temporal filters on manual memory search, with backend-resolved ranges such
@@ -263,6 +321,49 @@ Implemented:
   temporal/provenance anchors, fact bundles, and conflict/update guards.
   Scarlet still writes only canonical memory fields; derived surfaces are
   backend-owned and rebuildable.
+- V1.10.0 OpenRouter retrieval shadow:
+  `retrieval_shadow_backend=openrouter` can run cloud embeddings over
+  `memory_surfaces`, cache stable surface vectors in `embedding_vectors`,
+  and optionally run rerank as a second-stage precision comparison. Active
+  ranking remains unchanged.
+- V1.11.0 active hybrid retrieval calibration:
+  `retrieval_shadow.grouped_results` deduplicates dense/rerank evidence by
+  memory, and `retrieval_hybrid_mode=off|shadow|active` can promote grouped
+  dense/rerank scores into automatic `memory.context` and manual
+  `/mind/memory/search` ranking.
+- V1.11.1 NetworkX associative graph expansion:
+  runtime memory retrieval and manual memory search build a lightweight
+  domain graph over memories, derived graph rows, and backend-owned discourse
+  domains. This adds an explicit `retrieval_graph` trace so Scarlet can receive
+  memories that belong to the current field of discourse, such as a chocolate
+  limit during a warm evening beverage request.
+- V1.11.2 compact memory packets:
+  `runtime_context.memory_context.selected` and
+  `turn.perception.content.memory_retrieval.selected` now use
+  `memory-packet-v1`, keeping Scarlet's model-facing evidence compact and
+  functional while leaving full retrieval internals in the trace layer.
+- V1.11.3 retrieval/facts consistency:
+  OpenRouter embedding cache usage now updates the corresponding
+  `memory_surfaces` status/model/vector id, and `/mind/memory/facts` no longer
+  treats the operational `intent` as an implicit fact query.
+- V1.11.4 fact canonicalization stabilization:
+  short fact aliases are matched as standalone phrases/tokens instead of
+  substrings, `response_format` requires explicit structural evidence, and
+  noisy historical facts from the old extractor are archived in the laboratory
+  DB.
+- V1.12.0 role-aware retrieval surfaces:
+  `memory_text` and type-specific surfaces are content-focused, sparse/graph
+  memory text no longer includes `reason_for_storage` or
+  `expected_future_use`, and grouped dense/rerank results expose
+  `promotable_score`, `support_score`, `surface_role`, and
+  `active_rank_eligible` so auxiliary surfaces can support but not select a
+  memory alone.
+- V1.15.0 memory field stabilization:
+  direct Scarlet writes now supply only semantic type/scope/content/reason/use;
+  stored confidence/salience are neutralized in ranking; agent-supplied tags
+  and metadata are audit-only; manual search is cross-scope by default;
+  internal content chunks support long-memory retrieval; and
+  `POST /mind/memory/graph` exposes associative KG navigation.
 
 Confirmed:
 
@@ -281,8 +382,16 @@ Still monitoring:
 - Scarlet may over-announce memory writes even when the target UX is silent.
 - Direct P1 probe showed Scarlet can emit pseudo tool-call markup in final text
   instead of a real provider `tool_use`, leaving no `mind.memory.write` trace.
-- Model-supplied provenance can still be preserved inside metadata unless a
-  sanitizer is added.
+- Legacy ignored model-supplied values can remain in audit metadata for
+  traceability, but they are not active provenance or ranking fields.
+- Graph expansion is now active and navigable, but still lightweight:
+  it improves associative recall and gives Scarlet a graph door from a known
+  memory, but it does not replace future embedding/KG entity resolution,
+  temporal staleness, or lifecycle automation.
+- Atomic facts are operational but still conservative: V1.11.3 removes one
+  source of false empty results, and V1.11.4 removes the known short-alias
+  substring bug. Deeper entity extraction, tag/entity quality, and conflict
+  quality remain future stabilization work.
 
 Primary docs:
 
@@ -419,6 +528,10 @@ Confirmed:
     automatic retrieval selects a different memory.
 - Backend tests now assert that runtime context includes configured locale,
   profile identity, and privacy scope before the model request.
+- V1.7.1 instructs Scarlet to treat already-injected runtime context, selected
+  memory, and visible same-session history as sufficient evidence for
+  contextual answers when no source-sensitive or state-changing claim is being
+  made.
 
 Still monitoring:
 
@@ -431,6 +544,9 @@ Still monitoring:
 - V1.3.1 validates the shadow adapter path with live Scarlet evidence, but the
   active ranking is still FTS5/BM25 plus lexical/fact logic until a real
   embedding model is selected and tested.
+- V1.11.0 adds controlled active hybrid ranking, but dense/rerank thresholds
+  and weights still need live Scarlet calibration before treating it as the
+  default memory path.
 - V1.4.0 validates surface taxonomy with direct Scarlet evidence: a
   chocolate-preference memory generated preference, future-use, temporal, fact
   bundle, and canonical surfaces; Scarlet then used the memory correctly in a
@@ -457,19 +573,37 @@ Implemented:
 - LLM-backed reviewer returns structured review summary, risks, claim checks,
   missing evidence, recommended internal actions, continuation hint, and public
   summary.
+- V1.8.0 extends the same route with controlled previous-turn thinking
+  retrospection. Retrospective modes can inspect the previous completed turn's
+  user request, final answer, public notes, tool calls, event markers, and
+  provider thinking at `digest`, `excerpt`, or `raw` detail.
+- V1.9.0 adds backend-owned `metacognitive.context` shadow generation before
+  the model request. In default `shadow` mode it is trace/UI-only and is not
+  injected into `<runtime_context>`; controlled `inject` mode can add it as a
+  `metacognitive_context` runtime block for A/B tests.
 - The route accepts common observed model aliases and attempts one JSON repair
   retry.
 - Recommended actions are annotated with schema availability.
 
 Confirmed:
 
-- Scripted tests verify route traceability, alias tolerance, JSON repair, and
-  that removed parallel cognitive routes are unavailable.
+- Scripted tests verify route traceability, alias tolerance, JSON repair,
+  previous-turn thinking retrospection, and that removed parallel cognitive
+  routes are unavailable.
+- Backend tests verify shadow mode is not model-facing and inject mode becomes
+  model-facing only when configured.
+- Initial live probe `ses_9f7b8e37cc2145508867bd45b96f3553` confirms Scarlet can
+  autonomously choose retrospective metacognition when asked to audit previous
+  reasoning, but also shows detail-level calibration risk (`excerpt` instead of
+  cheaper `digest`).
 
 Still monitoring:
 
 - Live behavioral evidence is not yet strong enough to say Scarlet reliably
   invokes metacognition when she should.
+- Shadow lesson selection is deterministic and not yet evidence that active
+  metacognitive guidance improves Scarlet. It must be compared against inject
+  mode with identical prompts.
 - The design decision remains: do not add more cognitive endpoints until the
   single route is proven insufficient.
 
@@ -486,20 +620,56 @@ Implemented:
 - Event emission for turn lifecycle, persisted messages, memory context, model
   request/response, provider stream milestones, Mind API tool lifecycle, public
   notes, final answers, and private-thinking metadata.
+- V1.5.1 semantic stream blocks for MiniMax M3: provider text in messages that
+  stop on `tool_use` becomes `assistant.note.emitted`, provider text in
+  `end_turn` messages becomes `assistant.answer.completed`, and provider
+  thinking blocks become ordered `llm.thinking.captured` UI blocks.
 - `GET /api/debug/events`.
 - `GET/PUT /api/dashboard/settings`.
 - `GET /api/dashboard/memories`.
 - `GET /api/dashboard/profile`.
 - Streaming chat emits live `runtime_event` rows.
 - Frontend renders persisted events before falling back to traces.
-- Right pane now acts as a dashboard with tabbed Agent Stream, Memory, Profile,
-  and Settings/Impostazioni panels.
+- Right pane now acts as a selected-session inspector with tabbed histories for
+  memories, agent actions/tool calls, internal system events, and
+  warnings/errors.
+- Header actions expose the current-session inspector and settings/global-view
+  entrypoint separately, so future global analysis screens do not get mixed
+  with per-session diagnostics.
 - Tailwind is now the frontend styling foundation, with component classes
   layered over Tailwind utilities for consistent dashboard layout.
-- The chat timeline now renders runtime context, automatic memory retrieval,
+- The center chat now renders runtime context, automatic memory retrieval,
   Mind API calls/results, session recall, schema results, metacognition, public
-  notes, and final answers as human-readable cards before exposing JSON behind
-  closed code/detail toggles.
+  notes, and final answers as top-level chronological flow cards instead of a
+  single assistant-response card containing nested blocks.
+- Per-card detail/code controls expose raw JSON, memory details, runtime
+  payloads, and tool input/output when needed for debugging.
+- Tool-use is rendered as a single accordion per tool call with readable route,
+  input JSON, output JSON, and human-readable result summary, instead of split
+  call/result fragments.
+- V1.6.0 adds a model-input inspector tab that renders the exact persisted
+  `llm.request`: system prompt, injected runtime context, provider-native
+  messages, and tool schema.
+- V1.6.0 adds `docs/block-registry.md` as the canonical map of model-facing,
+  UI-facing, trace-only, canonical, and redundant compatibility blocks.
+- Replayed historical tool cards now enrich completed events with matching
+  `mind.tool_call` traces so the full output remains visible after reload, not
+  only the event summary.
+- V1.7.0 adds frontend stream block lifecycle: text, thinking, tool, memory,
+  and runtime blocks have stable block identity and phase metadata during live
+  stream and persisted replay.
+- Public text now appears during `text_delta` as a provisional visible block
+  before being finalized as note or answer.
+- V1.7.2 keeps long-reasoning progress notes prompt-owned: Scarlet should emit
+  short public orientation waypoints during prolonged reasoning, while the
+  backend/UI contract remains unchanged.
+- V1.8.0 keeps previous thinking out of ordinary public transcript dependence:
+  Scarlet can request a metacognitive retrospective pack when process evidence
+  matters.
+- V1.9.0 renders `metacognitive_context` shadow blocks in the center flow and
+  inspector, separate from Mind API metacognition tool results.
+- `turn_complete` reconciles live blocks with persisted events/traces instead
+  of blindly replacing the visible flow.
 - The left sidebar keeps recent sessions, active runtime settings, and session
   actions visible while the center remains the conversation surface.
 - The UI is viewport-bounded: page-level overflow is hidden and high-volume
@@ -513,6 +683,16 @@ Confirmed:
 
 - Runtime events are persisted, streamed, rendered, and compacted into the next
   turn's runtime context.
+- Live V1.5.1 M3 probe confirmed persisted order:
+  `assistant.note.emitted` -> `mind.tool_call.started/completed` ->
+  `assistant.answer.completed`.
+- UI probe on a dense persisted session confirmed the center chat no longer
+  renders the old `.message-body` / `.agent-turn.embedded` wrappers and uses
+  top-level `chat-flow-card` blocks for the chronological flow.
+- V1.6.0 frontend build confirms the new `Modello` inspector compiles against
+  the current trace shape.
+- V1.7.0 frontend build confirms the lifecycle/reconciliation changes compile
+  against the current stream event shape.
 - Live probe showed Scarlet reconstructed a prior `GET /mind/schema` call from
   recent runtime events.
 - Runtime events now drive the first backend maintenance scheduler through
@@ -527,6 +707,9 @@ Still monitoring:
 - The cockpit still needs live evaluator feedback on whether the current
   organization is clear enough during real use, especially on narrow side-panel
   widths and dense runtime-context turns.
+- Payload optimization remains intentionally deferred: top-level runtime
+  compatibility mirrors are visible as redundancy candidates, but not removed
+  until direct Scarlet tests prove no regression.
 - Maintenance events are readable as cards, but the best compact phrasing for
   long-running maintenance results is still open.
 
@@ -577,9 +760,13 @@ Confirmed:
 - The review no longer writes every candidate blindly. It creates proposals
   first, then resolves only safe cases. Created maintenance memories carry
   `created_by=maintenance` and proposal provenance.
-- Pending memory proposals are not a Scarlet-facing `mind_api` capability.
-  They are consumed through maintenance APIs:
-  `GET /api/maintenance/memory/proposals` and
+- Pending memory proposals and maintenance jobs are not Scarlet-facing
+  `mind_api` capabilities. They are consumed through maintenance/evaluator
+  APIs:
+  `GET /api/maintenance/overview`,
+  `GET /api/maintenance/jobs`,
+  `POST /api/maintenance/jobs/{job_id}/run`,
+  `GET /api/maintenance/memory/proposals`, and
   `POST /api/maintenance/memory/proposals/{proposal_id}/archive`.
 - `memory_proposals` is now the daily ledger for future Dream review; resolved
   rows retain preflight, outcome, reason, and memory snapshot when applied.
@@ -600,6 +787,10 @@ Still monitoring:
   `confidence=0.0` and `salience=0.0`.
 - Natural conversation probes show that stale memories are now a higher
   priority than merely detecting missed memories.
+- M3 is intentionally kept active for owner-led human testing; M2.7 rollback
+  remains a one-line `.env` change.
+- BUG-0040: live maintenance overview exposed failed idle jobs caused by
+  provider `ReadTimeout`; retry/resume policy is not implemented yet.
 
 ### 2.12 Evaluation
 
@@ -647,12 +838,14 @@ Already implemented:
 - `turn.completed` schedules per-session idle maintenance.
 - The idle job runs summary refresh, missed-memory review, proposal creation,
   cautious resolution, and daily-ledger updates.
+- V1.5.0 exposes lab inspection and controlled job execution through
+  maintenance/evaluator APIs.
 
 Why next:
 
-The first maintenance slice exists. The next decision should be based on live
-evidence from pending proposal quality, not on adding more overlapping
-processes.
+The first maintenance slice exists and should not be duplicated. The next
+decision should be based on live evidence from pending/resolved proposal
+quality, skipped/failed jobs, and maintenance-created memories.
 
 ### 3.2 Retrieval Quality Upgrade
 
@@ -662,13 +855,19 @@ Need:
 - entity-aware relevance guard;
 - stronger selected/near_miss/excluded thresholds;
 - better trace explanations for retrieval decisions;
-- optional dense retrieval only after sparse/entity behavior is stable.
+- optional dense retrieval after Windows/GPU embedding setup.
 
 Key acceptance:
 
 - Nebbia-Rossa must not select Zero-Luce.
 - Elliptical Zero-Luce follow-ups must still work when dialogue context makes
   the referent clear.
+
+Pre-embedding boundary:
+
+Do not add brittle lexical guard fixes or lifecycle-changing similarity
+automation before the embedding/KG substrate is ready. The current priority is
+observability and evaluation, not hard-coded ranking patches.
 
 ### 3.3 Memory Proposal Inbox And Compaction
 
@@ -685,6 +884,12 @@ Purpose:
 Separate immediate in-turn semantic memory writes from durable consolidation,
 merge, duplicate repair, and stale-memory cleanup.
 
+Current status:
+
+Proposal storage, preflight, cautious resolution, and daily-ledger preservation
+already exist. Merge/update/deprecate should wait until embedding/KG evidence
+improves matching quality.
+
 ### 3.4 Deterministic Answer Validators
 
 Need:
@@ -697,9 +902,10 @@ Need:
 
 Why not first:
 
-The owner intentionally put early response-control M1 on hold until memory
-state and conflict management became more real. That prerequisite is now mostly
-true, but retrieval quality and background maintenance should still come first.
+The owner intentionally deferred linguistic validators and prompt/code
+forzature. Some issues such as "I will remember" may be solved by existing or
+future maintenance, so validators belong near platform finalization unless a
+critical safety issue appears.
 
 ### 3.5 Per-Route Field Ownership Schema And Sanitization
 
@@ -732,18 +938,74 @@ implemented. A broader lifecycle model is still undecided.
 
 ### 3.7 Attention Context
 
+Current state:
+
+V1.18.0 implements the first real attention/focus route as `POST /mind/focus`.
+The route manages foreground focus state and archive history; it deliberately
+does not duplicate or narrow memory retrieval. V1.21.0 adds
+`action=timeline` to inspect focus transition edges and attention movement
+history.
+
+### 3.8 Goal/Focus/Task Organ
+
 Need:
 
-- design `POST /mind/attention/context`;
-- decide what it does that runtime context and memory context do not already
-  do;
-- avoid duplicating memory retrieval or metacognition.
+- owner review of `docs/theory-goal-focus-task.md`;
+- definition of what counts as Scarlet's own goal versus user/project goal;
+- lifecycle design for goals, focus, open loops, and tasks;
+- evidence rules so goals are sourceable and not invented identity;
+- no API/storage implementation until theory is approved.
 
 Current state:
 
-Planned only. It remains in schema as one planned route.
+V1.18.0 implements the first operational focus organ:
 
-### 3.8 CLI And Debug Memory Views
+- dedicated `focus_records` and `focus_transitions` tables;
+- one active profile-scoped focus at a time;
+- `POST /mind/focus` lifecycle operations;
+- `POST /mind/focus action=timeline` for transition/history inspection;
+- model-facing `focus_context` runtime block when `organ_focus_mode=model`;
+- focus events/traces for creation, update, closure, and surfacing.
+
+V1.19.0 implements the first operational volition slice:
+
+- dedicated `intention_records` and `intention_links` tables;
+- `POST /mind/volition` lifecycle operations;
+- `POST /mind/volition action=list_due` for future autonomous-cycle queues;
+- manual active-chat visibility with no automatic `volition_context` injection;
+- focus-candidate promotion that returns a suggested `/mind/focus` body without
+  mutating focus;
+- volition events/traces for creation, update, review, closure, and
+  focus-candidate promotion.
+
+V1.20.0/V1.21.0 implements the first operational affect organ:
+
+- dedicated `affect_states` table;
+- backend-appraised human emotion prototypes;
+- `organ.affect` traces/events;
+- `affective_context` runtime block in `organ_affect_mode=model`;
+- read-only `POST /mind/affect` for current state, history, and prototypes.
+
+Temporal-experience and dream organs remain unimplemented. Autonomous volition
+cycles remain planned but not implemented.
+
+### 3.9 Metacognition Organ
+
+Need:
+
+- owner review of `docs/theory-metacognition.md`;
+- decide whether the existing `/mind/metacognition/step` should become a
+  pre-answer checkpoint loop, remain opt-in, or be replaced;
+- define how metacognition differs from public notes, maintenance, and
+  validators;
+- behavioral tests proving answer improvement before adding endpoints.
+
+Current state:
+
+The single endpoint exists, but autonomous use is not reliable enough to call
+the branch mature. V1.5.0 adds theory, not new metacognitive APIs.
+
+### 3.10 CLI And Debug Memory Views
 
 Need:
 
@@ -756,7 +1018,7 @@ Why:
 The project is API/CLI-first. The human evaluator should be able to inspect and
 repair memory health without writing SQL.
 
-### 3.9 Broader Behavioral Evals
+### 3.11 Broader Behavioral Evals
 
 Need:
 
@@ -780,22 +1042,27 @@ Work:
 - keep events/traces/schema/docs aligned;
 - run full backend suite and frontend build after meaningful changes;
 - keep `docs/project-state.md` updated after major milestones.
+- keep M3 active for owner testing, with M2.7 rollback by `.env`.
 
-### P1 - Background Memory Maintenance
+### P1 - Evaluate Current Maintenance And M3
 
 Goal:
 
-Turn runtime events into the first real "subconscious" process without adding
-duplicate cognitive paths.
+Use the maintenance system that already exists. Do not add overlapping
+background processes until pending/resolved proposals, skipped jobs, failed
+jobs, and maintenance-created memories have been inspected after live use.
 
-Implemented first slice:
+Implemented:
 
 1. Deterministic `maintenance_jobs` records.
 2. Per-session idle scheduling after `turn.completed`.
 3. Session summary refresh through the existing summarization endpoint.
 4. Missed-memory review.
 5. Pending memory proposals with duplicate/similarity/fact preflight.
-6. Maintenance events/traces visible to debug/UI.
+6. Cautious proposal resolution and maintenance-created memories.
+7. Maintenance events/traces visible to debug/UI.
+8. V1.5.0 lab/evaluator APIs for overview, jobs, manual job run, and proposal
+   archive.
 
 Why:
 
@@ -804,13 +1071,14 @@ burden to Scarlet's prompt.
 
 Next P1 evaluation:
 
-- wait for real idle jobs after live sessions;
-- inspect pending `memory_proposals` for action quality and noise;
-- inspect `maintenance.memory_review` traces for useful or noisy candidates;
-- decide whether candidates should feed a proposal inbox, auto-write path, or
-  remain diagnostics.
+- owner runs human M3 sessions;
+- inspect `/api/maintenance/overview` after idle windows;
+- inspect pending/resolved `memory_proposals` for quality and noise;
+- inspect skipped/failed `maintenance_jobs`;
+- decide whether any maintenance thresholds need tuning, without fixing
+  unrelated retrieval/matching limitations prematurely.
 
-### P2 - Retrieval Quality And Memory Health
+### P2 - Memory Retrieval Upgrade With Cloud/Local Embedding Evidence
 
 Goal:
 
@@ -818,53 +1086,71 @@ Make memory evidence more reliable before enforcing strict answer validators.
 
 Recommended order:
 
-1. direct evaluation of temporal + FTS5/BM25 behavior;
-2. entity-aware guard;
-3. retrieval diagnostics in UI;
-4. memory lint for conflicts/stale/duplicates;
-5. proposal inbox and compaction.
+1. keep current temporal + FTS5/BM25 behavior observable;
+2. run OpenRouter cloud embedding/rerank in active-hybrid mode on live memory
+   cases, with negative controls and trace review;
+3. prepare Windows local embedding environment for BGE-M3 or another selected
+   local provider;
+4. compare cloud vs local embeddings on the same `memory_surfaces`;
+5. add KG expansion only after graph evidence is useful;
+6. only then revisit merge/update/deprecate automation.
 
-### P3 - Source-Sensitive Answer Validation
+### P3 - Goal/Focus/Task Theory Review
+
+Goal:
+
+Approve what goal, focus, open loop, and task mean for Scarlet as a digital
+individual before implementing the organ.
+
+Work:
+
+- review `docs/theory-goal-focus-task.md`;
+- decide first minimal lifecycle and evidence rules;
+- keep implementation blocked until theory is accepted.
+
+### P4 - Metacognition Theory Review
+
+Goal:
+
+Define metacognition as a behavior-improving control process, not cosmetic
+thinking or endpoint proliferation.
+
+Work:
+
+- review V1.8.0 thinking-retrospection behavior with direct Scarlet probes;
+- run V1.9.0 shadow-versus-inject probes with identical prompts and measure
+  whether candidate lessons reduce overthinking, missed memory commitments, and
+  unsupported source-sensitive claims;
+- decide whether retrospective modes become part of routine drift/open-loop
+  control or remain debug/research-only;
+- define the next metacognition loop only after behavioral evidence confirms
+  that process retrospection improves answers.
+
+### P5 - Source-Sensitive Answer Validation
 
 Goal:
 
 Prevent final answers from becoming stronger than the evidence.
 
-Start after P1/P2 have enough event and retrieval evidence to feed validators.
+Why later:
 
-Candidate validators:
+The owner explicitly wants to avoid brittle prompt/code forzature unless a
+direct risk justifies them. Some validator targets may be solved by maintenance
+or future metacognition.
 
-- non-exhaustive session absence;
-- conflict hidden in final answer;
-- memory promise without write;
-- "verified/baseline/all/none" claims without source receipt.
-
-### P4 - Metacognition Deepening
+### P6 - Human Operator Surfaces
 
 Goal:
 
-Improve how Scarlet uses the single metacognition route before considering
-extra cognitive endpoints.
+Make the lab maintainable as state grows, but avoid product UX churn unless it
+helps evaluation.
 
 Work:
 
-- mode-specific reviewer prompts;
-- stricter output validation;
-- optional continuation when `should_continue=true`;
-- evaluate final-answer improvement against similar non-metacognitive turns.
-
-### P5 - Human Operator Surfaces
-
-Goal:
-
-Make the lab maintainable as state grows.
-
-Work:
-
-- CLI memory commands;
-- cockpit memory views;
+- cockpit views for maintenance overview/proposals/jobs;
+- memory health dashboard after embedding/KG;
 - exportable run summaries;
-- event-driven maintenance dashboard.
+- CLI commands only when they reduce evaluator friction.
 
 ## 5. Documentation Structure Going Forward
 
@@ -882,6 +1168,10 @@ Use docs this way:
 - `docs/memory-roadmap.md`: detailed memory roadmap and memory-specific
   evidence.
 - `docs/cognitive-api-roadmap.md`: schema/metacognition roadmap.
+- `docs/theory-goal-focus-task.md`: pre-implementation theory for the future
+  Goal/Focus/Task organ.
+- `docs/theory-metacognition.md`: pre-implementation theory for the future
+  metacognition organ.
 - `docs/experiments.md`: hypotheses, live probes, scripted runs, and results.
 - `docs/decisions.md`: architectural decisions.
 - `docs/bug-ledger.md`: bugs, root causes, fixes, and monitoring residuals.
@@ -901,16 +1191,22 @@ After any major feature slice, update:
 
 ## 6. Current Best Next Step
 
-The next implementation discussion should focus on P1:
+The next work cycle should focus on P1 evaluation, not new automation:
 
 ```txt
-event-triggered background memory maintenance
+M3 human testing + maintenance overview/proposal inspection
 ```
 
 Reason:
 
-The backend now emits live ordered runtime events and the UI can show them.
-That gives us the substrate for real background cognition. The highest-value
-next move is to design a small maintenance process that watches completed
-turns/sessions and produces traceable maintenance output without creating new
-overlapping Mind API endpoints.
+The backend already emits events, schedules idle maintenance, summarizes
+sessions, reviews missed memories, creates/handles proposals, and preserves a
+daily ledger. The highest-value next move is to observe real behavior after
+human M3 sessions, inspect maintenance output through the V1.5.0 lab APIs, and
+only then tune thresholds or plan new maintenance work.
+
+Parallel non-coding review:
+
+- evaluate `docs/theory-goal-focus-task.md`;
+- evaluate `docs/theory-metacognition.md`;
+- keep embedding/KG work parked until the Windows GPU environment is available.
