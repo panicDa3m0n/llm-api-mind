@@ -1,7 +1,5 @@
 import hashlib
 import re
-from collections.abc import Callable
-from dataclasses import dataclass, field
 from datetime import datetime
 from itertools import combinations
 from typing import Any
@@ -14,9 +12,9 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.facts import (
     canonicalize_entity,
     canonicalize_predicate,
@@ -116,27 +114,6 @@ SCORE_ALIASES = {
     "basso": 0.35,
     "uncertain": 0.25,
 }
-
-
-@dataclass(frozen=True)
-class MindAPIContext:
-    engine: Engine
-    session_id: str | None = None
-    turn_id: str | None = None
-    settings: Any | None = None
-    provider_factory: Callable[[Any], Any] | None = None
-
-
-@dataclass(frozen=True)
-class MemoryOperationResult:
-    ok: bool
-    result: dict[str, Any] = field(default_factory=dict)
-    cognitive_hint: str | None = None
-    suggested_next_actions: list[str] = field(default_factory=list)
-    confidence: float = 1.0
-    error_code: str | None = None
-    error_message: str | None = None
-    error_recoverable: bool = True
 
 
 class MemoryWriteBody(BaseModel):

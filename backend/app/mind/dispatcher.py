@@ -4,9 +4,8 @@ from urllib.parse import parse_qs, urlsplit
 
 from pydantic import BaseModel, Field, model_validator
 
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.memory import (
-    MemoryOperationResult,
-    MindAPIContext,
     handle_memory_conflicts,
     handle_memory_deprecate,
     handle_memory_facts,

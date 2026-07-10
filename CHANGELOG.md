@@ -8,6 +8,27 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.26.0 Mind shell organization layers:
+  - moved shared cognitive runtime contracts into `mind/contracts.py`;
+  - moved side-effect-free command parsing and flag/time grammar into
+    `mind/shell_parsing.py`;
+  - moved shell help, errors, sanitization, and compact model-result profiles
+    into `mind/shell_presentation.py`;
+  - added focused parser regression tests while preserving the public shell
+    tool contract.
+
+- Added V1.26.0 preliminary whole-system regression gate:
+  - introduced `preliminary-regression-v1`, an executable pre/post-rework
+    integration suite against a frozen real laboratory DB baseline;
+  - pinned the baseline to its published Git LFS SHA-256 and documented real
+    memory, fact, and source-session references rather than synthetic-only
+    fixtures;
+  - verified automatic retrieval, manual shell navigation, semantic lifecycle,
+    focus, volition, affect, metacognition, internal maintenance boundary, and
+    GPT bridge lifecycle in one disposable test DB run;
+  - recorded the first valid result as `9/9` and made equal-or-better reruns a
+    required acceptance gate for future major procedures.
+
 - Added V1.26.0 runtime context-pack planning:
   - introduced `docs/runtime-context-packs.md` as the baseline for an always-on
     context spine, mode-specific packs, organ/source/capability

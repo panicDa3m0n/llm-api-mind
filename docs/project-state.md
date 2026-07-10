@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-09
-App baseline: V1.25.4
+Last updated: 2026-07-10
+App baseline: V1.26.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -46,6 +46,9 @@ system is a local agentic runtime for Scarlet with:
 - Codex test database isolation through startup-level `CODEX_TEST`, allowing
   evaluator experiments to run through the same backend endpoints on a seeded
   DB copy without mutating the production/laboratory Scarlet DB;
+- a frozen preliminary regression gate for major procedures, using real
+  sourceable memory/fact/session references from a published laboratory DB and
+  a freshly recreated disposable DB for each pre/post comparison;
 - active NetworkX associative graph expansion over memory domains, used to
   surface field-of-discourse personal memories such as food/drink/body limits
   even when the user does not name the stored memory directly;
@@ -57,6 +60,9 @@ system is a local agentic runtime for Scarlet with:
 - a central `mind_shell` command registry that validates command families,
   aliases, unavailable-by-design actions, planned actions, required fields, and
   missing arguments for shell execution and metacognition recommendations;
+- a layered active shell implementation: shared cognitive contracts,
+  side-effect-free command parsing, command-to-handler translation, and
+  separate model-facing presentation/compaction policy;
 - a model-facing runtime capability map derived from the shell registry rather
   than from legacy endpoint routes; legacy `/mind/*` endpoints remain
   internal/debug/maintenance surfaces unless wrapped by explicit shell
@@ -178,7 +184,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `120 passed` on the V1.25.4 full
+- Backend test suite currently passes at `124 passed` on the V1.26.0 full
   sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.

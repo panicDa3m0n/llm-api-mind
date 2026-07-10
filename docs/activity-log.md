@@ -4,6 +4,69 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-10 - V1.26.0 Preliminary Regression Gate And Rework Checkpoint
+
+Goal:
+
+Create a reliable pre/post whole-system comparison before the planned runtime
+and code-organization rework, while publishing the completed shell/bridge
+checkpoint to `main`.
+
+Area:
+
+Repository checkpoint / regression methodology / evaluator infrastructure.
+
+Changes:
+
+- Published `0329792 feat(mind): add shell runtime and external GPT bridge`.
+  The commit was pushed to `feature/mind-command-runtime`, fast-forwarded into
+  `main`, and the rework branch `checkpoint/rework-baseline` was created and
+  pushed from that exact checkpoint.
+- Intentionally excluded the locally modified `backend/data/app.db` LFS object
+  from the code checkpoint. It is mutable laboratory state, not an implicit
+  code/data release.
+- Added `backend/app/evals/preliminary_regression.py` and
+  `docs/preliminary-regression-suite.md`.
+- Froze an ignored source copy of the published LFS object
+  `827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5` and
+  chose real active/deprecated memory, fact, and source-session references.
+- Recorded ADR-0068 and EXP-0050 so the pre/post comparison is now an accepted
+  engineering procedure rather than a one-off evaluator exercise.
+- Completed the first code-organization slice on the active cognitive surface:
+  - extracted `MindAPIContext` and `MemoryOperationResult` from `memory.py`
+    into `mind/contracts.py`, so non-memory organs no longer import their
+    common runtime contracts from the memory implementation;
+  - extracted pure command parsing, flags, and temporal-filter grammar into
+    `mind/shell_parsing.py`;
+  - extracted shell envelope construction, help/errors, sanitization, and
+    model-facing compact result profiles into `mind/shell_presentation.py`;
+  - reduced `mind/shell.py` from 1,260 to 718 lines while preserving its public
+    `MindShellRequest` and `dispatch_mind_shell` contract.
+- Audited larger remaining modules. `memory.py`, `repositories.py`, `chat.py`,
+  and the GPT bridge router still have substantial size, but their next splits
+  require domain-specific boundary decisions. The deprecated MCP portion of
+  the bridge is intentionally left isolated by policy and should be removed or
+  extracted in a dedicated deprecation slice rather than mixed into this
+  active-shell refactor.
+
+Verification:
+
+- Pre-checkpoint full backend suite: `120 passed`.
+- `git diff --check` and compilation of the new regression runner passed.
+- Preliminary integration baseline:
+  `20260710_141950_preliminary-regression-v1` passed `9/9` on a fresh
+  disposable DB copied from the frozen source.
+- Post-rework comparison:
+  `20260710_143138_preliminary-regression-v1` passed `9/9` on the same fresh
+  source copy, with no case regression.
+- Full backend suite after the rework: `124 passed`.
+
+Next Suggested Step:
+
+Use the accepted V1.26.0 checkpoint as the base for the shadow runtime
+context-pack router. Keep the preliminary regression gate unchanged and rerun
+it before accepting that future architectural slice.
+
 ## 2026-07-09 - V1.26.0 Runtime Context Pack Planning
 
 Goal:

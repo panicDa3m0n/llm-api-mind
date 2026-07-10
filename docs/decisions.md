@@ -410,6 +410,61 @@ Related Files:
 - `docs/digital-individual-organs-notes.md`
 - `docs/experiments.md`
 
+## ADR-0068 - Frozen Preliminary Regression Gate For Major Procedures
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+Scarlet's runtime now combines storage migrations, semantic memory/facts,
+episodic recall, automatic context, the `mind_shell` command runtime, focus,
+volition, affect, metacognition, traces, and the external GPT bridge. A broad
+rework can preserve individual pytest contracts while still breaking the way
+these surfaces compose against real laboratory history.
+
+The owner requires a repeatable comparison before and after any large
+procedure, using real DB references rather than an ungrounded synthetic
+fixture. The test must retain the same starting state across branch changes and
+must make any regression legible without relying on conversational memory.
+
+Decision:
+
+Adopt a frozen preliminary regression gate:
+
+- choose sourceable real records, facts, sessions, and lifecycle states from a
+  published laboratory DB revision;
+- record their IDs, expected state, source hash, and inventory in a versioned
+  suite document;
+- create an ignored immutable local copy and a freshly recreated disposable
+  run DB for every execution;
+- execute assembled integration checks through actual runtime/context/shell/
+  bridge paths; and
+- require the identical suite before and after a major procedure.
+
+The current first suite is `preliminary-regression-v1`, pinned to Git LFS
+SHA-256 `827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`.
+Changing the data source or expected behavior requires a new versioned suite
+and documented decision; the old suite is not rewritten to hide a regression.
+
+Consequences:
+
+- Major rework acceptance now requires both ordinary test coverage and an
+  equal-or-better whole-system result on a known starting DB.
+- Test-created IDs remain dynamic provenance in each report; stable real IDs
+  are the invariant references.
+- Deterministic providers can certify integration paths, but live human
+  Scarlet/MiniMax evaluation remains necessary for free-form model behavior.
+- Future broad work gains a reusable procedure without turning small fixes
+  into heavy release rituals.
+
+Related Files:
+
+- `backend/app/evals/preliminary_regression.py`
+- `docs/preliminary-regression-suite.md`
+- `docs/development-process.md`
+- `docs/experiments.md`
+
 ## ADR-0002 - Initial System Shape
 
 Date: 2026-05-08  

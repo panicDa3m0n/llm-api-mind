@@ -4813,3 +4813,79 @@ Accept the probe as valid live evidence for planning, not as a reason to patch
 individual behaviors immediately. The next architectural step is a shadow
 runtime-context-pack router that traces which pack would have applied without
 changing live model input.
+
+## EXP-0050 - Preliminary Whole-System Regression Baseline
+
+Date: 2026-07-10
+
+Status: completed; retained as the required pre/post gate for major procedures.
+
+Question:
+
+Can the current assembled Scarlet runtime be verified reproducibly against a
+real frozen laboratory DB, across automatic retrieval, manual shell cognition,
+memory lifecycle, episodic provenance, organs, metacognition, maintenance
+boundaries, traces, and GPT bridge lifecycle?
+
+Baseline:
+
+Git LFS object
+`827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`,
+with 34 memories, 25 facts, 155 sessions, 567 messages, and no existing focus,
+volition, or affect state. The suite validates three sourceable real records:
+the active and deprecated Zero-Luce protocol pair plus the semantic-to-episodic
+provenance decision.
+
+Method:
+
+- freeze the exact LFS database as an ignored local source copy;
+- create a fresh disposable test DB for each run;
+- use FastAPI `TestClient`, current storage/migrations, `mind_shell`, runtime
+  context construction, and `/gpt/*` endpoints;
+- use a deterministic provider only where controlled output is needed to test
+  integration and metacognition JSON shape;
+- persist a JSON/Markdown report with selected real memory IDs and dynamic
+  IDs for test-created state.
+
+Result:
+
+The first valid run, `20260710_141950_preliminary-regression-v1`, passed `9/9`:
+
+1. frozen source inventory and real IDs/facts/provenance matched;
+2. automatic runtime retrieval selected active Zero-Luce and excluded its
+   deprecated predecessor;
+3. shell help, memory search/facts/open/graph, and source-session open worked
+   on real IDs;
+4. temporary memory write/search/deprecate lifecycle worked;
+5. focus and volition lifecycle worked;
+6. a natural frustration message produced model-facing affect and shell read
+   matched it;
+7. shell metacognition produced a traced, command-validated recommendation;
+8. `memory.facts.backfill` remained internal-only; and
+9. GPT bridge bootstrap/action/finalize completed one coherent turn.
+
+Post-Rework Comparison:
+
+After V1.26.0 extracted common cognitive contracts plus shell parsing and
+model-facing presentation from the monolithic shell module, the unchanged suite
+ran again as `20260710_143138_preliminary-regression-v1` and passed `9/9`.
+This is the first accepted proof that the gate can detect a structural slice
+without requiring a behavior change to be trusted by prose alone.
+
+Limits:
+
+This establishes repeatable integration behavior, not a score for MiniMax M3
+free-form reasoning or tool-choice quality. Natural live Scarlet probes remain
+necessary when a change is supposed to improve agent behavior.
+
+Decision Gate:
+
+Use the identical suite and source hash after the current rework and after
+future major procedures. A lower result blocks acceptance unless the owner
+approves a documented new suite version and behavior contract.
+
+Related Files:
+
+- `backend/app/evals/preliminary_regression.py`
+- `docs/preliminary-regression-suite.md`
+- `docs/decisions.md#adr-0068---frozen-preliminary-regression-gate-for-major-procedures`

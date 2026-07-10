@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from sqlmodel import Session
 
-from app.mind.memory import MemoryOperationResult, MindAPIContext
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
 from app.storage import repositories
 from app.storage.models import FocusRecord, FocusTransition

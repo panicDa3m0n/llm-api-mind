@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-07-09
-Current app version: V1.25.4
+Last updated: 2026-07-10
+Current app version: V1.26.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -94,7 +94,35 @@ After a verified implementation:
 Commits should be high-level, mapped to the branch or roadmap area, and should
 not mix unrelated fixes.
 
-## 6. Branch Mapping
+## 6. Major-Procedure Regression Gate
+
+Before a broad reorganization, architectural implementation, major branch
+transition, or shared-runtime change, establish a preliminary regression
+baseline before changing the affected code.
+
+The procedure is:
+
+1. inspect a real, immutable laboratory DB and select sourceable references;
+2. document the source hash, inventory, IDs, expected lifecycle state, and
+   exact acceptance criteria in a versioned suite document;
+3. run the executable suite against a disposable copy of that exact source DB;
+4. record the preliminary report before the rework begins;
+5. make only the declared rework changes;
+6. rerun the identical suite from a freshly copied DB; and
+7. accept the procedure only when results are equal or better, with no hidden
+   regressions.
+
+The current baseline is documented in:
+
+```txt
+docs/preliminary-regression-suite.md
+```
+
+This gate complements pytest and live Scarlet testing. It is a repeatable
+whole-system comparison, not a substitute for either deterministic unit
+contracts or human evaluation of model behavior.
+
+## 7. Branch Mapping
 
 The active agentic branches are documented in `docs/branches/`.
 
@@ -103,7 +131,7 @@ adapters, and UI are not themselves agentic branches. They support one or more
 branches. The branch document should explain why the infrastructure matters to
 Scarlet's actual behavior.
 
-## 7. Current Baseline
+## 8. Current Baseline
 
 V1.0.1 baseline includes:
 

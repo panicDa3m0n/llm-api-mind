@@ -6,7 +6,7 @@ from sqlmodel import Session
 
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
-from app.mind.memory import MemoryOperationResult, MindAPIContext
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.search import (
     search_documents,
     sparse_results_by_source,
