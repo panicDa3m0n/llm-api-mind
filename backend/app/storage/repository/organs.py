@@ -53,7 +53,6 @@ def list_active_focus_records(
     )
     return list(db.exec(statement).all())
 
-
 def list_focus_records(
     db: Session,
     *,
@@ -510,4 +509,3 @@ def list_intention_links(
         .limit(limit)
     )
     return list(db.exec(statement).all())
-

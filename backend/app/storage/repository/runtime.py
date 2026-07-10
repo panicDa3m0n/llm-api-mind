@@ -333,7 +333,6 @@ def start_maintenance_job(db: Session, *, job_id: str) -> MaintenanceJob | None:
     db.refresh(job)
     return job
 
-
 def complete_maintenance_job(
     db: Session,
     *,
@@ -355,5 +354,4 @@ def complete_maintenance_job(
     db.commit()
     db.refresh(job)
     return job
-
 

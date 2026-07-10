@@ -126,7 +126,6 @@ def list_memory_surfaces(
     ).limit(limit)
     return list(db.exec(statement).all())
 
-
 def list_memory_surfaces_by_targets(
     db: Session,
     *,
@@ -484,5 +483,4 @@ def list_memory_graph_edges(
         MemoryGraphEdge.id,
     ).limit(limit)
     return list(db.exec(statement).all())
-
 

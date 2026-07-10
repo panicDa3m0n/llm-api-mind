@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-10
-System version assessed: V1.28.0
+System version assessed: V1.28.1
 Status: active branch
 
 ## Filosofia del ramo

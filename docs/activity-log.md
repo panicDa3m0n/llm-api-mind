@@ -32,6 +32,8 @@ Verification:
 - Full backend suite: `131 passed`.
 - Unchanged preliminary regression: `9/9` in
   `20260710_152411_preliminary-regression-v1`.
+- V1.28.1 removes the four trailing-whitespace findings from the published
+  split; no runtime behavior changed.
 
 Next Suggested Step:
 

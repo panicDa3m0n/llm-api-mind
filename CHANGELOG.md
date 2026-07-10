@@ -61,6 +61,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Fixed
 
+- Fixed V1.28.1 repository-domain file formatting so the published checkpoint
+  passes whitespace validation.
+
 - Fixed V1.25.4 Mind shell command-registry parity:
   - corrected `validate_shell_command` so flag values no longer count as
     positional arguments;

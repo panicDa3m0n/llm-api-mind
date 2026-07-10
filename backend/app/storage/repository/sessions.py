@@ -300,5 +300,3 @@ def add_tool_call(
     db.commit()
     db.refresh(tool_call)
     return tool_call
-
-

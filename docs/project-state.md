@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-10
-App baseline: V1.28.0
+App baseline: V1.28.1
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -192,7 +192,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `131 passed` on the V1.28.0 full
+- Backend test suite currently passes at `131 passed` on the V1.28.1 full
   sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
