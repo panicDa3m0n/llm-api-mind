@@ -2,11 +2,13 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.11.0.
+App baseline: V1.27.0.
 
 Current scope:
 
 - typed environment configuration;
+- explicit database roles and read-only preflight for production, laboratory,
+  test, and preliminary state;
 - `/health` endpoint;
 - switchable MiniMax/Qwen LLM provider smoke test;
 - configurable Scarlet agent system prompt;
@@ -61,6 +63,24 @@ Add your MiniMax key to `backend/.env` for the default provider:
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=...
 MINIMAX_MAX_TOKENS=131072
+```
+
+Database ownership defaults to the local laboratory role:
+
+```txt
+ENVIRONMENT=local
+DATABASE_ROLE=auto
+CODEX_TEST=false
+DATABASE_URL=sqlite:///./data/app.db
+```
+
+Use `CODEX_TEST=true` only with a distinct disposable target/seed. The full
+production/laboratory/test/preliminary boundary, including the VPS procedure,
+is in `../docs/database-topology.md`. Before a deploy or a persistence-heavy
+evaluation, run the read-only check:
+
+```bash
+python -m app.ops.database_preflight --require-existing
 ```
 
 Idle maintenance defaults to a 15-minute per-session timer:
@@ -158,7 +178,7 @@ AGENT_SYSTEM_PROMPT_PATH=path/to/system_prompt.md
 ## Run
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.asgi:app --reload
 ```
 
 Then open:

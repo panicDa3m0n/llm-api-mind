@@ -8,6 +8,18 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.27.0 database ownership boundaries:
+  - introduced explicit `production`, `laboratory`, `test`, and `preliminary`
+    roles, a read-only database preflight, and startup validation for ambiguous
+    environments and production/test mixtures;
+  - moved the eager ASGI application to `app.asgi:app`, leaving the reusable
+    factory free of database-opening import side effects;
+  - documented the local/VPS inventory and deployment procedure, including
+    mandatory remote backup and exclusions for runtime `data/` and `.env`;
+  - changed the dirty-memory evaluator to use a marked disposable copy of the
+    frozen baseline rather than resetting the historical `codex_test.db`;
+  - added a staged-change guard for the mutable LFS laboratory snapshot.
+
 - Added V1.26.0 Mind shell organization layers:
   - moved shared cognitive runtime contracts into `mind/contracts.py`;
   - moved side-effect-free command parsing and flag/time grammar into

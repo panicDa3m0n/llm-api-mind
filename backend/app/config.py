@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     agent_system_prompt_path: str | None = None
 
     database_url: str = "sqlite:///./data/app.db"
+    database_role: str = "auto"
     codex_test: bool = False
     codex_test_database_url: str = "sqlite:///./data/codex_test.db"
     codex_test_seed_database_url: str | None = None

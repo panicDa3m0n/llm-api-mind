@@ -19,6 +19,77 @@ Notes:
 
 ## Known Environment Notes
 
+## BUG-0062 - Importing The App Factory Could Open The Configured Runtime DB
+
+Date Found: 2026-07-10
+Status: fixed in V1.27.0
+
+Symptoms:
+
+`app.main` instantiated `app = create_app()` at import time. Evaluators and
+pytest modules import the factory, so that import could open and migrate the
+database selected by the developer environment before an isolated engine was
+injected.
+
+Root Cause:
+
+The production ASGI entrypoint and the reusable application factory lived in
+the same eagerly executed module.
+
+Fix:
+
+Moved the eager ASGI object to `app.asgi:app`, made `app.main` factory-only,
+and added explicit database-role validation plus an import regression test.
+
+Regression Test:
+
+`backend/tests/test_database_boundary.py::test_importing_app_factory_does_not_open_the_runtime_database`
+
+Related Files:
+
+- `backend/app/main.py`
+- `backend/app/asgi.py`
+- `backend/app/storage/database_boundary.py`
+
+## BUG-0063 - Historical Dirty-Memory Harness Reads A Retired Metadata Shape
+
+Date Found: 2026-07-10
+Status: open / parked
+
+Symptoms:
+
+The V1.27.0 isolated run of `codex_test_memory_harness.py` created all 240
+controlled records, but its five context-evaluation probes reported `0/5`.
+The selected results included controlled record content, yet their diagnostic
+key was `null`.
+
+Root Cause:
+
+The current memory write policy nests agent-supplied metadata below
+`agent_supplied_fields_ignored_for_ranking`. The historical evaluator still
+looks only for `codex_test_key` at the old top-level metadata location. This
+is a measurement/harness compatibility gap, not evidence that the DB boundary
+or the current retrieval path failed to persist the controlled records.
+
+Fix:
+
+Parked outside the V1.27.0 database-boundary scope. A dedicated evaluator
+slice should make key extraction understand the backend-owned wrapper and
+revalidate the historical retrieval expectations against a versioned source
+dataset.
+
+Regression Test:
+
+Pending: run the harness against a fresh marked copy and assert that selected
+records can be mapped to controlled keys without relying on retired metadata
+shape.
+
+Related Files:
+
+- `backend/app/evals/codex_test_memory_harness.py`
+- `backend/app/mind/memory.py`
+- `docs/experiments.md`
+
 ## BUG-0057 - Temporal Recall Can Answer From Non-Exhaustive Session Context
 
 Date Found: 2026-07-09

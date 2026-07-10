@@ -929,7 +929,7 @@ export function App() {
             </span>
             <span>
               <Database size={14} aria-hidden="true" />
-              {runtimeSettings?.database.profile ?? "prod"}
+              {runtimeSettings?.database.profile ?? "unknown"}
             </span>
           </div>
           <small>
@@ -1571,7 +1571,7 @@ function DashboardPanel({
           </div>
           <div className="soft-note">
             Database attivo:{" "}
-            <strong>{runtimeSettings?.database.profile ?? "prod"}</strong>
+            <strong>{runtimeSettings?.database.profile ?? "unknown"}</strong>
             {runtimeSettings?.codex_test ? " · isolamento Codex test attivo" : ""}
           </div>
           <div className="soft-note">

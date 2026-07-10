@@ -814,7 +814,7 @@ def test_dashboard_settings_control_runtime_context(db_engine: Engine) -> None:
     assert initial.json()["country_code"] == "IT"
     assert initial.json()["profile_id"] == "local-user"
     assert initial.json()["codex_test"] is False
-    assert initial.json()["database"]["profile"] == "prod"
+    assert initial.json()["database"]["profile"] == "test"
 
     update = client.put(
         "/api/dashboard/settings",

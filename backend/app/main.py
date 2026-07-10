@@ -13,6 +13,7 @@ from app.config import Settings, get_settings
 from app.llm.factory import build_llm_provider
 from app.plugins.gpt_bridge import build_gpt_bridge_router
 from app.runtime.maintenance import start_maintenance_worker
+from app.storage.database_boundary import validate_database_configuration
 from app.storage.db import create_db_engine, init_db, prepare_runtime_database
 
 
@@ -22,6 +23,7 @@ def create_app(
     db_engine: Engine | None = None,
 ) -> FastAPI:
     runtime_settings = settings or get_settings()
+    validate_database_configuration(runtime_settings)
     engine = db_engine or create_db_engine(prepare_runtime_database(runtime_settings))
     provider_factory = llm_provider_factory or build_llm_provider
     init_db(engine)
@@ -43,7 +45,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.26.0",
+        version="1.27.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -88,6 +90,3 @@ def create_app(
     )
 
     return app
-
-
-app = create_app()

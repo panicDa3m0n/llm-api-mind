@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-10
+System version assessed: V1.27.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -104,6 +104,11 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 - V1.13.0 introduce `CODEX_TEST` come isolamento DB per esperimenti: il backend
   puo aprire una copia seedata del DB Scarlet e usare gli stessi endpoint reali
   senza mutare il DB produzione/laboratorio.
+- V1.27.0 separa il meccanismo `CODEX_TEST` dal ruolo del DB: `test` e
+  `preliminary` possono scrivere solo copie disposable, mentre produzione e
+  laboratorio restano fonti non mutabili per le suite. Il vecchio
+  `codex_test.db` diventa artefatto storico; l'evaluator crea ora un run DB
+  marcato e fresco dalla baseline congelata.
 - Il rerank resta un secondo stadio sui candidati gia trovati: migliora la
   precisione osservabile, ma non sostituisce embedding/sparse/KG.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
@@ -138,7 +143,7 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.27.0.
 
 Aggiornamento V1.25.4:
 

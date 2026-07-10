@@ -946,10 +946,12 @@ Response:
   "provider": "minimax",
   "model": "MiniMax-M3",
   "database": {
-    "profile": "prod",
+    "profile": "laboratory",
+    "role": "laboratory",
     "codex_test": false,
     "database_url": "sqlite:///./data/app.db",
-    "seed_database_url": "sqlite:///./data/app.db"
+    "seed_database_url": "sqlite:///./data/app.db",
+    "isolation": "direct"
   }
 }
 ```
@@ -962,14 +964,21 @@ Trace Behavior:
 
 No persistent trace yet. This endpoint is a process health check, not an agent turn.
 
-Codex test isolation:
+Database roles and Codex test isolation:
 
-- `CODEX_TEST=false` keeps the normal `DATABASE_URL` runtime.
+- `DATABASE_ROLE=auto` maps local/development to `laboratory`, test to `test`,
+  and production to `production`. Nonstandard environments must set an
+  explicit role before the app starts.
+- `CODEX_TEST=false` opens the normal `DATABASE_URL` directly.
 - `CODEX_TEST=true` opens `CODEX_TEST_DATABASE_URL`.
 - If the Codex test database is a missing SQLite file, it is copied once from
   `CODEX_TEST_SEED_DATABASE_URL` when configured, otherwise from `DATABASE_URL`.
 - Existing Codex test databases are reused and never overwritten by startup.
 - Startup fails if the Codex test SQLite path is the same file as the seed path.
+- Production role rejects `CODEX_TEST=true`; preliminary role requires that
+  isolation and an explicitly marked preliminary target.
+- `database.profile` and `database.role` expose the resolved ownership role;
+  `database.isolation` is `direct` or `seed_copy`.
 
 Example:
 
@@ -1223,10 +1232,12 @@ Response:
   "source": "environment_defaults",
   "codex_test": false,
   "database": {
-    "profile": "prod",
+    "profile": "laboratory",
+    "role": "laboratory",
     "codex_test": false,
     "database_url": "sqlite:///./data/app.db",
-    "seed_database_url": "sqlite:///./data/app.db"
+    "seed_database_url": "sqlite:///./data/app.db",
+    "isolation": "direct"
   },
   "options": {
     "languages": [{ "code": "it", "label": "Italiano" }],

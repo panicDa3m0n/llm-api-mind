@@ -76,6 +76,23 @@ Update `CHANGELOG.md` for every meaningful change that affects:
 
 Small formatting-only edits can skip the changelog if they do not affect project meaning.
 
+## Database Boundary Before Commit Or Deploy
+
+Before committing, run:
+
+```bash
+python scripts/check_database_boundary.py --staged
+```
+
+This refuses accidental inclusion of the mutable laboratory snapshot
+`backend/data/app.db`. The override is reserved for an explicitly reviewed
+data release and must be recorded in the commit and changelog.
+
+Before a VPS deployment, follow `docs/database-topology.md`: back up the
+remote DB, exclude `backend/data/` and `backend/.env` from any transfer, then
+run the new image's read-only preflight with `--expect-role production` before
+restart. Git pushes do not deploy runtime data.
+
 ## Documentation Mapping
 
 Each meaningful commit should usually touch at least one project memory file:

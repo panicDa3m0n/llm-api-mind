@@ -12,7 +12,7 @@ The first milestone is a local MiniMax M2.7 chat runtime where every turn is sto
 
 ## Current Status
 
-Current app baseline: **V1.4.1**.
+Current app baseline: **V1.27.0**.
 
 The project has a working local baseline runtime:
 
@@ -47,7 +47,8 @@ The project has a working local baseline runtime:
 - scripted and interactive evaluation runner;
 - accepted baseline, tool-loop, streaming trace, runtime-event, and initial
   Memory v0 experiments.
-- repository-versioned laboratory SQLite state at `backend/data/app.db`.
+- a declared database boundary between production, mutable laboratory state,
+  disposable tests, and frozen preliminary regression runs.
 - active memory robustness roadmap for response-control, lifecycle, atomic facts, retrieval quality, compaction, CLI/API inspection, and evals.
 
 ## Key Documents
@@ -65,6 +66,8 @@ The project has a working local baseline runtime:
 - `docs/bug-ledger.md`: known bugs, fixes, and environment notes.
 - `docs/experiments.md`: hypotheses, baselines, metrics, and results.
 - `docs/api-contract.md`: planned and implemented API contracts.
+- `docs/database-topology.md`: database ownership, test isolation, and VPS
+  deployment safety procedure.
 - `docs/memory-roadmap.md`: detailed roadmap for a robust API/CLI-first memory system.
 - `docs/cognitive-api-roadmap.md`: roadmap for schema discipline and the
   single-route internal metacognition experiment.
@@ -94,7 +97,7 @@ Backend:
 ```bash
 cd backend
 source .venv/bin/activate
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.asgi:app --host 127.0.0.1 --port 8000
 ```
 
 Frontend:
@@ -134,9 +137,15 @@ Do not commit real API keys.
 
 ## Laboratory State
 
-The current lab policy intentionally versions `backend/data/app.db` in Git so sessions, traces, runtime events, tool calls, and Memory v0 records can move across development machines.
+`backend/data/app.db` is a legacy LFS-tracked laboratory snapshot, not the VPS
+production database and not an automatic test target. The current worktree
+copy is mutable and must stay out of ordinary code commits. Production data is
+the remote mounted database and is never transferred from this repository.
 
-This is an experimental-lab policy, not a production privacy model. The repository must still exclude API keys, `.env` files, provider credentials, and other secrets.
+The canonical ownership map and deployment procedure live in
+`docs/database-topology.md`. This remains an experimental-lab policy, not a
+production privacy model. The repository must still exclude API keys, `.env`
+files, provider credentials, and other secrets.
 
 Expected future environment variables:
 
@@ -156,4 +165,5 @@ MAINTENANCE_WORKER_INTERVAL_SECONDS=5
 MAINTENANCE_JOB_BATCH_SIZE=5
 AGENT_SYSTEM_PROMPT_PATH=
 DATABASE_URL=sqlite:///./data/app.db
+DATABASE_ROLE=auto
 ```

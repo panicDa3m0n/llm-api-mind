@@ -32,7 +32,7 @@ Start the backend first:
 
 ```bash
 cd ../backend
-.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+.venv/bin/uvicorn app.asgi:app --host 127.0.0.1 --port 8000
 ```
 
 Then start the frontend:

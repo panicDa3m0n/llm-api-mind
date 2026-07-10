@@ -4872,6 +4872,14 @@ ran again as `20260710_143138_preliminary-regression-v1` and passed `9/9`.
 This is the first accepted proof that the gate can detect a structural slice
 without requiring a behavior change to be trusted by prose alone.
 
+Database Boundary Update:
+
+V1.27.0 makes the gate declare `database_role=preliminary` and pass through
+the same database-role validation as a normal app. The source remains frozen,
+the run target remains freshly recreated, and importing `app.main` no longer
+opens a configured developer database before the runner applies its explicit
+settings.
+
 Limits:
 
 This establishes repeatable integration behavior, not a score for MiniMax M3

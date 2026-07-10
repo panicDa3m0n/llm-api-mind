@@ -465,6 +465,50 @@ Related Files:
 - `docs/development-process.md`
 - `docs/experiments.md`
 
+## ADR-0069 - Database Roles And Side-Effect-Free App Factory
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+The repository contains a legacy LFS laboratory snapshot, ignored evaluator
+copies, a frozen preliminary baseline, and a VPS-mounted SQLite database with
+real production data. The former `CODEX_TEST` boolean described a useful copy
+mechanism but not the ownership of the selected database. In addition,
+importing `app.main` eagerly assembled the default FastAPI app, which could
+open and migrate the environment-selected database during an evaluator import.
+
+Decision:
+
+Adopt explicit resolved roles: `production`, `laboratory`, `test`, and
+`preliminary`. Keep `CODEX_TEST` as an isolation mechanism rather than a role.
+Reject ambiguous environment labels and production/test mixtures at app
+assembly. Move the eager ASGI object to `app.asgi`, leaving `app.main` as a
+side-effect-free factory. Require all major procedures and VPS deployments to
+use the canonical database topology, read-only preflight, and transfer
+exclusions documented in `docs/database-topology.md`.
+
+Consequences:
+
+- Evaluator imports and unit tests do not silently initialize the configured
+  local or VPS DB.
+- The preliminary gate and dirty-memory evaluator operate only on explicit,
+  ignored run copies.
+- A future VPS deployment must explicitly set `DATABASE_ROLE=production`,
+  back up the mounted DB, and exclude `backend/data/` plus `.env` from code
+  transfer.
+- The legacy LFS lab snapshot is retained for historical baseline provenance,
+  but normal staged commits reject it unless a data release is explicitly
+  acknowledged.
+
+Related Files:
+
+- `docs/database-topology.md`
+- `backend/app/storage/database_boundary.py`
+- `backend/app/asgi.py`
+- `scripts/check_database_boundary.py`
+
 ## ADR-0002 - Initial System Shape
 
 Date: 2026-05-08  

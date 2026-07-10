@@ -105,6 +105,16 @@ asynchronous background processes triggered by events, schedules, or state chang
 which update the cognitive environment without being directly invoked in the current agent turn.
 ```
 
+### 2.5 Durable State Has Explicit Ownership
+
+Databases, snapshots, evaluator copies, and derived retrieval caches are not
+interchangeable merely because they use the same schema. Every runtime must
+declare whether its state is production, laboratory, test, or a frozen
+preliminary baseline. Tests and deployments must be unable to select a
+different ownership class by import side effect or ambiguous environment name.
+
+The current operational contract lives in `docs/database-topology.md`.
+
 ### 2.5 Documentation Is Part Of The Runtime
 
 Because the project is developed with an IDE LLM agent, documentation is not optional. It is a memory system for the engineering process.

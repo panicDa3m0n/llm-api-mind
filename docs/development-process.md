@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-10
-Current app version: V1.26.0
+Current app version: V1.27.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -122,7 +122,22 @@ This gate complements pytest and live Scarlet testing. It is a repeatable
 whole-system comparison, not a substitute for either deterministic unit
 contracts or human evaluation of model behavior.
 
-## 7. Branch Mapping
+## 7. Database Boundary
+
+Before a major procedure, evaluator run, deployment, or commit that could
+touch persistence, read `docs/database-topology.md`. The database role is part
+of the procedure's starting condition, not an implementation detail.
+
+- Test and preliminary procedures must name an ignored disposable target and
+  never use a production or mutable laboratory path as that target.
+- A new deployment must run the read-only database preflight with expected
+  role `production` before restart, after a remote backup.
+- Code transfer must exclude runtime `data/` and remote `.env` files.
+- Run `python scripts/check_database_boundary.py --staged` before a commit.
+  An intentional LFS laboratory-data release needs separate review and the
+  explicit override documented by that script.
+
+## 8. Branch Mapping
 
 The active agentic branches are documented in `docs/branches/`.
 
@@ -131,7 +146,7 @@ adapters, and UI are not themselves agentic branches. They support one or more
 branches. The branch document should explain why the infrastructure matters to
 Scarlet's actual behavior.
 
-## 8. Current Baseline
+## 9. Current Baseline
 
 V1.0.1 baseline includes:
 
@@ -149,3 +164,5 @@ V1.0.1 baseline includes:
 - Codex test database isolation through startup-level `CODEX_TEST`, used for
   evaluator experiments that must exercise real endpoints without mutating the
   production/laboratory Scarlet DB.
+- Database-role validation and a side-effect-free `app.main` factory, so tests
+  and evaluation imports do not silently initialize a configured runtime DB.

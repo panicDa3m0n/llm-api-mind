@@ -27,10 +27,12 @@ def test_health_returns_runtime_status(db_engine: Engine) -> None:
         "provider": "minimax",
         "model": "MiniMax-M2.7",
         "database": {
-            "profile": "prod",
+            "profile": "test",
+            "role": "test",
             "codex_test": False,
             "database_url": "sqlite:///./data/app.db",
             "seed_database_url": "sqlite:///./data/app.db",
+            "isolation": "direct",
         },
     }
 
@@ -60,10 +62,12 @@ def test_codex_test_database_is_seeded_and_isolated(tmp_path) -> None:
     health = client.get("/health")
     assert health.status_code == 200
     assert health.json()["database"] == {
-        "profile": "codex_test",
+        "profile": "test",
+        "role": "test",
         "codex_test": True,
         "database_url": target_url,
         "seed_database_url": source_url,
+        "isolation": "seed_copy",
     }
     assert target_path.exists()
 

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-10
-App baseline: V1.26.0
+App baseline: V1.27.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -46,6 +46,11 @@ system is a local agentic runtime for Scarlet with:
 - Codex test database isolation through startup-level `CODEX_TEST`, allowing
   evaluator experiments to run through the same backend endpoints on a seeded
   DB copy without mutating the production/laboratory Scarlet DB;
+- explicit database roles (`production`, `laboratory`, `test`, and
+  `preliminary`) with startup validation, a read-only preflight, and an ASGI
+  factory boundary so imports used by evaluators do not open a runtime DB;
+- a documented VPS deployment boundary: the persistent `/app/data` mount is
+  production data, excluded from both image construction and code transfer;
 - a frozen preliminary regression gate for major procedures, using real
   sourceable memory/fact/session references from a published laboratory DB and
   a freshly recreated disposable DB for each pre/post comparison;
@@ -170,7 +175,8 @@ Implemented:
 - FastAPI app with `/health`, chat, debug, and Mind API routers.
 - SQLite storage initialized through `init_db`, with migration support for
   existing laboratory databases.
-- Repository-versioned lab database policy for `backend/data/app.db`.
+- Legacy LFS laboratory snapshot policy for `backend/data/app.db`, now bounded
+  by explicit database roles and a no-stage guard for ordinary code commits.
 - Digital-individual organ substrate registry in `backend/app/mind/organs.py`,
   with reserved block names, visibility modes, event names, trace kinds, and
   off-by-default feature flags. V1.21.0 closes the standalone surface for the
@@ -184,7 +190,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `124 passed` on the V1.26.0 full
+- Backend test suite currently passes at `130 passed` on the V1.27.0 full
   sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.

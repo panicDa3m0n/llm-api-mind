@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,9 +29,9 @@ from app.storage.models import (
 )
 
 
-DATASET_VERSION = "codex-dirty-memory-v1"
-SOURCE_DB_URL = "sqlite:///./data/app.db"
-TEST_DB_URL = "sqlite:///./data/codex_test.db"
+DATASET_VERSION = "codex-memory-eval-v2"
+DEFAULT_SOURCE_DB = "data/preliminary-rework-v1.db"
+DEFAULT_RUN_DB = "data/codex-memory-eval-v2-run.db"
 UTC = timezone.utc
 
 
@@ -141,11 +142,15 @@ class ContextProbeProvider:
 def main() -> None:
     args = _parse_args()
     root = Path(__file__).resolve().parents[2]
-    target_db = root / "data" / "codex_test.db"
-    if args.reset and target_db.exists():
-        target_db.unlink()
+    source_db = _resolve(root, args.source_db)
+    run_db = _resolve(root, args.run_db)
+    _prepare_run_database(
+        source_db=source_db,
+        run_db=run_db,
+        reuse=args.reuse_run,
+    )
 
-    settings = _settings()
+    settings = _settings(source_db=source_db, run_db=run_db)
     database_url = prepare_runtime_database(settings)
     engine = create_db_engine(database_url)
     init_db(engine)
@@ -175,6 +180,8 @@ def main() -> None:
     report = {
         "generated_at": datetime.now(UTC).isoformat(),
         "dataset_version": DATASET_VERSION,
+        "source_db": str(source_db),
+        "run_db": str(run_db),
         "codex_test_database_url": database_url,
         "health_database": health.get("database"),
         "counts": {
@@ -196,9 +203,19 @@ def _parse_args() -> argparse.Namespace:
         description="Seed and evaluate the isolated Codex memory test database."
     )
     parser.add_argument(
-        "--reset",
+        "--source-db",
+        default=DEFAULT_SOURCE_DB,
+        help="Frozen or deliberately chosen laboratory source to copy without mutation.",
+    )
+    parser.add_argument(
+        "--run-db",
+        default=DEFAULT_RUN_DB,
+        help="Disposable evaluation copy. Its name must contain 'codex-memory-eval'.",
+    )
+    parser.add_argument(
+        "--reuse-run",
         action="store_true",
-        help="Delete the Codex test database before seeding it from app.db.",
+        help="Reuse an existing disposable evaluation DB instead of recreating it.",
     )
     parser.add_argument(
         "--target-count",
@@ -209,11 +226,14 @@ def _parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def _settings() -> Settings:
+def _settings(*, source_db: Path, run_db: Path) -> Settings:
     settings = Settings(
+        environment="evaluation",
+        database_role="test",
         codex_test=True,
-        database_url=SOURCE_DB_URL,
-        codex_test_database_url=TEST_DB_URL,
+        database_url=f"sqlite:///{source_db}",
+        codex_test_database_url=f"sqlite:///{run_db}",
+        codex_test_seed_database_url=f"sqlite:///{source_db}",
         maintenance_enabled=False,
         retrieval_shadow_enabled=True,
         retrieval_shadow_backend="openrouter",
@@ -227,6 +247,26 @@ def _settings() -> Settings:
         settings.retrieval_shadow_backend = "local"
         settings.retrieval_shadow_rerank_enabled = False
     return settings
+
+
+def _resolve(root: Path, value: str) -> Path:
+    path = Path(value)
+    return path if path.is_absolute() else root / path
+
+
+def _prepare_run_database(*, source_db: Path, run_db: Path, reuse: bool) -> None:
+    if not source_db.exists():
+        raise RuntimeError(f"Evaluation source database does not exist: {source_db}")
+    if "codex-memory-eval" not in run_db.name:
+        raise RuntimeError(
+            "Refusing to create or remove a run database without the "
+            "'codex-memory-eval' marker."
+        )
+    if run_db.exists() and not reuse:
+        run_db.unlink()
+    if not run_db.exists():
+        run_db.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_db, run_db)
 
 
 def _ensure_source_sessions(engine: Engine) -> dict[str, str]:

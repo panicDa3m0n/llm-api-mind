@@ -30,7 +30,7 @@ from app.mind.memory import MindAPIContext
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.db import create_db_engine, init_db
+from app.storage.db import create_db_engine, init_db, prepare_runtime_database
 from app.storage.models import (
     AffectState,
     ChatSession,
@@ -214,6 +214,7 @@ def main() -> int:
         environment="preliminary-regression",
         agent_system_prompt="You are Scarlet.",
         database_url=f"sqlite:///{baseline_db}",
+        database_role="preliminary",
         codex_test=True,
         codex_test_database_url=f"sqlite:///{run_db}",
         codex_test_seed_database_url=f"sqlite:///{baseline_db}",
@@ -221,7 +222,7 @@ def main() -> int:
         gpt_bridge_api_key="preliminary-regression-key",
         organ_affect_mode="model",
     )
-    engine = create_db_engine(settings.codex_test_database_url)
+    engine = create_db_engine(prepare_runtime_database(settings))
     init_db(engine)
     client = TestClient(
         create_app(

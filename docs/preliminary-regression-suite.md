@@ -44,6 +44,11 @@ The production/laboratory database and immutable source are never written by a
 test. The result report is also ignored and stored below
 `backend/app/evals/runs/`.
 
+The runner declares `DATABASE_ROLE=preliminary` internally, requires
+`CODEX_TEST=true`, and rejects an unmarked target path. Importing its
+`create_app` factory no longer initializes the developer's configured runtime
+database before those explicit settings are applied.
+
 ## Real References
 
 These references are validated before any test-created state exists. They are
@@ -119,6 +124,10 @@ The initial result was recorded on 2026-07-10 as `9/9` in
 `20260710_141950_preliminary-regression-v1`. The first V1.26.0 organization
 rework was then compared with the same source and again passed `9/9` in
 `20260710_143138_preliminary-regression-v1`.
+
+The V1.27.0 database-boundary rework passed the unchanged suite `9/9` in
+`20260710_151853_preliminary-regression-v1`, confirming that role validation
+and the ASGI factory split did not alter the assembled cognitive runtime.
 
 A post-rework change is admissible only when all of the following hold:
 

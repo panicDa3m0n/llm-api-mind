@@ -4,6 +4,59 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-10 - V1.27.0 Database Ownership Boundary
+
+Goal:
+
+Make it impossible for normal tests, evaluator imports, code commits, or a
+file-copy deployment to confuse the VPS production database with laboratory
+state or disposable evaluation copies.
+
+Area:
+
+Storage ownership / evaluation isolation / deploy safety.
+
+Changes:
+
+- Audited all local SQLite files and the VPS container in read-only mode.
+  The VPS has one writable bind mount,
+  `/opt/scarlet-mobile-test/backend/data -> /app/data`, containing the real
+  211,148,800-byte `app.db`; `CODEX_TEST=false`.
+- Added the canonical `docs/database-topology.md` inventory and made database
+  role (`production`, `laboratory`, `test`, `preliminary`) explicit in runtime
+  configuration, health/dashboard metadata, and evaluator setup.
+- Moved the eager ASGI object from `app.main` to `app.asgi`; `app.main` is now
+  an import-safe application factory, closing a path that could initialize the
+  environment-selected DB during test/evaluator import.
+- Added read-only `app.ops.database_preflight`, a staged Git guard for the
+  mutable LFS laboratory snapshot, and a VPS deployment procedure that excludes
+  runtime `data/` and `.env` from any code transfer.
+- Retained all existing DB files. The historical ignored `codex_test.db` is no
+  longer selected or reset by the dirty-memory evaluator; the updated harness
+  creates a marked disposable run DB from the frozen baseline.
+
+Verification:
+
+- Targeted database/health/chat tests passed: `25 passed`.
+- Unchanged preliminary regression gate passed: `9/9` in
+  `20260710_151853_preliminary-regression-v1`.
+- Full backend suite passed: `130 passed`; frontend production build passed.
+- The historical dirty-memory evaluator wrote all 240 controlled records to
+  `codex-memory-eval-v2-run.db` with `role=test`; it did not touch either
+  source DB. Its context score was `0/5` because the harness still reads a
+  retired metadata shape (`BUG-0063`), not because the database boundary
+  failed.
+- The local preflight reported `laboratory`, direct isolation, SQLite integrity
+  `ok`, and the expected sourceable state counts without mutation.
+- ASGI smoke under an explicit temporary test DB passed.
+
+Next Suggested Step:
+
+Run the preliminary whole-system regression and full backend suite, then use
+the V1.27.0 boundary as the prerequisite for the next repository
+organization slice. Do not deploy this version until the VPS `.env` contains
+`DATABASE_ROLE=production` and the preflight procedure is followed.
+
 ## 2026-07-10 - V1.26.0 Preliminary Regression Gate And Rework Checkpoint
 
 Goal:

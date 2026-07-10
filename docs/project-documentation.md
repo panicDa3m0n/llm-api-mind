@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-10
-App baseline: V1.26.0
+App baseline: V1.27.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -51,6 +51,8 @@ discussed before a new fix is attempted.
   routing.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
+- `docs/database-topology.md`: canonical ownership map and deployment/test
+  boundary for production, laboratory, test, and preliminary databases.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: project-visible change history.
 
