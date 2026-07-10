@@ -1,7 +1,7 @@
 # Branch: Operativita Su Mondo Esterno
 
-Last updated: 2026-05-25  
-System version assessed: V1.0.1  
+Last updated: 2026-07-09
+System version assessed: V1.25.4
 Status: planned branch
 
 ## Filosofia del ramo
@@ -19,6 +19,11 @@ permessi, tracciabilita, rollback e conferme dove necessario.
   metacognizione.
 - Il progetto ha discusso la CLI ma l'ha rimandata per non complicare la
   superficie.
+- V1.25.4 stabilizza `mind_shell` come unica superficie model-facing mentre
+  gli endpoint restano interni/debug/manutenzione.
+- V1.26.0 planning separa l'operativita futura in context pack gated: agire su
+  mondo esterno o corpo robotico richiedera perception, safety, conferme,
+  attuatori e ricevute nello stesso pacchetto operativo.
 - Non esiste ancora una suite di tool esterni concessi a Scarlet runtime.
 
 ## Stato attuale
@@ -29,13 +34,17 @@ Il ramo e quasi interamente futuro. L'infrastruttura di eventi, trace, UI e
 schema potra supportarlo, ma oggi Scarlet non ha operativita esterna ampia
 integrata nella propria API Mind.
 
-Sistema valutato: V1.0.1.
+Sistema valutato: V1.25.4.
 
 ## Sviluppi precedenti
 
 - Discussione API vs CLI per API Mind.
-- Decisione temporanea: mantenere API come superficie primaria.
+- Decisione attuale: `mind_shell` e la superficie model-facing; endpoint
+  classici restano supporto interno/debug/manutenzione.
 - Runtime events come possibile base per azioni osservabili.
+- V1.26.0 planning: `docs/runtime-context-packs.md` definisce che azioni
+  embodied/attuative future devono essere context pack gated, non semplice
+  contesto aggiunto al prompt.
 
 ## Evolutive
 
@@ -44,3 +53,6 @@ Sistema valutato: V1.0.1.
 - Ambiente file/codice controllato.
 - Browser/web task con ricevute.
 - Integrazioni calendario/email solo dopo privacy e conferme chiare.
+- Per body robotico futuro: nessuna attuazione fisica senza pack dedicato che
+  includa percezione corrente, vincoli safety, piano, conferma o politica di
+  autorizzazione, ed esito tracciato.

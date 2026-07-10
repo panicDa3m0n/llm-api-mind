@@ -1,7 +1,7 @@
 # Cognitive API Roadmap
 
-Status: active experiment  
-Last updated: 2026-05-23
+Status: active experiment
+Last updated: 2026-07-09
 
 This document tracks the non-memory cognitive API work: schema discipline and
 Scarlet's internal metacognition.
@@ -12,20 +12,23 @@ For the integrated cross-project status and priority ordering, see
 The current architectural decision is intentionally narrow:
 
 ```txt
-one model-facing tool -> mind_api
-one metacognition route -> POST /mind/metacognition/step
+one model-facing tool -> mind_shell(command, intent)
+one metacognition command -> metacognition step
+one underlying route -> POST /mind/metacognition/step
 ```
 
 Do not add separate cognitive endpoints for claim validation, blackboard,
 reflection, planning, or critique unless a future experiment proves the single
-route is the wrong abstraction. Those functions belong inside the single
-metacognition step result for now.
+route/command is the wrong abstraction. Those functions belong inside the
+single metacognition step result for now.
 
 ## 1. Principles
 
 - Keep the model-facing API small.
-- Keep route availability in `GET /mind/schema`, and return exact route usage
-  as endpoint-local `usage_guide` when a recoverable call error occurs.
+- Keep model-facing command availability in shell help/registry, while keeping
+  route availability in `GET /mind/schema` for internal/debug compatibility.
+- Return exact usage through shell help or endpoint-local `usage_guide` when a
+  recoverable call error occurs.
 - Use one LLM-backed metacognition route as the experimental path.
 - Make every metacognitive step traceable as `mind.metacognition.step`.
 - Return structured outputs, not raw hidden reasoning.
@@ -42,8 +45,9 @@ Implemented:
   - schema policy.
 - Recoverable implemented-route errors return `usage_guide` with local body
   schema, parameter descriptions, aliases, examples, and retry guidance.
-- Chat runtime context includes a compact `mind_schema` reference.
-- Invalid top-level `mind_api` calls return the expected tool schema.
+- Chat runtime context includes compact `mind_shell` capability state derived
+  from the command registry.
+- Invalid top-level `mind_shell` commands return structured shell guidance.
 - Unknown routes return schema metadata and implemented route summaries.
 
 Current schema version:
@@ -111,8 +115,9 @@ backend/app/evals/scenarios/cognitive_api_metacognition_probe.json
 
 It should verify:
 
-- Scarlet inspects `GET /mind/schema` for current API shape;
-- Scarlet calls `POST /mind/metacognition/step`;
+- Scarlet inspects `help metacognition` or equivalent shell guidance for the
+  current command shape when needed;
+- Scarlet calls `metacognition step` through `mind_shell`;
 - a `mind.metacognition.step` trace is persisted;
 - Scarlet does not call removed parallel cognitive routes.
 

@@ -1,7 +1,7 @@
 # Memory Robustness Roadmap
 
 Status: active planning  
-Last updated: 2026-06-18
+Last updated: 2026-07-09
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -18,17 +18,16 @@ creating hidden state.
 
 Implemented today:
 
-- `POST /mind/memory/write` through the single `mind_api` tool.
-- `POST /mind/memory/search` through the single `mind_api` tool.
-- `GET /mind/memory/{memory_id}` through the single `mind_api` tool.
-- `GET /mind/memory/conflicts` through the single `mind_api` tool.
-- `POST /mind/memory/deprecate` through the single `mind_api` tool.
-- `POST /mind/memory/supersede` through the single `mind_api` tool.
-- `GET /mind/memory/facts` through the single `mind_api` tool.
-- `POST /mind/memory/facts/backfill` through the single `mind_api` tool.
-- `GET /mind/sessions` through the single `mind_api` tool.
-- `GET /mind/sessions/{session_id}` through the single `mind_api` tool.
-- `POST /mind/sessions/{session_id}/summarize` through the single `mind_api` tool.
+- Scarlet's model-facing memory/session operations are exposed through
+  `mind_shell(command, intent)` commands such as `memory write`,
+  `memory search`, `memory open`, `memory facts`, `memory conflicts`,
+  `memory deprecate`, `memory supersede`, `session list`, `session open`, and
+  `session summarize`.
+- Legacy `/mind/*` endpoint routes remain implemented under the shell for
+  backend/debug compatibility, tests, and deterministic maintenance.
+- `POST /mind/memory/facts/backfill` is internal maintenance, not a normal
+  Scarlet command: it rebuilds canonical facts and retrieval artifacts for
+  existing memories after extractor/schema/lifecycle changes.
 - `memories` table with source session, turn, message provenance.
 - `memory_facts` table with entity, predicate, value, temporal fields,
   source provenance, lifecycle status, and fact-level supersession links.
@@ -160,10 +159,11 @@ What we should not copy directly:
 Why:
 
 LLM API Mind is intentionally API/CLI-first. Our project is testing whether a
-small cognitive API can become the model's external cognitive environment. The
-memory system should therefore expose these ideas through `mind_api`, backend
-tables, CLI commands, traces, and debug views, not as an Obsidian vault that the
-model edits directly.
+small cognitive command interface can become the model's external cognitive
+environment. The memory system should therefore expose model cognition through
+`mind_shell`, while backend tables, internal endpoints, CLI commands, traces,
+and debug views remain support surfaces, not an Obsidian vault that the model
+edits directly.
 
 ## 3. Design Principles For Robust Memory
 
@@ -172,11 +172,11 @@ model edits directly.
 The model should still see one main tool:
 
 ```txt
-mind_api(method, path, body, intent)
+mind_shell(command, intent)
 ```
 
-Memory internals may become richer, but the model-facing protocol should remain
-small and stable.
+Memory internals and maintenance endpoints may become richer, but the
+model-facing protocol should remain small and stable.
 
 ### 3.2 Trace First
 
@@ -498,8 +498,9 @@ Acceptance:
   `predicate=response_format`.
 - Done: `GET /mind/memory/facts` accepts multilingual aliases such as
   `Zero Light protocol` and predicate aliases such as `formato-risposta`.
-- Done: `POST /mind/memory/facts/backfill` extracts facts for existing
-  memories and records `mind.memory.facts.backfill`.
+- Done: internal `POST /mind/memory/facts/backfill` extracts facts for existing
+  memories and records `mind.memory.facts.backfill`; it remains outside
+  Scarlet's normal model-facing shell command set.
 - Done: Memory reads/searches/context payloads include facts when available.
 - Done: Conflict detection first uses active atomic facts and falls back to
   tag/token overlap only when fact conflicts are absent.

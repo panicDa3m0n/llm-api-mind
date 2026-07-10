@@ -33,10 +33,12 @@ from app.mind.dispatcher import (
     MindAPIRequest,
     MindAPIResponse,
 )
-from app.mind.dispatcher import dispatch_mind_api
 from app.mind.context import build_memory_context
-from app.mind.schema import MIND_API_TOOL_SCHEMA
-from app.mind.schema import schema_metadata
+from app.mind.shell import (
+    MIND_SHELL_TOOL_SCHEMA,
+    MindShellRequest,
+    dispatch_mind_shell,
+)
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.runtime.events import (
     event_payload,
@@ -350,7 +352,7 @@ def build_chat_router(
                         for message in history
                         if message.role in {"user", "assistant"}
                     ],
-                    "tools": [MIND_API_TOOL_SCHEMA],
+                    "tools": [MIND_SHELL_TOOL_SCHEMA],
                 },
             )
             trace_ids.append(request_trace.id)
@@ -378,7 +380,7 @@ def build_chat_router(
                 messages=llm_messages,
                 system=effective_system,
                 max_tokens=max_tokens,
-                tools=[MIND_API_TOOL_SCHEMA],
+                tools=[MIND_SHELL_TOOL_SCHEMA],
                 tool_runner=_build_mind_tool_runner(
                     engine,
                     settings=settings,
@@ -735,7 +737,7 @@ def build_chat_router(
                         for message in history
                         if message.role in {"user", "assistant"}
                     ],
-                    "tools": [MIND_API_TOOL_SCHEMA],
+                    "tools": [MIND_SHELL_TOOL_SCHEMA],
                     "stream": True,
                 },
             )
@@ -967,7 +969,7 @@ def _stream_turn_events(
             messages=llm_messages,
             system=system,
             max_tokens=max_tokens,
-            tools=[MIND_API_TOOL_SCHEMA],
+            tools=[MIND_SHELL_TOOL_SCHEMA],
             tool_runner=_build_mind_tool_runner(
                 engine,
                 settings=settings,
@@ -1205,8 +1207,8 @@ def _dispatch_tool_use(
     tool_use: LLMToolUse,
     *,
     context: MindAPIContext,
-) -> tuple[MindAPIRequest | None, MindAPIResponse]:
-    if tool_use.name != "mind_api":
+) -> tuple[MindAPIRequest | MindShellRequest | None, MindAPIResponse]:
+    if tool_use.name != "mind_shell":
         return None, MindAPIResponse(
             ok=False,
             error=MindAPIError(
@@ -1214,29 +1216,33 @@ def _dispatch_tool_use(
                 message=f"Unknown tool: {tool_use.name}",
                 recoverable=True,
             ),
-            suggested_next_actions=["Use the mind_api tool only"],
+            result={
+                "expected_tool": "mind_shell",
+                "expected_tool_schema": MIND_SHELL_TOOL_SCHEMA["input_schema"],
+            },
+            suggested_next_actions=["Use the mind_shell tool with a command string"],
             confidence=1.0,
         )
 
     try:
-        mind_request = MindAPIRequest.model_validate(tool_use.input)
+        mind_request = MindShellRequest.model_validate(tool_use.input)
     except ValidationError as exc:
         return None, MindAPIResponse(
             ok=False,
             result={
-                "schema": schema_metadata(),
-                "expected_tool_schema": MIND_API_TOOL_SCHEMA["input_schema"],
+                "expected_tool": "mind_shell",
+                "expected_tool_schema": MIND_SHELL_TOOL_SCHEMA["input_schema"],
             },
             error=MindAPIError(
-                code="mind.invalid_request",
+                code="mind_shell.invalid_request",
                 message=str(exc),
                 recoverable=True,
             ),
-            suggested_next_actions=["Call GET /mind/schema", "Retry with valid input"],
+            suggested_next_actions=["Call help", "Retry with a valid command string"],
             confidence=1.0,
         )
 
-    return mind_request, dispatch_mind_api(mind_request, context=context)
+    return mind_request, dispatch_mind_shell(mind_request, context=context)
 
 
 def _result_trace_ids(result_payload: dict[str, Any]) -> list[str]:
@@ -1244,6 +1250,9 @@ def _result_trace_ids(result_payload: dict[str, Any]) -> list[str]:
     if not isinstance(result, dict):
         return []
     trace_ids = result.get("trace_ids")
+    if not isinstance(trace_ids, list):
+        data = result.get("data")
+        trace_ids = data.get("trace_ids") if isinstance(data, dict) else None
     if not isinstance(trace_ids, list):
         return []
     return [trace_id for trace_id in trace_ids if isinstance(trace_id, str)]

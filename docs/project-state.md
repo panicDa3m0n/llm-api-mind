@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-06-26
-App baseline: V1.21.0
+Last updated: 2026-07-09
+App baseline: V1.25.4
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -33,9 +33,9 @@ system is a local agentic runtime for Scarlet with:
   tool calls, runtime events, maintenance jobs, semantic memories, atomic
   facts, episodic session summaries, derived memory surfaces, cached embedding
   vectors, and graph-ready memory nodes/edges;
-- a single model-facing cognitive tool, `mind_api`;
-- schema-discoverable API Mind routes for memory, session recall, and one
-  internal metacognition step;
+- a single model-facing cognitive command tool, `mind_shell`;
+- legacy/debug API Mind routes for memory, session recall, and one internal
+  metacognition step, now wrapped by the model-facing command runtime;
 - automatic per-turn memory retrieval and runtime context injection;
 - optional OpenRouter cloud embedding/rerank retrieval over `memory_surfaces`,
   with raw shadow traces, memory-level grouping, and explicit hybrid promotion
@@ -52,6 +52,34 @@ system is a local agentic runtime for Scarlet with:
 - compact model-facing memory packets (`memory-packet-v1`) in runtime context,
   while full retrieval diagnostics remain in `memory.context` traces for UI,
   debugging, and evaluator analysis;
+- compact model-facing `mind_shell` result profiles for memory search and
+  conflict inspection, with full retrieval/conflict diagnostics kept in traces;
+- a central `mind_shell` command registry that validates command families,
+  aliases, unavailable-by-design actions, planned actions, required fields, and
+  missing arguments for shell execution and metacognition recommendations;
+- a model-facing runtime capability map derived from the shell registry rather
+  than from legacy endpoint routes; legacy `/mind/*` endpoints remain
+  internal/debug/maintenance surfaces unless wrapped by explicit shell
+  commands;
+- a V1.26.0 planning baseline for runtime context packs: a compact always-on
+  spine plus mode-specific packs for source-sensitive work, temporal recall,
+  project engineering, emotional continuity, and future embodied perception or
+  actuation;
+- a plugin-level external GPT bridge under `/gpt/*`, allowing a custom
+  ChatGPT GPT to bootstrap the same Scarlet context, execute `mind_shell`
+  actions, and finalize answers back into Scarlet history without changing the
+  local MiniMax runtime;
+- GPT Builder packaging for that bridge: compact under-limit system prompt,
+  attachable knowledge files, and a minimal OpenAPI Actions schema for the
+  three `/gpt/*` operations. The active GPT Builder operation ids are
+  `bootstrapScarletBeforeEveryAnswer`, `runScarletMindAction`, and
+  `finalizeScarletBeforeAnswer`;
+- a deprecated experimental `/mcp` ChatGPT App/Connector surface retained
+  temporarily for traceability after platform testing showed it does not fit
+  the target Custom GPT flow;
+- memory conflict semantics narrowed to active atomic fact divergence, while
+  tag/token/exact-content overlap is treated as maintenance `related_overlap`
+  rather than contradiction;
 - metacognitive-context shadow generation for evaluator-visible candidate
   lessons, with controlled injection available only for A/B tests;
 - live streaming of model/provider/runtime events into the frontend cockpit;
@@ -65,8 +93,8 @@ V1.5.0 orientation:
 
 - keep MiniMax M3 as the active baseline so the owner can run broader human
   tests, with immediate rollback available through `MINIMAX_MODEL=MiniMax-M2.7`;
-- expose backend-owned maintenance state through evaluator APIs without adding
-  new model-facing `mind_api` routes;
+- expose backend-owned maintenance state through evaluator APIs without
+  broadening the model-facing `mind_shell` command surface;
 - keep memory lifecycle automation conservative until embedding/KG evidence
   improves similarity, stale-memory, and conflict detection;
 - treat goal/focus/task and metacognition as theory-first branches before
@@ -80,6 +108,7 @@ Core code evidence:
 - MiniMax/Qwen provider implementation: `backend/app/llm/minimax_client.py`,
   `backend/app/llm/qwen_client.py`
 - Chat/session/runtime flow: `backend/app/api/chat.py`
+- External GPT bridge plugin: `backend/app/plugins/gpt_bridge/`
 - Mind API facade and dispatcher: `backend/app/api/mind.py`,
   `backend/app/mind/dispatcher.py`
 - Maintenance API: `backend/app/api/maintenance.py`
@@ -149,8 +178,8 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `81 passed` on the last full sweep;
-  V1.5.0 added targeted maintenance API coverage.
+- Backend test suite currently passes at `120 passed` on the V1.25.4 full
+  sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
 
@@ -230,14 +259,24 @@ Primary docs:
 
 Implemented:
 
-The model-facing tool surface is still one tool:
+The model-facing tool surface is one controlled cognitive command shell:
 
 ```txt
-mind_api(method, path, body, intent)
+mind_shell(command, intent)
 ```
 
-Implemented routes in current schema version
-`2026-06-26.digital-organs-standalone-v1`:
+Implemented command families:
+
+- `help`
+- `memory`
+- `session`
+- `focus`
+- `volition`
+- `affect`
+- `metacognition`
+
+Legacy/debug/internal routes remain implemented in current endpoint schema
+version `2026-07-08.memory-conflict-taxonomy-v1`:
 
 - `GET /mind/schema`
 - `POST /mind/memory/write`
@@ -259,8 +298,11 @@ Implemented routes in current schema version
 
 Confirmed:
 
-- Schema is now a compact route/capability catalog: route status, purpose,
-  schema digest, and schema policy.
+- `help` is now Scarlet's model-facing command catalog: command families,
+  examples, digest, and usage policy.
+- Legacy `/mind/schema` remains a compact route/capability catalog for
+  backend/debug compatibility: route status, purpose, schema digest, and
+  schema policy.
 - Detailed body schemas, parameter descriptions, accepted aliases, examples,
   and retry guidance are returned as endpoint-local `usage_guide` on
   recoverable implemented-route errors.
@@ -276,6 +318,9 @@ Confirmed:
 - V1.21.0 adds `/mind/focus action=timeline`,
   `/mind/volition action=list_due`, and read-only `/mind/affect`, closing the
   standalone surfaces for the first three digital-individual organs.
+- V1.25.4 aligns runtime capability state with the shell registry. Endpoint-only
+  maintenance operations such as `POST /mind/memory/facts/backfill` are marked
+  `internal_maintenance_only` rather than presented as Scarlet commands.
 
 Primary docs:
 
@@ -761,7 +806,7 @@ Confirmed:
   first, then resolves only safe cases. Created maintenance memories carry
   `created_by=maintenance` and proposal provenance.
 - Pending memory proposals and maintenance jobs are not Scarlet-facing
-  `mind_api` capabilities. They are consumed through maintenance/evaluator
+  `mind_shell` capabilities. They are consumed through maintenance/evaluator
   APIs:
   `GET /api/maintenance/overview`,
   `GET /api/maintenance/jobs`,
@@ -1029,6 +1074,33 @@ Need:
 - runtime-event UI probes;
 - future background-maintenance acceptance tests.
 
+### 3.12 Runtime Context Pack Router
+
+Need:
+
+- classify organs, sources, and capabilities by always-on, conditional,
+  on-demand, background-only, and future/embodied status;
+- define coupling rules so linked surfaces such as memory/facts,
+  perception/actuation, or focus/volition are not split accidentally;
+- keep the always-on spine compact while routing source-sensitive, temporal,
+  project, emotional, and future embodied modes to different context packs;
+- add a shadow router that traces which pack would have been selected before
+  changing model-facing prompt composition;
+- add budget/degradation metadata so raw diagnostics, archival source text, and
+  high-frequency sensory state do not crowd out the current turn.
+
+Current state:
+
+Documented as the V1.26.0 planning baseline in
+`docs/runtime-context-packs.md`. No runtime router has been implemented yet.
+
+Why next:
+
+Live Scarlet already has several organs and evidence sources. Future robotic
+embodiment will add high-frequency eyes/audio/voice/movement context. The
+project needs routing architecture before adding those streams, not after the
+prompt becomes an unbounded context dump.
+
 ## 4. Priority Reorganization
 
 ### P0 - Keep The Microscope Trustworthy
@@ -1191,22 +1263,26 @@ After any major feature slice, update:
 
 ## 6. Current Best Next Step
 
-The next work cycle should focus on P1 evaluation, not new automation:
+The next work cycle should focus on context-pack shadow planning before new
+automation:
 
 ```txt
-M3 human testing + maintenance overview/proposal inspection
+runtime context-pack shadow router + continued M3 human testing
 ```
 
 Reason:
 
 The backend already emits events, schedules idle maintenance, summarizes
 sessions, reviews missed memories, creates/handles proposals, and preserves a
-daily ledger. The highest-value next move is to observe real behavior after
-human M3 sessions, inspect maintenance output through the V1.5.0 lab APIs, and
-only then tune thresholds or plan new maintenance work.
+daily ledger. Scarlet also now has enough organs that context routing itself is
+becoming an architectural risk. The highest-value next move is to trace which
+context pack each real turn would have selected while continuing human M3
+sessions, then use that evidence before changing live model input.
 
 Parallel non-coding review:
 
 - evaluate `docs/theory-goal-focus-task.md`;
 - evaluate `docs/theory-metacognition.md`;
+- use `docs/runtime-context-packs.md` as the baseline for future organ/context
+  discussions;
 - keep embedding/KG work parked until the Windows GPU environment is available.

@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-06-26
-System version assessed: V1.21.0
+Last updated: 2026-07-09
+System version assessed: V1.25.4
 Status: active diagnostic map
 
 This document maps the blocks used by Scarlet's runtime, model request, stream,
@@ -40,13 +40,13 @@ UI: sidebar tab `Modello`, section `Schema tool disponibili`.
 Scarlet receives one tool:
 
 ```txt
-mind_api(method, path, body, intent)
+mind_shell(command, intent)
 ```
 
 Purpose:
 
 - keep Scarlet's external cognitive surface small;
-- let the backend own route complexity;
+- let the backend own route and handler complexity;
 - allow schema changes without exposing many direct model tools.
 
 Assessment:
@@ -58,9 +58,9 @@ Example:
 
 ```json
 {
-  "name": "mind_api",
+  "name": "mind_shell",
   "input_schema": {
-    "required": ["method", "path", "intent"]
+    "required": ["command"]
   }
 }
 ```
@@ -135,7 +135,7 @@ Current compatibility mirrors:
 
 ```txt
 memory_context
-mind_schema
+mind_shell
 temporal_context
 recent_runtime_events
 capabilities
@@ -146,11 +146,48 @@ Assessment:
 - `runtime_context.blocks` is correct and should remain canonical.
 - V1.11.2 adds `rendering_profile=compact-model-facing-v1` so traces can
   distinguish compact model-facing memory packets from full debug traces.
+- V1.26.0 planning adds context packs as a future routing layer above the
+  existing blocks. Packs are not implemented blocks yet; they will classify
+  which block bundle should be present for a turn.
 - Top-level compatibility mirrors are useful for the current prompt and tests,
   but are redundant with block content. They are the primary future payload
   optimization candidate.
 - Do not remove them until prompt behavior and tests prove Scarlet reads only
   canonical blocks reliably.
+
+### 1.3.1 Planned Context Pack Metadata
+
+Model-facing: not implemented yet.
+Source: planned router, see `docs/runtime-context-packs.md`.
+Trace target: future `runtime.context` metadata.
+
+Purpose:
+
+- record which context pack the backend selected or would have selected;
+- keep an always-on spine separate from mode-specific context;
+- make context budget/degradation visible before changing live model input;
+- prepare future embodied modes without injecting raw sensory streams.
+
+Initial planned shape:
+
+```json
+{
+  "context_pack": {
+    "pack_id": "source_sensitive",
+    "spine_version": "runtime-spine-v1",
+    "included_blocks": ["message_context", "memory_context"],
+    "omitted_blocks": ["raw_retrieval_shadow"],
+    "mode_reason": "User asked about prior evidence reliability.",
+    "shadow": true
+  }
+}
+```
+
+Assessment:
+
+- Planned only.
+- First slice should be trace-only shadow metadata.
+- It must not replace canonical `runtime_context.blocks`.
 
 ### 1.4 Provider-Native Messages
 
@@ -177,7 +214,7 @@ Example:
 [
   {"role": "user", "content": [{"type": "text", "text": "Cosa stavamo facendo?"}]},
   {"role": "assistant", "content": [{"type": "thinking", "thinking": "..."}]},
-  {"role": "assistant", "content": [{"type": "tool_use", "name": "mind_api"}]},
+  {"role": "assistant", "content": [{"type": "tool_use", "name": "mind_shell"}]},
   {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "..."}]}
 ]
 ```
@@ -446,10 +483,10 @@ duplicates or condensed mirrors of canonical data:
 | Field | Why it exists | Current assessment |
 |---|---|---|
 | `memory_context` | Backward-compatible direct memory surface | Useful but redundant with `message_context.memory_retrieval` |
-| `mind_schema` | Fast schema digest/capability signal | Useful, but can move into canonical API Mind block later |
+| `mind_shell` | Fast shell digest/capability signal | Useful, but can move into canonical API Mind block later |
 | `temporal_context` | Direct real-time source | Useful, but duplicated by `message_context.world` |
 | `recent_runtime_events` | Compact operational hint surface | Useful, but also present under message context |
-| `capabilities` | Route availability summary | Useful, but overlaps API Mind context |
+| `capabilities` | Shell command availability summary | Useful, but overlaps API Mind context; endpoint-only maintenance routes must be marked internal rather than model-facing |
 
 Policy:
 

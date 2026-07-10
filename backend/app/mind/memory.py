@@ -712,7 +712,11 @@ def handle_memory_search(
         )
         hybrid_plan = rank_hybrid_memories(
             candidates,
-            base_scores=_hybrid_base_scores_from_memory_search(scored, sparse_matches),
+            base_scores=_hybrid_base_scores_from_memory_search(
+                scored,
+                sparse_matches,
+                graph_signals=graph_signals,
+            ),
             retrieval_shadow=retrieval_shadow,
             settings=context.settings,
             limit=max(request.top_k, 20),
@@ -1466,10 +1470,12 @@ def handle_memory_conflicts(
     with Session(context.engine) as db:
         memories = repositories.list_memories(db, scope=None, include_low_confidence=False)
         facts_by_memory = _facts_by_memory(db, memories)
-        conflicts = _detect_active_conflicts(
+        relations = _detect_active_memory_relations(
             memories,
             facts_by_memory=facts_by_memory,
         )
+        conflicts = relations["conflicts"]
+        related_overlaps = relations["related_overlaps"]
         trace = repositories.add_trace(
             db,
             session_id=context.session_id,
@@ -1478,11 +1484,14 @@ def handle_memory_conflicts(
             payload={
                 "operation": "memory.conflicts",
                 "count": len(conflicts),
+                "conflict_counts": _conflict_counts(conflicts),
+                "related_overlap_count": len(related_overlaps),
                 "active_memory_count": len(memories),
                 "active_fact_count": sum(
                     len(facts) for facts in facts_by_memory.values()
                 ),
                 "conflicts": conflicts,
+                "related_overlaps": related_overlaps,
             },
         )
         trace_id = trace.id
@@ -1492,15 +1501,19 @@ def handle_memory_conflicts(
         result={
             "operation": "memory.conflicts",
             "count": len(conflicts),
+            "conflict_counts": _conflict_counts(conflicts),
             "conflicts": conflicts,
+            "related_overlap_count": len(related_overlaps),
+            "related_overlaps": related_overlaps[:20],
             "trace_ids": [trace_id],
         },
         cognitive_hint=(
-            "Unresolved conflicts should be named before using any conflicting "
-            "memory as active evidence."
+            "Unresolved atomic memory conflicts should be named before using "
+            "any conflicting memory as active evidence. Related overlaps are "
+            "maintenance signals, not contradictions."
         )
         if conflicts
-        else "No active memory conflicts were detected by the v0 lifecycle view.",
+        else "No active atomic memory conflicts were detected.",
         suggested_next_actions=[
             "Supersede or deprecate obsolete memories",
             "Continue with active memory context",
@@ -2075,6 +2088,8 @@ def _score_memories(
 def _hybrid_base_scores_from_memory_search(
     scored: list[tuple[MemoryRecord, float, str]],
     sparse_matches: dict[str, Any],
+    *,
+    graph_signals: dict[str, Any],
 ) -> dict[str, HybridBaseScore]:
     return {
         memory.id: HybridBaseScore(
@@ -2085,10 +2100,40 @@ def _hybrid_base_scores_from_memory_search(
                 if memory.id in sparse_matches
                 else 0.0
             ),
-            strong_signal=True,
+            strong_signal=_memory_search_strong_signal(
+                memory=memory,
+                reason=reason,
+                sparse_match=sparse_matches.get(memory.id),
+                graph_signal=graph_signals.get(memory.id),
+            ),
         )
         for memory, score, reason in scored
     }
+
+
+def _memory_search_strong_signal(
+    *,
+    memory: MemoryRecord,
+    reason: str,
+    sparse_match: Any | None,
+    graph_signal: Any | None,
+) -> bool:
+    _ = memory
+    graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
+    if sparse_match is not None:
+        return True
+    if graph_score >= 2.0:
+        return True
+    if "query entity support" in reason or "query substring match" in reason:
+        return True
+    if "tag overlap:" in reason:
+        return True
+    token_marker = "token overlap:"
+    if token_marker in reason:
+        token_part = reason.split(token_marker, 1)[1].split(";", 1)[0]
+        tokens = [token.strip() for token in token_part.split(",") if token.strip()]
+        return len(tokens) >= 2
+    return False
 
 
 def _memory_scores_from_hybrid(
@@ -2569,49 +2614,77 @@ def _append_supersedes(
     return updated
 
 
-def _detect_active_conflicts(
+def _detect_active_memory_relations(
     memories: list[MemoryRecord],
     *,
     facts_by_memory: dict[str, list[MemoryFact]] | None = None,
-) -> list[dict[str, Any]]:
-    conflicts: list[dict[str, Any]] = []
+) -> dict[str, list[dict[str, Any]]]:
     facts_by_memory = facts_by_memory or {}
-    fact_conflicts = _detect_fact_conflicts(memories, facts_by_memory)
-    conflicts.extend(fact_conflicts)
+    conflicts = _detect_fact_conflicts(memories, facts_by_memory)
 
     conflict_memory_sets = {
         frozenset(conflict["memory_ids"])
-        for conflict in fact_conflicts
+        for conflict in conflicts
     }
     payloads = [
         _memory_payload(memory, facts=facts_by_memory.get(memory.id, []))
         for memory in memories
     ]
+    related_overlaps: list[dict[str, Any]] = []
+    corpus_token_sets = {
+        payload["id"]: _subject_tokens(payload["content"])
+        for payload in payloads
+    }
+    document_frequency = _token_document_frequency(corpus_token_sets.values())
     for left, right in combinations(payloads, 2):
         if frozenset([left["id"], right["id"]]) in conflict_memory_sets:
             continue
-        if _normalize_memory_text(left["content"]) == _normalize_memory_text(
+        duplicate_candidate = _normalize_memory_text(left["content"]) == _normalize_memory_text(
             right["content"]
-        ):
-            continue
+        )
         shared_tags = sorted(set(left["tags"]) & set(right["tags"]))
         shared_tokens = sorted(
-            (_subject_tokens(left["content"]) & _subject_tokens(right["content"]))
-            - _generic_conflict_tokens()
+            corpus_token_sets[left["id"]] & corpus_token_sets[right["id"]]
         )
-        if not shared_tags and len(shared_tokens) < 2:
+        overlap_score = _weighted_overlap_score(
+            shared_tokens,
+            document_frequency=document_frequency,
+        )
+        if not duplicate_candidate and not shared_tags and overlap_score < 1.5:
             continue
-        conflicts.append(
+        related_overlaps.append(
             {
-                "basis": "tag_token",
+                "classification": "duplicate_candidate"
+                if duplicate_candidate
+                else "related_overlap",
+                "basis": "exact_content"
+                if duplicate_candidate
+                else "tag_token_similarity",
+                "confidence": 0.9 if duplicate_candidate else min(0.75, overlap_score / 4),
                 "memory_ids": [left["id"], right["id"]],
-                "memories": [left, right],
+                "memory_claims": _memory_claims(left, right),
                 "shared_tags": shared_tags,
                 "shared_tokens": shared_tokens[:12],
-                "reason": "active memories appear to describe the same subject",
+                "overlap_score": round(overlap_score, 4),
+                "reason": (
+                    "active memories may describe the same stored subject"
+                    if duplicate_candidate
+                    else "active memories share maintenance-level semantic overlap"
+                ),
             }
         )
-    return conflicts
+    return {
+        "conflicts": conflicts,
+        "related_overlaps": related_overlaps,
+    }
+
+
+def _conflict_counts(conflicts: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for conflict in conflicts:
+        key = str(conflict.get("classification") or conflict.get("basis") or "unknown")
+        counts[key] = counts.get(key, 0) + 1
+    return counts
 
 
 def _detect_fact_conflicts(
@@ -2645,12 +2718,22 @@ def _detect_fact_conflicts(
         ]
         conflicts.append(
             {
+                "classification": "atomic_fact_conflict",
                 "basis": "atomic_fact",
+                "confidence": 0.95,
                 "entity": entity,
                 "predicate": predicate,
                 "fact_ids": [fact.id for fact in facts],
                 "memory_ids": memory_ids,
-                "memories": memory_payloads,
+                "memory_claims": [
+                    {
+                        "id": memory.get("id"),
+                        "content": memory.get("content"),
+                        "source_session_id": memory.get("source_session_id"),
+                        "source_turn_id": memory.get("source_turn_id"),
+                    }
+                    for memory in memory_payloads
+                ],
                 "values": [fact.value_json for fact in facts],
                 "reason": (
                     "active facts share entity and predicate but have "
@@ -2659,6 +2742,38 @@ def _detect_fact_conflicts(
             }
         )
     return conflicts
+
+
+def _memory_claims(*payloads: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": payload.get("id"),
+            "content": payload.get("content"),
+            "source_session_id": payload.get("source_session_id"),
+            "source_turn_id": payload.get("source_turn_id"),
+        }
+        for payload in payloads
+    ]
+
+
+def _token_document_frequency(token_sets: Any) -> dict[str, int]:
+    frequency: dict[str, int] = {}
+    for tokens in token_sets:
+        for token in tokens:
+            frequency[token] = frequency.get(token, 0) + 1
+    return frequency
+
+
+def _weighted_overlap_score(
+    shared_tokens: list[str],
+    *,
+    document_frequency: dict[str, int],
+) -> float:
+    score = 0.0
+    for token in shared_tokens:
+        frequency = max(document_frequency.get(token, 1), 1)
+        score += 1 / frequency
+    return score
 
 
 def _normalize_fact_value(value: dict[str, Any]) -> str:

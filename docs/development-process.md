@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-06-26
-Current app version: V1.21.0
+Last updated: 2026-07-09
+Current app version: V1.25.4
 Process baseline: V1.0.1
 Status: accepted
 
@@ -110,7 +110,8 @@ V1.0.1 baseline includes:
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
   episodic summaries;
-- `mind_api` as the single model-facing API Mind tool;
+- `mind_shell` as the single model-facing API Mind command tool, with legacy
+  endpoint dispatch retained for backend/debug compatibility;
 - runtime context blocks for session continuity, message perception, and
   Scarlet state;
 - dashboard settings for active profile, privacy scope, locale, language, and

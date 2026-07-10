@@ -145,7 +145,7 @@ def record_tool_call_started(
             "arguments": arguments,
             "operation": _mind_operation(arguments),
         },
-        source="mind_api",
+        source=tool_name or "mind_api",
         actor="scarlet",
         visibility="debug",
         status="active",
@@ -175,7 +175,7 @@ def record_tool_call_completed(
             "result_summary": _mind_result_summary(executed.result),
             "latency_ms": executed.latency_ms,
         },
-        source="mind_api",
+        source=executed.tool_name or "mind_api",
         actor="backend",
         visibility="debug",
         status=executed.status,
@@ -321,6 +321,11 @@ def _stream_event_identity(stream_event: LLMStreamEvent) -> tuple[str, str, str]
 
 
 def _mind_operation(arguments: dict[str, Any]) -> dict[str, Any]:
+    if "command" in arguments:
+        return {
+            "command": arguments.get("command"),
+            "intent": arguments.get("intent"),
+        }
     return {
         "method": arguments.get("method"),
         "path": arguments.get("path"),
@@ -339,6 +344,10 @@ def _mind_result_summary(result: dict[str, Any]) -> dict[str, Any]:
         "operation": operation_result.get("operation"),
         "confidence": envelope.get("confidence"),
     }
+    if "command" in operation_result:
+        summary["command"] = operation_result.get("command")
+    if "target" in operation_result:
+        summary["target"] = operation_result.get("target")
     for key in (
         "stored",
         "policy_decision",

@@ -4,6 +4,708 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-09 - V1.26.0 Runtime Context Pack Planning
+
+Goal:
+
+Prepare the repository for future context/runtime scaling before Scarlet gains
+high-volume embodied inputs such as vision, audio, voice, movement, and
+physical interaction.
+
+Area:
+
+Runtime context architecture / agentic organs / embodiment preparation /
+project documentation.
+
+Changes:
+
+- Added `docs/runtime-context-packs.md` as the planning baseline for an
+  always-on context spine, mode-specific packs, organ/source/capability
+  classification, coupling, freshness, authority, cost, safety, and
+  degradation rules.
+- Recorded ADR-0067: runtime context packs are the accepted planning baseline
+  before any future embodied context expansion.
+- Recorded EXP-0049 for the corrected default-token live Scarlet probe,
+  explicitly distinguishing it from the earlier falsified stop-token run.
+- Parked the live-probe issues as known bugs without fixing them now:
+  temporal recall without exhaustive session search, metacognition
+  recommendations not followed, self-architecture overclaim, memory-write flag
+  alias drift, and immediate preference-shape weakness.
+- Updated project-state, blueprint, branch docs, and organ notes so future
+  organs must define their context classification before broad model-facing
+  injection.
+
+Verification:
+
+- `git diff --check` passed.
+
+Next Suggested Step:
+
+Implement a shadow runtime context-pack router that traces which pack would
+have applied to each real turn before changing live model input.
+
+## 2026-07-09 - V1.25.4 Mind Shell Registry Parity And Capability Boundary
+
+Goal:
+
+Close the gap between the `mind_shell` command registry, shell handlers, and
+runtime capability context before returning to main development branches.
+
+Area:
+
+API Mind shell / metacognition action validation / runtime context capability
+state / project documentation.
+
+Changes:
+
+- Fixed command-registry validation so flag values are not counted as
+  positional arguments.
+- Added required-field parity for lifecycle commands that need reasons,
+  resolutions, impossible reasons, or two memory ids.
+- Made hyphenated canonical volition aliases accepted by the shell when the
+  registry suggests them.
+- Changed model-facing runtime capability state to come from the shell command
+  registry instead of legacy endpoint routes.
+- Marked `memory.facts.backfill` as `internal_maintenance_only`; it remains an
+  internal endpoint for rebuilding canonical facts/retrieval artifacts, not a
+  normal Scarlet shell command.
+- Corrected project documentation status drift and updated the relevant branch,
+  API contract, project-state, roadmap, bug ledger, and changelog entries.
+- Advanced backend app/package metadata to `1.25.4`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m pytest tests/test_mind_shell.py
+  tests/test_chat_api.py::test_chat_turn_dispatches_and_traces_mind_shell_tool_call
+  tests/test_mind_api.py` passed: `45 passed`.
+- `cd backend && .venv/bin/python -m pytest` passed: `120 passed`.
+- `cd backend && .venv/bin/python -m json.tool app/plugins/gpt_bridge/openapi_gpt_action.json >/dev/null`
+  passed.
+- `git diff --check` passed.
+
+Next Suggested Step:
+
+Resume main branch work with the shell as the only model-facing API Mind
+contract and the legacy endpoint surface documented as internal/debug/
+maintenance support.
+
+## 2026-07-09 - V1.25.3 GPT Actions Schema Parity
+
+Goal:
+
+Align the deployed backend contract with the corrected GPT Builder Actions
+schema being used on the platform.
+
+Area:
+
+GPT bridge plugin / Actions schema / bootstrap and action response contract.
+
+Changes:
+
+- Added top-level `session_id` to `/gpt/bootstrap` responses while keeping the
+  nested `session` object.
+- Made `/gpt/action` `intent` required in the backend request model and local
+  OpenAPI Actions schema.
+- Added optional `action_policy`, `required_actions`, and
+  `recommended_actions` fields to bootstrap responses.
+- Updated the local Actions schema wording to the stronger REQUIRED summaries
+  used in GPT Builder.
+- Advanced backend app/package metadata to `1.25.3`.
+
+Verification:
+
+- `backend/.venv/bin/python -m json.tool
+  backend/app/plugins/gpt_bridge/openapi_gpt_action.json` passed.
+- `cd backend && .venv/bin/python -m pytest tests/test_gpt_bridge.py`
+  passed: `7 passed`.
+- `cd backend && .venv/bin/python -m pytest tests`
+  passed: `118 passed`.
+- `git diff --check` passed.
+
+VPS Verification:
+
+- Created remote pre-deploy backup:
+  `/var/backups/scarlet-mobile-test/backend-20260709T102751Z-pre-v1253.tgz`.
+- Deployed V1.25.3 to `/opt/scarlet-mobile-test`.
+- Rebuilt and restarted Docker Compose service `scarlet-api` /
+  `scarlet-mobile-api`.
+- Container package version reports `llm-api-mind-backend==1.25.3`.
+- Loopback `/openapi.json` reports version `1.25.3`, operation ids
+  `bootstrapScarletBeforeEveryAnswer`, `runScarletMindAction`, and
+  `finalizeScarletBeforeAnswer`, top-level bootstrap `session_id`, required
+  action `intent`, and finalize `final_answer_to_show`.
+- Public `https://honeylabs.cloud/gpt/bootstrap`,
+  `https://honeylabs.cloud/gpt/action`, and
+  `https://honeylabs.cloud/gpt/finalize` smoke passed using top-level
+  `session_id` and required `intent`.
+
+Next Suggested Step:
+
+Paste the V1.25.3 Actions schema into GPT Builder and test a normal greeting
+with the platform approval flow.
+
+## 2026-07-09 - V1.25.2 GPT Actions Prompt And Schema Alignment
+
+Goal:
+
+Align the local GPT bridge package with the corrected Custom GPT Actions setup
+being used in ChatGPT, and mark the MCP/App experiment as deprecated for this
+target flow.
+
+Area:
+
+GPT bridge plugin / GPT Actions prompt and schema / bridge documentation.
+
+Changes:
+
+- Replaced the compact GPT Builder prompt with the current Actions-first
+  prompt centered on `bootstrapScarletBeforeEveryAnswer`,
+  `runScarletMindAction`, and `finalizeScarletBeforeAnswer`.
+- Updated the OpenAPI Actions schema operation ids to those GPT-facing names.
+- Added `final_answer_to_show` to `/gpt/finalize` responses so the GPT can
+  show exactly the backend-confirmed finalized answer.
+- Marked `/mcp` and the MCP/App GPT setup as deprecated documentation-wise
+  while keeping the endpoint in place for traceability and later removal.
+- Advanced backend app/package metadata to `1.25.2`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m pytest tests/test_gpt_bridge.py`
+  passed: `7 passed`.
+- `cd backend && .venv/bin/python -m pytest tests`
+  passed: `118 passed`.
+- `git diff --check` passed.
+
+VPS Verification:
+
+- Created remote pre-deploy backup:
+  `/var/backups/scarlet-mobile-test/backend-20260709T100150Z-pre-v1252.tgz`.
+- Deployed V1.25.2 to `/opt/scarlet-mobile-test`.
+- Rebuilt and restarted Docker Compose service `scarlet-api` /
+  `scarlet-mobile-api`.
+- Container package version reports `llm-api-mind-backend==1.25.2`.
+- Loopback `/openapi.json` reports version `1.25.2` and operation ids
+  `bootstrapScarletBeforeEveryAnswer`, `runScarletMindAction`, and
+  `finalizeScarletBeforeAnswer`.
+- Public `https://honeylabs.cloud/gpt/bootstrap`,
+  `https://honeylabs.cloud/gpt/action`, and
+  `https://honeylabs.cloud/gpt/finalize` smoke passed; finalize returned
+  `final_answer_to_show=Smoke V1.25.2 operationId completato.`.
+
+Next Suggested Step:
+
+Paste the matching prompt/schema into GPT Builder and confirm the Preview flow
+calls bootstrap after the user approves the Action, then finalize before
+showing the answer.
+
+## 2026-07-09 - V1.25.1 MCP Tool Output Schemas
+
+Goal:
+
+Remove the ChatGPT Apps builder warning that output schemas are recommended for
+tools returning `structuredContent`.
+
+Area:
+
+GPT bridge plugin / MCP tool metadata.
+
+Changes:
+
+- Added `outputSchema` to all Scarlet MCP lifecycle and cognitive command tool
+  descriptors.
+- Kept schemas intentionally broad but useful: every tool result includes
+  `ok` and `summary`, while lifecycle tools also advertise session/turn/final
+  fields and command tools advertise shell response/tool-call fields.
+- Advanced backend app/package metadata to `1.25.1`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m pytest tests/test_gpt_bridge.py`
+  passed: `7 passed`.
+
+VPS Verification:
+
+- Deployed V1.25.1 to `/opt/scarlet-mobile-test`.
+- Rebuilt and restarted Docker Compose service `scarlet-api` /
+  `scarlet-mobile-api`.
+- Container package version reports `llm-api-mind-backend==1.25.1`.
+- Public `https://honeylabs.cloud/mcp` tools/list returns 10 tools and all tool
+  descriptors include `outputSchema`.
+
+Next Suggested Step:
+
+Redeploy V1.25.1 to the preview host, refresh the ChatGPT connector metadata,
+and confirm the "Schema output consigliato" warning disappears.
+
+## 2026-07-08 - V1.25.0 Scarlet MCP/App Bridge
+
+Goal:
+
+Expose Scarlet's GPT bridge through a ChatGPT App/Connector-friendly MCP
+surface so the model sees lifecycle and cognitive shell operations as native
+tools rather than only as Custom GPT Actions.
+
+Area:
+
+GPT bridge plugin / MCP connector surface / ChatGPT App prompt.
+
+Changes:
+
+- Added a minimal Streamable HTTP JSON-RPC MCP endpoint at `POST /mcp`.
+- Added lifecycle tools:
+  `start_scarlet_turn_required` and `finish_scarlet_turn_required`.
+- Put the exact mandatory phrases in those tool descriptions:
+  `Usa sempre a inizio di ogni turno` and
+  `Usa sempre prima della tua risposta finale`.
+- Added cognitive command tools that proxy to the existing `mind_shell`
+  runtime: memory, session, metacognition, focus, affect, volition, help, and
+  generic shell fallback.
+- Added MCP session state so a connector can keep the Scarlet session and
+  active turn across tool calls using `Mcp-Session-Id`.
+- Added `scarlet_mcp_system_prompt.md` for GPTs configured with Apps instead
+  of Actions.
+- Documented that Actions and Apps/Connectors are alternative GPT
+  configurations and that `/mcp?key=<GPT_BRIDGE_API_KEY>` is only a private
+  preview auth convenience before OAuth.
+- Added a repository-tracked backend Dockerfile and `.dockerignore`, and made
+  setuptools package discovery explicit with `include = ["app*"]` after the
+  VPS build exposed that runtime `data/` could be misdetected as a package.
+- Advanced backend app/package metadata to `1.25.0`.
+
+Verification:
+
+- `cd backend && .venv/bin/python -m pytest tests`
+  passed: `118 passed`.
+
+VPS Verification:
+
+- Deployed V1.25.0 to `/opt/scarlet-mobile-test` on HoneyLabs.
+- Created a remote pre-deploy backend backup:
+  `/var/backups/scarlet-mobile-test/backend-20260708T211904Z-pre-v1250.tgz`.
+- Rebuilt and restarted Docker Compose service `scarlet-api` /
+  `scarlet-mobile-api`.
+- Added public Nginx `location = /mcp` proxy to `127.0.0.1:8100` and reloaded
+  Nginx after `nginx -t` passed. The vhost backup is
+  `/var/backups/scarlet-mobile-test/honeylabs-20260708T212248Z-pre-mcp-v1250.conf`.
+- Loopback `GET /health` passed and `GET /openapi.json` reports version
+  `1.25.0`.
+- Loopback `/mcp` initialize returned server `scarlet-api-mind` version
+  `1.25.0`.
+- Public `https://honeylabs.cloud/mcp` without a key returns `401`.
+- Public `/mcp` with the bridge key lists all lifecycle and cognitive command
+  tools, including the required descriptions:
+  `Usa sempre a inizio di ogni turno` and
+  `Usa sempre prima della tua risposta finale`.
+- Public `/mcp?key=<GPT_BRIDGE_API_KEY>` start/help/finish smoke completed:
+  start returned `gpt-bootstrap-compact-v1`, help returned
+  `mind_shell.help`, and finish returned `completed`.
+
+Residual Risk:
+
+- The `/mcp` transport is a minimal JSON-RPC implementation without SSE
+  streaming or production OAuth. It is suitable for private connector testing,
+  but production/submission should add proper OAuth/connector auth and be
+  validated through ChatGPT Developer Mode or MCP Inspector.
+
+Next Suggested Step:
+
+Deploy the V1.25.0 backend to the preview host, create a ChatGPT connector that
+points to `/mcp`, paste `scarlet_mcp_system_prompt.md` into a GPT with Apps
+enabled and no Custom Actions, then test whether a greeting triggers start and
+finish tools without explicit user prompting.
+
+## 2026-07-08 - V1.24.3 GPT Bridge Mandatory Action Prompt Reinforcement
+
+Goal:
+
+Make the custom GPT understand that `/gpt/bootstrap`, `/gpt/action`, and
+`/gpt/finalize` are part of Scarlet's internal structure in the ChatGPT GPT
+environment, not optional user-requested tools.
+
+Area:
+
+GPT bridge plugin / compact system prompt / GPT Actions behavior.
+
+Changes:
+
+- Rewrote the compact GPT bridge prompt protocol section with explicit
+  `FIRST ACTION`, `MIDDLE ACTIONS`, and `FINAL ACTION` language.
+- Made bootstrap mandatory for every user message, including greetings, short
+  replies, casual messages, simple questions, and technical requests.
+- Made finalize mandatory before any visible final answer.
+- Clarified that `/gpt/action` is required whenever Scarlet needs any API Mind
+  information or state operation: memory, session, focus, volition, affect,
+  metacognition, command help, source checks, or state changes.
+- Strengthened the knowledge-file protocol with the same mandatory semantics.
+- Added test assertions to protect the prompt from future softening.
+- Advanced backend app/package metadata to `1.24.3`.
+
+Verification:
+
+- `tests/test_gpt_bridge.py` checks the prompt stays under 8000 characters and
+  preserves mandatory bootstrap/finalize language.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_gpt_bridge.py -q`
+  passed: `4 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m json.tool app/plugins/gpt_bridge/openapi_gpt_action.json >/tmp/scarlet_gpt_openapi_pretty.json`
+  passed.
+- `git diff --check` passed.
+- Compact GPT prompt size after reinforcement: `7762` characters.
+
+VPS Verification:
+
+- Deployed the V1.24.3 GPT bridge prompt/assets and version metadata to
+  `/opt/scarlet-mobile-test`, rebuilt, and restarted `scarlet-mobile-api`.
+- VPS loopback `GET /openapi.json` reports version `1.24.3`.
+- Public `https://honeylabs.cloud/gpt/bootstrap` returned HTTP 200 with
+  compact `gpt-bootstrap-compact-v1` context and usable `session_id` /
+  `turn_id`.
+- Public `https://honeylabs.cloud/gpt/action` with `help` returned
+  `mind_shell.help`.
+- Public `https://honeylabs.cloud/gpt/finalize` returned `completed`.
+
+Residual Risk:
+
+- GPT Builder Preview still needs a human-side behavior test because the
+  backend cannot force the external GPT model to choose Actions; the prompt now
+  makes the requirement explicit and repeated in system + knowledge.
+
+Next Suggested Step:
+
+Refresh the GPT Instructions and knowledge files in GPT Builder, then test a
+simple greeting and verify that the GPT calls bootstrap before answering and
+finalize before showing the answer.
+
+## 2026-07-08 - V1.24.2 GPT Bridge Bootstrap Compact Response
+
+Goal:
+
+Fix the real ChatGPT GPT Actions `ResponseTooLargeError` observed when calling
+`bootstrapScarletTurn` against `honeylabs.cloud`.
+
+Area:
+
+GPT bridge plugin / ChatGPT Actions response contract.
+
+Changes:
+
+- Changed `/gpt/bootstrap` response context to `gpt-bootstrap-compact-v1`.
+- Removed full effective system prompt, base system prompt, raw runtime payload,
+  raw memory query plan, full provider messages, and retrieval graph/shadow
+  diagnostics from the HTTP action response.
+- Kept full diagnostics in backend `llm.request` and memory/runtime traces.
+- Returned compact model-facing data instead: `runtime_context`,
+  `runtime_payload_summary`, compact `memory_context`,
+  `metacognitive_context`, recent provider messages, tool summary, endpoints,
+  and trace ids for full diagnostics.
+- Updated GPT bridge knowledge/README/OpenAPI descriptions to describe compact
+  bootstrap semantics.
+- Advanced backend app/package metadata to `1.24.2`.
+
+Evidence:
+
+- Before the fix, local `/gpt/bootstrap` returned roughly 413 KB downloaded /
+  418 KB JSON chars. Largest fields were raw `memory_context` (~202 KB),
+  `system` (~94 KB), and `base_system` (~72 KB).
+- After the fix, local `/gpt/bootstrap` returned roughly 26.5 KB downloaded /
+  26.8 KB JSON chars and no longer includes `system`, `base_system`,
+  `runtime_payload`, or raw `provider_messages`.
+
+Verification:
+
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_gpt_bridge.py -q`
+  passed: `4 passed`.
+- Local backend restarted and `GET /openapi.json` reports `1.24.2`.
+- Local compact bootstrap smoke returned HTTP 200 and profile
+  `gpt-bootstrap-compact-v1`.
+
+VPS Verification:
+
+- Deployed V1.24.2 to `/opt/scarlet-mobile-test` and rebuilt/restarted
+  `scarlet-mobile-api`.
+- VPS loopback `/gpt/bootstrap` returned roughly 26.5 KB, profile
+  `gpt-bootstrap-compact-v1`, and no raw `system`, `base_system`,
+  `runtime_payload`, or `provider_messages` fields.
+- Public `https://honeylabs.cloud/gpt/bootstrap` returned HTTP 200 with roughly
+  26.5 KB downloaded and usable `session_id` / `turn_id`.
+- Public `/gpt/action` with `help` returned `mind_shell.help`.
+- Public `/gpt/finalize` completed successfully.
+
+Residual Risk:
+
+- GPT Builder Preview should now retest the action through the ChatGPT UI, but
+  the public HTTP bridge path that previously failed is fixed.
+
+Next Suggested Step:
+
+Retry `bootstrapScarletTurn` from GPT Builder Preview, then run one natural
+Scarlet turn that uses bootstrap/action/finalize.
+
+## 2026-07-08 - V1.24.1 GPT Builder Prompt And Actions Packaging
+
+Goal:
+
+Make the external ChatGPT GPT bridge configurable inside GPT Builder despite
+the system prompt character limit, without changing Scarlet's local MiniMax
+runtime or the already implemented `/gpt/*` endpoints.
+
+Area:
+
+GPT bridge plugin / ChatGPT GPT Actions packaging.
+
+Changes:
+
+- Replaced `backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md` with a
+  compact GPT Builder prompt under 8000 characters.
+- Preserved the previous full bridge prompt as
+  `backend/app/plugins/gpt_bridge/knowledge/99_full_scarlet_policy_reference.md`.
+- Added modular knowledge attachments for bridge protocol, identity/runtime
+  policy, memory, Mind shell, cognitive organs, response style, and known
+  limits.
+- Added `backend/app/plugins/gpt_bridge/openapi_gpt_action.json`, a minimal
+  OpenAPI Actions schema for only `/gpt/bootstrap`, `/gpt/action`, and
+  `/gpt/finalize`.
+- Updated GPT bridge README and API/decision/project docs with the GPT Builder
+  setup model.
+- Advanced backend app/package metadata to `1.24.1`.
+
+Verification:
+
+- Prompt size target is covered by `tests/test_gpt_bridge.py`.
+- `openapi_gpt_action.json` is covered by JSON parsing and operationId/path
+  assertions in `tests/test_gpt_bridge.py`.
+
+Residual Risk:
+
+- The package still needs a live GPT Builder Preview smoke test because only
+  ChatGPT can confirm the exact model behavior with uploaded knowledge files.
+
+Next Suggested Step:
+
+Configure the custom GPT with the compact prompt, all knowledge files, custom
+header authentication, and the minimal OpenAPI schema, then run a real
+bootstrap/action/finalize turn from GPT Preview.
+
+## 2026-07-08 - V1.24.0 GPT Bridge Plugin
+
+Goal:
+
+Expose Scarlet's cognitive runtime to an external ChatGPT GPT without changing
+the local Scarlet/MiniMax standalone flow.
+
+Area:
+
+GPT bridge plugin / external GPT Actions integration.
+
+Changes:
+
+- Added isolated plugin folder `backend/app/plugins/gpt_bridge/`.
+- Added `POST /gpt/bootstrap`, which creates or resumes a Scarlet session,
+  persists the user message, builds the same memory/runtime/metacognitive
+  context used by local Scarlet, and returns the model-facing context/tools to
+  the external GPT without calling MiniMax.
+- Added `POST /gpt/action`, which executes a `mind_shell` command in the same
+  session/turn and records tool calls, traces, and events.
+- Added `POST /gpt/finalize`, which persists the external GPT final answer as
+  the assistant message, updates provider history, completes the turn, and
+  schedules idle maintenance when enabled.
+- Added `GPT_BRIDGE_API_KEY` authentication for non-local environments.
+- Added `scarlet_gpt_system_prompt.md`, copied from the approved Scarlet prompt
+  with only a transport addendum for bootstrap/action/finalize.
+- Advanced backend app/package metadata to `1.24.0`.
+
+Verification:
+
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m py_compile app/plugins/gpt_bridge/router.py app/main.py app/config.py`
+  passed.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_gpt_bridge.py -q`
+  passed: `3 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q`
+  passed: `114 passed`.
+- Local running-backend smoke on `http://127.0.0.1:8000` passed:
+  `/gpt/bootstrap` returned `ses_97c57adea5b44a0c81acad8fb69aec81` /
+  `turn_2f118c5ed44744908e053266797f9f93`, `/gpt/action` returned
+  `mind_shell.help`, and `/gpt/finalize` completed the turn.
+- VPS deploy completed on the existing HoneyLabs preview host:
+  - SSH target: `root@187.77.76.123` with `~/.ssh/id_ed25519_siteground`;
+  - project path: `/opt/scarlet-mobile-test`;
+  - Docker Compose service/container: `scarlet-api` /
+    `scarlet-mobile-api`;
+  - loopback port: `127.0.0.1:8100 -> 8000`;
+  - backend image rebuilt as `llm-api-mind-backend==1.24.0`;
+  - `GPT_BRIDGE_API_KEY` configured in remote `.env`;
+  - Nginx backup created under `/var/backups/scarlet-mobile-test/`;
+  - direct public `/gpt/` proxy added, protected by the bridge app key rather
+    than the mobile Basic Auth challenge.
+- Public VPS smoke passed:
+  - `https://honeylabs.cloud/gpt/bootstrap` without key returns `401`;
+  - with `X-GPT-Bridge-Key`, `/gpt/bootstrap`, `/gpt/action`, and
+    `/gpt/finalize` completed successfully;
+  - `https://honeylabs.cloud/scarlet-api/openapi.json` under Basic Auth reports
+    version `1.24.0` and includes `/gpt/bootstrap`, `/gpt/action`,
+    `/gpt/finalize`;
+  - `/scarlet/` without Basic Auth still returns `401`.
+
+Residual Risk:
+
+- The bridge has API-level coverage but still needs a real ChatGPT GPT Actions
+  smoke test after VPS deployment.
+- The external GPT must obey the copied bridge prompt: bootstrap and finalize
+  are protocol-critical because the backend cannot see the final ChatGPT answer
+  otherwise.
+
+Next Suggested Step:
+
+Deploy V1.24.0 to the VPS, configure `GPT_BRIDGE_API_KEY`, then create a GPT
+Action from the public OpenAPI schema and run one manual bootstrap/action/
+finalize smoke turn.
+
+## 2026-07-08 - V1.23.0 Mind Shell Output And Memory Relevance Stabilization
+
+Goal:
+
+Stabilize the command-shell branch after real Scarlet testing showed
+over-large model-facing tool results, noisy memory conflict reports, and
+metacognition recommendations that could validate nonexistent commands.
+
+Area:
+
+API Mind / memory retrieval / Mind shell output contract.
+
+Changes:
+
+- Added `backend/app/mind/command_registry.py` as the central command/action
+  registry for `mind_shell` validation, aliases, unavailable-by-design
+  commands, planned commands, and missing-argument diagnostics.
+- Updated metacognition recommended actions so they are validated against the
+  full command contract, not just the command family namespace.
+- Added compact model-facing renderers for `memory search` and
+  `memory conflicts` shell results. Full `retrieval_shadow`,
+  `retrieval_graph`, `retrieval_hybrid`, and raw conflict diagnostics remain
+  in traces, while Scarlet receives concise memory packets, provenance,
+  relevance signals, trace ids, and omitted-debug metadata.
+- Reclassified memory conflicts:
+  - active atomic facts with same entity/predicate and different values remain
+    true conflicts;
+  - tag/token/exact-content similarity becomes `related_overlaps`, a
+    maintenance/debug signal, not a contradiction surfaced as conflict.
+- Changed automatic runtime memory conflicts to use atomic fact divergence
+  only, avoiding false conflict/caution from generic selected-memory overlap.
+- Tightened hybrid ranking so weak base candidates cannot be promoted unless
+  supported by direct strong base evidence, dense retrieval, rerank, or strong
+  graph evidence.
+- Added `returned_message_count`, `message_limit`, `message_window`, and
+  `has_more_messages` to session read results so `session open --limit` is
+  unambiguous.
+- Advanced backend app/package metadata to `1.23.0`.
+
+Verification:
+
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_mind_shell.py tests/test_mind_api.py::test_mind_metacognition_step_is_traceable tests/test_mind_api.py::test_mind_memory_atomic_facts_support_alias_query_and_conflicts tests/test_mind_api.py::test_mind_memory_lifecycle_supersedes_and_deprecates_conflict tests/test_mind_api.py::test_mind_memory_search_active_hybrid_promotes_grouped_dense_candidate tests/test_mind_api.py::test_mind_memory_search_hybrid_prefers_direct_content_over_broad_overlap tests/test_mind_api.py::test_mind_memory_search_active_hybrid_does_not_select_dense_below_threshold tests/test_mind_api.py::test_mind_memory_search_active_hybrid_does_not_promote_support_only_surface -q`
+  passed: `13 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m py_compile app/mind/command_registry.py app/mind/shell.py app/mind/memory.py app/mind/context.py app/mind/episodic.py app/mind/metacognition.py app/mind/hybrid_retrieval.py`
+  passed.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_mind_api.py tests/test_chat_api.py -q`
+  passed: `52 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q`
+  passed: `111 passed`.
+
+Calibration Notes:
+
+- Added a predictive retrieval regression: before running the system, the
+  expected result was that direct content about "tisana serale senza caffeina"
+  must outrank broad evening/report overlap and auxiliary future-use hints.
+  The implemented hybrid/rerank path matches that prediction.
+- The change intentionally keeps provider `thinking` blocks in history and
+  does not compact chat history. The current slice removes only data that was
+  clearly diagnostic/redundant for model-facing shell results.
+
+Residual Risk:
+
+- True semantic duplicate/update/deprecate classification still needs the
+  future maintenance layer, embedding/KG entity resolution, and larger noisy DB
+  calibration. V1.23.0 only prevents weak overlap from being mislabeled as a
+  conflict.
+- Rerank calibration is covered by deterministic tests; live MiniMax behavior
+  should still be watched because the model may choose poor queries or
+  under-use the improved shell output.
+
+Next Suggested Step:
+
+Run owner-side Scarlet probes on the same command-shell branch. If the CLI
+behavior remains stable, the next technical slice should use the cleaner
+model-facing packets to evaluate larger memory retrieval/rerank calibration on
+the duplicated Scarlet DB.
+
+## 2026-07-06 - V1.22.0 Mind Command Runtime
+
+Goal:
+
+Convert Scarlet's model-facing API Mind surface from endpoint-shaped tool calls
+to a controlled cognitive command shell, while keeping the existing endpoint
+dispatcher available for backend/debug rollback.
+
+Area:
+
+API Mind model-facing interface / cognitive command runtime.
+
+Changes:
+
+- Added `mind_shell(command, intent)` as the single model-facing tool schema.
+- Added `backend/app/mind/shell.py`, a bash-like but controlled command
+  runtime that maps commands such as `help`, `memory search`, `memory write`,
+  `session open`, `focus read`, `volition list active`, `affect prototypes`,
+  and `metacognition step` onto the existing cognitive handlers.
+- Added a shell command catalog, digest, metadata, and command usage guides
+  separate from the legacy endpoint schema.
+- Switched chat requests, streaming requests, runtime events, and trace
+  summaries to `mind_shell`.
+- Updated runtime context so `message_context.api_mind` exposes `mind_shell`
+  command families instead of endpoint schema metadata.
+- Updated the internal metacognition reviewer so recommended internal actions
+  use shell commands and obsolete endpoint-language recommendations are marked
+  unavailable.
+- Created prompt checkpoint
+  `backend/app/prompts/backups/scarlet_system.20260706T133019Z.pre-v1220-mind-shell.md`
+  and converted the active Scarlet prompt from endpoint-first instructions to
+  CLI-first cognition.
+- Kept `/mind/schema` and `/mind/call` as legacy/debug HTTP compatibility
+  surfaces; they are no longer the active model-facing contract.
+- Advanced backend app/package metadata to `1.22.0`.
+
+Verification:
+
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m py_compile app/mind/schema.py app/mind/shell.py app/api/chat.py app/mind/context.py app/mind/metacognition.py app/runtime/events.py`
+  passed.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_mind_shell.py tests/test_chat_api.py::test_chat_turn_dispatches_and_traces_mind_shell_tool_call tests/test_chat_api.py::test_chat_turn_dispatches_traceable_memory_write_and_search tests/test_chat_api.py::test_streaming_chat_turn_emits_agentic_events_and_persists_traces tests/test_mind_api.py::test_mind_metacognition_step_is_traceable -q`
+  passed: `9 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest tests/test_chat_api.py tests/test_mind_api.py -q`
+  passed: `51 passed`.
+- `cd backend && PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m pytest -q`
+  passed: `109 passed`.
+- Live MiniMax M3 e2e probes passed:
+  - capability turn called `mind_shell` with `help` and `help memory`;
+  - memory write turn called `mind_shell` with `memory write ...` and stored
+    `mem_e1a9e89d843346c38a10989b626ea8f1`;
+  - explicit recall turn called `mind_shell` with
+    `memory search "bevande serali senza caffeina" --top 5`, returning that
+    memory as first result.
+- Trace inspection confirmed `tool_calls.tool_name=mind_shell`, command-shaped
+  arguments, and `events.source=mind_shell` for started/completed tool calls.
+
+Residual Risk:
+
+The CLI runtime is functionally mapped to existing handlers and live MiniMax M3
+uptake is confirmed. Remaining risk is behavioral, not contract-level: Scarlet
+can still overstate a causal detail in natural language, such as describing a
+memory as already selected by automatic context when the decisive evidence came
+from an explicit shell search. Keep this under source-discipline evaluation.
+
+Next Suggested Step:
+
+Use the branch for owner-side mobile/dev testing. If behavior stays stable,
+commit V1.22.0 as the checkpoint before any deeper command-shell UX or
+autonomous-cycle work.
+
 ## 2026-06-26 - V1.21.0 First Three Organs Standalone Closure
 
 Goal:

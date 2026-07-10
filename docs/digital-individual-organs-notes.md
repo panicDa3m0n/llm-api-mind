@@ -70,6 +70,15 @@ working conceptual summaries. Focus, volition, and affect now have standalone
 implementation surfaces closed as V1.21.0. A full implementation roadmap for
 the two remaining organs is not accepted yet.
 
+V1.26.0 planning note:
+
+The organ roadmap now has an additional architectural constraint. New organs
+must not automatically expand the live prompt/runtime context. Each organ needs
+a context classification before broader injection: always-on spine, conditional
+mode pack, on-demand shell operation, background-only maintenance, or future
+embodied stream. `docs/runtime-context-packs.md` is the planning baseline for
+that classification.
+
 ## 1. Attention As Lived Focus
 
 Status: standalone implementation surface closed as V1.21.0 on 2026-06-26.
@@ -201,8 +210,9 @@ and knowing why attention moved.
   separate from user text, so `focus_context` has a natural insertion point.
 - Runtime events already trace turn lifecycle, memory context, tool calls, and
   model events; focus transitions can reuse the same event substrate.
-- API Mind already exposes one model-facing tool wrapper, `mind_api`, so
-  `/mind/focus` fits the existing small-tool-surface policy.
+- API Mind now exposes one model-facing command wrapper, `mind_shell`, so
+  focus should remain reachable through shell commands while `/mind/focus`
+  stays the internal handler/debug route behind that small surface.
 - Memory retrieval is already advanced and should remain independent in the
   first focus slice.
 - The older planned `POST /mind/attention/context` concept has been reshaped
@@ -1955,7 +1965,7 @@ Gaps relevant to the five organs:
 - Add one organ at a time and verify behavior before composing them.
 - Prefer shadow/debug visibility before prompt enforcement for risky organs.
 - Use existing events/traces/maintenance infrastructure.
-- Do not expose maintenance-only machinery through model-facing `mind_api`
+- Do not expose maintenance-only machinery through model-facing `mind_shell`
   unless Scarlet needs it for her own cognition.
 - All cognitive state mutations need traces or events.
 - Prompt changes must be compared against the V1.16.1 golden system prompt.

@@ -6,7 +6,143 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Added
+
+- Added V1.26.0 runtime context-pack planning:
+  - introduced `docs/runtime-context-packs.md` as the baseline for an always-on
+    context spine, mode-specific packs, organ/source/capability
+    classification, coupling, freshness, authority, cost, safety, and
+    degradation rules;
+  - recorded ADR-0067 for context packs before future embodied context
+    expansion;
+  - recorded EXP-0049 for the corrected default-token live Scarlet probe;
+  - parked the resulting known issues as BUG-0057 through BUG-0061 without
+    fixing them in this documentation-only slice;
+  - updated project-state, blueprint, branch docs, and organ notes so future
+    organs must declare their context classification before broad model-facing
+    injection.
+
+### Fixed
+
+- Fixed V1.25.4 Mind shell command-registry parity:
+  - corrected `validate_shell_command` so flag values no longer count as
+    positional arguments;
+  - required the same lifecycle fields the shell handlers require, including
+    memory deprecate/supersede reasons, volition create reasons, and
+    focus/volition closure reasons or resolutions;
+  - accepted canonical hyphenated volition aliases such as
+    `volition mark-impossible` when suggested by the registry;
+  - changed model-facing runtime capabilities to derive from the
+    `mind_shell` registry rather than legacy `/mind/*` endpoint routes;
+  - marked `memory.facts.backfill` as `internal_maintenance_only` so Scarlet
+    does not treat deterministic fact backfill as a normal cognitive command.
+
 ### Changed
+
+- Changed V1.25.3 GPT Actions schema alignment:
+  - added top-level `session_id` to `/gpt/bootstrap` responses so the GPT can
+    reuse it without reading nested `session.id`;
+  - made `/gpt/action` `intent` required in the backend and local Actions
+    schema, matching the active GPT Builder schema;
+  - added optional bootstrap response fields for `action_policy`,
+    `required_actions`, and `recommended_actions` so future cognitive action
+    policies have an explicit schema surface.
+
+- Changed V1.25.2 GPT Actions bridge packaging:
+  - aligned the compact GPT Builder prompt with the active platform prompt
+    centered on `bootstrapScarletBeforeEveryAnswer`,
+    `runScarletMindAction`, and `finalizeScarletBeforeAnswer`;
+  - renamed the local OpenAPI Actions operation ids to match the GPT-facing
+    operation names;
+  - added `final_answer_to_show` to `/gpt/finalize` responses so the GPT can
+    finalize a draft and then show the exact backend-confirmed answer
+    verbatim;
+  - marked the MCP/App bridge as deprecated documentation-wise while keeping
+    the temporary `/mcp` endpoint available for traceability and future
+    removal.
+
+### Fixed
+
+- Fixed V1.25.1 Scarlet MCP/App tool metadata:
+  - added `outputSchema` to lifecycle and cognitive command MCP tool
+    descriptors because ChatGPT Apps recommends output schemas whenever tools
+    return `structuredContent`;
+  - kept the schema broad enough to cover both successful tool responses and
+    structured error responses.
+
+### Added
+
+- Added V1.25.0 experimental Scarlet MCP/App bridge:
+  - exposed a Streamable HTTP JSON-RPC MCP endpoint at `POST /mcp`;
+  - added MCP tools for Scarlet turn lifecycle:
+    `start_scarlet_turn_required` and `finish_scarlet_turn_required`;
+  - used the exact mandatory lifecycle descriptions
+    `Usa sempre a inizio di ogni turno` and
+    `Usa sempre prima della tua risposta finale`;
+  - added cognitive command tools that delegate to `mind_shell`:
+    memory, session, metacognition, focus, affect, volition, help, and generic
+    shell fallback;
+  - added `scarlet_mcp_system_prompt.md` for ChatGPT GPTs configured with
+    Apps/Connectors instead of Custom GPT Actions;
+  - documented private-preview connector setup at `/mcp`, including temporary
+    query-key auth for non-OAuth testing;
+  - added MCP bridge regression tests for tool descriptors, lifecycle state,
+    shell command execution, and finalize persistence.
+  - added a repository-tracked backend Dockerfile and `.dockerignore`, and
+    made setuptools package discovery explicit with `include = ["app*"]` so
+    preview VPS Docker builds do not accidentally package runtime `data/`.
+
+### Changed
+
+- Changed V1.24.3 GPT bridge prompt enforcement:
+  - strengthened the compact GPT Builder system prompt so bootstrap is the
+    mandatory first action for every user message, including greetings and
+    simple turns;
+  - strengthened finalize as the mandatory final action before showing any
+    answer to the user;
+  - clarified that `/gpt/action` is required whenever Scarlet needs API Mind,
+    including memory, session, focus, affect, volition, metacognition, help,
+    source checks, or state changes;
+  - added regression assertions so future prompt edits preserve the mandatory
+    bridge protocol language under the 8000-character limit.
+
+- Changed V1.24.2 GPT bridge bootstrap response profile:
+  - compacted `/gpt/bootstrap` action responses to avoid ChatGPT Actions
+    `ResponseTooLargeError`;
+  - kept full effective system prompt, raw runtime payload, raw memory query
+    plan, provider-history dump, and retrieval debug diagnostics in backend
+    traces instead of returning them through Actions;
+  - added `gpt-bootstrap-compact-v1` context with model-facing runtime context,
+    compact memory packet, runtime summary, recent provider messages, and
+    trace ids for full diagnostics;
+  - updated GPT knowledge/action docs to explain that bootstrap returns compact
+    operational evidence while raw diagnostics remain trace-only.
+
+- Changed V1.24.1 GPT bridge packaging for ChatGPT GPT Builder:
+  - replaced the GPT bridge prompt copy with a compact under-limit system
+    prompt containing only non-negotiable identity, bridge, API Mind, memory,
+    runtime-context, and metacognition rules;
+  - moved extended Scarlet policy into attachable knowledge files under
+    `backend/app/plugins/gpt_bridge/knowledge/`;
+  - added `openapi_gpt_action.json`, a minimal GPT Actions schema for
+    `/gpt/bootstrap`, `/gpt/action`, and `/gpt/finalize`;
+  - documented the exact GPT Builder setup: instructions, knowledge files,
+    custom-header API key auth, and action test order.
+
+- Changed V1.23.0 Mind shell/memory relevance contract:
+  - added a backend command registry for `mind_shell` action validation,
+    aliases, unavailable-by-design commands, and planned commands;
+  - changed metacognition recommended-action validation from namespace-only
+    checks to full command/action/argument validation;
+  - compacted model-facing `mind_shell` results for noisy memory search and
+    conflict commands while preserving full raw diagnostics in traces;
+  - changed `memory conflicts` semantics so only atomic fact divergence is a
+    true conflict, while token/tag overlap is reported separately as a
+    maintenance `related_overlap`;
+  - reduced hybrid ranking promotion from weak base candidates unless dense,
+    rerank, sparse, entity, substring, tag, or strong graph evidence supports
+    the memory;
+  - added transcript-window metadata to episodic session reads.
 
 - Changed V1.16.0 Scarlet system prompt for human-like metacognitive action
   notes:
@@ -36,6 +172,37 @@ This project uses a practical changelog rather than a release-only log: each mea
     model-facing results remain deduplicated by memory id.
 
 ### Added
+
+- Added V1.24.0 GPT bridge plugin:
+  - introduced external GPT Actions endpoints `POST /gpt/bootstrap`,
+    `POST /gpt/action`, and `POST /gpt/finalize`;
+  - kept the local Scarlet/MiniMax runtime unchanged while letting an external
+    ChatGPT GPT receive the same runtime/memory/session context, execute
+    `mind_shell` commands, and persist the final answer back into Scarlet's
+    session history;
+  - added bridge authentication through `GPT_BRIDGE_API_KEY`;
+  - added `backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md`, a copy
+    of the approved Scarlet prompt with only the required GPT transport
+    addendum;
+  - added plugin documentation and API tests for bootstrap/action/finalize
+    continuity.
+
+- Added V1.22.0 Mind command runtime:
+  - introduced `mind_shell(command, intent)` as Scarlet's single model-facing
+    API Mind tool;
+  - added a bash-like but controlled cognitive command grammar for memory,
+    session recall, focus, volition, affect, metacognition, and help;
+  - kept legacy `/mind/*` endpoints and dispatcher behavior available for
+    backend/debug compatibility while removing endpoint language from Scarlet's
+    active prompt and chat tool surface;
+  - changed runtime context capability metadata from endpoint schema hints to
+    Mind shell command families;
+  - backed up the approved Scarlet prompt before converting operative
+    instructions to CLI-first cognition;
+  - added shell tests and updated chat/metacognition tests for the new
+    model-facing tool contract;
+  - validated live MiniMax M3 behavior with `help`, `memory write`, and
+    `memory search` commands through `mind_shell`.
 
 - Added V1.21.0 standalone closure for the first three digital-individual organs:
   - extended `/mind/focus` with `action=timeline` so Scarlet can inspect

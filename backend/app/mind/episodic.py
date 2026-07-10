@@ -262,7 +262,17 @@ def handle_session_read(
             "session": _session_payload(chat_session),
             "summary": summary_payload,
             "message_count": all_message_count,
+            "returned_message_count": len(messages) if request.include_messages else 0,
+            "message_limit": request.message_limit,
             "messages_truncated": truncated,
+            "has_more_messages": truncated,
+            "message_window": {
+                "position": "latest",
+                "returned_count": len(messages) if request.include_messages else 0,
+                "total_count": all_message_count,
+                "limit": request.message_limit,
+                "has_more_before_window": truncated,
+            },
             "memories_written": [_memory_payload(memory) for memory in memories],
         }
         if request.include_messages:

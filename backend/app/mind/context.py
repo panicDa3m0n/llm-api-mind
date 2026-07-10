@@ -2,7 +2,6 @@ import json
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from itertools import combinations
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -30,7 +29,8 @@ from app.mind.organs import (
 )
 from app.runtime.events import compact_event_for_context
 from app.runtime.preferences import RuntimePreferences
-from app.mind.schema import MIND_API_ROUTES, schema_metadata
+from app.mind.command_registry import COMMAND_FAMILIES
+from app.mind.schema import build_mind_shell_catalog, shell_metadata
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
@@ -402,7 +402,7 @@ def build_runtime_context_payload(
         "blocks": blocks,
         # Backward-compatible top-level fields for the existing prompt and tests.
         "memory_context": model_memory_context,
-        "mind_schema": schema_metadata(),
+        "mind_shell": shell_metadata(),
         "temporal_context": temporal_context,
         "recent_runtime_events": recent_events,
         "capabilities": capabilities,
@@ -451,7 +451,7 @@ def render_runtime_context(
         )
         model_payload = {
             "memory_context": _model_memory_context(runtime_context_payload),
-            "mind_schema": schema_metadata(),
+            "mind_shell": shell_metadata(),
             "temporal_context": temporal_context,
             "recent_runtime_events": runtime_context_payload.get("turn_frame", {}).get(
                 "recent_runtime_events",
@@ -814,7 +814,15 @@ def _message_context_block(
             "recent_dialogue": recent_dialogue,
             "recent_runtime_events": recent_events,
             "api_mind": {
-                "schema": schema_metadata(),
+                "interface": "mind_shell",
+                "schema": shell_metadata(),
+                "command_families": [
+                    {
+                        "namespace": item["namespace"],
+                        "purpose": item["purpose"],
+                    }
+                    for item in build_mind_shell_catalog()["commands"]
+                ],
                 "capabilities": capabilities,
             },
         },
@@ -1411,39 +1419,57 @@ def _candidate_summary(item: dict[str, Any]) -> dict[str, Any]:
 
 def _detect_conflicts(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
     conflicts: list[dict[str, Any]] = []
-    for left, right in combinations(selected, 2):
-        if _normalize_text(left["content"]) == _normalize_text(right["content"]):
-            continue
-        shared_tags = sorted(set(left["tags"]) & set(right["tags"]))
-        shared_tokens = sorted(
-            _subject_tokens(left["content"]) & _subject_tokens(right["content"])
-        )
-        if not shared_tags and len(shared_tokens) < 2:
+    facts_by_key: dict[tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]] = {}
+    for memory in selected:
+        facts = memory.get("facts") if isinstance(memory.get("facts"), list) else []
+        for fact in facts:
+            if not isinstance(fact, dict) or fact.get("status") != "active":
+                continue
+            entity = str(fact.get("entity") or "")
+            predicate = str(fact.get("predicate") or "")
+            if not entity or not predicate:
+                continue
+            facts_by_key.setdefault((entity, predicate), []).append((memory, fact))
+
+    for (entity, predicate), items in facts_by_key.items():
+        memory_ids = sorted({str(memory.get("id")) for memory, _ in items})
+        values = {
+            repr(sorted((fact.get("value") or {}).items()))
+            for _, fact in items
+            if isinstance(fact.get("value"), dict)
+        }
+        if len(memory_ids) < 2 or len(values) < 2:
             continue
         conflicts.append(
             {
-                "memory_ids": [left["id"], right["id"]],
-                "shared_tags": shared_tags,
-                "shared_tokens": shared_tokens[:8],
-                "reason": "selected memories appear to describe the same subject",
+                "classification": "atomic_fact_conflict",
+                "basis": "atomic_fact",
+                "confidence": 0.95,
+                "entity": entity,
+                "predicate": predicate,
+                "memory_ids": memory_ids,
+                "reason": (
+                    "selected memories contain active facts with same entity "
+                    "and predicate but different values"
+                ),
             }
         )
     return conflicts
 
 
 def _capability_state() -> dict[str, str]:
-    capabilities: dict[str, str] = {}
-    for route in MIND_API_ROUTES:
-        capabilities[_capability_key(route["path"])] = route["status"]
-    capabilities.setdefault("memory.update", "unavailable")
-    capabilities.setdefault("memory.deprecate", "unavailable")
-    capabilities.setdefault("memory.delete", "unavailable")
+    capabilities: dict[str, str] = {
+        "interface": "mind_shell",
+        "legacy_mind_endpoints": "internal_debug_maintenance_only",
+        "memory.facts.backfill": "internal_maintenance_only",
+    }
+    for namespace, family in COMMAND_FAMILIES.items():
+        if namespace == "help":
+            capabilities["help"] = "implemented"
+            continue
+        for action, spec in family.actions.items():
+            capabilities[f"{namespace}.{action}"] = spec.status
     return capabilities
-
-
-def _capability_key(path: str) -> str:
-    parts = [part for part in path.strip("/").split("/") if part and part != "mind"]
-    return ".".join(parts)
 
 
 def _memory_search_text(

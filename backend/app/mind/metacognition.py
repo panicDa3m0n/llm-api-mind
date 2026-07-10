@@ -8,7 +8,8 @@ from sqlmodel import select
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
 from app.mind.memory import MemoryOperationResult, MindAPIContext
-from app.mind.schema import MIND_API_ROUTES
+from app.mind.command_registry import validate_shell_command
+from app.mind.schema import shell_command_catalog
 from app.storage import repositories
 from app.storage.models import CognitiveEvent, Message, ToolCall, Trace, Turn
 
@@ -56,7 +57,7 @@ Return only one JSON object with this shape:
   "risks": [{"risk": "...", "severity": "low|medium|high", "mitigation": "..."}],
   "claim_checks": [{"claim": "...", "support": "supported|needs_evidence|unsupported|inference", "confidence": 0.0, "recommended_action": "..."}],
   "missing_evidence": ["..."],
-  "recommended_internal_actions": [{"method": "GET|POST", "path": "/mind/...", "reason": "..."}],
+  "recommended_internal_actions": [{"command": "mind shell command", "reason": "..."}],
   "reasoning_digest": "optional compact summary of previous internal reasoning",
   "drift_findings": [{"finding": "...", "severity": "low|medium|high", "evidence": "..."}],
   "open_loops": ["..."],
@@ -69,8 +70,8 @@ Return only one JSON object with this shape:
 
 Keep the object compact and operational. Prefer schema, trace, memory, fact, or
 runtime-context checks when claims depend on current backend state.
-Recommended internal actions must use exactly one route/method pair from the
-provided available_mind_api_routes list. Do not invent endpoints or methods.
+Recommended internal actions must use the provided available_mind_shell_commands
+catalog. Do not invent command families or obsolete API path language.
 
 When a retrospection_pack is provided, treat prior thinking as evidence of
 Scarlet's earlier process, not evidence that external facts are true. Use it to
@@ -247,10 +248,10 @@ def handle_metacognition_step(
             },
             cognitive_hint=(
                 "The metacognitive reviewer returned non-JSON output. Treat it "
-                "as unusable and inspect schema before retrying."
+                "as unusable and inspect shell help before retrying."
             ),
             suggested_next_actions=[
-                "Retry /mind/metacognition/step",
+                "Retry metacognition step",
                 "Continue only if the final answer can be grounded without it",
             ],
             confidence=0.4,
@@ -287,14 +288,14 @@ def handle_metacognition_step(
             "json_repair_applied": json_repair_applied,
         },
         cognitive_hint=(
-            "Use this one metacognitive result to decide whether to call other "
-            "existing API Mind routes, revise the draft, continue the loop, or "
-            "answer. Do not call separate validation/blackboard/reflection endpoints."
+            "Use this one metacognitive result to decide whether to run other "
+            "existing Mind shell commands, revise the draft, continue the loop, or "
+            "answer. Do not look for separate validation/blackboard/reflection commands."
         ),
         suggested_next_actions=[
-            "Run recommended existing Mind API actions when they reduce risk",
+            "Run recommended existing Mind shell commands when they reduce risk",
             "Revise unsupported claims before answering",
-            "Call /mind/metacognition/step again only if the next_focus_question is still unresolved",
+            "Run metacognition step again only if the next_focus_question is still unresolved",
         ],
         confidence=0.86,
     )
@@ -320,7 +321,7 @@ def _build_review_prompt(
         "turn_scope": request.turn_scope,
         "detail": request.detail,
         "retrospection_pack": retrospection_pack,
-        "available_mind_api_routes": _route_summaries(),
+        "available_mind_shell_commands": _command_summaries(),
     }
     return (
         "Review this cognitive situation for Scarlet. Return only JSON in the "
@@ -713,14 +714,18 @@ def _provider_payload(result: Any) -> dict[str, Any]:
     }
 
 
-def _route_summaries() -> list[dict[str, str]]:
+def _command_summaries() -> list[dict[str, Any]]:
     return [
         {
-            "method": str(route["method"]),
-            "path": str(route["path"]),
-            "status": str(route["status"]),
+            "namespace": str(command["namespace"]),
+            "purpose": str(command["purpose"]),
+            "status": "implemented",
+            "commands": [
+                str(item)
+                for item in command.get("commands", [])
+            ],
         }
-        for route in MIND_API_ROUTES
+        for command in shell_command_catalog()
     ]
 
 
@@ -729,52 +734,29 @@ def _normalize_recommended_actions(value: Any, limit: int) -> list[dict[str, Any
     normalized: list[dict[str, Any]] = []
     for action in actions:
         item = dict(action)
+        command = _string(item.get("command"))
         method = _string(item.get("method"))
         path = _string(item.get("path"))
-        if method is not None:
-            method = method.upper()
-            item["method"] = method
-        if path is not None and not path.startswith("/"):
-            path = f"/{path}"
-            item["path"] = path
-
-        route_match = _find_route(method=method, path=path)
-        same_path_methods = _available_methods_for_path(path)
-        if route_match is not None:
-            item["schema_status"] = str(route_match["status"])
-            item["call_is_available"] = route_match["status"] == "implemented"
-        elif same_path_methods:
-            item["schema_status"] = "wrong_method"
+        if command is None and method is not None and path is not None:
+            item["schema_status"] = "obsolete_endpoint_language"
             item["call_is_available"] = False
-            item["available_methods"] = same_path_methods
-            if len(same_path_methods) == 1:
-                item["suggested_method"] = same_path_methods[0]
+            item["suggested_action"] = "Use a mind_shell command from help instead."
         else:
-            item["schema_status"] = "unknown_route"
-            item["call_is_available"] = False
+            validation = validate_shell_command(command)
+            item["schema_status"] = validation["schema_status"]
+            item["call_is_available"] = validation["call_is_available"]
+            if validation.get("suggested_command"):
+                item["suggested_command"] = validation["suggested_command"]
+            if validation.get("suggested_action"):
+                item["suggested_action"] = validation["suggested_action"]
+            if validation.get("canonical_namespace"):
+                item["canonical_namespace"] = validation["canonical_namespace"]
+            if validation.get("canonical_action"):
+                item["canonical_action"] = validation["canonical_action"]
+            if validation.get("details"):
+                item["validation_details"] = validation["details"]
         normalized.append(item)
     return normalized
-
-
-def _find_route(method: str | None, path: str | None) -> dict[str, Any] | None:
-    if method is None or path is None:
-        return None
-    for route in MIND_API_ROUTES:
-        if route["method"] == method and route["path"] == path:
-            return route
-    return None
-
-
-def _available_methods_for_path(path: str | None) -> list[str]:
-    if path is None:
-        return []
-    return sorted(
-        {
-            str(route["method"])
-            for route in MIND_API_ROUTES
-            if route["path"] == path
-        }
-    )
 
 
 def _context_required() -> MemoryOperationResult:
@@ -795,7 +777,7 @@ def _provider_unavailable(message: str) -> MemoryOperationResult:
         result={"operation": "metacognition.step"},
         cognitive_hint="The internal LLM-backed metacognition provider is unavailable.",
         suggested_next_actions=[
-            "Inspect schema and existing memory/fact evidence directly",
+            "Use help and existing memory/fact evidence directly",
             "Continue without metacognition if the answer is low risk",
         ],
         confidence=1.0,
@@ -810,10 +792,10 @@ def _validation_error(exc: ValidationError) -> MemoryOperationResult:
         result={
             "operation": "metacognition.step",
             "validation_errors": exc.errors(),
-            "expected_schema_hint": "Call GET /mind/schema for the metacognition body_schema.",
+            "expected_schema_hint": "Use help metacognition for the command shape.",
         },
-        cognitive_hint="Retry the single metacognition endpoint with the schema body shape.",
-        suggested_next_actions=["Call GET /mind/schema", "Retry /mind/metacognition/step"],
+        cognitive_hint="Retry the single metacognition command with the documented shape.",
+        suggested_next_actions=["Use help metacognition", "Retry metacognition step"],
         confidence=1.0,
         error_code="metacognition.invalid_body",
         error_message=str(exc),

@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-06-23
-System version assessed: V1.15.0
+Last updated: 2026-07-09
+System version assessed: V1.25.4
 Status: active branch
 
 ## Filosofia del ramo
@@ -84,6 +84,23 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 - V1.15.0 aggiunge superfici interne `content_chunk_text` per content lunghi e
   endpoint `POST /mind/memory/graph` per navigare il KG da una memoria
   recuperata.
+- V1.23.0 stabilizza la distinzione tra conflitti veri e somiglianze:
+  `memory.conflicts` espone come conflitti solo divergenze tra facts atomici
+  attivi, mentre tag/token/exact-content overlap diventa `related_overlap`
+  per manutenzione e debug.
+- V1.23.0 compatta i risultati model-facing di `memory search` nella shell:
+  Scarlet riceve memorie, provenienza, facts compatti, segnali di retrieval e
+  trace id; i dump completi di embedding shadow, KG e hybrid ranking restano
+  nei trace.
+- V1.25.4 chiarisce il confine shell/endpoint: `memory.facts.backfill` resta
+  manutenzione interna per rigenerare facts e artefatti di retrieval dopo
+  cambiamenti di extractor/schema/lifecycle, non comando cognitivo normale per
+  Scarlet.
+- Il probe live corretto del 2026-07-09 conferma che la memoria automatica
+  puo recuperare preferenze cross-session senza tool manuale, ma apre bug
+  separati su temporal recall non esaustivo, alias shell per `memory write`, e
+  applicazione immediata dello stile comunicativo (`BUG-0057`, `BUG-0060`,
+  `BUG-0061`).
 - V1.13.0 introduce `CODEX_TEST` come isolamento DB per esperimenti: il backend
   puo aprire una copia seedata del DB Scarlet e usare gli stessi endpoint reali
   senza mutare il DB produzione/laboratorio.
@@ -121,7 +138,30 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.15.0.
+Sistema valutato: V1.25.4.
+
+Aggiornamento V1.25.4:
+
+- Le capability model-facing del runtime derivano dal registro `mind_shell`,
+  non dalla lista delle rotte legacy `/mind/*`.
+- `memory.facts.backfill` e marcata `internal_maintenance_only`: utile per
+  riallineare facts canonici e artefatti derivati, ma da non proporre a Scarlet
+  come comando conversazionale.
+- Il registry shell richiede ora i campi lifecycle effettivamente necessari:
+  deprecate/supersede devono includere reason, evitando che metacognition o
+  help considerino validi comandi destinati a fallire.
+
+Aggiornamento V1.23.0:
+
+- `mind_shell memory search` usa un profilo compatto model-facing per evitare
+  che diagnostica di retrieval pensata per evaluator saturi o confonda Scarlet.
+- `memory.context.conflicts` non usa piu overlap lessicale/tag come conflitto:
+  solo facts atomici divergenti arrivano come conflitti cognitivi.
+- `related_overlaps` resta disponibile come segnale di manutenzione per futuri
+  job di deduplica/update/deprecazione.
+- Hybrid ranking attenua candidati base deboli: una memoria sale in ranking
+  attivo quando il contenuto/fact/sparse/entity/tag/graph forte oppure
+  dense/rerank la supportano realmente.
 
 Aggiornamento V1.15.0:
 

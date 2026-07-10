@@ -19,6 +19,331 @@ Notes:
 
 ## Known Environment Notes
 
+## BUG-0057 - Temporal Recall Can Answer From Non-Exhaustive Session Context
+
+Date Found: 2026-07-09
+Status: open / parked
+
+Symptoms:
+
+In the corrected default-token live Scarlet probe, a human-style question about
+whether there was already a thread to resume "today" was answered from limited
+recent-session/runtime context without a `session list` temporal search.
+Scarlet later acknowledged that the earlier answer should have been treated as
+an index-level lead, not an exhaustive claim.
+
+Root Cause:
+
+Runtime context can contain useful recent-session hints, but there is not yet a
+deterministic temporal-recall mode that requires session search/open before
+answering questions about all sessions today, prior threads, start times, or
+absence/presence across a time range.
+
+Fix:
+
+Parked. Future context-pack routing should classify temporal recall as a
+specific mode and require session evidence when the claim is exhaustive or
+source-sensitive.
+
+Regression Test:
+
+Pending. Use natural prompts such as "oggi c'e gia un filo da riprendere?" in
+new and existing sessions, then verify whether Scarlet runs temporal session
+search or clearly labels the answer as partial.
+
+Related Files:
+
+- `docs/runtime-context-packs.md`
+- `docs/experiments.md`
+
+## BUG-0058 - Metacognition Recommendations Can Be Ignored Before Final Answer
+
+Date Found: 2026-07-09
+Status: open / parked
+
+Symptoms:
+
+During the corrected live probe, `metacognition step` reported that additional
+substrate evidence was needed and recommended actions such as focus/session/
+volition/affect inspection. Scarlet answered anyway instead of either running
+the recommended available commands or clearly explaining that she was stopping
+with partial evidence.
+
+Root Cause:
+
+Metacognition can validate command availability, but the chat loop does not
+enforce follow-through on `recommended_internal_actions`. The obligation lives
+mostly in prompt policy.
+
+Fix:
+
+Parked. A future source-sensitive/context-pack validator should require either
+executed recommended actions, an explicit evidence downgrade, or a traceable
+reason for not continuing.
+
+Regression Test:
+
+Pending. Use a natural high-level self-evaluation prompt that causes
+metacognition to recommend more evidence, then verify the next tool/action path.
+
+Related Files:
+
+- `backend/app/mind/metacognition.py`
+- `docs/runtime-context-packs.md`
+- `docs/experiments.md`
+
+## BUG-0059 - Self-Architecture Claims Can Overstate Capability Without Same-Turn Evidence
+
+Date Found: 2026-07-09
+Status: open / parked
+
+Symptoms:
+
+In the corrected live probe, a broad question about the GPT bridge and Scarlet's
+cognitive organs produced architecture-level claims without using same-turn API
+Mind evidence. A later corrective turn used metacognition, focus, volition, and
+memory evidence more appropriately.
+
+Root Cause:
+
+Scarlet can fluently summarize her architecture from prompt/runtime knowledge,
+but broad self-system questions are source-sensitive when they mention current
+capability, implemented organs, reliability, or project state. The router does
+not yet force a source-sensitive mode for those questions.
+
+Fix:
+
+Parked. Future context-pack routing should treat self-architecture and
+implemented-capability claims as source-sensitive unless bootstrap context
+already contains complete evidence.
+
+Regression Test:
+
+Pending. Ask natural non-technical questions about what Scarlet "really has" or
+"can actually do" and verify whether current source evidence is inspected.
+
+Related Files:
+
+- `docs/runtime-context-packs.md`
+- `docs/experiments.md`
+
+## BUG-0060 - Memory Write Prompt Aliases Drift From Shell Flags
+
+Date Found: 2026-07-09
+Status: open / parked
+
+Symptoms:
+
+In the corrected live probe, Scarlet first attempted a memory write with
+`--reason_for_storage` and `--expected_future_use`. The shell rejected the
+command as missing fields. Retrying with `--reason` and `--future-use`
+succeeded.
+
+Root Cause:
+
+Some prompt/documentation language still describes cognitive fields using
+backend/narrative names while the shell command grammar expects shorter flag
+aliases.
+
+Fix:
+
+Parked. Either add accepted shell aliases for the documented field names or
+standardize prompt/docs on the exact shell flags.
+
+Regression Test:
+
+Pending. Exercise memory write through a live Scarlet turn and direct shell
+tests with both canonical and documented aliases.
+
+Related Files:
+
+- `backend/app/mind/shell.py`
+- `backend/app/mind/command_registry.py`
+- `backend/app/prompts/scarlet_system.md`
+- `docs/api-contract.md`
+
+## BUG-0061 - Immediate Preference Application Can Miss The Requested Answer Shape
+
+Date Found: 2026-07-09
+Status: open / parked
+
+Symptoms:
+
+In the corrected live probe, after the user asked for a conclusion-first
+triage style, a follow-up application used the stored preference but answered
+with criteria/risks instead of first giving a crisp conclusion.
+
+Root Cause:
+
+The memory was retrieved and applied, but no response-shape validator enforces
+freshly stored communication preferences in the immediately following turn.
+
+Fix:
+
+Parked. Future response-shape checks or context-pack policies can verify that
+selected style preferences affect the answer when they are directly relevant.
+
+Regression Test:
+
+Pending. Store a concise answer-shape preference, ask a related task in the
+same session and a new session, and compare response ordering.
+
+Related Files:
+
+- `docs/experiments.md`
+- `docs/runtime-context-packs.md`
+
+## BUG-0026 - Mind Shell Registry Allowed Incomplete Commands
+
+Date Found: 2026-07-09
+Status: fixed
+
+Symptoms:
+
+`validate_shell_command` could report `call_is_available=true` for commands
+that the shell handler would reject as incomplete, such as
+`memory deprecate mem_fake`, `memory supersede mem_old mem_new`,
+`volition create "..."`, `focus resolve focus_fake`, or
+`volition deprecate intent_fake`. It could also suggest canonical volition
+commands with hyphens, such as `volition mark-impossible`, even though the
+handler did not accept that form.
+
+Root Cause:
+
+The command registry's lightweight parser counted flag values as positional
+arguments and did not encode all handler-required fields such as reason,
+resolution, impossible reason, or two memory ids for supersession. Registry
+canonicalization also normalized underscores to hyphens without the volition
+handler accepting those hyphenated canonical forms.
+
+Fix:
+
+Aligned registry validation with shell handlers: flag values are skipped when
+counting positional arguments, requirements can express positional counts and
+compound flag requirements, lifecycle commands require their real reason or
+resolution fields, and the shell accepts canonical hyphenated volition aliases.
+Runtime model-facing capability state now derives from the shell registry and
+marks endpoint-only maintenance operations such as `memory.facts.backfill` as
+internal.
+
+Regression Test:
+
+`tests/test_mind_shell.py` covers incomplete lifecycle commands, accepted
+canonical aliases, and dispatch of `volition mark-impossible`. `tests/test_chat_api.py`
+asserts runtime capabilities expose `interface=mind_shell` and mark
+`memory.facts.backfill` as `internal_maintenance_only`.
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/app/mind/context.py`
+- `backend/tests/test_mind_shell.py`
+- `backend/tests/test_chat_api.py`
+- `docs/api-contract.md`
+- `docs/decisions.md`
+
+## BUG-0024 - GPT Bridge Bootstrap ResponseTooLargeError
+
+Date Found: 2026-07-08
+Status: fixed
+
+Symptoms:
+
+Calling `bootstrapScarletTurn` from ChatGPT GPT Actions against
+`honeylabs.cloud` fails with `ResponseTooLargeError`. The GPT does not receive
+usable `session_id` / `turn_id`, so it cannot continue to action/finalize.
+
+Root Cause:
+
+`POST /gpt/bootstrap` returned a full debug-oriented context packet, including
+the effective system prompt, base system prompt, raw runtime payload, raw
+memory query plan, full provider messages, and retrieval graph/shadow/hybrid
+diagnostics. A local reproduction measured roughly 418 KB JSON chars, with the
+largest sections being raw memory context/query plan and prompt copies. This is
+too large for ChatGPT Actions.
+
+Fix:
+
+Changed bootstrap to return `gpt-bootstrap-compact-v1`: the model-facing
+runtime context, compact runtime summary, compact memory packet, optional
+metacognitive summary, recent provider-message summary, endpoint hints, and
+trace ids for full diagnostics. Full debug payloads remain persisted in backend
+traces.
+
+Regression Test:
+
+`tests/test_gpt_bridge.py` asserts bootstrap omits `system`, `base_system`, and
+`runtime_payload`, includes `gpt-bootstrap-compact-v1`, and keeps a normal test
+bootstrap below 120 KB.
+
+Related Files:
+
+- `backend/app/plugins/gpt_bridge/router.py`
+- `backend/tests/test_gpt_bridge.py`
+- `backend/app/plugins/gpt_bridge/knowledge/02_runtime_context_contract.md`
+- `backend/app/plugins/gpt_bridge/openapi_gpt_action.json`
+
+Notes:
+
+This fix intentionally does not change local MiniMax runtime context or trace
+capture. It only separates model-facing GPT Action output from backend debug
+diagnostics. V1.24.2 was deployed to the VPS and public bootstrap/action/
+finalize smoke tests passed against `https://honeylabs.cloud`.
+
+## BUG-0025 - Preview Docker Build Lost Remote-Only Dockerfile And Packaged Data
+
+Date Found: 2026-07-08
+Status: fixed
+
+Symptoms:
+
+During the V1.25.0 VPS deploy, `docker compose build scarlet-api` first failed
+because `/opt/scarlet-mobile-test/backend/Dockerfile` had been removed by the
+code sync. After adding the Dockerfile, the build failed again during
+`pip install .` with:
+
+```txt
+Multiple top-level packages discovered in a flat-layout: ['app', 'data'].
+```
+
+Root Cause:
+
+The preview Dockerfile existed only on the VPS, not in the repository. The
+rsync deploy used `--delete`, so it removed the remote-only Dockerfile. The
+backend also relied on setuptools automatic package discovery; when runtime
+`data/` was present in the Docker build context, setuptools treated it as a
+second top-level package.
+
+Fix:
+
+Added repository-tracked `backend/Dockerfile` and `backend/.dockerignore`, and
+configured setuptools package discovery explicitly with:
+
+```toml
+[tool.setuptools.packages.find]
+include = ["app*"]
+```
+
+Regression Test:
+
+The V1.25.0 VPS Docker build completed and produced
+`llm-api-mind-backend-1.25.0`. Local GPT bridge regression tests passed after
+the packaging change.
+
+Related Files:
+
+- `backend/Dockerfile`
+- `backend/.dockerignore`
+- `backend/pyproject.toml`
+- `docs/activity-log.md`
+
+Notes:
+
+The `.dockerignore` also keeps runtime databases out of the image build
+context. The compose mount still provides `/app/data` from the remote
+`backend/data` directory at runtime.
+
 ### ENV-0001 - Repository Not Initialized As Git
 
 Date Found: 2026-05-08  
@@ -231,6 +556,113 @@ Notes:
 SQLite is a binary file. If multiple machines write state independently, Git may need a manual "which database wins" decision.
 
 ## Implementation Bugs
+
+## BUG-0052 - Tag/Token Overlap Reported As Active Memory Conflict
+
+Date Found: 2026-07-08
+Status: fixed in V1.23.0
+
+Symptoms:
+
+`memory conflicts` could return large lists of active "conflicts" where the
+only evidence was broad tag/token overlap, for example shared words such as
+generic user/project terms. Scarlet then treated maintenance similarity as
+possible contradiction.
+
+Root Cause:
+
+The conflict detector conflated two different concepts: atomic factual
+incompatibility and semantic relatedness/duplicate candidates. The fallback
+`tag_token` branch promoted related memories into the same `conflicts` list as
+true fact conflicts.
+
+Fix:
+
+V1.23.0 narrows active conflicts to atomic fact divergence. Similar memories
+are now returned as `related_overlaps` for maintenance/debug, not as
+contradictions. Runtime memory context also surfaces only atomic fact
+conflicts.
+
+Regression Test:
+
+- `test_mind_memory_atomic_facts_support_alias_query_and_conflicts`
+- `test_mind_memory_lifecycle_supersedes_and_deprecates_conflict`
+
+Related Files:
+
+- `backend/app/mind/memory.py`
+- `backend/app/mind/context.py`
+- `backend/tests/test_mind_api.py`
+
+## BUG-0053 - Metacognition Validated Commands By Namespace Only
+
+Date Found: 2026-07-08
+Status: fixed in V1.23.0
+
+Symptoms:
+
+The internal metacognition reviewer could recommend commands such as
+`memory inspect --kind=conflict --sample=20` or `focus get` and mark them
+available only because the first command token was a known family.
+
+Root Cause:
+
+`_normalize_recommended_actions` checked only command family names. It did not
+validate action availability, aliases, required arguments, planned commands, or
+unavailable-by-design commands.
+
+Fix:
+
+Added `backend/app/mind/command_registry.py` and routed metacognition
+recommended actions through full command validation.
+
+Regression Test:
+
+- `test_mind_metacognition_step_is_traceable`
+- `test_mind_shell_memory_unavailable_action_is_classified`
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/metacognition.py`
+- `backend/app/mind/shell.py`
+- `backend/tests/test_mind_api.py`
+- `backend/tests/test_mind_shell.py`
+
+## BUG-0054 - Shell Memory Results Returned Developer Diagnostics To Model
+
+Date Found: 2026-07-08
+Status: fixed in V1.23.0
+
+Symptoms:
+
+Real command-shell turns could send very large memory search/conflict payloads
+back to MiniMax M3. The largest observed tool results were dominated by
+`retrieval_shadow`, `retrieval_graph`, `retrieval_hybrid`, and repeated full
+memory payloads.
+
+Root Cause:
+
+The initial `mind_shell` wrapper sanitized endpoint results but did not separate
+model-facing evidence from trace/debug diagnostics.
+
+Fix:
+
+V1.23.0 adds compact model-facing shell packets for `memory search` and
+`memory conflicts`. Full diagnostics remain in trace payloads for dev/UI
+inspection.
+
+Regression Test:
+
+- `test_mind_shell_memory_write_and_search_use_command_arguments`
+- `test_mind_memory_search_hybrid_prefers_direct_content_over_broad_overlap`
+
+Related Files:
+
+- `backend/app/mind/shell.py`
+- `backend/app/mind/memory.py`
+- `backend/tests/test_mind_shell.py`
+- `backend/tests/test_mind_api.py`
 
 ## BUG-0048 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
 

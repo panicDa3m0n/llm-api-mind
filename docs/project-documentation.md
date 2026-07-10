@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-06-19
-App baseline: V1.13.0
+Last updated: 2026-07-09
+App baseline: V1.25.4
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -46,6 +46,9 @@ discussed before a new fix is attempted.
 - `docs/experiments.md`: hypotheses, live probes, and results.
 - `docs/api-contract.md`: implemented and planned API contracts.
 - `docs/block-registry.md`: runtime/model/UI block map for Scarlet turns.
+- `docs/runtime-context-packs.md`: planning baseline for always-on context
+  spine, mode packs, organ/source classification, and future embodied runtime
+  routing.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: project-visible change history.
 

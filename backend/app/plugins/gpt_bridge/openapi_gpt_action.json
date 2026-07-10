@@ -1,0 +1,273 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Scarlet GPT Bridge",
+    "version": "1.25.4",
+    "description": "Minimal GPT Actions schema for an external ChatGPT GPT to bootstrap Scarlet context, execute Mind shell commands, and finalize answers back into Scarlet history."
+  },
+  "servers": [
+    {
+      "url": "https://honeylabs.cloud",
+      "description": "HoneyLabs Scarlet preview VPS"
+    }
+  ],
+  "security": [
+    {
+      "GPTBridgeKey": []
+    }
+  ],
+  "paths": {
+    "/gpt/bootstrap": {
+      "post": {
+        "operationId": "bootstrapScarletBeforeEveryAnswer",
+        "summary": "REQUIRED before every Scarlet answer",
+        "description": "REQUIRED first action before every answer, including greetings and simple messages. Creates/resumes the Scarlet session, stores the user message, and returns session_id, turn_id, runtime context, memory, history, focus, affect, and tool context.",
+        "security": [
+          {
+            "GPTBridgeKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BootstrapRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Compact Scarlet turn context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BootstrapResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gpt/action": {
+      "post": {
+        "operationId": "runScarletMindAction",
+        "summary": "REQUIRED for memory, sessions, evidence, and state",
+        "description": "Use after bootstrap whenever the answer needs memory, prior sessions, facts, source checks, time ranges, project state, focus, affect, metacognition, command help, or evidence not fully present in bootstrap context.",
+        "security": [
+          {
+            "GPTBridgeKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mind shell command response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActionResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/gpt/finalize": {
+      "post": {
+        "operationId": "finalizeScarletBeforeAnswer",
+        "summary": "REQUIRED before showing final answer",
+        "description": "REQUIRED before the visible answer. Stores Scarlet's final answer, completes the turn, and returns final_answer_to_show. Output final_answer_to_show verbatim when present.",
+        "security": [
+          {
+            "GPTBridgeKey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinalizeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Turn finalized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalizeResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "GPTBridgeKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-GPT-Bridge-Key"
+      }
+    },
+    "schemas": {
+      "BootstrapRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["message"],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "Exact user message received by the GPT."
+          },
+          "session_id": {
+            "type": "string",
+            "description": "Existing Scarlet session id from a previous bootstrap. Omit for a new session."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional title for a new bridge-backed session."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional external GPT metadata for audit/debug."
+          }
+        }
+      },
+      "ActionRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["session_id", "turn_id", "command", "intent"],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session id returned by bootstrap."
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "Turn id returned by bootstrap for the current user message."
+          },
+          "command": {
+            "type": "string",
+            "description": "Mind shell command, such as help, memory search, session open, focus read, affect read, or metacognition step."
+          },
+          "intent": {
+            "type": "string",
+            "description": "Short reason why this cognitive action is useful now."
+          }
+        }
+      },
+      "FinalizeRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["session_id", "turn_id", "answer"],
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "description": "Session id returned by bootstrap."
+          },
+          "turn_id": {
+            "type": "string",
+            "description": "Turn id returned by bootstrap for the current user message."
+          },
+          "answer": {
+            "type": "string",
+            "description": "Exact final answer draft that Scarlet wants to show to the user after finalize succeeds."
+          },
+          "metadata": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional external GPT metadata for audit/debug."
+          }
+        }
+      },
+      "BootstrapResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["ok", "session_id", "turn_id", "context", "required_next_steps"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "session_id": {
+            "type": "string",
+            "description": "Scarlet session id to reuse in the next bootstrap and in all action/finalize calls for this turn."
+          },
+          "session": { "type": "object", "additionalProperties": true },
+          "turn_id": {
+            "type": "string",
+            "description": "Current turn id. Must be used for runScarletMindAction and finalizeScarletBeforeAnswer."
+          },
+          "user_message": { "type": "object", "additionalProperties": true },
+          "context": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Compact gpt-bootstrap-compact-v1 context. Use runtime_context, memory_context, provider_messages_recent, and full_diagnostics trace ids."
+          },
+          "required_next_steps": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Required next steps for this GPT-hosted turn, normally including finalizeScarletBeforeAnswer before the visible answer."
+          },
+          "action_policy": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Optional cognitive action policy for this turn, including whether further API Mind action is required before answering."
+          },
+          "required_actions": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true },
+            "description": "Optional API Mind actions Scarlet must run before answering."
+          },
+          "recommended_actions": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true },
+            "description": "Optional suggested API Mind actions for grounding the answer."
+          }
+        }
+      },
+      "ActionResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "ok": { "type": "boolean" },
+          "session_id": { "type": "string" },
+          "turn_id": { "type": "string" },
+          "response": { "type": "object", "additionalProperties": true }
+        }
+      },
+      "FinalizeResponse": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["ok", "status", "final_answer_to_show"],
+        "properties": {
+          "ok": { "type": "boolean" },
+          "status": { "type": "string" },
+          "final_answer_to_show": {
+            "type": "string",
+            "description": "The exact answer Scarlet must show to the user after finalize. Output this verbatim."
+          },
+          "assistant_message": { "type": "object", "additionalProperties": true },
+          "already_finalized": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

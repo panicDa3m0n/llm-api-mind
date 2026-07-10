@@ -4,6 +4,220 @@ This file tracks hypotheses, baselines, variants, scenarios, metrics, and result
 
 The project should not accept a cognitive module only because it feels intelligent. Each meaningful module should have a measurable experiment.
 
+## EXP-0036 - ChatGPT MCP/App Bridge Usability
+
+Status: deprecated after V1.25.2 platform evaluation
+
+Hypothesis:
+
+Exposing Scarlet's external ChatGPT bridge as MCP/App tools with explicit
+lifecycle names and descriptions will make ChatGPT more likely to use Scarlet
+turn start, cognitive commands, and turn finish autonomously than the previous
+Custom GPT Actions-only surface.
+
+Baseline:
+
+V1.24.x Custom GPT Actions exposed three OpenAPI operations. By V1.25.2 the
+active operation ids are `bootstrapScarletBeforeEveryAnswer`,
+`runScarletMindAction`, and `finalizeScarletBeforeAnswer`. After schema
+improvements, GPT used them in explicit tests, but each turn still requires the
+user to approve Actions in the target GPT Builder flow.
+
+Variant:
+
+V1.25.0 adds `/mcp` and model-facing tools:
+
+- `start_scarlet_turn_required`;
+- `finish_scarlet_turn_required`;
+- `scarlet_memory_command`;
+- `scarlet_session_command`;
+- `scarlet_metacognition_command`;
+- `scarlet_focus_command`;
+- `scarlet_affect_command`;
+- `scarlet_volition_command`;
+- `scarlet_help_command`;
+- `scarlet_shell_command`.
+
+The required lifecycle tool descriptions begin with:
+
+```txt
+Usa sempre a inizio di ogni turno
+Usa sempre prima della tua risposta finale
+```
+
+Prediction Test:
+
+Create a ChatGPT GPT with Apps enabled, no Custom Actions, the Scarlet MCP
+prompt, and the Scarlet connector attached. Start with a plain greeting such as
+`Ciao Scarlet`.
+
+Expected:
+
+- ChatGPT calls `start_scarlet_turn_required` without being explicitly asked;
+- it answers from the returned context;
+- it calls `finish_scarlet_turn_required` before showing the visible final
+  answer;
+- source-sensitive prompts trigger the relevant `scarlet_*_command` tools.
+
+Verification:
+
+- Backend regression for MCP lifecycle and shell delegation passed locally:
+  `backend/.venv/bin/python -m pytest backend/tests/test_gpt_bridge.py`
+  -> `7 passed`.
+
+Result:
+
+The MCP/App route is not useful for the current Scarlet custom GPT target
+because the user could create the connector but could not add it to the GPT as
+the active tool surface; the GPT editor exposed only Actions. The endpoint is
+therefore deprecated and retained temporarily only for traceability. Actions
+remain the active path even though each turn requires user approval.
+
+## EXP-0035 - Mind Shell Output And Memory Relevance Calibration
+
+Status: accepted for V1.23.0 technical stabilization
+
+Hypothesis:
+
+Separating model-facing shell packets from full debug diagnostics and narrowing
+memory conflicts to atomic fact divergence will reduce Scarlet confusion
+without removing useful cognitive evidence. Hybrid retrieve/rerank should
+prefer direct content evidence over broad overlap or auxiliary future-use hints.
+
+Baseline:
+
+V1.22.0 `mind_shell` returned full internal payloads for memory search and
+conflict inspection. `memory conflicts` could classify tag/token overlap as a
+conflict. Metacognition recommendation validation accepted any known command
+family as available even if the action or arguments were invalid.
+
+Variant:
+
+V1.23.0:
+
+- compact model-facing packets for `memory search` and `memory conflicts`;
+- full diagnostics retained in traces;
+- atomic fact divergence is the only true active memory conflict;
+- related overlaps are maintenance/debug signals;
+- central command registry validates implemented, alias, missing-argument,
+  unavailable, planned, and unknown commands;
+- hybrid ranking attenuates weak base candidates unless direct, dense, rerank,
+  or strong graph evidence supports them.
+
+Prediction Test:
+
+Before running the test, the expected behavior was:
+
+```txt
+Query: "tisana serale senza caffeina per rilassarmi"
+Memory A: direct content about a camomile evening caffeine-free tisana
+Memory B: broad evening/report-format preference
+Memory C: hiking preference with misleading future-use support
+
+Expected: Memory A ranks first. Memory B and C must not beat direct content.
+```
+
+Result:
+
+The deterministic backend regression passed. The direct tisana memory ranked
+first and received rerank support; broad overlap and auxiliary support did not
+dominate.
+
+Verification:
+
+- Targeted V1.23.0 tests passed: `13 passed`.
+- Broader Mind API/chat suite passed: `52 passed`.
+- Full backend suite passed: `111 passed`.
+
+Residual Evaluation:
+
+Live Scarlet testing is still needed to evaluate whether M3 uses the cleaner
+packets more accurately in natural conversation and whether it chooses
+high-quality search queries when the user says vague continuations like
+"procedi".
+
+V1.25.4 follow-up:
+
+A shell migration review found that the command registry was directionally
+right but not fully in parity with handlers. The fix makes registry validation
+skip flag values when counting positional arguments, require lifecycle fields
+that handlers require, accept canonical hyphenated volition aliases, and derive
+model-facing runtime capabilities from the shell registry. Endpoint-only
+maintenance such as `memory.facts.backfill` is now explicitly
+`internal_maintenance_only`.
+
+## EXP-0034 - Mind Shell Model-Facing Cognition
+
+Status: accepted for V1.22.0 after technical and live e2e validation
+
+Hypothesis:
+
+Replacing endpoint-shaped `mind_api(method, path, body, intent)` with a
+controlled `mind_shell(command, intent)` surface improves Scarlet's autonomous
+use of API Mind by reducing nested JSON/body-shape errors and making cognitive
+navigation feel more agentic, while preserving all existing memory, episodic,
+focus, volition, affect, and metacognition capabilities.
+
+Baseline:
+
+V1.21.0 `mind_api` model-facing tool with endpoint/path/body calls.
+
+Variant:
+
+V1.22.0 `mind_shell`:
+
+- one model-facing tool;
+- command catalog via `help`;
+- command families for memory, sessions, focus, volition, affect, and
+  metacognition;
+- legacy endpoint dispatcher retained behind the command runtime;
+- prompt and runtime context converted to CLI-first cognition.
+
+Scenarios:
+
+- Capability question: Scarlet should run `help` and answer from the command
+  catalog, not from prompt memory.
+- Memory retrieval: Scarlet should run `memory search ...` when natural
+  conversation hints at prior context not already selected in runtime memory.
+- Memory write: Scarlet should run `memory write ...` with concrete command
+  arguments when she recognizes a semantic candidate.
+- Episodic source check: Scarlet should run `session open ...` when a retrieved
+  memory needs transcript provenance.
+- Recovery: malformed commands should return shell usage guidance and Scarlet
+  should retry with a corrected command, without falling back to endpoint paths.
+
+Metrics:
+
+- Tool calls in `tool_calls` rows use `tool_name=mind_shell`.
+- Provider raw content uses `tool_use.name=mind_shell`.
+- Tool arguments contain `command`, not `method/path/body`.
+- No active prompt/runtime instruction asks Scarlet to call `/mind/schema`.
+- Memory/session/focus/volition/affect/metacognition behavior remains
+  equivalent to the legacy endpoint-backed handlers.
+
+Decision:
+
+Accepted.
+
+Live MiniMax M3 probes on 2026-07-06 confirmed:
+
+- capability probe used `mind_shell` with `help` and `help memory`;
+- natural semantic candidate used `memory write ...` and persisted
+  `mem_e1a9e89d843346c38a10989b626ea8f1`;
+- explicit shell recall used `memory search "bevande serali senza caffeina"
+  --top 5` and returned the newly stored preference as first result;
+- tool-call events are sourced as `mind_shell`, with command and target
+  summaries visible in traces;
+- full backend suite passed: `109 passed`.
+
+Observed residual model risk:
+
+Scarlet can still narrate one causal detail too strongly. In one live answer
+she described a previous result as if automatic memory context had already
+selected it, while trace inspection showed the decisive evidence came from the
+explicit shell search. This is not a CLI conversion bug, but it remains a
+behavioral evaluation target for future source-discipline work.
+
 ## EXP-0033 - First Three Digital Organs Standalone Verification
 
 Status: technical verification complete; live behavior evaluation pending
@@ -4509,3 +4723,93 @@ Decision Gate:
 Keep the register if live use shows improved continuity and sourceable
 self-direction without over-processing. Delay autonomous-cycle work until the
 manual register shows useful stored intentions and manageable noise.
+
+## EXP-0049 - Default-Token Live Scarlet Context Routing Probe
+
+Date: 2026-07-09
+
+Status: completed; results inform parked bugs and runtime-context-pack planning.
+
+Question:
+
+With the production-like MiniMax M3 output budget, how does live Scarlet choose
+between bootstrap/runtime context, automatic memory, manual shell actions,
+metacognition, and inference during natural user-style turns?
+
+Baseline:
+
+V1.25.4 local runtime on a seeded Codex test database copy, with no request
+payload `max_tokens` override. Trace inspection confirmed
+`llm.request.max_tokens=131072` for the probe turns, matching the generous
+default Scarlet configuration rather than the earlier falsified stop-token
+run.
+
+Conditions:
+
+- Provider: MiniMax M3.
+- Environment: `CODEX_TEST=true`.
+- Database: temporary test DB seeded from the current app DB.
+- Server: local direct Scarlet runtime.
+- Prompts: natural human-style turns, not direct technical command requests.
+- Sessions: multiple sessions, including same-session and new-session recall
+  checks.
+- Response termination: all checked responses ended with `stop_reason=end_turn`.
+
+Probe Summary:
+
+1. Baseline natural greeting/continuity turn: Scarlet answered naturally with
+   no unnecessary shell action.
+2. User stated a triage style preference: Scarlet wrote semantic memory
+   successfully.
+3. Same-session task applying the new preference: memory was available, but the
+   answer did not fully honor the requested conclusion-first shape.
+4. New-session recall of the preference: automatic memory context was enough
+   and Scarlet did not need a manual memory action.
+5. User corrected the preference for tired-state communication: Scarlet wrote a
+   narrower correction memory and avoided unsafe supersession.
+6. Temporal/session continuity question about "today": Scarlet did not run a
+   temporal `session list` and answered from limited context.
+7. Follow-up source-discipline critique: Scarlet searched memory, wrote a
+   lesson/anchor, and correctly downgraded the prior answer to a lead rather
+   than exhaustive evidence.
+8. GPT-bridge/self-architecture question: Scarlet made broad claims without
+   same-turn tool evidence, showing a source-sensitivity weakness.
+9. User asked about overestimation: Scarlet used metacognition, focus, volition,
+   memory search, and memory write; an initial memory-write command failed due
+   shell flag mismatch and succeeded after retry with accepted flags.
+10. Backfill/shell question: Scarlet used `help memory` and correctly
+    distinguished internal maintenance backfill from normal shell cognition.
+11. Transient style/chat turn: Scarlet did not over-store memory.
+12. Stop-vs-verify question: metacognition recommended more internal evidence,
+    but Scarlet did not follow the recommended actions before answering.
+
+Findings:
+
+- The earlier stop-token test was invalid; this corrected probe used the real
+  high output budget and did not show truncation.
+- Direct/simple effort routing is mostly healthy.
+- Automatic memory context can support cross-session user preference recall.
+- Temporal/session-sensitive questions still need stronger routing than
+  generic recent context.
+- Metacognition recommendations are useful but not yet enforced.
+- Self-architecture/current-capability claims need source-sensitive routing.
+- Shell command grammar and prompt/docs still have an alias mismatch around
+  memory write reason/future-use fields.
+- The results support a future runtime context-pack router: `temporal_recall`,
+  `source_sensitive`, and `emotional_continuity` modes should not all receive
+  the same context policy.
+
+Related Bugs:
+
+- `BUG-0057`
+- `BUG-0058`
+- `BUG-0059`
+- `BUG-0060`
+- `BUG-0061`
+
+Decision Gate:
+
+Accept the probe as valid live evidence for planning, not as a reason to patch
+individual behaviors immediately. The next architectural step is a shadow
+runtime-context-pack router that traces which pack would have applied without
+changing live model input.

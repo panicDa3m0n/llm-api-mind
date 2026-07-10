@@ -1,7 +1,7 @@
 # Branch: Operazioni E Funzioni Avanzate
 
-Last updated: 2026-05-25  
-System version assessed: V1.0.1  
+Last updated: 2026-07-09
+System version assessed: V1.25.4
 Status: planned branch
 
 ## Filosofia del ramo
@@ -17,9 +17,12 @@ agire; le operazioni sono le azioni specifiche disponibili.
 ## Evidenze
 
 - Oggi il set di operazioni reali di Scarlet dentro API Mind e limitato a
-  memoria, sessioni, schema e metacognizione.
+  memoria, sessioni, focus, volition, affect, shell help e metacognizione.
 - Il progetto vuole soluzioni innovative oltre le best practice comuni, ma solo
   se misurabili e non caotiche.
+- V1.26.0 planning richiede che ogni nuova funzione avanzata dichiari il suo
+  costo di contesto, la modalita operativa, la policy di degradazione e gli
+  organi da cui dipende prima di diventare model-facing.
 
 ## Stato attuale
 
@@ -29,14 +32,16 @@ Le operazioni avanzate sono per lo piu un ramo futuro. L'infrastruttura
 necessaria sta emergendo, ma non esiste ancora una suite di funzioni avanzate
 esterne o specialistiche per Scarlet.
 
-Sistema valutato: V1.0.1.
+Sistema valutato: V1.25.4.
 
 ## Sviluppi precedenti
 
-- Mind API come superficie unica.
+- Mind shell come superficie model-facing unica.
 - Schema discovery.
 - Endpoint-local usage guides.
 - Runtime events e dashboard per osservare azioni.
+- Context-pack planning per evitare che funzioni avanzate, diagnostica e
+  futuri sensori finiscano tutti nello stesso contesto live.
 
 ## Evolutive
 
@@ -46,3 +51,5 @@ Sistema valutato: V1.0.1.
 - Tool specializzati per ricerca, analisi, data management.
 - Operazioni cognitive avanzate: graph reasoning, memory compaction, self-review
   batch, evaluator interne.
+- Router context-pack in shadow mode prima di introdurre funzioni che richiedono
+  blocchi costosi o coupled.

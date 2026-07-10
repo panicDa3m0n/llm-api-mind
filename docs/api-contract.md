@@ -79,11 +79,391 @@ The contract still needs per-route `agent_supplied_fields` and
 `backend_owned_fields` metadata in `/mind/schema`, plus sanitization for
 backend-owned fields if the model sends them inside free-form metadata.
 
+## Model-Facing API Mind Tool
+
+Status: implemented in V1.22.0, stabilized in V1.23.0, capability boundary
+aligned in V1.25.4
+
+Scarlet's active model-facing API Mind surface is now:
+
+```txt
+mind_shell(command, intent)
+```
+
+The command string is a controlled cognitive CLI, not a real operating-system
+shell. It is the language Scarlet uses to operate her internal cognition.
+Legacy `/mind/*` HTTP endpoints remain available for backend/debug
+compatibility, tests, and rollback, but they are no longer the active model
+tool contract.
+
+Implemented command families:
+
+```txt
+help
+memory
+session
+focus
+volition
+affect
+metacognition
+```
+
+Examples:
+
+```txt
+help
+help memory
+memory search "cioccolato limite alimentare" --top 5
+memory write --type user_preference --scope user --content "..." --reason "..."
+memory graph mem_... --depth 2
+session list --query "ieri memoria" --limit 5
+session open ses_... --limit 200
+focus read
+volition list active --limit 10
+affect prototypes
+metacognition step --objective "check source-sensitive claim" --mode critic
+```
+
+Successful shell responses wrap existing cognitive operation results inside a
+command envelope:
+
+```json
+{
+  "ok": true,
+  "result": {
+    "operation": "mind_shell.command",
+    "command": "memory search \"query\" --top 5",
+    "parsed": {},
+    "target": "memory.search",
+    "data": {}
+  },
+  "cognitive_hint": "...",
+  "suggested_next_actions": [],
+  "confidence": 1.0,
+  "trace_id": "trace_..."
+}
+```
+
+From V1.23.0, noisy commands may return a compact model-facing packet rather
+than the full internal endpoint result. The complete diagnostic result remains
+available in traces.
+
+Examples:
+
+- `memory search` model-facing results keep memory ids, content, provenance,
+  compact facts, query-time scores, concise graph/hybrid/rerank signals,
+  trace ids, and a list of omitted debug sections. Full
+  `retrieval_shadow`, `retrieval_graph`, and `retrieval_hybrid` payloads stay
+  in `mind.memory.search` traces.
+- `memory conflicts` model-facing results return true atomic conflicts plus a
+  compact sample of `related_overlaps`. Related overlaps are maintenance
+  signals, not contradictions.
+- `session open` includes `message_window`, `returned_message_count`,
+  `message_limit`, and `has_more_messages` so a limited transcript window is
+  explicit.
+
+Output audiences:
+
+```txt
+model-facing packet -> Scarlet cognition during the current tool loop
+trace payload        -> developer/debug/UI technical detail
+UI rendering         -> free to use either packet or trace depending on view
+```
+
+Model-facing capability state is derived from the shell command registry.
+Legacy `/mind/*` route status must not be treated as Scarlet's current command
+surface. Endpoint routes remain internal/debug/maintenance contracts unless a
+shell command explicitly wraps them. For example,
+`memory.facts.backfill=internal_maintenance_only` means the backend can run the
+fact backfill route, but Scarlet should not treat it as a normal shell command.
+
+Recoverable errors return shell usage guidance:
+
+```json
+{
+  "ok": false,
+  "result": {
+    "operation": "mind_shell.command",
+    "schema": {
+      "schema_command": "help"
+    }
+  },
+  "usage_guide": {
+    "commands": [],
+    "retry_guidance": "Use one concise command string..."
+  },
+  "error": {
+    "code": "shell.memory_write_missing_fields",
+    "recoverable": true
+  }
+}
+```
+
 ## Planned Chat And Debug API
 
 ```txt
 GET  /api/debug/state/{session_id}
 ```
+
+## External GPT Bridge API
+
+Status: implemented in V1.24.0, GPT Builder packaging added in V1.24.1,
+bootstrap response compacted in V1.24.2, mandatory prompt protocol reinforced
+in V1.24.3, experimental MCP/App bridge added in V1.25.0, GPT Actions
+operation ids and finalize output aligned in V1.25.2, GPT Builder schema
+parity for top-level `session_id` and required action `intent` added in
+V1.25.3. MCP/App is deprecated for the target Custom GPT flow and retained
+temporarily for traceability.
+
+Purpose:
+
+Allow an external ChatGPT GPT to use Scarlet's cognitive runtime without
+replacing the local Scarlet/MiniMax standalone flow.
+
+The bridge is a plugin layer. It does not change the active local model-facing
+contract (`mind_shell`) and does not remove legacy/debug `/mind/*` endpoints.
+
+GPT Builder assets:
+
+```txt
+backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md
+backend/app/plugins/gpt_bridge/scarlet_mcp_system_prompt.md
+backend/app/plugins/gpt_bridge/knowledge/
+backend/app/plugins/gpt_bridge/openapi_gpt_action.json
+```
+
+The compact prompt is kept under the GPT instruction-size limit and contains
+only non-negotiable identity, bridge, API Mind, memory, runtime-context, and
+metacognitive rules. Extended Scarlet policy lives in attached knowledge files.
+The OpenAPI file is not a new runtime capability; it is the minimal Actions
+schema that lets the GPT Builder understand the three bridge endpoints and the
+`X-GPT-Bridge-Key` header.
+
+The MCP prompt is the deprecated companion prompt for a ChatGPT GPT configured
+with Apps / Connectors instead of Custom GPT Actions. Platform testing showed
+the target GPT Builder flow exposes Actions rather than letting this connector
+be attached as the active custom GPT surface. A GPT can use Actions or Apps,
+not both in the same GPT configuration.
+
+Bootstrap response profile:
+
+`POST /gpt/bootstrap` returns `context.profile=gpt-bootstrap-compact-v1`. The
+action response includes the model-facing `<runtime_context>`, compact memory
+packet, runtime summary, recent provider-message summary, action endpoints, and
+trace ids. Full effective prompt, base prompt, raw runtime payload, raw memory
+query plan, full provider messages, and retrieval debug diagnostics are
+trace-only to avoid ChatGPT Actions response-size failures.
+
+Authentication:
+
+Set `GPT_BRIDGE_API_KEY` outside local development. Requests may authenticate
+with either:
+
+```txt
+Authorization: Bearer <key>
+X-GPT-Bridge-Key: <key>
+```
+
+Turn protocol:
+
+```txt
+1. POST /gpt/bootstrap  -> required at the start of every external GPT turn.
+2. POST /gpt/action     -> execute any needed mind_shell command.
+3. POST /gpt/finalize   -> required before the GPT shows the final answer.
+```
+
+GPT Actions operation ids:
+
+```txt
+bootstrapScarletBeforeEveryAnswer
+runScarletMindAction
+finalizeScarletBeforeAnswer
+```
+
+The compact GPT Builder prompt treats bootstrap/finalize as mandatory for every
+user message, not only for technical or memory-sensitive turns. `/gpt/action`
+is required whenever the GPT needs API Mind information or state operations.
+
+Deprecated MCP/App turn protocol:
+
+```txt
+1. start_scarlet_turn_required  -> required at the start of every user turn.
+2. scarlet_*_command tools      -> execute needed mind_shell commands.
+3. finish_scarlet_turn_required -> required before the GPT shows the answer.
+```
+
+The MCP lifecycle tool descriptions intentionally begin with exact Italian
+obligation phrases for ChatGPT model selection:
+
+```txt
+Usa sempre a inizio di ogni turno
+Usa sempre prima della tua risposta finale
+```
+
+`POST /gpt/bootstrap`
+
+Input:
+
+```json
+{
+  "message": "Full user message from ChatGPT",
+  "session_id": "ses_optional_existing_session",
+  "title": "Optional session title",
+  "metadata": {}
+}
+```
+
+Behavior:
+
+- creates a session if `session_id` is omitted;
+- creates a turn;
+- persists the user message;
+- builds memory context, runtime context, metacognitive context when enabled,
+  and provider history exactly through the same internal builders used by the
+  local chat runtime;
+- records `llm.request`, memory/runtime traces, and events;
+- does not call MiniMax.
+
+Output includes:
+
+```json
+{
+  "ok": true,
+  "session_id": "ses_...",
+  "session": {},
+  "turn_id": "turn_...",
+  "user_message": {},
+  "model": "external-gpt",
+  "context": {
+    "profile": "gpt-bootstrap-compact-v1",
+    "runtime_context": "<runtime_context>...",
+    "runtime_payload_summary": {},
+    "memory_context": {
+      "profile": "memory-packet-v1"
+    },
+    "metacognitive_context": {},
+    "provider_messages_recent": [],
+    "tools": [],
+    "endpoints": {
+      "mind_shell_action": "POST /gpt/action",
+      "finalize": "POST /gpt/finalize"
+    },
+    "full_diagnostics": {
+      "available_in_trace_ids": []
+    }
+  },
+  "required_next_steps": []
+}
+```
+
+`POST /gpt/action`
+
+Input:
+
+```json
+{
+  "session_id": "ses_...",
+  "turn_id": "turn_...",
+  "command": "memory search \"...\" --top 5",
+  "intent": "Why this action is useful now."
+}
+```
+
+Behavior:
+
+- executes the command through `dispatch_mind_shell`;
+- records `mind.tool_call` trace and matching runtime events;
+- returns the same compact model-facing shell response local Scarlet would get.
+- requires `intent` so every GPT-hosted cognitive command carries a short
+  public reason for traceability.
+
+`POST /gpt/finalize`
+
+Input:
+
+```json
+{
+  "session_id": "ses_...",
+  "turn_id": "turn_...",
+  "answer": "Exact final answer shown to the user.",
+  "metadata": {}
+}
+```
+
+Behavior:
+
+- persists the external GPT final answer as the assistant message;
+- records `llm.response` and content events;
+- updates `provider_history_json` so future turns keep conversation continuity;
+- completes the turn and schedules idle maintenance when enabled.
+- returns `final_answer_to_show`, which is the exact text the GPT should show
+  verbatim after finalize succeeds.
+
+Skipping finalize is a protocol violation: future sessions, summaries, memory
+review, and provider history would miss the assistant answer.
+
+`POST /mcp`
+
+Status:
+
+Deprecated experimental private-preview MCP/App bridge for ChatGPT Developer
+Mode connectors. It remains available temporarily for traceability but is no
+longer the recommended Scarlet GPT path.
+
+Transport:
+
+- single Streamable HTTP endpoint path, currently POST-only JSON-RPC responses;
+- `GET /mcp` returns `405 Method Not Allowed` because this preview does not
+  provide an SSE stream;
+- initializes an MCP session with `Mcp-Session-Id` so subsequent tool calls can
+  reuse the active Scarlet session and turn.
+
+Authentication:
+
+- supports the same `Authorization: Bearer <key>` and `X-GPT-Bridge-Key`
+  values as `/gpt/*`;
+- also accepts `?key=<GPT_BRIDGE_API_KEY>` for private connector previews where
+  custom headers are unavailable;
+- query-key auth is not the intended production/submission security model.
+
+Implemented JSON-RPC methods:
+
+```txt
+initialize
+notifications/initialized
+ping
+tools/list
+tools/call
+resources/list
+prompts/list
+```
+
+Implemented tools:
+
+```txt
+start_scarlet_turn_required
+finish_scarlet_turn_required
+scarlet_help_command
+scarlet_memory_command
+scarlet_session_command
+scarlet_metacognition_command
+scarlet_focus_command
+scarlet_affect_command
+scarlet_volition_command
+scarlet_shell_command
+```
+
+All `scarlet_*_command` tools take a single `command` string and optional
+`intent`, then dispatch through the existing `mind_shell` runtime. Family tools
+prefix the command namespace when useful, so `scarlet_memory_command` can accept
+either `search "Impi" --top 5` or `memory search "Impi" --top 5`.
+
+Tool results return both MCP `content` text and `structuredContent`; full
+backend diagnostics remain in traces exactly as with the Actions bridge.
+As of V1.25.1, every MCP tool descriptor also declares an `outputSchema` for
+its `structuredContent`: lifecycle tools advertise turn/session/finalization
+fields and command tools advertise shell response/tool-call fields, with shared
+`ok` and `summary` fields across all tools.
 
 ## Implemented Internal Runtime Context
 
@@ -122,15 +502,17 @@ TurnFrame shape:
   "session_metadata": {},
   "active_project_scope": "project",
   "available_capabilities": {
+    "interface": "mind_shell",
     "memory.write": "implemented",
     "memory.search": "implemented",
-    "memory.{memory_id}": "implemented",
+    "memory.open": "implemented",
     "memory.facts": "implemented",
-    "memory.facts.backfill": "implemented",
+    "memory.facts.backfill": "internal_maintenance_only",
     "memory.conflicts": "implemented",
     "memory.deprecate": "implemented",
     "memory.supersede": "implemented",
-    "memory.update": "unavailable"
+    "memory.update": "unavailable_by_design",
+    "legacy_mind_endpoints": "internal_debug_maintenance_only"
   },
   "time": "2026-05-12T00:00:00Z"
 }
@@ -256,21 +638,23 @@ Model-facing runtime context shape:
     "storage_timestamp_policy": "Chat/session timestamps are backend UTC; offset-naive persisted values should be interpreted as UTC unless an endpoint states otherwise."
   },
   "capabilities": {
+    "interface": "mind_shell",
     "memory.write": "implemented",
     "memory.search": "implemented",
     "memory.facts": "implemented",
-    "memory.facts.backfill": "implemented",
+    "memory.facts.backfill": "internal_maintenance_only",
     "memory.conflicts": "implemented",
     "memory.deprecate": "implemented",
     "memory.supersede": "implemented",
-    "memory.update": "unavailable"
+    "memory.update": "unavailable_by_design",
+    "legacy_mind_endpoints": "internal_debug_maintenance_only"
   },
   "recent_runtime_events": []
 }
 </runtime_context>
 ```
 
-The top-level `memory_context`, `temporal_context`, `mind_schema`,
+The top-level `memory_context`, `temporal_context`, `mind_shell`,
 `capabilities`, and `recent_runtime_events` fields remain present for backward
 compatibility. New code should treat `blocks` as the canonical runtime context
 shape because each block declares scope, lifetime, and source.
@@ -1089,9 +1473,10 @@ Creates at least:
 - `llm.request`
 - `llm.response`
 
-When the model uses `mind_api`, the turn also creates one `mind.tool_call` trace per tool invocation.
+When the model uses `mind_shell`, the turn also creates one `mind.tool_call`
+trace per tool invocation.
 
-When the model uses Memory v0 through `mind_api`, the turn also creates:
+When the model uses memory commands through `mind_shell`, the turn also creates:
 
 - `mind.memory.write`
 - `mind.memory.search`
@@ -1117,7 +1502,7 @@ When the model uses Memory v0 through `mind_api`, the turn also creates:
   count, and an approximate token estimate for the model-facing history
 - `provider_messages`: the exact provider-facing messages sent to the selected
   Anthropic-compatible provider for this turn
-- `tools`: currently the single `mind_api` tool schema
+- `tools`: currently the single `mind_shell` tool schema
 
 If the provider fails, creates:
 
@@ -1131,7 +1516,7 @@ Status: implemented
 
 Purpose:
 
-Run the same persistent chat turn and `mind_api` cognitive loop as the
+Run the same persistent chat turn and `mind_shell` cognitive loop as the
 non-streaming endpoint, but stream model and agent-loop events to the debug
 cockpit before the final response is complete.
 
@@ -1142,7 +1527,7 @@ Request:
 
 ```json
 {
-  "message": "Use mind_api before answering.",
+  "message": "Use API Mind before answering.",
   "system": null,
   "max_tokens": 131072
 }
@@ -1263,7 +1648,7 @@ tool_loop_policy = model_controlled_unbounded
 ```
 
 The loop continues until Scarlet returns a final answer instead of another
-`mind_api` call. Provider errors, network failures, or process-level failures
+`mind_shell` call. Provider errors, network failures, or process-level failures
 can still interrupt a turn, but the backend does not impose a fixed
 `max_tool_calls` cap.
 
@@ -1273,14 +1658,15 @@ Status: implemented
 
 Purpose:
 
-Return the current `mind_api` tool schema, implemented routes, planned routes,
-and standard response shape. This is Scarlet's lightweight capability catalog.
+Return the legacy/internal `mind_api` route catalog, implemented routes,
+planned routes, and standard response shape. Current model-facing capability
+state is provided through `mind_shell` help and the shell command registry.
 
-`GET /mind/schema` is not the full per-endpoint manual. It tells Scarlet which
-routes exist, whether they are implemented or planned, and what each route is
-for. Detailed route body schemas, parameter descriptions, accepted aliases,
-examples, and retry guidance are returned as endpoint-local `usage_guide` on
-recoverable endpoint errors.
+`GET /mind/schema` is not the full per-endpoint manual. It tells internal,
+debug, and compatibility clients which routes exist, whether they are
+implemented or planned, and what each route is for. Detailed route body
+schemas, parameter descriptions, accepted aliases, examples, and retry guidance
+are returned as endpoint-local `usage_guide` on recoverable endpoint errors.
 
 Request:
 
@@ -1420,9 +1806,10 @@ GET /mind/schema
 
 Runtime Context Behavior:
 
-Chat turns inject a compact `mind_schema` block into `<runtime_context>` with
-the current schema version, digest, and schema route, so Scarlet can detect when
-the contract is relevant before using detailed route schemas.
+Chat turns inject compact `mind_shell` metadata into `<runtime_context>` with
+the current command schema version, digest, and `help` command source, so
+Scarlet can detect when the command contract is relevant before using detailed
+command help.
 
 ### POST /mind/call
 
@@ -1430,7 +1817,7 @@ Status: implemented
 
 Purpose:
 
-Exercise the internal `mind_api(method, path, body, intent)` dispatcher through HTTP for manual debugging and contract tests. Chat turns use the same dispatcher through the MiniMax tool loop.
+Exercise the legacy internal `mind_api(method, path, body, intent)` dispatcher through HTTP for manual debugging, contract tests, and rollback. Chat turns now use the `mind_shell(command, intent)` tool, which maps commands onto the same underlying cognitive handlers.
 
 Request:
 
@@ -2720,7 +3107,7 @@ Trace Behavior:
 
 Creates `mind.memory.facts` and the model-facing `mind.tool_call`.
 
-### POST /mind/memory/facts/backfill through mind_api
+### POST /mind/memory/facts/backfill internal maintenance endpoint
 
 Status: implemented
 
@@ -2730,7 +3117,14 @@ Extract missing canonical facts for existing memories through a traceable
 operation. This is useful after adding or improving the extractor, or after
 loading older laboratory memory state.
 
-Model-facing call shape:
+Model-facing availability:
+
+This route is not a normal Scarlet shell command. In runtime capability state it
+is reported as `memory.facts.backfill=internal_maintenance_only`. If a future
+model-facing need appears, add an explicit shell command and regression tests
+instead of exposing this endpoint route directly to Scarlet.
+
+Internal endpoint call shape:
 
 ```json
 {
@@ -2774,7 +3168,9 @@ Errors:
 
 Trace Behavior:
 
-Creates `mind.memory.facts.backfill` and the model-facing `mind.tool_call`.
+Creates `mind.memory.facts.backfill` when session context exists. It may also
+create a `mind.tool_call` only when exercised through the legacy `/mind/call`
+debug facade, not during normal Scarlet shell cognition.
 
 ### GET /mind/memory/conflicts through mind_api
 

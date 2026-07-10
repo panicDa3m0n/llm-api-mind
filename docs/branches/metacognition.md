@@ -1,7 +1,7 @@
 # Branch: Metacognizione
 
-Last updated: 2026-06-23
-System version assessed: V1.16.0
+Last updated: 2026-07-09
+System version assessed: V1.25.4
 Status: prototype branch with thinking retrospection and shadow context
 
 ## Filosofia del ramo
@@ -36,6 +36,16 @@ deve puntare a vera utilita nel risultato finale.
 - V1.16.0 chiarisce nel prompt che la metacognizione e un ciclo operativo
   monitor/choose/act/observe/adapt e che le lezioni riutilizzabili sul proprio
   funzionamento possono diventare memoria semantica metacognitiva.
+- V1.23.0 valida le azioni interne consigliate dal reviewer contro il registro
+  comandi `mind_shell`, distinguendo comandi implementati, alias,
+  argomenti mancanti, azioni non disponibili per design, azioni pianificate e
+  comandi ignoti.
+- V1.25.4 rafforza la parita tra registry e handler shell: il reviewer non deve
+  piu considerare disponibili comandi lifecycle senza reason/resolution o forme
+  canoniche con trattini non accettate dall'handler.
+- Il probe live corretto del 2026-07-09 mostra un limite residuo: quando il
+  reviewer consiglia ulteriori azioni disponibili, Scarlet puo ancora
+  rispondere senza seguirle. Questo e tracciato come `BUG-0058`.
 
 ## Stato attuale
 
@@ -61,7 +71,18 @@ Aggiornamento V1.16.0: il ramo resta prompt-led per questa slice. Non sono
 stati aggiunti endpoint o trigger automatici; il cambiamento e la postura
 operativa con cui Scarlet deve osservare e correggere il proprio lavoro.
 
-Sistema valutato: V1.16.0.
+Sistema valutato: V1.25.4.
+
+Aggiornamento V1.23.0: la metacognizione resta un singolo endpoint/command
+`metacognition step`, ma le azioni operative che produce vengono filtrate dal
+contratto reale della shell. Questo riduce il rischio che Scarlet riceva dal
+proprio reviewer suggerimenti impossibili come se fossero comandi validi.
+
+Aggiornamento V1.25.4: il filtro e stato reso piu stretto: i valori dei flag
+non contano piu come argomenti posizionali, `memory deprecate/supersede`,
+`volition create/resolve/impossible/deprecate` e `focus resolve/impossible`
+richiedono i campi realmente necessari, e le forme canoniche con trattini come
+`volition mark-impossible` sono accettate coerentemente dalla shell.
 
 ## Sviluppi precedenti
 
@@ -86,6 +107,15 @@ Sistema valutato: V1.16.0.
   - self-monitoring operativo piu esplicito;
   - loop monitor/choose/act/observe/adapt;
   - possibilita di salvare lezioni metacognitive compatte e sourceable.
+- V1.23.0 command validation:
+  - registro comandi `mind_shell`;
+  - validazione recommended actions contro famiglia, azione, alias,
+    disponibilita e argomenti minimi;
+  - test su comando famiglia ignota e comando memoria con argomenti mancanti.
+- V1.25.4 registry parity:
+  - test su comandi lifecycle incompleti;
+  - test su alias canonici con trattino;
+  - capability model-facing allineate alla shell anziche alle rotte endpoint.
 
 ## Evolutive
 
@@ -109,3 +139,6 @@ Sistema valutato: V1.16.0.
   promessa ma non salvata, source claims non verificati, latenza e token.
 - Valutare se le lezioni metacognitive salvate da Scarlet vengono recuperate al
   momento giusto o se serve un retrieve separato, chirurgico e non rumoroso.
+- Collegare le raccomandazioni metacognitive ai futuri context pack
+  source-sensitive/high-impact: o le azioni consigliate vengono eseguite, o la
+  risposta deve degradare esplicitamente il livello di evidenza.

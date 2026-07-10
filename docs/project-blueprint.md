@@ -2,7 +2,7 @@
 
 Version: 1.13.0
 Status: active experimental runtime
-Last updated: 2026-06-19
+Last updated: 2026-07-09
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -70,10 +70,10 @@ hypothesis -> minimal implementation -> trace -> eval -> decision -> integration
 The agent should not receive many tools directly. It should primarily receive one stable tool:
 
 ```txt
-mind_api(method, path, body, intent)
+mind_shell(command, intent)
 ```
 
-The internal API can evolve without constantly retraining or reprompting the agent. The LLM learns the protocol, while the backend owns the implementation details.
+The internal API can evolve without constantly retraining or reprompting the agent. The LLM learns the command protocol, while the backend owns the implementation details. Legacy endpoint dispatch can remain behind the command runtime for internal handlers, deterministic maintenance, debug, tests, and rollback, but the active model-facing interface should stay one cognitive surface.
 
 ### 2.3 API As Cognitive Environment
 
@@ -365,9 +365,9 @@ User
   -> frontend chat
   -> backend chat endpoint
   -> agent runtime
-  -> attention/context preparation
+  -> runtime context pack preparation
   -> MiniMax M3
-  -> autonomous mind_api cognitive operations
+  -> autonomous mind_shell cognitive operations
   -> mind API dispatcher
   -> storage/events/memory/metacognition/state
   -> tool result back to model
@@ -382,27 +382,20 @@ The LLM should see one primary cognitive interface:
 
 ```json
 {
-  "name": "mind_api",
-  "description": "Scarlet's internal cognitive API. Use it autonomously for schema awareness, memory, facts, traceable state inspection, and cognitive support before answering when that improves correctness.",
+  "name": "mind_shell",
+  "description": "Scarlet's internal cognitive command shell. Use it autonomously for memory, sessions, facts, focus, volition, affect, metacognition, command help, source checks, and traceable state inspection when that improves correctness.",
   "input_schema": {
     "type": "object",
     "properties": {
-      "method": {
-        "type": "string",
-        "enum": ["GET", "POST"]
-      },
-      "path": {
+      "command": {
         "type": "string"
-      },
-      "body": {
-        "type": "object"
       },
       "intent": {
         "type": "string",
         "description": "Short natural language reason for the call."
       }
     },
-    "required": ["method", "path", "intent"]
+    "required": ["command", "intent"]
   }
 }
 ```
@@ -458,29 +451,31 @@ Errors should be equally structured:
 }
 ```
 
-### 6.4.1 Schema Discipline And Internal Cognition
+### 6.4.1 Mind Shell Discipline And Internal Cognition
 
-`GET /mind/schema` is the machine-readable capability catalog for the current
-API Mind surface. The system prompt should teach Scarlet when to inspect route
-availability, while detailed body schemas, examples, and retry guidance are
-returned as endpoint-local `usage_guide` on recoverable endpoint errors.
+`mind_shell(command, intent)` is the current model-facing API Mind surface.
+Scarlet should treat it as her cognitive command shell: a compact, controlled
+interface for memory, session, focus, volition, affect, and metacognitive
+operations. `help` and `help <family>` are the live command catalogs. Legacy
+`/mind/*` endpoints remain available for backend/debug compatibility and
+rollback, but they are not the active model tool contract.
 
-The runtime context should include a compact schema reference:
+The runtime context should include a compact shell reference:
 
 ```json
 {
-  "mind_schema": {
-    "schema_version": "2026-05-24.schema-catalog-v1",
+  "mind_shell": {
+    "schema_version": "2026-07-06.mind-shell-v1",
     "schema_digest": "sha256:...",
-    "schema_route": "GET /mind/schema"
+    "source_of_truth": "help"
   }
 }
 ```
 
-First implemented cognitive route:
+First implemented cognitive command family:
 
 ```txt
-POST /mind/metacognition/step
+metacognition
 ```
 
 This route gives Scarlet one traceable internal cognitive operation:
@@ -587,6 +582,37 @@ Prompt contract:
 
 A later post-response validator should flag unverifiable memory claims, especially answers that say something is or is not in memory when no `memory.context` trace or explicit memory search exists for the turn.
 
+### 6.4.2 Runtime Context Packs
+
+The project should not solve context growth by injecting every organ and
+diagnostic surface into every turn. Scarlet needs a compact always-on spine
+plus mode-specific context packs.
+
+The always-on spine includes the current message, session/turn identity,
+operational time/profile/privacy, the model-facing cognitive tool contract,
+compact capability state, and the minimum memory/conflict/safety evidence
+needed for the current turn.
+
+Mode packs add context for specific work:
+
+- source-sensitive questions;
+- temporal recall;
+- project engineering;
+- emotional continuity;
+- future embodied perception;
+- future embodied actuation.
+
+Each pack should define source, freshness, authority, coupling, cost,
+degradation, and safety rules. The first implementation should be a shadow
+router that traces pack selection before changing model-facing prompt
+composition.
+
+Canonical planning doc:
+
+```txt
+docs/runtime-context-packs.md
+```
+
 ### 6.5 Memory Robustness Roadmap
 
 The current Memory v0 implementation is accepted as an experimental substrate,
@@ -621,8 +647,9 @@ Useful external ideas to adapt, not copy directly:
 Project-specific adaptation:
 
 LLM API Mind remains API/CLI-first. Markdown vaults are useful inspiration, but
-the source of truth should be backend tables, `mind_api` contracts, CLI wrappers,
-traces, and debug views. The model should still primarily see one tool.
+the source of truth should be backend tables, the `mind_shell` contract,
+internal endpoint contracts, CLI wrappers, traces, and debug views. The model
+should still primarily see one tool.
 
 Updated memory implementation order:
 
@@ -680,7 +707,21 @@ GET  /api/debug/state/{session_id}
 
 ### 7.2 Mind API
 
-Initial cognitive API:
+Current model-facing cognitive interface:
+
+```txt
+mind_shell(command, intent)
+
+help
+memory ...
+session ...
+focus ...
+volition ...
+affect ...
+metacognition ...
+```
+
+Legacy/debug HTTP routes retained for rollback and developer inspection:
 
 ```txt
 GET  /mind/schema
@@ -839,7 +880,9 @@ Defines operational cognition:
 
 ### 9.4 API Protocol
 
-Defines how to use `mind_api`, when to inspect `/mind/schema`, and how to interpret structured errors and hints.
+Defines how to use `mind_shell`, when to inspect `help` or `help <family>`,
+and how to interpret structured command errors and hints. Legacy endpoint
+protocol remains documented for backend/debug compatibility only.
 
 ## 10. Tracing Requirements
 
@@ -1075,15 +1118,15 @@ Exit criteria:
 
 Deliverables:
 
-- `mind_api` tool schema;
+- `mind_shell` tool schema;
 - MiniMax tool loop;
-- `/mind/schema`;
-- dispatcher;
+- command help catalog;
+- command dispatcher;
 - trace of tool calls.
 
 Exit criteria:
 
-- the model can inspect available cognitive API routes;
+- the model can inspect available cognitive command families;
 - the model can call the API through one tool;
 - all tool calls are stored.
 

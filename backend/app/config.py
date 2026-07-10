@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     user_display_name: str = "Utente locale"
     user_privacy_scope: str = "local_single_user"
 
+    gpt_bridge_api_key: str | None = Field(default=None, repr=False)
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

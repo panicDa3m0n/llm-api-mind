@@ -33,6 +33,383 @@ Links:
 - `AGENTS.md`
 - `docs/project-blueprint.md`
 
+## ADR-0034 - Mind Shell As Model-Facing Cognitive Interface
+
+Date: 2026-07-06
+Status: accepted
+
+Context:
+
+The original single-tool API Mind contract exposed endpoint-shaped operations
+through `mind_api(method, path, body, intent)`. That kept the model-facing
+surface small, but MiniMax M3 showed recurring brittleness around nested JSON
+bodies, empty body retries, endpoint/schema drift, and overly mechanical API
+thinking. The owner proposed a more agentic cognitive CLI: a shell-like mental
+dashboard where Scarlet can navigate memory, sessions, focus, volition, affect,
+and metacognition with commands.
+
+Decision:
+
+Introduce `mind_shell(command, intent)` as Scarlet's single model-facing API
+Mind tool. Commands are bash-like but controlled by backend parsing, not a real
+system shell. The existing `/mind/*` endpoints and dispatcher remain available
+for backend/debug compatibility and rollback, but Scarlet's active prompt,
+runtime context, chat tool schema, and metacognition reviewer use Mind shell
+commands as the operative language.
+
+Examples:
+
+```txt
+help
+memory search "query" --top 5
+memory write --type user_preference --scope user --content "..." --reason "..."
+session open ses_...
+focus read
+volition list active
+affect prototypes
+metacognition step --objective "..." --mode critic
+```
+
+Alternatives Considered:
+
+- Keep `mind_api` as the model-facing surface and add prompt guidance for
+  endpoint correctness. Rejected because it preserves the nested JSON body
+  failure mode and teaches Scarlet endpoint mechanics rather than cognitive
+  navigation.
+- Expose a real shell. Rejected because API Mind must remain deterministic,
+  auditable, and safe; the shell is a controlled cognitive command runtime, not
+  arbitrary OS access.
+- Keep both `mind_api` and `mind_shell` visible to Scarlet. Rejected for this
+  branch because a hybrid prompt would falsify the CLI experiment and encourage
+  model fallback to endpoint habits.
+
+Consequences:
+
+- Scarlet sees one tool, `mind_shell`, and one command grammar.
+- Runtime traces and events show commands as the model-facing operation.
+- Backend endpoints still support existing tests, debug calls, maintenance, and
+  rollback.
+- The prompt no longer instructs Scarlet to call endpoint paths or inspect
+  `/mind/schema`; it uses `help` and command-specific guidance.
+- The first implementation maps commands onto existing handlers. A later
+  refactor can extract route-independent service cores once the CLI behavior is
+  validated.
+
+Related Files:
+
+- `backend/app/mind/shell.py`
+- `backend/app/mind/schema.py`
+- `backend/app/api/chat.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/metacognition.py`
+- `backend/app/prompts/scarlet_system.md`
+
+## ADR-0035 - Separate Model-Facing Shell Packets From Debug Diagnostics
+
+Date: 2026-07-08
+Status: accepted
+
+Context:
+
+Real Scarlet testing on the command-shell branch showed that `mind_shell`
+worked, but some commands returned diagnostics that were useful to developers
+and harmful or wasteful as model-facing data. In particular, memory search
+could return full `retrieval_shadow`, `retrieval_graph`, and
+`retrieval_hybrid` payloads, while `memory conflicts` could return hundreds of
+token/tag overlap pairs as if they were real contradictions.
+
+The owner explicitly decided not to remove provider `thinking` or aggressively
+compact history because MiniMax M3 has a large context window and no evidence
+yet shows that thinking/history hurts Scarlet's cognition. The target is only
+true redundancy and developer diagnostics that add confusion without improving
+Scarlet's action.
+
+Decision:
+
+Mind shell command results now have a compact model-facing profile for noisy
+commands while raw diagnostics remain in traces. Scarlet receives ids,
+provenance, content, concise facts, query-time relevance, compact retrieval
+routes, trace ids, and clear next actions. Developer/UI/debug surfaces can read
+the full traces instead of requiring the model-facing packet to carry every
+internal artifact.
+
+Memory conflict semantics are also narrowed:
+
+- atomic fact divergence is a true conflict;
+- exact-content/tag/token similarity is a maintenance `related_overlap`;
+- related overlaps are not injected as contradiction alarms in runtime memory
+  context.
+
+Command availability is validated through a central registry so recommended
+metacognitive actions distinguish implemented commands, aliases,
+missing-argument commands, unavailable-by-design commands, planned commands,
+and unknown commands.
+
+Consequences:
+
+- Scarlet gets less noisy shell output without losing source ids or the ability
+  to navigate memories/sessions/KG.
+- Future UI work can render model packets, debug traces, and human-visible
+  blocks differently without reinterpreting raw endpoint payloads.
+- Conflict-driven affect/caution is less likely to fire from generic overlap.
+- Duplicate/update/deprecation automation is explicitly left to maintenance,
+  embedding/KG entity resolution, and future larger calibration rather than
+  token-overlap heuristics.
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/app/mind/memory.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/hybrid_retrieval.py`
+- `backend/app/mind/metacognition.py`
+- `docs/api-contract.md`
+- `docs/experiments.md`
+
+## ADR-0036 - External GPT Bridge As Plugin Layer
+
+Date: 2026-07-08
+Status: accepted
+
+Context:
+
+The project owner wants to test Scarlet through a custom ChatGPT GPT while the
+primary local Scarlet runtime continues to run on MiniMax M3. A GPT outside the
+local provider loop cannot see Scarlet's backend-built runtime context unless
+the system exposes it, and the backend cannot preserve the GPT's final answer
+unless the GPT sends it back before replying to the user.
+
+Decision:
+
+Add a plugin-level bridge under `/gpt/*` with exactly three endpoints:
+
+```txt
+POST /gpt/bootstrap
+POST /gpt/action
+POST /gpt/finalize
+```
+
+`bootstrap` starts a real Scarlet turn and returns the same context/tool surface
+the local MiniMax runtime would receive. `action` executes controlled
+`mind_shell` commands through the existing command runtime. `finalize` persists
+the external GPT answer, updates provider history, completes the turn, and
+keeps maintenance/session-memory processes intact.
+
+The bridge does not replace the local chat runtime and does not change
+Scarlet's model-facing `mind_shell` contract. It is isolated in
+`backend/app/plugins/gpt_bridge/` with its own prompt copy and documentation.
+
+Alternatives Considered:
+
+- Route the GPT directly through `/mind/*` endpoints. Rejected because it would
+  bypass bootstrap/finalize and lose turn continuity.
+- Let the GPT answer directly after actions without finalize. Rejected because
+  the backend would not receive the assistant message and session memory would
+  drift.
+- Replace MiniMax runtime with GPT. Rejected because the current task is an
+  external integration path, not a provider migration.
+
+Consequences:
+
+- Custom GPT Actions can operate Scarlet's cognition without running MiniMax.
+- The external GPT must strictly obey bootstrap/action/finalize protocol.
+- `/gpt/*` requires a dedicated bridge key outside local development.
+- The OpenAPI schema now exposes GPT-facing endpoints in addition to the local
+  dev/runtime APIs.
+- V1.24.1 keeps the GPT Builder prompt under the instruction-size limit by
+  splitting the full Scarlet bridge policy into a compact system prompt plus
+  attachable knowledge files. The minimal `openapi_gpt_action.json` exists only
+  so ChatGPT Actions can discover the three bridge endpoints and their body
+  shapes; it is not a separate cognitive API.
+
+Related Files:
+
+- `backend/app/plugins/gpt_bridge/router.py`
+- `backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md`
+- `backend/app/plugins/gpt_bridge/README.md`
+- `backend/app/main.py`
+- `docs/api-contract.md`
+
+## ADR-0037 - ChatGPT MCP/App Bridge As Alternative GPT Surface
+
+Date: 2026-07-08
+Status: deprecated for target GPT flow
+
+Context:
+
+Testing showed that Custom GPT Actions can work after schema hardening, but the
+model may still treat the three OpenAPI operations as generic external APIs
+rather than as native cognitive organs. The owner proposed exposing Scarlet as
+a ChatGPT App/Connector through MCP, with lifecycle tools and family-specific
+cognitive shell tools whose names and descriptions make the required usage more
+legible to the hosted model.
+
+Decision:
+
+Add an experimental MCP/App surface at `/mcp` while keeping the `/gpt/*`
+Actions bridge. The two surfaces are alternative ChatGPT configurations:
+a GPT should use either Custom Actions or Apps/Connectors, not both.
+
+The MCP bridge exposes required lifecycle tools:
+
+```txt
+start_scarlet_turn_required
+finish_scarlet_turn_required
+```
+
+Their descriptions begin with the exact Italian obligation phrases:
+
+```txt
+Usa sempre a inizio di ogni turno
+Usa sempre prima della tua risposta finale
+```
+
+The bridge also exposes family tools that proxy to the existing `mind_shell`
+runtime with a single command string: memory, session, metacognition, focus,
+affect, volition, help, and a generic shell fallback.
+
+Alternatives Considered:
+
+- Replace the Actions bridge. Rejected because Actions remain useful for GPT
+  Builder testing and already have regression coverage.
+- Build separate REST endpoints for each cognitive command. Rejected because
+  it would duplicate the shell contract and expand the model-facing API.
+- Add a full production OAuth MCP app immediately. Deferred because the current
+  slice is a private preview experiment in model usability.
+
+Consequences:
+
+- ChatGPT can discover Scarlet's cognitive organs as native MCP tools in
+  connector-capable contexts, but the target Custom GPT flow did not allow the
+  user to add the created connector as the GPT's active tool surface.
+- The backend still records the same turns, messages, traces, and tool calls
+  through bootstrap/action/finalize.
+- MCP connector testing can reuse `GPT_BRIDGE_API_KEY` through a query key as a
+  temporary private-preview convenience, but production/submission should use
+  proper OAuth.
+- Live GPT testing is still required because the backend cannot force the
+  hosted model to call tools before answering.
+- As of V1.25.2, Actions are the active external Scarlet GPT surface. The MCP
+  endpoint remains temporarily implemented for traceability and future removal.
+
+Related Files:
+
+- `backend/app/plugins/gpt_bridge/router.py`
+- `backend/app/plugins/gpt_bridge/scarlet_mcp_system_prompt.md`
+- `backend/app/plugins/gpt_bridge/README.md`
+- `backend/tests/test_gpt_bridge.py`
+- `docs/api-contract.md`
+- `docs/experiments.md`
+
+## ADR-0038 - Shell Capabilities As The Only Model-Facing Cognitive Contract
+
+Date: 2026-07-09
+Status: accepted
+
+Context:
+
+The project now uses `mind_shell(command, intent)` as Scarlet's local
+model-facing API Mind surface and `/gpt/action` as the external GPT transport
+for those same shell commands. Legacy `/mind/*` endpoints still exist because
+they are useful for backend handlers, deterministic maintenance, direct tests,
+debugging, rollback, and evaluator tooling. A review of the shell migration
+found one confusing residual: runtime capability state was still derived from
+endpoint routes, so a maintenance route such as
+`POST /mind/memory/facts/backfill` could appear implemented inside
+model-facing context even though it is not a Scarlet shell command.
+
+Decision:
+
+Keep one communication style for Scarlet: shell commands only. The active
+model-facing capability map is derived from the shell command registry, not
+from endpoint route status. Legacy `/mind/*` endpoints are internal
+implementation/debug/maintenance surfaces unless a shell command explicitly
+wraps them.
+
+`memory.facts.backfill` remains implemented, but it is classified as
+`internal_maintenance_only`. It rebuilds canonical memory facts and retrieval
+artifacts for existing memory records after extractor/schema/lifecycle changes;
+it is not a normal cognitive command Scarlet should run in conversation.
+
+Consequences:
+
+- Prompt, runtime context, metacognition recommendations, and external GPT
+  bridge all describe Scarlet's cognition through `mind_shell`.
+- Endpoint docs remain as backend/debug/maintenance contracts, not model
+  instructions.
+- If a future maintenance operation truly becomes useful for Scarlet's own
+  cognition, it must receive an explicit shell command and tests rather than
+  leaking through endpoint capability metadata.
+- The command registry must stay in parity with shell handlers and help
+  examples, including required fields and aliases.
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/shell.py`
+- `backend/tests/test_mind_shell.py`
+- `backend/tests/test_chat_api.py`
+- `docs/api-contract.md`
+- `docs/project-state.md`
+
+## ADR-0067 - Runtime Context Packs Before Embodied Context Explosion
+
+Date: 2026-07-09
+Status: accepted as planning baseline
+
+Context:
+
+Scarlet now has several implemented or partly implemented cognitive organs:
+semantic memory, episodic recall, runtime context, focus, volition, affect,
+metacognition, traces, events, and maintenance. The owner also confirmed the
+long-term research direction toward a robotic body, while explicitly noting
+that embodiment is later work. When vision, audio, voice, movement, physical
+interaction, memory, and cognition all become active, a flat prompt/context
+packet will not scale.
+
+The immediate risk is not robot integration. The immediate risk is architectural
+drift: adding every new organ or diagnostic surface to the model context until
+Scarlet loses active cognition under undifferentiated state.
+
+Decision:
+
+Adopt runtime context packs as the planning baseline. The backend should keep a
+compact always-on spine and add mode-specific packs for source-sensitive work,
+temporal recall, project engineering, emotional continuity, and future embodied
+interaction/actuation. Organs, sources, and capabilities are classified by
+necessity, coupling, freshness, authority, cost, and safety.
+
+Scarlet may eventually request mode shifts through cognitive state or shell
+operations, but deterministic backend routing keeps budget, safety, privacy,
+and coupling constraints. Background maintenance and backfill remain
+background/internal surfaces, not live model context.
+
+Consequences:
+
+- New organs must define their model-facing context shape, coupling rules, and
+  degradation policy before being injected broadly.
+- The always-on spine stays small: current message, session/turn identity,
+  temporal/profile/privacy state, capability/tool contract, selected automatic
+  memory packet when available, and active safety/conflict warnings.
+- Source-sensitive and temporal questions should move toward explicit packs
+  that require session/memory evidence instead of relying on inference from
+  recent context.
+- Future embodied modes must summarize sensory streams before model input and
+  gate actuation through safety-aware packs.
+- The first implementation should be a shadow router that traces pack
+  selection before changing live prompt composition.
+
+Related Files:
+
+- `docs/runtime-context-packs.md`
+- `docs/project-state.md`
+- `docs/project-blueprint.md`
+- `docs/branches/perception-context.md`
+- `docs/digital-individual-organs-notes.md`
+- `docs/experiments.md`
+
 ## ADR-0002 - Initial System Shape
 
 Date: 2026-05-08  

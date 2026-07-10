@@ -159,13 +159,16 @@ def rank_hybrid_memories(
         support_score = max(dense_support_score, rerank_support_score)
         dense_signal = dense_score >= thresholds["min_dense_score"]
         rerank_signal = rerank_score >= thresholds["min_rerank_score"]
-        base_signal = base.score > 0
+        base_signal = base.strong_signal and base.score > 0
 
         if not base_signal and not dense_signal and not rerank_signal:
             continue
 
         base_norm = _normalize(base.score, max_base)
         sparse_norm = _normalize(base.sparse_score, max_sparse)
+        if not base.strong_signal:
+            base_norm = min(base_norm, 0.25)
+            sparse_norm = 0.0
         support_norm = max(support_score, 0.0)
         hybrid_score = (
             (weights["base"] * base_norm)

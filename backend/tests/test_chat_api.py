@@ -165,11 +165,10 @@ class FakeToolCallingProvider(FakeChatProvider):
         executed = tool_runner(
             LLMToolUse(
                 id="toolu_schema",
-                name="mind_api",
+                name="mind_shell",
                 input={
-                    "method": "GET",
-                    "path": "/mind/schema",
-                    "intent": "Inspect schema before answering.",
+                    "command": "help",
+                    "intent": "Inspect shell help before answering.",
                 },
             )
         )
@@ -203,11 +202,10 @@ class FakeToolCallingProvider(FakeChatProvider):
                         {
                             "type": "tool_use",
                             "id": "toolu_schema",
-                            "name": "mind_api",
+                            "name": "mind_shell",
                             "input": {
-                                "method": "GET",
-                                "path": "/mind/schema",
-                                "intent": "Inspect schema before answering.",
+                                "command": "help",
+                                "intent": "Inspect shell help before answering.",
                             },
                         },
                     ],
@@ -254,7 +252,7 @@ class FakeToolCallingProvider(FakeChatProvider):
             data={
                 "model_step": 1,
                 "index": 2,
-                "partial_json": '{"method":"GET","path":"/mind/schema"',
+                "partial_json": '{"command":"help"',
             },
         )
         yield LLMStreamEvent(
@@ -281,11 +279,10 @@ class FakeToolCallingProvider(FakeChatProvider):
         executed = tool_runner(
             LLMToolUse(
                 id="toolu_schema",
-                name="mind_api",
+                name="mind_shell",
                 input={
-                    "method": "GET",
-                    "path": "/mind/schema",
-                    "intent": "Inspect schema before answering.",
+                    "command": "help",
+                    "intent": "Inspect shell help before answering.",
                 },
             )
         )
@@ -340,11 +337,10 @@ class FakeToolCallingProvider(FakeChatProvider):
                         {
                             "type": "tool_use",
                             "id": "toolu_schema",
-                                    "name": "mind_api",
+                                    "name": "mind_shell",
                                     "input": {
-                                        "method": "GET",
-                                        "path": "/mind/schema",
-                                        "intent": "Inspect schema before answering.",
+                                        "command": "help",
+                                        "intent": "Inspect shell help before answering.",
                                     },
                                 },
                             ],
@@ -376,24 +372,14 @@ class FakeMemoryProvider(FakeChatProvider):
         write = tool_runner(
             LLMToolUse(
                 id="toolu_memory_write",
-                name="mind_api",
+                name="mind_shell",
                 input={
-                    "method": "POST",
-                    "path": "/mind/memory/write",
-                    "body": {
-                        "type": "user_preference",
-                        "content": (
-                            "The owner prefers SAL updates with risks and next steps."
-                        ),
-                        "reason_for_storage": (
-                            "Stable communication preference for future status updates."
-                        ),
-                        "expected_future_use": "Shape future SAL answers.",
-                        "confidence": 0.9,
-                        "salience": 0.8,
-                        "scope": "project",
-                        "tags": ["sal", "status"],
-                    },
+                    "command": (
+                        'memory write --type user_preference --scope project '
+                        '--content "The owner prefers SAL updates with risks and next steps." '
+                        '--reason "Stable communication preference for future status updates." '
+                        '--future-use "Shape future SAL answers."'
+                    ),
                     "intent": "Persist a stable project communication preference.",
                 },
             )
@@ -401,16 +387,12 @@ class FakeMemoryProvider(FakeChatProvider):
         search = tool_runner(
             LLMToolUse(
                 id="toolu_memory_search",
-                name="mind_api",
+                name="mind_shell",
                 input={
-                    "method": "POST",
-                    "path": "/mind/memory/search",
-                    "body": {
-                        "query": "SAL risks next steps",
-                        "types": ["user_preference"],
-                        "scope": "project",
-                        "top_k": 3,
-                    },
+                    "command": (
+                        'memory search "SAL risks next steps" '
+                        '--type user_preference --scope project --top 3'
+                    ),
                     "intent": "Retrieve the stored project communication preference.",
                 },
             )
@@ -436,19 +418,17 @@ class FakeMemoryProvider(FakeChatProvider):
                         {
                             "type": "tool_use",
                             "id": "toolu_memory_write",
-                            "name": "mind_api",
+                            "name": "mind_shell",
                             "input": {
-                                "method": "POST",
-                                "path": "/mind/memory/write",
+                                "command": "memory write ...",
                             },
                         },
                         {
                             "type": "tool_use",
                             "id": "toolu_memory_search",
-                            "name": "mind_api",
+                            "name": "mind_shell",
                             "input": {
-                                "method": "POST",
-                                "path": "/mind/memory/search",
+                                "command": "memory search ...",
                             },
                         },
                     ],
@@ -697,7 +677,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert "LLM API Mind" in request_trace["base_system"]
     assert "digital individual in development" in request_trace["base_system"]
     assert "sono pronta" in request_trace["base_system"]
-    assert "mind_api" in request_trace["base_system"]
+    assert "mind_shell" in request_trace["base_system"]
     assert "API Mind is your internal cognitive environment" in request_trace[
         "base_system"
     ]
@@ -1177,7 +1157,7 @@ def test_chat_turn_excludes_weak_memory_overlap(db_engine: Engine) -> None:
     assert memory_context["negative_evidence"] == "no_relevant_memory_selected"
 
 
-def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
+def test_chat_turn_dispatches_and_traces_mind_shell_tool_call(
     db_engine: Engine,
 ) -> None:
     client = make_tool_client(db_engine)
@@ -1204,18 +1184,22 @@ def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
     ]
     assert traces[1]["payload"]["mode"] == "shadow"
     assert traces[1]["payload"]["model_facing"] is False
-    assert traces[3]["payload"]["tools"][0]["name"] == "mind_api"
+    assert traces[3]["payload"]["tools"][0]["name"] == "mind_shell"
     assert traces[3]["payload"]["memory_context_trace_id"] == traces[0]["id"]
     assert traces[3]["payload"]["metacognitive_context_trace_id"] == traces[1]["id"]
     assert traces[3]["payload"]["runtime_context_trace_id"] == traces[2]["id"]
     assert traces[3]["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
+    capabilities = traces[2]["payload"]["capabilities"]
+    assert capabilities["interface"] == "mind_shell"
+    assert capabilities["memory.facts.backfill"] == "internal_maintenance_only"
+    assert capabilities["legacy_mind_endpoints"] == "internal_debug_maintenance_only"
     assert FakeToolCallingProvider.seen_max_tool_calls[-1] is None
     tool_trace = traces[4]
-    assert tool_trace["payload"]["tool_name"] == "mind_api"
-    assert tool_trace["payload"]["arguments"]["path"] == "/mind/schema"
+    assert tool_trace["payload"]["tool_name"] == "mind_shell"
+    assert tool_trace["payload"]["arguments"]["command"] == "help"
     assert tool_trace["payload"]["result"]["ok"] is True
     response_trace = traces[5]
-    assert response_trace["payload"]["tool_calls"][0]["tool_name"] == "mind_api"
+    assert response_trace["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
     assert (
         response_trace["payload"]["tool_calls"][0]["trace_id"]
         == tool_trace["id"]
@@ -1228,7 +1212,7 @@ def test_chat_turn_dispatches_and_traces_mind_api_tool_call(
         event for event in events if event["type"] == "mind.tool_call.completed"
     )
     assert completed_event["trace_id"] == tool_trace["id"]
-    assert completed_event["payload"]["operation"]["path"] == "/mind/schema"
+    assert completed_event["payload"]["operation"]["command"] == "help"
     assert completed_event["payload"]["result_summary"]["ok"] is True
     thinking_event = next(
         event for event in events if event["type"] == "llm.thinking.captured"
@@ -1300,21 +1284,26 @@ def test_chat_turn_dispatches_traceable_memory_write_and_search(
     assert write_trace["payload"]["stored"] is True
     memory_id = write_trace["payload"]["memory_id"]
     assert memory_id.startswith("mem_")
-    assert traces[5]["payload"]["arguments"]["path"] == "/mind/memory/write"
-    assert traces[5]["payload"]["result"]["result"]["trace_ids"] == [write_trace["id"]]
+    assert traces[5]["payload"]["arguments"]["command"].startswith("memory write")
+    assert traces[5]["payload"]["result"]["result"]["data"]["trace_ids"] == [
+        write_trace["id"]
+    ]
     assert traces[6]["payload"]["returned_memory_ids"] == [memory_id]
-    assert traces[7]["payload"]["arguments"]["path"] == "/mind/memory/search"
-    assert traces[8]["payload"]["tool_calls"][0]["tool_name"] == "mind_api"
-    assert traces[8]["payload"]["tool_calls"][1]["tool_name"] == "mind_api"
+    assert traces[7]["payload"]["arguments"]["command"].startswith("memory search")
+    assert traces[8]["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
+    assert traces[8]["payload"]["tool_calls"][1]["tool_name"] == "mind_shell"
     assert FakeMemoryProvider.seen_max_tool_calls[-1] is None
     events = client.get(f"/api/debug/events?turn_id={body['turn_id']}").json()
     completed_tool_events = [
         event for event in events if event["type"] == "mind.tool_call.completed"
     ]
     assert len(completed_tool_events) == 2
-    assert [event["payload"]["operation"]["path"] for event in completed_tool_events] == [
-        "/mind/memory/write",
-        "/mind/memory/search",
+    assert [
+        event["payload"]["operation"]["command"].split(" ", 2)[:2]
+        for event in completed_tool_events
+    ] == [
+        ["memory", "write"],
+        ["memory", "search"],
     ]
 
 

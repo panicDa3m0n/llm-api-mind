@@ -4,7 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-06-26.digital-organs-standalone-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-08.memory-conflict-taxonomy-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-08.mind-shell-output-profiles-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -35,6 +36,128 @@ MIND_API_TOOL_SCHEMA: dict[str, Any] = {
         "required": ["method", "path", "intent"],
     },
 }
+
+
+MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
+    "name": "mind_shell",
+    "description": (
+        "Scarlet's internal cognitive command shell. Use concise commands to "
+        "navigate memory, sessions, focus, volition, affect, metacognition, "
+        "and capability help without exposing endpoint mechanics to the user."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "description": (
+                    "One cognitive shell command, for example: "
+                    "memory search \"cioccolato\" --top 5"
+                ),
+            },
+            "intent": {
+                "type": "string",
+                "description": (
+                    "Short natural-language reason for why Scarlet is using "
+                    "the command now."
+                ),
+            },
+        },
+        "required": ["command"],
+    },
+}
+
+
+MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
+    {
+        "namespace": "help",
+        "purpose": "Inspect available cognitive command families and examples.",
+        "commands": [
+            "help",
+            "help memory",
+            "help session",
+            "help focus",
+            "help volition",
+            "help affect",
+            "help metacognition",
+        ],
+    },
+    {
+        "namespace": "memory",
+        "purpose": "Search, write, inspect, and maintain semantic memories.",
+        "commands": [
+            "memory search \"query\" --top 5",
+            "memory write --type user_preference --scope user --content \"...\" --reason \"...\" --future-use \"...\"",
+            "memory open mem_...",
+            "memory graph mem_... --depth 2 --limit 30",
+            "memory facts --query \"entity or question\"",
+            "memory conflicts",
+            "memory deprecate mem_... --reason \"...\"",
+            "memory supersede mem_old mem_new --reason \"...\"",
+        ],
+    },
+    {
+        "namespace": "session",
+        "purpose": "Navigate episodic chat sessions, summaries, and transcripts.",
+        "commands": [
+            "session list --query \"topic or date\" --limit 5",
+            "session open ses_... --limit 200",
+            "session summarize ses_... --force",
+        ],
+    },
+    {
+        "namespace": "focus",
+        "purpose": "Read and mutate Scarlet's single foreground focus state.",
+        "commands": [
+            "focus read",
+            "focus list --status active --limit 10",
+            "focus search \"query\" --limit 10",
+            "focus set \"object\" --type investigation --reason \"...\" --intensity 0.7",
+            "focus update --id foc_... --object \"...\" --reason \"...\"",
+            "focus hold --id foc_... --reason \"...\"",
+            "focus shift \"new object\" --reason \"...\"",
+            "focus defer --id foc_... --reason \"...\"",
+            "focus resolve --id foc_... --resolution \"...\"",
+            "focus impossible --id foc_... --reason \"...\"",
+            "focus timeline --limit 10",
+        ],
+    },
+    {
+        "namespace": "volition",
+        "purpose": "Manage Scarlet's latent self-generated intentions.",
+        "commands": [
+            "volition list active --limit 10",
+            "volition list due --limit 10",
+            "volition search \"query\" --limit 10",
+            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6",
+            "volition read int_...",
+            "volition update int_... --reason \"...\"",
+            "volition defer int_... --reason \"...\"",
+            "volition review int_... --reason \"...\"",
+            "volition promote int_... --reason \"...\"",
+            "volition resolve int_... --resolution \"...\"",
+            "volition impossible int_... --reason \"...\"",
+            "volition deprecate int_... --reason \"...\"",
+        ],
+    },
+    {
+        "namespace": "affect",
+        "purpose": "Read backend-appraised affect state and emotion prototypes.",
+        "commands": [
+            "affect read",
+            "affect list --limit 10",
+            "affect prototypes",
+        ],
+    },
+    {
+        "namespace": "metacognition",
+        "purpose": "Run one internal metacognitive step when deeper self-review matters.",
+        "commands": [
+            "metacognition step --objective \"...\" --mode critic --question \"...\"",
+            "metacognition step --objective \"...\" --mode memory_curator --draft \"...\"",
+        ],
+    },
+]
 
 
 MIND_API_ROUTES: list[dict[str, Any]] = [
@@ -1427,11 +1550,100 @@ def compute_schema_digest(schema: dict[str, Any] | None = None) -> str:
     return "sha256:" + hashlib.sha256(encoded).hexdigest()[:16]
 
 
+def build_mind_shell_catalog() -> dict[str, Any]:
+    catalog = _shell_catalog_without_digest()
+    catalog["schema_digest"] = compute_shell_schema_digest(catalog)
+    return catalog
+
+
+def _shell_catalog_without_digest() -> dict[str, Any]:
+    return {
+        "schema_version": MIND_SHELL_SCHEMA_VERSION,
+        "tool": MIND_SHELL_TOOL_SCHEMA,
+        "commands": deepcopy(MIND_SHELL_COMMANDS),
+        "response_shape": {
+            "ok": "boolean",
+            "result": "object",
+            "cognitive_hint": "string | null",
+            "suggested_next_actions": "string[]",
+            "confidence": "number",
+            "trace_id": "string | null",
+            "usage_guide": "object | null",
+            "error": "object | null",
+        },
+        "shell_policy": {
+            "source_of_truth": "help",
+            "role": (
+                "Capability catalog for Scarlet's internal command shell. "
+                "Commands are the model-facing language; endpoint paths are "
+                "legacy backend details."
+            ),
+            "use_when": [
+                "discovering available cognitive command families",
+                "recovering after invalid command syntax",
+                "checking concise examples before state-changing operations",
+            ],
+            "prompt_policy": (
+                "The prompt teaches when to use cognition; the shell returns "
+                "the current command catalog, examples, and recoverable "
+                "usage guidance."
+            ),
+        },
+    }
+
+
+def compute_shell_schema_digest(catalog: dict[str, Any] | None = None) -> str:
+    source = catalog or _shell_catalog_without_digest()
+    comparable = {key: value for key, value in source.items() if key != "schema_digest"}
+    encoded = json.dumps(
+        comparable,
+        sort_keys=True,
+        ensure_ascii=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()[:16]
+
+
 def schema_metadata() -> dict[str, str]:
     return {
         "schema_version": MIND_API_SCHEMA_VERSION,
         "schema_digest": compute_schema_digest(),
         "schema_route": "GET /mind/schema",
+    }
+
+
+def shell_metadata() -> dict[str, str]:
+    return {
+        "schema_version": MIND_SHELL_SCHEMA_VERSION,
+        "schema_digest": compute_shell_schema_digest(),
+        "schema_command": "help",
+    }
+
+
+def shell_command_catalog(namespace: str | None = None) -> list[dict[str, Any]]:
+    if namespace is None:
+        return deepcopy(MIND_SHELL_COMMANDS)
+    normalized = namespace.strip().casefold().replace("_", "-")
+    return [
+        deepcopy(item)
+        for item in MIND_SHELL_COMMANDS
+        if str(item.get("namespace", "")).casefold().replace("_", "-") == normalized
+    ]
+
+
+def shell_command_usage_guide(namespace: str | None = None) -> dict[str, Any]:
+    commands = shell_command_catalog(namespace)
+    if not commands and namespace is not None:
+        commands = shell_command_catalog()
+    return {
+        "schema_version": MIND_SHELL_SCHEMA_VERSION,
+        "schema_digest": compute_shell_schema_digest(),
+        "requested_namespace": namespace,
+        "commands": commands,
+        "retry_guidance": (
+            "Use one concise command string. Quote natural-language content "
+            "with spaces. Use help or help <namespace> when unsure."
+        ),
     }
 
 

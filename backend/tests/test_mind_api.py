@@ -35,37 +35,39 @@ class FakeMetacognitionProvider:
                         {
                             "risk": "API shape may be stale.",
                             "severity": "high",
-                            "mitigation": "Inspect /mind/schema.",
+                            "mitigation": "Use help.",
                         }
                     ],
                     "claim_checks": [
                         {
-                            "claim": "The endpoint is implemented.",
+                            "claim": "The command is implemented.",
                             "support": "needs_evidence",
                             "confidence": 0.42,
-                            "recommended_action": "Check schema first.",
+                            "recommended_action": "Check shell help first.",
                         }
                     ],
-                    "missing_evidence": ["current Mind API schema"],
+                    "missing_evidence": ["current Mind shell help"],
                     "recommended_internal_actions": [
                         {
-                            "method": "GET",
-                            "path": "/mind/schema",
-                            "reason": "Confirm current route shape.",
+                            "command": "help",
+                            "reason": "Confirm current command surface.",
                         },
                         {
-                            "method": "GET",
-                            "path": "/mind/metacognition/step",
-                            "reason": "Deliberately wrong method from reviewer.",
+                            "command": "memory inspect --kind=conflict --sample=20",
+                            "reason": "Deliberately wrong action shape from reviewer.",
+                        },
+                        {
+                            "command": "unknown_family inspect",
+                            "reason": "Deliberately wrong command family from reviewer.",
                         }
                     ],
-                    "reasoning_digest": "Previous reasoning considered schema evidence.",
+                    "reasoning_digest": "Previous reasoning considered shell help evidence.",
                     "drift_findings": [],
                     "open_loops": [],
                     "tool_use_assessment": [],
                     "memory_candidates_from_reasoning": [],
                     "should_continue": True,
-                    "next_focus_question": "What does /mind/schema report?",
+                    "next_focus_question": "What does help report?",
                     "public_summary": "Ho verificato che serve conferma schema.",
                 }
             ),
@@ -188,14 +190,21 @@ class FakeOpenRouterRetrievalClient:
                 "top_n": top_n,
             }
         )
-        scored = [
-            {
-                "index": index,
-                "relevance_score": 0.99 if "cacao" in document.casefold() else 0.21,
-                "document": {"text": document},
-            }
-            for index, document in enumerate(documents)
-        ]
+        scored = []
+        for index, document in enumerate(documents):
+            lowered = document.casefold()
+            score = 0.99 if (
+                "cacao" in lowered
+                or "tisana" in lowered
+                or "camomilla" in lowered
+            ) else 0.21
+            scored.append(
+                {
+                    "index": index,
+                    "relevance_score": score,
+                    "document": {"text": document},
+                }
+            )
         scored.sort(key=lambda item: item["relevance_score"], reverse=True)
         return {
             "id": "rerank_fake_1",
@@ -210,6 +219,8 @@ def _fake_embedding(text: str) -> list[float]:
     lowered = text.casefold()
     if (
         "cacao" in lowered
+        or "tisana" in lowered
+        or "camomilla" in lowered
         or "bevanda" in lowered
         or "caffe" in lowered
         or "concentr" in lowered
@@ -257,7 +268,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == "2026-06-26.digital-organs-standalone-v1"
+    assert body["result"]["schema_version"] == "2026-07-08.memory-conflict-taxonomy-v1"
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"
@@ -531,19 +542,23 @@ def test_mind_metacognition_step_is_traceable(db_engine: Engine) -> None:
     assert body["ok"] is True
     assert body["result"]["mode"] == "critic"
     assert body["result"]["review"]["should_continue"] is True
-    assert "current Mind API schema" in body["result"]["review"]["missing_evidence"]
-    assert body["result"]["review"]["recommended_internal_actions"][0]["path"] == "/mind/schema"
+    assert "current Mind shell help" in body["result"]["review"]["missing_evidence"]
+    assert body["result"]["review"]["recommended_internal_actions"][0]["command"] == "help"
     assert (
         body["result"]["review"]["recommended_internal_actions"][0]["schema_status"]
-        == "implemented"
+        == "implemented_command"
     )
-    wrong_method_action = body["result"]["review"]["recommended_internal_actions"][1]
-    assert wrong_method_action["schema_status"] == "wrong_method"
-    assert wrong_method_action["suggested_method"] == "POST"
-    assert wrong_method_action["call_is_available"] is False
+    malformed_memory_action = body["result"]["review"]["recommended_internal_actions"][1]
+    assert malformed_memory_action["schema_status"] == "missing_required_argument"
+    assert malformed_memory_action["call_is_available"] is False
+    assert malformed_memory_action["canonical_namespace"] == "memory"
+    assert malformed_memory_action["canonical_action"] == "open"
+    unknown_command_action = body["result"]["review"]["recommended_internal_actions"][2]
+    assert unknown_command_action["schema_status"] == "unknown_command_family"
+    assert unknown_command_action["call_is_available"] is False
     assert body["result"]["model"] == "MiniMax-M2.7"
     assert FakeMetacognitionProvider.prompts
-    assert "available_mind_api_routes" in FakeMetacognitionProvider.prompts[0]
+    assert "available_mind_shell_commands" in FakeMetacognitionProvider.prompts[0]
 
     traces = client.get(f"/api/debug/traces/{turn_id}").json()
     assert "mind.metacognition.step" in [trace["kind"] for trace in traces]
@@ -824,7 +839,7 @@ def test_mind_metacognition_can_retrospect_previous_turn_thinking(
     assert body["result"]["retrospection"]["thinking_block_count"] == 1
     assert body["result"]["retrospection"]["tool_call_count"] == 1
     assert (
-        "Previous reasoning considered schema evidence"
+        "Previous reasoning considered shell help evidence"
         in body["result"]["review"]["reasoning_digest"]
     )
     assert FakeMetacognitionProvider.prompts
@@ -1556,6 +1571,142 @@ def test_mind_memory_search_active_hybrid_promotes_grouped_dense_candidate(
     assert body["result"]["memories"][0]["retrieval_signals"]["hybrid"][
         "dense_signal"
     ] is True
+
+
+def test_mind_memory_search_hybrid_prefers_direct_content_over_broad_overlap(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    """Prediction: direct beverage content beats broad evening/report overlap."""
+    FakeOpenRouterRetrievalClient.embedding_calls.clear()
+    FakeOpenRouterRetrievalClient.rerank_calls.clear()
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_top_k": 5,
+            "retrieval_shadow_vector_dim": 8,
+            "retrieval_shadow_cloud_surface_limit": 30,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 5,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_dense_score": 0.38,
+            "retrieval_hybrid_min_rerank_score": 0.55,
+        },
+    )
+    session = client.post(
+        "/api/chat/sessions",
+        json={"title": "Hybrid calibration prediction"},
+    ).json()
+    with Session(db_engine) as db:
+        turn_id = repositories.create_turn(
+            db,
+            session_id=session["id"],
+            model="MiniMax-M3",
+        ).id
+
+    direct_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": (
+                    "L'utente preferisce una tisana serale alla camomilla, "
+                    "calda e senza caffeina, quando vuole rilassarsi."
+                ),
+                "reason_for_storage": "Preferenza personale su bevande serali.",
+                "expected_future_use": (
+                    "Usare quando si parla di sera, bevande, sonno o relax."
+                ),
+                "scope": "user",
+            },
+            "intent": "Seed the expected direct memory.",
+        },
+    )
+    assert direct_response.status_code == 200
+    direct_memory_id = direct_response.json()["result"]["memory_id"]
+
+    distractor_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "response_format",
+                "content": "L'utente preferisce report serali sintetici con tre sezioni.",
+                "reason_for_storage": "Preferenza di formato per riepiloghi.",
+                "expected_future_use": "Usare per report di fine giornata.",
+                "scope": "project",
+            },
+            "intent": "Seed a broad evening/report distractor.",
+        },
+    )
+    assert distractor_response.status_code == 200
+
+    support_only_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/write",
+            "body": {
+                "type": "user_preference",
+                "content": "L'utente ama percorsi di trekking tranquilli nel weekend.",
+                "reason_for_storage": "Preferenza ricreativa personale.",
+                "expected_future_use": (
+                    "Potrebbe aiutare anche per tisane serali o routine senza caffeina."
+                ),
+                "scope": "user",
+            },
+            "intent": "Seed a misleading auxiliary-surface memory.",
+        },
+    )
+    assert support_only_response.status_code == 200
+
+    search_response = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "turn_id": turn_id,
+            "method": "POST",
+            "path": "/mind/memory/search",
+            "body": {
+                "query": "tisana serale senza caffeina per rilassarmi",
+                "top_k": 3,
+            },
+            "intent": (
+                "Calibration probe: direct content should beat broad overlap "
+                "and support-only hints."
+            ),
+        },
+    )
+
+    assert search_response.status_code == 200
+    body = search_response.json()
+    memories = body["result"]["memories"]
+    assert memories[0]["id"] == direct_memory_id
+    assert memories[0]["retrieval_signals"]["hybrid"]["rerank_signal"] is True
+    assert FakeOpenRouterRetrievalClient.rerank_calls
+    assert (
+        FakeOpenRouterRetrievalClient.rerank_calls[-1]["query"]
+        == "tisana serale senza caffeina per rilassarmi"
+    )
 
 
 def test_mind_memory_search_active_hybrid_does_not_select_dense_below_threshold(
@@ -2733,6 +2884,7 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     conflicts_body = conflicts_response.json()
     assert conflicts_body["ok"] is True
     fact_conflict = conflicts_body["result"]["conflicts"][0]
+    assert fact_conflict["classification"] == "atomic_fact_conflict"
     assert fact_conflict["basis"] == "atomic_fact"
     assert fact_conflict["entity"] == "protocollo-zero-luce"
     assert fact_conflict["predicate"] == "response_format"
@@ -2966,10 +3118,15 @@ def test_mind_memory_lifecycle_supersedes_and_deprecates_conflict(
     assert conflicts_response.status_code == 200
     conflicts_body = conflicts_response.json()
     assert conflicts_body["ok"] is True
-    assert conflicts_body["result"]["count"] == 1
-    assert set(conflicts_body["result"]["conflicts"][0]["memory_ids"]) == {
+    assert conflicts_body["result"]["count"] == 0
+    assert conflicts_body["result"]["related_overlap_count"] == 1
+    assert set(conflicts_body["result"]["related_overlaps"][0]["memory_ids"]) == {
         old_memory_id,
         new_memory_id,
+    }
+    assert conflicts_body["result"]["related_overlaps"][0]["classification"] in {
+        "related_overlap",
+        "duplicate_candidate",
     }
 
     supersede_response = client.post(

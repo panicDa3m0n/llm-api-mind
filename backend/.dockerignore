@@ -1,0 +1,14 @@
+.env
+.venv
+.pytest_cache
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.DS_Store
+data/
+*.db
+*.db-shm
+*.db-wal
+tests/__pycache__/
+llm_api_mind_backend.egg-info/
