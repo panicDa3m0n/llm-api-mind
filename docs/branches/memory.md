@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-10
-System version assessed: V1.27.0
+System version assessed: V1.28.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -109,6 +109,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   laboratorio restano fonti non mutabili per le suite. Il vecchio
   `codex_test.db` diventa artefatto storico; l'evaluator crea ora un run DB
   marcato e fresco dalla baseline congelata.
+- V1.28.0 divide il monolite repository per dominio senza cambiare la facciata
+  usata da memoria, retrieval, shell, chat e manutenzione: stato canonico,
+  facts/proposal lifecycle e artefatti derivati hanno ora confini di codice
+  leggibili ma lo stesso contratto transazionale.
 - Il rerank resta un secondo stadio sui candidati gia trovati: migliora la
   precisione osservabile, ma non sostituisce embedding/sparse/KG.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e

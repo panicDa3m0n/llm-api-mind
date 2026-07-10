@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-10
-App baseline: V1.27.0
+App baseline: V1.28.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -51,6 +51,8 @@ system is a local agentic runtime for Scarlet with:
   factory boundary so imports used by evaluators do not open a runtime DB;
 - a documented VPS deployment boundary: the persistent `/app/data` mount is
   production data, excluded from both image construction and code transfer;
+- a stable `storage.repositories` facade split behind domain-specific session,
+  runtime, organ, canonical-memory, and derived-retrieval repository modules;
 - a frozen preliminary regression gate for major procedures, using real
   sourceable memory/fact/session references from a published laboratory DB and
   a freshly recreated disposable DB for each pre/post comparison;
@@ -190,7 +192,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `130 passed` on the V1.27.0 full
+- Backend test suite currently passes at `131 passed` on the V1.28.0 full
   sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.

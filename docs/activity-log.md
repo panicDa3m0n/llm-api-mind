@@ -4,6 +4,41 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-10 - V1.28.0 Storage Repository Domain Split
+
+Goal:
+
+Reduce the storage monolith without changing Scarlet's persistence contract or
+the model-facing cognitive runtime.
+
+Area:
+
+Storage organization / maintainability / regression safety.
+
+Changes:
+
+- Replaced the 2,073-line implementation behind
+  `app.storage.repositories` with a compatibility facade and five domain
+  modules: sessions, runtime support, cognitive organs, canonical memory, and
+  derived retrieval state.
+- Moved the shared session-touch helper into a small private module so
+  cross-domain timestamp updates stay visible.
+- Kept every existing public repository name and signature stable; added a
+  regression test that asserts the facade re-exports the domain operations.
+
+Verification:
+
+- Targeted repository/storage/organ/maintenance tests: `25 passed`.
+- Full backend suite: `131 passed`.
+- Unchanged preliminary regression: `9/9` in
+  `20260710_152411_preliminary-regression-v1`.
+
+Next Suggested Step:
+
+Use the now-separated storage domains to review `memory.py` and `chat.py` in
+their own focused slices. Keep the database boundary and preliminary gate
+unchanged for each subsequent rework.
+
 ## 2026-07-10 - V1.27.0 Database Ownership Boundary
 
 Goal:

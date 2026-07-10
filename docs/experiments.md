@@ -4880,6 +4880,10 @@ the run target remains freshly recreated, and importing `app.main` no longer
 opens a configured developer database before the runner applies its explicit
 settings.
 
+V1.28.0 split the storage repository monolith behind the unchanged public
+facade. The same source and nine integration cases again passed, so the
+structural reorganization did not change assembled runtime behavior.
+
 Limits:
 
 This establishes repeatable integration behavior, not a score for MiniMax M3

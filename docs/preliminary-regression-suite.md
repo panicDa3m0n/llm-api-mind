@@ -129,6 +129,10 @@ The V1.27.0 database-boundary rework passed the unchanged suite `9/9` in
 `20260710_151853_preliminary-regression-v1`, confirming that role validation
 and the ASGI factory split did not alter the assembled cognitive runtime.
 
+The V1.28.0 repository-domain split passed the unchanged suite `9/9` in
+`20260710_152411_preliminary-regression-v1`, confirming that the stable
+repository facade preserved session, memory, organ, trace, and bridge behavior.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

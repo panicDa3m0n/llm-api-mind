@@ -509,6 +509,43 @@ Related Files:
 - `backend/app/asgi.py`
 - `scripts/check_database_boundary.py`
 
+## ADR-0070 - Storage Repositories Split By Transaction Domain
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+`storage/repositories.py` had grown to 2,073 lines and mixed chat/session
+records, traces/events, runtime settings and maintenance, focus/volition,
+canonical memory/facts/proposals, and derived retrieval cache/graph state.
+The combined module obscured ownership and made future context/runtime work
+riskier to inspect.
+
+Decision:
+
+Keep `app.storage.repositories` as the stable caller-facing facade, but move
+implementation into domain modules: `sessions`, `runtime`, `organs`, `memory`,
+and `retrieval`. Shared session-touch behavior lives in a small private helper.
+Do not change signatures, transaction behavior, schema, or caller imports in
+this organization slice.
+
+Consequences:
+
+- Chat, bridge, shell, maintenance, and evaluators keep one compatible import.
+- Future changes can be scoped to the domain that owns the table and lifecycle.
+- Cross-domain mutations remain explicit through the shared helper rather than
+  disappearing into a generic persistence abstraction.
+- The split must continue to pass the frozen whole-system gate before any
+  behavior change is accepted.
+
+Related Files:
+
+- `backend/app/storage/repositories.py`
+- `backend/app/storage/repository/`
+- `backend/tests/test_repository_facade.py`
+- `docs/preliminary-regression-suite.md`
+
 ## ADR-0002 - Initial System Shape
 
 Date: 2026-05-08  

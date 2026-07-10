@@ -8,6 +8,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.28.0 domain-separated storage repositories while retaining the
+  `storage.repositories` compatibility facade used by existing chat, memory,
+  shell, maintenance, and bridge callers.
+
 - Added V1.27.0 database ownership boundaries:
   - introduced explicit `production`, `laboratory`, `test`, and `preliminary`
     roles, a read-only database preflight, and startup validation for ambiguous
