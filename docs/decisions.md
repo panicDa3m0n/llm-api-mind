@@ -546,6 +546,75 @@ Related Files:
 - `backend/tests/test_repository_facade.py`
 - `docs/preliminary-regression-suite.md`
 
+## ADR-0071 - Shared Compact Dynamic Context Contract
+
+Date: 2026-07-12
+Status: implemented in V1.29.0
+
+Context:
+
+Scarlet currently receives useful dynamic evidence mixed with repeated user
+messages, maintenance timestamps, policy prose, retrieval diagnostics, profile
+metadata, broad session summaries, and provider-specific bridge duplication.
+The same runtime also needs richer evidence for retrieval, maintenance, UI,
+traces, and debugging. Deleting internal detail would weaken observability;
+sending all of it to the model would weaken cognition and future scalability.
+
+Decision:
+
+Keep rich internal evidence and compile a separate versioned model-context
+projection shared by local MiniMax and the external GPT bridge. The approved
+initial projection contains:
+
+- current session id, title, and user-local creation time;
+- user display name, one user-local clock/timezone, and assembled location;
+- up to two compact previous-session hints with id, true last-message time,
+  turn count, and summary or a fixed missing-summary navigation fallback;
+- up to five relevant, five recent user-specific, and five recent general
+  memory hooks, globally deduplicated in that priority order;
+- compact memory id/content/semantic timestamps/source session/source message
+  fields only, with deeper facts, graph, and provenance available on demand.
+
+Memory recency is driven by explicit eligible cognitive activity. Delivering a
+recent-memory packet does not refresh it, and reads do not mutate semantic
+memory timestamps. Historical provenance is audited and sourceably repaired;
+missing source ids are never guessed. Undiscussed dynamic families retain
+their current behavior until their own review.
+
+The GPT bridge is only an alternative model connection and transport. It may
+not define a different API Mind context policy. Duplicate/conflict semantic
+adjudication remains a separate research workstream; deterministic retrieval
+may propose review candidates but does not decide semantic relation.
+
+Consequences:
+
+- Model input can become smaller without sacrificing raw trace/UI evidence.
+- Native and GPT behavior can be compared against one context contract.
+- The compiler can run in shadow mode before changing live provider input.
+- A memory activity ledger and direct source message/turn navigation are
+  required implementation dependencies.
+- Legacy provenance repair is isolated from provider activation and protected
+  by database preflight, dry runs, and regression tests.
+- Missing/stale summaries are repaired through the existing episodic
+  summarizer with bounded reconciliation and retry; the model fallback remains
+  a temporary navigation safeguard rather than the target steady state.
+- Dialogue/events, capabilities, Scarlet state, focus, affect, metacognition,
+  and compatibility mirrors require later packet-by-packet review.
+- The exact model document is now a first-class `model.context` trace; the
+  richer evidence snapshots remain separate and are not deleted.
+- `session message` and `session turn` are the direct provenance routes for
+  compact memory hooks. No automatic KG node id is needed because
+  `memory graph <memory_id>` resolves the root.
+
+Related Files:
+
+- `docs/context-packet-inventory.md`
+- `docs/context-packet-implementation-plan.md`
+- `docs/runtime-context-packs.md`
+- `docs/database-topology.md`
+- `backend/app/mind/context.py`
+- `backend/app/plugins/gpt_bridge/router.py`
+
 ## ADR-0002 - Initial System Shape
 
 Date: 2026-05-08  

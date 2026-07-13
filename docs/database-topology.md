@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-10
-Backend baseline: V1.27.0
+Last updated: 2026-07-12
+Backend baseline: V1.29.0
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -22,6 +22,13 @@ environments to `test`, and `production` to `production`. Any other
 `ENVIRONMENT` must explicitly set `DATABASE_ROLE`; this deliberately includes
 `mobile_test`, because that name alone does not say whether its mounted data is
 preview data or real data.
+
+V1.29.0 adds `memory_activities` through normal schema initialization and two
+explicit maintenance mutations: summary reconciliation and source-message
+repair. Both must be audited/dry-run on a disposable `test` copy first.
+Provenance repair defaults to `apply=false`; summary reconciliation defaults to
+`dry_run=true`. Neither operation is a startup data migration, and neither may
+be exercised against the VPS production DB during evaluator work.
 
 `CODEX_TEST` remains the legacy, useful *copy-once isolation mechanism*. It is
 not a role. When true, it selects `CODEX_TEST_DATABASE_URL` and may create it

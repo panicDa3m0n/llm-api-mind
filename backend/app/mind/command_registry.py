@@ -107,6 +107,16 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
                 requires_any=("arg", "id", "session-id"),
                 suggested_command="session open ses_... --limit 200",
             ),
+            "message": CommandAction(
+                status="implemented",
+                requires_any=("arg", "id", "message-id"),
+                suggested_command="session message msg_...",
+            ),
+            "turn": CommandAction(
+                status="implemented",
+                requires_any=("arg", "id", "turn-id"),
+                suggested_command="session turn turn_...",
+            ),
             "summarize": CommandAction(
                 status="implemented",
                 requires_any=("arg", "id", "session-id"),

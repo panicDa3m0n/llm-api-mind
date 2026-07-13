@@ -1008,7 +1008,10 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
         "readiness_stages"
     ]
     assert search_body["result"]["memories"][0]["id"] == memory_id
-    assert search_body["result"]["memories"][0]["usage_count"] == 1
+    assert search_body["result"]["memories"][0]["usage_count"] == 0
+    with Session(db_engine) as db:
+        activities = repositories.list_memory_activities(db, memory_id=memory_id)
+    assert activities[0].activity_kind == "manual_search"
 
     write_traces = client.get(f"/api/debug/traces/{write_turn_id}").json()
     assert [trace["kind"] for trace in write_traces] == [

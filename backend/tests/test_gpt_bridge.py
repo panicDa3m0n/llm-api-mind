@@ -44,12 +44,18 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     turn_id = bootstrap_payload["turn_id"]
     context = bootstrap_payload["context"]
     assert context["profile"] == "gpt-bootstrap-compact-v1"
+    assert context["model_context"]["schema_version"] == "scarlet-model-context-v2"
     assert "system" not in context
     assert "base_system" not in context
     assert "runtime_payload" not in context
     assert context["runtime_context"]
-    assert context["memory_context"]["operation"] == "memory.context"
-    assert "raw_retrieval_shadow" in context["memory_context"]["omitted_debug"]
+    assert set(context["model_context"]["memories"]) == {
+        "relevant",
+        "recent_user",
+        "recent_general",
+    }
+    assert "memory_context" not in context
+    assert "runtime_payload_summary" not in context
     assert context["tools"][0]["name"] == "mind_shell"
     assert context["mind_shell_action_endpoint"] == "POST /gpt/action"
     assert context["finalize_endpoint"] == "POST /gpt/finalize"
@@ -57,6 +63,11 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
         "omitted_from_action_response"
     ]
     assert len(json.dumps(bootstrap_payload)) < 120_000
+    traces = client.get(f"/api/debug/traces/{turn_id}").json()
+    model_context_trace = next(
+        trace for trace in traces if trace["kind"] == "model.context"
+    )
+    assert context["model_context"] == model_context_trace["payload"]["document"]
 
     action = client.post(
         "/gpt/action",

@@ -4901,3 +4901,42 @@ Related Files:
 - `backend/app/evals/preliminary_regression.py`
 - `docs/preliminary-regression-suite.md`
 - `docs/decisions.md#adr-0068---frozen-preliminary-regression-gate-for-major-procedures`
+
+## EXP-0051 - Canonical Context V2 Acceptance
+
+Date: 2026-07-12
+Status: completed for V1.29.0
+
+Hypothesis:
+
+A compact, navigable session/memory projection can preserve or improve
+Scarlet's real continuity while removing automatic diagnostic detail and
+keeping full evidence in backend traces.
+
+Method:
+
+- Run focused contract tests and the frozen preliminary suite.
+- Repair provenance and missing summaries only on a disposable laboratory
+  copy.
+- Send natural Italian prompts across related and new sessions with real
+  MiniMax M3, then inspect exact model-context, tool, memory, and source traces.
+
+Results:
+
+- Backend `138/138`; unchanged preliminary suite `9/9`; frontend build passed.
+- `36/36` source hooks repaired and `34/34` summary jobs completed on the copy.
+- Local time/location required no tool; relevant Zero-Luce memories arrived as
+  compact hooks; a source-sensitive follow-up triggered memory/session reads
+  and exact message/turn reporting.
+- A new session reconstructed the immediately preceding work from episodic
+  hints and source navigation.
+- Fresh-session preference write produced a fully sourced memory and the next
+  session recalled it automatically without a tool call.
+- One MiniMax result ended with thinking only and no public/tool block; this is
+  BUG-0067, not evidence of a V2 retrieval or provenance failure.
+
+Decision:
+
+Accept `model_context_profile=v2` as the current model-facing contract. Retain
+`legacy` and `v2_shadow` for controlled rollback/comparison. Review preserved
+context families and provider history separately before further reduction.

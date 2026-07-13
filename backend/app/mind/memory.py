@@ -534,6 +534,15 @@ def handle_memory_write(
                 stored=False,
                 decision="deduplicated",
             )
+            _record_memory_activity(
+                db,
+                context=context,
+                memory_id=duplicate.id,
+                activity_kind="write_review_candidate",
+                source="memory.write",
+                trace_id=trace.id,
+                metadata={"decision": "deduplicated"},
+            )
             return MemoryOperationResult(
                 ok=True,
                 result={
@@ -563,6 +572,7 @@ def handle_memory_write(
             scope=request.scope,
             source_session_id=context.session_id,
             source_turn_id=context.turn_id,
+            source_message_id=context.source_message_id,
             tags=[],
             metadata=_backend_memory_metadata_from_write(request),
         )
@@ -574,6 +584,14 @@ def handle_memory_write(
             memory=memory,
             stored=True,
             decision="accepted",
+        )
+        _record_memory_activity(
+            db,
+            context=context,
+            memory_id=memory.id,
+            activity_kind="write",
+            source="memory.write",
+            trace_id=trace.id,
         )
         facts, created_facts = _ensure_memory_facts(
             db,
@@ -714,10 +732,6 @@ def handle_memory_search(
             for memory_id, signal in graph_signals.items()
         }
         selected = scored[: request.top_k]
-        refreshed: list[tuple[MemoryRecord, float, str]] = []
-        for memory, score, reason in selected:
-            updated = repositories.mark_memory_used(db, memory_id=memory.id) or memory
-            refreshed.append((updated, score, reason))
 
         trace = repositories.add_trace(
             db,
@@ -732,7 +746,7 @@ def handle_memory_search(
                 "scope": request.scope,
                 "top_k": request.top_k,
                 "time": time_filter_payload(request.time, resolved_time),
-                "returned_memory_ids": [memory.id for memory, _, _ in refreshed],
+                "returned_memory_ids": [memory.id for memory, _, _ in selected],
                 "candidate_count": len(candidates),
                 "fact_candidate_count": sum(
                     len(facts) for facts in facts_by_memory.values()
@@ -744,6 +758,17 @@ def handle_memory_search(
                 "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
             },
         )
+        trace_id = trace.id
+        for memory, _, _ in selected:
+            _record_memory_activity(
+                db,
+                context=context,
+                memory_id=memory.id,
+                activity_kind="manual_search",
+                source="memory.search",
+                trace_id=trace_id,
+                metadata={"query": request.query},
+            )
 
         memories = [
             {
@@ -759,7 +784,7 @@ def handle_memory_search(
                     "hybrid": hybrid_signals_by_id.get(memory.id),
                 },
             }
-            for memory, score, reason in refreshed
+            for memory, score, reason in selected
         ]
 
     return MemoryOperationResult(
@@ -776,7 +801,7 @@ def handle_memory_search(
             "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
             "memories": memories,
             "count": len(memories),
-            "trace_ids": [trace.id],
+            "trace_ids": [trace_id],
         },
         cognitive_hint=(
             "Use returned memories as sourceable context, not as hidden truth. "
@@ -837,6 +862,15 @@ def handle_memory_facts(
                 "count": len(facts),
             },
         )
+        if request.memory_id is not None:
+            _record_memory_activity(
+                db,
+                context=context,
+                memory_id=request.memory_id,
+                activity_kind="manual_facts",
+                source="memory.facts",
+                trace_id=trace.id,
+            )
         fact_payloads = [fact_payload(fact) for fact in facts]
         trace_id = trace.id
 
@@ -1069,6 +1103,14 @@ def handle_memory_graph(
                 "related_memory_ids": related_memory_ids,
             },
         )
+        _record_memory_activity(
+            db,
+            context=context,
+            memory_id=memory.id,
+            activity_kind="manual_graph",
+            source="memory.graph",
+            trace_id=trace.id,
+        )
         trace_id = trace.id
 
     return MemoryOperationResult(
@@ -1128,6 +1170,14 @@ def handle_memory_read(
                 "memory_id": memory.id,
                 "status": memory.status,
             },
+        )
+        _record_memory_activity(
+            db,
+            context=context,
+            memory_id=memory.id,
+            activity_kind="manual_read",
+            source="memory.read",
+            trace_id=trace.id,
         )
         trace_ids.append(trace.id)
         return MemoryOperationResult(
@@ -1378,6 +1428,15 @@ def handle_memory_supersede(
                 "reason": request.reason,
                 "deprecate_old": request.deprecate_old,
             },
+        )
+        _record_memory_activity(
+            db,
+            context=context,
+            memory_id=updated_new.id,
+            activity_kind="supersede",
+            source="memory.supersede",
+            trace_id=trace.id,
+            metadata={"superseded_memory_id": updated_old.id},
         )
         old_facts, _ = _ensure_memory_facts(
             db,
@@ -2430,6 +2489,18 @@ def apply_create_memory_proposal(
         tags=proposal.tags_json,
         metadata=metadata,
     )
+    repositories.add_memory_activity(
+        db,
+        memory_id=memory.id,
+        activity_kind="write",
+        source="maintenance.proposal.apply_create",
+        actor="maintenance",
+        session_id=proposal.source_session_id,
+        turn_id=proposal.source_turn_id,
+        message_id=memory.source_message_id,
+        trace_id=proposal.source_trace_id,
+        metadata={"proposal_id": proposal.id},
+    )
     facts, _ = _ensure_memory_facts(
         db,
         memory,
@@ -2809,6 +2880,30 @@ def _backend_memory_metadata_from_write(request: MemoryWriteBody) -> dict[str, A
         "write_policy": "backend_owned_dynamic_retrieval_scores_v1",
         "agent_supplied_fields_ignored_for_ranking": ignored,
     }
+
+
+def _record_memory_activity(
+    db: Session,
+    *,
+    context: MindAPIContext,
+    memory_id: str,
+    activity_kind: str,
+    source: str,
+    trace_id: str,
+    metadata: dict[str, Any] | None = None,
+) -> None:
+    repositories.add_memory_activity(
+        db,
+        memory_id=memory_id,
+        activity_kind=activity_kind,
+        source=source,
+        profile_id=getattr(context.settings, "user_profile_id", None),
+        session_id=context.session_id,
+        turn_id=context.turn_id,
+        message_id=context.source_message_id,
+        trace_id=trace_id,
+        metadata=metadata,
+    )
 
 
 def _tokens(value: str) -> list[str]:

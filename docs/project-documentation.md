@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-07-10
-App baseline: V1.28.1
+Last updated: 2026-07-12
+App baseline: V1.29.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -46,6 +46,11 @@ discussed before a new fix is attempted.
 - `docs/experiments.md`: hypotheses, live probes, and results.
 - `docs/api-contract.md`: implemented and planned API contracts.
 - `docs/block-registry.md`: runtime/model/UI block map for Scarlet turns.
+- `docs/context-packet-inventory.md`: reviewed inventory of automatic local and
+  GPT bridge packets, manual shell boundaries, and trace/UI-only data.
+- `docs/context-packet-implementation-plan.md`: phased V1.29.0 plan for the
+  implemented compact dynamic context contract, memory activity, source
+  navigation, provider parity, repair procedures, and regression acceptance.
 - `docs/runtime-context-packs.md`: planning baseline for always-on context
   spine, mode packs, organ/source classification, and future embodied runtime
   routing.

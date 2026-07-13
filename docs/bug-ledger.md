@@ -19,6 +19,165 @@ Notes:
 
 ## Known Environment Notes
 
+## BUG-0067 - MiniMax Can End A Turn With Thinking Only
+
+Date Found: 2026-07-12
+Status: open / parked after V1.29.0 live evaluation
+
+Symptoms:
+
+A natural personal-preference turn returned HTTP 200 with an empty assistant
+message and no tool call. MiniMax emitted 647 output tokens of visible thinking,
+correctly identified the required memory write, then returned `stop_reason=end_turn`
+without text or `tool_use`. The following session therefore could not recall
+the preference. A fresh-session retry produced a corrected memory write and
+successful later automatic recall.
+
+Root Cause:
+
+The immediate failure is provider/model output: a thinking-only final message.
+The backend compounds it by accepting an empty public result as a completed
+turn. The failing turn also followed a tool-heavy session whose provider-native
+history was 54,826 JSON characters; that may increase probability but is not
+established as the cause.
+
+Fix:
+
+Parked outside the context-packet scope. Evaluate a bounded continuation or
+explicit failed-turn policy for thinking-only final results. Do not fabricate a
+memory write from thinking text.
+
+Regression Test:
+
+Pending: provider fixture returning thinking-only `end_turn`, plus a live retry
+probe that distinguishes provider failure from memory/context failure.
+
+Related Evidence:
+
+- disposable turn `turn_1515d897c1654e1abfa93a6eadea348a`
+- successful retry `turn_5d1e7dbf48ad47d3907e3d28a208dd36`
+- successful recall `turn_0334a4d4349f4f9c9211ae4c1ef38e1d`
+
+## BUG-0066 - Missing Session Summaries Are Not Reconciled Or Retried
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+The laboratory DB has 44 sessions without summaries: 34 completed non-empty
+sessions eligible for repair, 6 non-empty sessions blocked by turns still
+marked `started`, and 4 empty sessions. Of the 40 non-empty sessions, 39 never
+had a maintenance job and one had a provider-failed job.
+
+Root Cause:
+
+Idle summary scheduling occurs only after `turn.completed`; historical sessions
+and abandoned/unfinalized bridge turns can miss that trigger. Failed jobs are
+terminal, while the unique `kind + session + turn` idempotency key causes a
+later scheduling attempt to return the same failed record instead of retrying.
+There is no periodic missing/stale-summary reconciler.
+
+Fix:
+
+Added a read-only summary audit, bounded summary-only repair jobs using the
+existing episodic summarizer, attempt-specific idempotency and retry/backoff,
+plus periodic and new-session reconciliation. Empty sessions are excluded and
+started turns remain blocked for separate recovery. A disposable laboratory
+run completed all 34 eligible repairs; final audit: 146 current, 6 blocked, 11
+empty.
+
+Regression Test:
+
+`tests/test_maintenance.py`, `tests/test_maintenance_api.py`, and
+`tests/test_model_context_v2.py` cover scheduling, retry boundaries, current,
+missing/stale fallback, empty, and active-turn isolation.
+
+Related Files:
+
+- `backend/app/runtime/maintenance.py`
+- `backend/app/storage/repository/runtime.py`
+- `backend/app/mind/episodic.py`
+- `backend/app/api/chat.py`
+- `backend/app/plugins/gpt_bridge/router.py`
+
+## BUG-0064 - Memory Writes Omit Source Message Provenance
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+The compact context contract requires every automatic memory hint to expose a
+source session and source message. A read-only laboratory audit found that all
+36 memories have source session/turn ids but none has `source_message_id`.
+
+Root Cause:
+
+Direct `memory write` passes session and turn to `add_memory()` but omits the
+current persisted user message. Idle-maintenance prompts contain message ids,
+but their output contract and normalizer discard those ids before creating a
+proposal and memory. `MindAPIContext` currently has no message-id field.
+
+Fix:
+
+Captured the persisted user-message id in native and bridge Mind contexts,
+validated maintenance evidence ids, preserved the primary source through
+proposal application, and excluded unresolved hooks from automatic V2 packets.
+The dry-run-first repair aligned all 36 unambiguous records on a disposable
+laboratory copy without touching the source DB.
+
+Regression Test:
+
+Covered by chat, GPT bridge, maintenance, and V2 context contract tests. Live
+write `mem_5da04b6c03c54f44af53ecc4c7f8636e` resolved to its exact source
+session, turn, and user message on the disposable DB.
+
+Related Files:
+
+- `backend/app/mind/contracts.py`
+- `backend/app/mind/memory.py`
+- `backend/app/runtime/maintenance.py`
+- `backend/app/api/chat.py`
+- `backend/app/plugins/gpt_bridge/router.py`
+
+## BUG-0065 - Memory Reads Mutate Semantic Update Time
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+Automatic context retrieval and manual memory search call
+`mark_memory_used()`. The operation increments usage, sets `last_used_at`, and
+also overwrites `updated_at`. In the laboratory DB, 32 of 33 used memories have
+`updated_at == last_used_at`, so semantic modification time cannot be used as
+historical cognitive recency.
+
+Root Cause:
+
+The original usage counter overloaded canonical memory state instead of
+recording access as a separate append-only activity.
+
+Fix:
+
+Added append-only `memory_activities`, explicit call-site activity kinds, and
+activity-ordered recent queries with creation-time fallback. Automatic simple
+selection and recent-packet delivery no longer mutate canonical memories;
+manual reads/searches and writes create traceable activity events.
+
+Regression Test:
+
+`tests/test_model_context_v2.py` verifies stable timestamps, explicit activity,
+ordering, refill, compact shape, provenance, and cross-block deduplication.
+
+Related Files:
+
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/app/storage/repository/memory.py`
+- `backend/app/storage/models.py`
+
 ## BUG-0062 - Importing The App Factory Could Open The Configured Runtime DB
 
 Date Found: 2026-07-10

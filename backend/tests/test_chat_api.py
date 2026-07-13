@@ -585,7 +585,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert turn["usage"] == {"input_tokens": 1, "output_tokens": 3}
     assert turn["user_message"]["content"] == "hello"
     assert turn["assistant_message"]["content"] == "assistant:hello:history=1"
-    assert len(turn["trace_ids"]) == 5
+    assert len(turn["trace_ids"]) == 6
 
     messages_response = client.get(f"/api/chat/sessions/{session['id']}/messages")
     assert messages_response.status_code == 200
@@ -603,6 +603,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
         "memory.context",
         "metacognitive.context",
         "runtime.context",
+        "model.context",
         "llm.request",
         "llm.response",
     ]
@@ -627,7 +628,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
         "message_context",
         "scarlet_state",
     ]
-    request_trace = traces[3]["payload"]
+    model_context_trace = traces[3]["payload"]
+    request_trace = traces[4]["payload"]
     assert request_trace["max_tokens"] == 4096
     assert request_trace["tool_loop_policy"] == "model_controlled_unbounded"
     assert request_trace["provider_history_source"] == "messages.text_reconstructed"
@@ -642,37 +644,26 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert request_trace["metacognitive_context_mode"] == "shadow"
     assert request_trace["metacognitive_context_model_facing"] is False
     assert request_trace["runtime_context_trace_id"] == traces[2]["id"]
+    assert request_trace["model_context_trace_id"] == traces[3]["id"]
+    assert model_context_trace["document"]["schema_version"] == (
+        "scarlet-model-context-v2"
+    )
     assert "<runtime_context>" in request_trace["system"]
     runtime_payload = json.loads(
         request_trace["runtime_context"]
         .removeprefix("<runtime_context>\n")
         .removesuffix("\n</runtime_context>")
     )
-    assert runtime_payload["schema_version"] == "runtime-context-v1"
-    assert runtime_payload["rendering_profile"] == "compact-model-facing-v1"
-    assert runtime_payload["blocks"][0]["type"] == "session_context"
-    assert runtime_payload["blocks"][1]["type"] == "message_context"
-    assert runtime_payload["blocks"][2]["type"] == "scarlet_state"
-    assert runtime_payload["temporal_context"] == memory_context["temporal_context"]
-    assert runtime_payload["temporal_context"]["now"]
-    assert runtime_payload["temporal_context"]["utc_offset"]
-    message_context = runtime_payload["blocks"][1]["content"]
-    assert message_context["current_message"]["language"]["code"] == "it"
-    assert message_context["current_message"]["language"]["source"] in {
-        "environment_defaults",
-        "dashboard_settings",
+    assert runtime_payload["schema_version"] == "scarlet-model-context-v2"
+    assert runtime_payload == model_context_trace["document"]
+    assert runtime_payload["session"]["user"] == {"name": "Utente locale"}
+    assert runtime_payload["session"]["location"] == "Italia"
+    assert runtime_payload["session"]["timezone"]["id"] == "Europe/Rome"
+    assert set(runtime_payload["memories"]) == {
+        "relevant",
+        "recent_user",
+        "recent_general",
     }
-    assert message_context["world"]["location"]["status"] == (
-        "configured_runtime_locale"
-    )
-    assert message_context["world"]["location"]["country_code"] == "IT"
-    assert message_context["user_profile"]["identity"]["profile_id"] == "local-user"
-    assert message_context["user_profile"]["identity"]["display_name"] == (
-        "Utente locale"
-    )
-    assert message_context["user_profile"]["privacy"]["scope"] == (
-        "local_single_user"
-    )
     assert "You are Scarlet" in request_trace["base_system"]
     assert "LLM API Mind" in request_trace["base_system"]
     assert "digital individual in development" in request_trace["base_system"]
@@ -683,17 +674,17 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     ]
     assert "use your digital brain" in request_trace["base_system"]
     assert "Perception And Source Of Truth" in request_trace["base_system"]
-    assert "temporal_context.now" in request_trace["base_system"]
+    assert "runtime_context.session.now" in request_trace["base_system"]
     assert "There is no fixed cognitive step budget" in request_trace["base_system"]
     assert "Previous-Turn Continuity Check" in request_trace["base_system"]
     assert "include_inactive=true" in request_trace["base_system"]
     assert "Visible Metacognition Experiment" not in request_trace["base_system"]
     assert "Metacognizione:" not in request_trace["base_system"]
-    assert "diagnostic" not in request_trace["base_system"].lower()
+    assert "diagnostic assistant" not in request_trace["base_system"].lower()
     assert FakeChatProvider.seen_chat_systems[-1] == request_trace["system"]
     assert FakeChatProvider.seen_max_tool_calls[-1] is None
     assert request_trace["messages"][0]["content"] == "hello"
-    assert traces[4]["payload"]["provider_message_id"] == "provider_msg_1"
+    assert traces[5]["payload"]["provider_message_id"] == "provider_msg_1"
     events_response = client.get(f"/api/debug/events?turn_id={turn['turn_id']}")
     assert events_response.status_code == 200
     events = events_response.json()
@@ -758,7 +749,9 @@ def test_metacognitive_context_inject_mode_is_model_facing(
     traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
     metacognitive_context = traces[1]["payload"]
     runtime_context = traces[2]["payload"]
-    request_trace = traces[3]["payload"]
+    request_trace = next(
+        trace["payload"] for trace in traces if trace["kind"] == "llm.request"
+    )
     runtime_payload = json.loads(
         request_trace["runtime_context"]
         .removeprefix("<runtime_context>\n")
@@ -774,7 +767,10 @@ def test_metacognitive_context_inject_mode_is_model_facing(
         "scarlet_state",
         "metacognitive_context",
     ]
-    assert runtime_payload["blocks"][3]["type"] == "metacognitive_context"
+    assert any(
+        block["type"] == "metacognitive_context"
+        for block in runtime_payload["preserved_context"]
+    )
     assert "source_sensitive_claim_guard" in request_trace["runtime_context"]
 
 
@@ -880,7 +876,9 @@ def test_chat_turn_can_override_system_prompt(db_engine: Engine) -> None:
 
     assert response.status_code == 200
     traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
-    request_trace = traces[3]["payload"]
+    request_trace = next(
+        trace["payload"] for trace in traces if trace["kind"] == "llm.request"
+    )
     assert traces[0]["kind"] == "memory.context"
     assert traces[1]["kind"] == "metacognitive.context"
     assert traces[1]["payload"]["mode"] == "shadow"
@@ -912,7 +910,9 @@ def test_second_chat_turn_uses_persisted_history(db_engine: Engine) -> None:
     body = second_turn.json()
     assert body["assistant_message"]["content"] == "assistant:second:history=3"
     traces = client.get(f"/api/debug/traces/{body['turn_id']}").json()
-    request_trace = traces[3]["payload"]
+    request_trace = next(
+        trace["payload"] for trace in traces if trace["kind"] == "llm.request"
+    )
     assert request_trace["provider_history_source"] == "session.provider_history_json"
     assert request_trace["provider_message_stats"]["message_count"] == 3
     assert [message["role"] for message in request_trace["provider_messages"]] == [
@@ -957,30 +957,18 @@ def test_chat_turn_selects_relevant_memory_context(db_engine: Engine) -> None:
     assert memory_context["selected"][0]["classification"] == "selected"
     assert "fts5_sparse_v1" in memory_context["query_plan"]["retrieval_stages"]
     assert "sparse_score" in memory_context["selected"][0]["signals"]
-    request_trace = traces[3]["payload"]
+    request_trace = next(
+        trace["payload"] for trace in traces if trace["kind"] == "llm.request"
+    )
     runtime_payload = json.loads(
         request_trace["runtime_context"]
         .removeprefix("<runtime_context>\n")
         .removesuffix("\n</runtime_context>")
     )
-    model_memory_context = runtime_payload["memory_context"]
-    assert model_memory_context["packet_profile"]["version"] == "memory-packet-v1"
-    model_packet = model_memory_context["selected"][0]
-    assert model_packet["memory_packet_version"] == "memory-packet-v1"
-    assert model_packet["id"] == memory_id
-    assert model_packet["claim"] == memory_context["selected"][0]["content"]
-    assert model_packet["source"]["source_session_id"] is None
-    assert model_packet["cognitive"]["subject"] == "project_or_system"
-    assert model_packet["expected_future_use"]
-    assert model_packet["retrieval"]["routes"]
-    assert "signals" not in model_packet
-    assert "metadata" not in model_packet
-    block_packet = (
-        runtime_payload["blocks"][1]["content"]["memory_retrieval"]["selected"][0]
-    )
-    assert block_packet == model_packet
-    assert memory_id in request_trace["runtime_context"]
-    assert "Zero-Luce" in request_trace["system"]
+    assert runtime_payload["schema_version"] == "scarlet-model-context-v2"
+    assert runtime_payload["memories"]["relevant"] == []
+    assert memory_id not in request_trace["runtime_context"]
+    assert memory_context["selected"][0]["content"] not in request_trace["system"]
 
 
 def test_chat_turn_active_hybrid_selects_paraphrased_memory_context(
@@ -1171,34 +1159,35 @@ def test_chat_turn_dispatches_and_traces_mind_shell_tool_call(
     assert response.status_code == 200
     body = response.json()
     assert body["assistant_message"]["content"] == "I inspected the Mind API schema."
-    assert len(body["trace_ids"]) == 6
+    assert len(body["trace_ids"]) == 7
 
     traces = client.get(f"/api/debug/traces/{body['turn_id']}").json()
     assert [trace["kind"] for trace in traces] == [
         "memory.context",
         "metacognitive.context",
         "runtime.context",
+        "model.context",
         "llm.request",
         "mind.tool_call",
         "llm.response",
     ]
     assert traces[1]["payload"]["mode"] == "shadow"
     assert traces[1]["payload"]["model_facing"] is False
-    assert traces[3]["payload"]["tools"][0]["name"] == "mind_shell"
-    assert traces[3]["payload"]["memory_context_trace_id"] == traces[0]["id"]
-    assert traces[3]["payload"]["metacognitive_context_trace_id"] == traces[1]["id"]
-    assert traces[3]["payload"]["runtime_context_trace_id"] == traces[2]["id"]
-    assert traces[3]["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
+    assert traces[4]["payload"]["tools"][0]["name"] == "mind_shell"
+    assert traces[4]["payload"]["memory_context_trace_id"] == traces[0]["id"]
+    assert traces[4]["payload"]["metacognitive_context_trace_id"] == traces[1]["id"]
+    assert traces[4]["payload"]["runtime_context_trace_id"] == traces[2]["id"]
+    assert traces[4]["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
     capabilities = traces[2]["payload"]["capabilities"]
     assert capabilities["interface"] == "mind_shell"
     assert capabilities["memory.facts.backfill"] == "internal_maintenance_only"
     assert capabilities["legacy_mind_endpoints"] == "internal_debug_maintenance_only"
     assert FakeToolCallingProvider.seen_max_tool_calls[-1] is None
-    tool_trace = traces[4]
+    tool_trace = traces[5]
     assert tool_trace["payload"]["tool_name"] == "mind_shell"
     assert tool_trace["payload"]["arguments"]["command"] == "help"
     assert tool_trace["payload"]["result"]["ok"] is True
-    response_trace = traces[5]
+    response_trace = traces[6]
     assert response_trace["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
     assert (
         response_trace["payload"]["tool_calls"][0]["trace_id"]
@@ -1266,13 +1255,14 @@ def test_chat_turn_dispatches_traceable_memory_write_and_search(
     assert response.status_code == 200
     body = response.json()
     assert body["assistant_message"]["content"] == "Memory stored and retrieved."
-    assert len(body["trace_ids"]) == 9
+    assert len(body["trace_ids"]) == 10
 
     traces = client.get(f"/api/debug/traces/{body['turn_id']}").json()
     assert [trace["kind"] for trace in traces] == [
         "memory.context",
         "metacognitive.context",
         "runtime.context",
+        "model.context",
         "llm.request",
         "mind.memory.write",
         "mind.tool_call",
@@ -1280,18 +1270,24 @@ def test_chat_turn_dispatches_traceable_memory_write_and_search(
         "mind.tool_call",
         "llm.response",
     ]
-    write_trace = traces[4]
+    write_trace = traces[5]
     assert write_trace["payload"]["stored"] is True
     memory_id = write_trace["payload"]["memory_id"]
     assert memory_id.startswith("mem_")
-    assert traces[5]["payload"]["arguments"]["command"].startswith("memory write")
-    assert traces[5]["payload"]["result"]["result"]["data"]["trace_ids"] == [
+    assert traces[6]["payload"]["arguments"]["command"].startswith("memory write")
+    assert traces[6]["payload"]["result"]["result"]["data"]["trace_ids"] == [
         write_trace["id"]
     ]
-    assert traces[6]["payload"]["returned_memory_ids"] == [memory_id]
-    assert traces[7]["payload"]["arguments"]["command"].startswith("memory search")
-    assert traces[8]["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
-    assert traces[8]["payload"]["tool_calls"][1]["tool_name"] == "mind_shell"
+    assert (
+        traces[6]["payload"]["result"]["result"]["data"]["memory"][
+            "source_message_id"
+        ]
+        == body["user_message"]["id"]
+    )
+    assert traces[7]["payload"]["returned_memory_ids"] == [memory_id]
+    assert traces[8]["payload"]["arguments"]["command"].startswith("memory search")
+    assert traces[9]["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
+    assert traces[9]["payload"]["tool_calls"][1]["tool_name"] == "mind_shell"
     assert FakeMemoryProvider.seen_max_tool_calls[-1] is None
     events = client.get(f"/api/debug/events?turn_id={body['turn_id']}").json()
     completed_tool_events = [
@@ -1375,6 +1371,7 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
         "memory.context",
         "metacognitive.context",
         "runtime.context",
+        "model.context",
         "llm.request",
         "mind.tool_call",
         "llm.response",
@@ -1390,11 +1387,11 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
     runtime_event = next(event for event in decoded_events if event["type"] == "runtime_context")
     assert runtime_event["data"]["schema_version"] == "runtime-context-v1"
     assert len(runtime_event["data"]["blocks"]) == 3
-    assert traces[3]["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
-    assert traces[3]["payload"]["provider_history_source"] == (
+    assert traces[4]["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
+    assert traces[4]["payload"]["provider_history_source"] == (
         "messages.text_reconstructed"
     )
-    assert traces[5]["payload"]["stream"] is True
+    assert traces[6]["payload"]["stream"] is True
     assert FakeToolCallingProvider.seen_max_tool_calls[-1] is None
     persisted_events = client.get(
         f"/api/debug/events?turn_id={complete['turn_id']}"

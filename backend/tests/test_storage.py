@@ -58,6 +58,7 @@ def test_init_db_creates_core_tables() -> None:
         "events",
         "tool_calls",
         "memories",
+        "memory_activities",
         "memory_facts",
         "memory_graph_edges",
         "memory_graph_nodes",

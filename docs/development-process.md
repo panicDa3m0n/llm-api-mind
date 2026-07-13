@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-10
-Current app version: V1.28.1
+Current app version: V1.29.0
 Process baseline: V1.0.1
 Status: accepted
 

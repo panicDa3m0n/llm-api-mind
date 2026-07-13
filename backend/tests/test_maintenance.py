@@ -100,6 +100,20 @@ class FakeMaintenanceProvider:
                         "write_recommended": True,
                     }
                 ]
+            prompt_payload = json.loads(prompt)
+            source_message_ids = [
+                item["message_id"]
+                for item in prompt_payload.get("conversation", [])
+                if item.get("role") == "user" and item.get("message_id")
+            ][:1]
+            candidates = [
+                {
+                    **candidate,
+                    "source_message_ids": candidate.get("source_message_ids")
+                    or source_message_ids,
+                }
+                for candidate in candidates
+            ]
             text = json.dumps(
                 {
                     "summary": "One possible semantic memory was missed.",
@@ -152,7 +166,7 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
             session_id=chat_session.id,
             model=settings.minimax_model,
         )
-        repositories.add_message(
+        source_user_message = repositories.add_message(
             db,
             session_id=chat_session.id,
             turn_id=turn.id,
@@ -183,6 +197,7 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
         )
         session_id = chat_session.id
         turn_id = turn.id
+        source_user_message_id = source_user_message.id
         job_id = job.id
         scheduled_event_type = scheduled_event.type
 
@@ -206,6 +221,10 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
             status="applied_create",
         )
         memories = repositories.list_memories_for_session(db, session_id=session_id)
+        memory_activities = repositories.list_memory_activities(
+            db,
+            memory_id=memories[0].id,
+        )
         events = repositories.list_events_for_turn(db, turn_id=turn_id)
         completed_job = repositories.get_maintenance_job(db, job_id)
 
@@ -237,6 +256,9 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
     assert proposals[0].result_json["resolution"]["outcome"] == "apply_create"
     assert proposals[0].result_json["resolution"]["resolver"] == "deterministic_preflight"
     assert proposals[0].result_json["memory_result"]["memory_id"] == memories[0].id
+    assert proposals[0].source_message_ids_json == [source_user_message_id]
+    assert memories[0].source_message_id == source_user_message_id
+    assert memory_activities[0].source == "maintenance.proposal.apply_create"
     completed_event = next(
         event for event in events if event.type == "maintenance.memory_review.completed"
     )

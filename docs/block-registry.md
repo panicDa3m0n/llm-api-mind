@@ -1,13 +1,17 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-11
+System version assessed: V1.29.0
 Status: active diagnostic map
 
 This document maps the blocks used by Scarlet's runtime, model request, stream,
 trace store, and frontend UI. It exists so future optimization work can decide
 what should be model-facing, what should remain only visible to human
 evaluators, and what is currently redundant.
+
+For the field-level review of every automatic local/GPT packet, manual shell
+boundary, and trace/UI-only payload, use `docs/context-packet-inventory.md`.
+This registry remains the compact map of block lifecycle and UI rendering.
 
 ## 1. Model-Facing Request Order
 
@@ -634,6 +638,7 @@ Current block identity rules:
 | Tool exchange | `tool-{provider_tool_use_id}` |
 | Memory context | `memory-context-{trace_id}` |
 | Runtime context | `runtime-context-{trace_id}` |
+| Exact model context | `model-context-{trace_id}` |
 
 Current lifecycle phases:
 
@@ -673,17 +678,18 @@ Purpose:
 
 High-confidence candidates:
 
-- top-level runtime compatibility mirrors duplicate canonical block data;
+- the V2 session/memory spine has removed reviewed compatibility mirrors from
+  active model input;
 - large `tool_result` provider messages can dominate provider history in long
   sessions;
-- recent runtime events often contain thin marker events that may be too noisy
-  for model context.
+- preserved recent runtime events/capability/Scarlet-state blocks still need
+  field-level owner review.
 
 Deferred decisions:
 
-- no payload trimming in V1.7.0;
-- no change to provider-native history policy yet;
-- no compression strategy until we decide the model-facing continuity contract.
+- no provider-native history change in V1.29.0;
+- no automatic removal of preserved context families before owner review;
+- no context-pack router until V2 evidence supplies measured budgets.
 
 Reason:
 

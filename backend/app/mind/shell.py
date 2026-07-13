@@ -413,6 +413,46 @@ def _session_command(
             ),
             context=context,
         )
+    if action == "message":
+        message_id = _first_arg_or_flag(parsed, "id", "message-id")
+        if not message_id:
+            return _shell_error(
+                code="shell.session_message_missing_id",
+                message="session message requires a message id.",
+                parsed=parsed,
+                namespace="session",
+                actions=["session message msg_..."],
+            )
+        return _dispatch_api_as_shell(
+            parsed,
+            target="session.message",
+            api_request=MindAPIRequest(
+                method="GET",
+                path=f"/mind/sessions/messages/{message_id}",
+                intent=intent,
+            ),
+            context=context,
+        )
+    if action == "turn":
+        turn_id = _first_arg_or_flag(parsed, "id", "turn-id")
+        if not turn_id:
+            return _shell_error(
+                code="shell.session_turn_missing_id",
+                message="session turn requires a turn id.",
+                parsed=parsed,
+                namespace="session",
+                actions=["session turn turn_..."],
+            )
+        return _dispatch_api_as_shell(
+            parsed,
+            target="session.turn",
+            api_request=MindAPIRequest(
+                method="GET",
+                path=f"/mind/sessions/turns/{turn_id}",
+                intent=intent,
+            ),
+            context=context,
+        )
     if action == "summarize":
         session_id = _first_arg_or_flag(parsed, "id", "session-id")
         if not session_id:

@@ -69,11 +69,23 @@ def build_mind_router(
                         },
                     )
 
+        source_message_id: str | None = None
+        if request.turn_id is not None:
+            with Session(engine) as db:
+                source_message = repositories.latest_message_for_turn(
+                    db,
+                    turn_id=request.turn_id,
+                    role="user",
+                )
+                source_message_id = (
+                    source_message.id if source_message is not None else None
+                )
         context = (
             MindAPIContext(
                 engine=engine,
                 session_id=request.session_id,
                 turn_id=request.turn_id,
+                source_message_id=source_message_id,
                 settings=settings,
                 provider_factory=provider_factory,
             )

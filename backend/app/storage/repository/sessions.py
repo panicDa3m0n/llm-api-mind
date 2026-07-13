@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.storage.models import (
@@ -17,6 +19,27 @@ from app.storage.models import (
     utc_now,
 )
 from app.storage.repository._shared import touch_session as _touch_session
+
+
+@dataclass(frozen=True)
+class SessionSummaryState:
+    chat_session: ChatSession
+    summary: SessionSummary | None
+    last_message_id: str | None
+    last_message_at: datetime | None
+    turn_count: int
+    latest_turn_id: str | None
+    latest_turn_status: str | None
+
+    @property
+    def summary_state(self) -> str:
+        if self.last_message_id is None:
+            return "empty"
+        if self.summary is None:
+            return "missing"
+        if self.summary.last_message_id != self.last_message_id:
+            return "stale"
+        return "current"
 
 def create_chat_session(
     db: Session,
@@ -66,6 +89,97 @@ def list_chat_sessions(
         .limit(limit)
     )
     return list(db.exec(statement).all())
+
+
+def list_session_summary_states(
+    db: Session,
+    *,
+    exclude_session_id: str | None = None,
+    limit: int | None = None,
+) -> list[SessionSummaryState]:
+    visible_messages = (
+        select(
+            Message.session_id.label("session_id"),
+            Message.id.label("message_id"),
+            Message.created_at.label("message_at"),
+            func.row_number()
+            .over(
+                partition_by=Message.session_id,
+                order_by=(Message.created_at.desc(), Message.id.desc()),
+            )
+            .label("row_number"),
+        )
+        .where(Message.role.in_(["user", "assistant"]))
+        .subquery()
+    )
+    turn_counts = (
+        select(
+            Message.session_id.label("session_id"),
+            func.count(func.distinct(Message.turn_id)).label("turn_count"),
+        )
+        .where(Message.role.in_(["user", "assistant"]))
+        .group_by(Message.session_id)
+        .subquery()
+    )
+    latest_turns = (
+        select(
+            Turn.session_id.label("session_id"),
+            Turn.id.label("turn_id"),
+            Turn.status.label("turn_status"),
+            func.row_number()
+            .over(
+                partition_by=Turn.session_id,
+                order_by=(Turn.started_at.desc(), Turn.id.desc()),
+            )
+            .label("row_number"),
+        )
+        .subquery()
+    )
+    statement = (
+        select(
+            ChatSession,
+            SessionSummary,
+            visible_messages.c.message_id,
+            visible_messages.c.message_at,
+            turn_counts.c.turn_count,
+            latest_turns.c.turn_id,
+            latest_turns.c.turn_status,
+        )
+        .outerjoin(SessionSummary, SessionSummary.session_id == ChatSession.id)
+        .outerjoin(
+            visible_messages,
+            (visible_messages.c.session_id == ChatSession.id)
+            & (visible_messages.c.row_number == 1),
+        )
+        .outerjoin(turn_counts, turn_counts.c.session_id == ChatSession.id)
+        .outerjoin(
+            latest_turns,
+            (latest_turns.c.session_id == ChatSession.id)
+            & (latest_turns.c.row_number == 1),
+        )
+        .order_by(
+            visible_messages.c.message_at.desc(),
+            ChatSession.created_at.desc(),
+            ChatSession.id,
+        )
+    )
+    if exclude_session_id is not None:
+        statement = statement.where(ChatSession.id != exclude_session_id)
+    if limit is not None:
+        statement = statement.limit(limit)
+    rows = db.exec(statement).all()
+    return [
+        SessionSummaryState(
+            chat_session=row[0],
+            summary=row[1],
+            last_message_id=row[2],
+            last_message_at=row[3],
+            turn_count=int(row[4] or 0),
+            latest_turn_id=row[5],
+            latest_turn_status=row[6],
+        )
+        for row in rows
+    ]
 
 
 def get_session_summary(
@@ -217,6 +331,23 @@ def latest_message_for_turn(
     return db.exec(statement).first()
 
 
+def get_message(db: Session, message_id: str) -> Message | None:
+    return db.get(Message, message_id)
+
+
+def get_turn(db: Session, turn_id: str) -> Turn | None:
+    return db.get(Turn, turn_id)
+
+
+def list_messages_for_turn(db: Session, *, turn_id: str) -> list[Message]:
+    statement = (
+        select(Message)
+        .where(Message.turn_id == turn_id)
+        .order_by(Message.created_at, Message.id)
+    )
+    return list(db.exec(statement).all())
+
+
 def add_trace(
     db: Session,
     *,
@@ -300,3 +431,12 @@ def add_tool_call(
     db.commit()
     db.refresh(tool_call)
     return tool_call
+
+
+def list_tool_calls_for_turn(db: Session, *, turn_id: str) -> list[ToolCall]:
+    statement = (
+        select(ToolCall)
+        .where(ToolCall.turn_id == turn_id)
+        .order_by(ToolCall.created_at, ToolCall.id)
+    )
+    return list(db.exec(statement).all())

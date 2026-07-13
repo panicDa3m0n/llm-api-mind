@@ -8,6 +8,27 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.29.0 canonical dynamic context V2:
+  - introduced the shared `scarlet-model-context-v2` compiler for native
+    MiniMax and the GPT Actions bridge, with compact session/user/world hints,
+    two previous-session summaries, and deduplicated `relevant`,
+    `recent_user`, and `recent_general` memory hooks;
+  - added one user-time rendering boundary and excluded unresolved provenance
+    from automatic memory delivery;
+  - preserved rich retrieval/runtime evidence in traces while adding the exact
+    delivered document as a separate `model.context` trace and UI readout;
+  - added configurable `legacy`, `v2_shadow`, and `v2` rollout profiles.
+- Added V1.29.0 append-only `memory_activities` and cognitive-recency queries.
+  Manual search/open/facts/graph, writes, replacements, maintenance-created
+  memories, and confirmed reranked selections are explicit events; packet
+  delivery and systemic reads do not refresh recency.
+- Added V1.29.0 source navigation through `session message msg_...` and
+  `session turn turn_...`, returning persisted public dialogue, tool evidence,
+  public events, and trace references without hidden provider reasoning.
+- Added V1.29.0 summary/provenance maintenance surfaces:
+  read-only audits, bounded summary reconciliation with retry/backoff, and a
+  dry-run-first deterministic source-message repair operation.
+
 - Added V1.28.0 domain-separated storage repositories while retaining the
   `storage.repositories` compatibility facade used by existing chat, memory,
   shell, maintenance, and bridge callers.
@@ -60,6 +81,16 @@ This project uses a practical changelog rather than a release-only log: each mea
     injection.
 
 ### Fixed
+
+- Fixed V1.29.0 missing live memory provenance across native chat, GPT bridge,
+  and maintenance proposal application.
+- Fixed V1.29.0 memory reads overwriting semantic `updated_at`; compatibility
+  usage fields remain stored but no longer drive cognitive recency.
+- Fixed V1.29.0 missing/stale session summaries being permanently skipped
+  after absent or failed idle jobs. A disposable laboratory run generated all
+  34 eligible summaries through the normal provider summarizer (`34/34`).
+- Fixed V1.29.0 detached summary-repair job objects after batched scheduling by
+  refreshing returned jobs before crossing the session boundary.
 
 - Fixed V1.28.1 repository-domain file formatting so the published checkpoint
   passes whitespace validation.

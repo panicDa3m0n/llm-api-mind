@@ -187,3 +187,48 @@ def test_maintenance_job_run_returns_404_for_missing_id(db_engine: Engine) -> No
 
     assert response.status_code == 404
     assert response.json()["detail"]["code"] == "maintenance_job.not_found"
+
+
+def test_summary_reconcile_returns_scheduled_ids_after_session_closes(
+    db_engine: Engine,
+) -> None:
+    settings = Settings(
+        app_name="Test Summary Reconcile",
+        environment="test",
+        minimax_api_key="test-key",
+        maintenance_enabled=True,
+        summary_reconcile_enabled=True,
+    )
+    client = TestClient(create_app(settings, db_engine=db_engine))
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Missing summary")
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="user",
+            content="A completed source conversation.",
+        )
+        repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="A completed answer.",
+        )
+        repositories.complete_turn(db, turn_id=turn.id)
+
+    response = client.post(
+        "/api/maintenance/summary/reconcile",
+        params={"dry_run": False, "limit": 2},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["scheduled_job_ids"]) == 1
+    assert body["scheduled_job_ids"][0].startswith("mnt_")

@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-10
-System version assessed: V1.28.1
+Last updated: 2026-07-12
+System version assessed: V1.29.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -21,6 +21,13 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   `source_message_id`.
 - Memoria episodica con session summary, transcript e ricerca sessioni.
 - Automatic memory context a inizio turno.
+- V1.29.0 sostituisce il packet automatico ricco con tre liste di hook V2
+  (`relevant`, `recent_user`, `recent_general`), deduplicate e navigabili.
+- `memory_activities` separa recenza cognitiva append-only da `updated_at`;
+  letture sistemiche e consegna automatica non rinfrescano la memoria.
+- Ogni hook automatico richiede sessione e messaggio sorgente risolvibili;
+  `session message` e `session turn` aprono direttamente l'evidenza.
+- Summary mancanti/stale hanno audit e riconciliazione bounded/retryable.
 - Filtri temporali e sparse retrieval FTS5/BM25.
 - Proposal inbox interno per candidati memoria generati da idle review, con
   preflight su duplicati, memorie simili e fatti canonici. La inbox non e

@@ -18,7 +18,9 @@ from app.mind.memory import (
 )
 from app.mind.episodic import (
     handle_session_read,
+    handle_session_message_read,
     handle_session_summarize,
+    handle_session_turn_read,
     handle_sessions_list,
 )
 from app.mind.affect import handle_affect
@@ -202,6 +204,30 @@ def dispatch_mind_api(
 
     if path.startswith("/mind/sessions/"):
         suffix = path.removeprefix("/mind/sessions/")
+        if method == "GET" and suffix.startswith("messages/"):
+            message_id = suffix.removeprefix("messages/").rstrip("/")
+            if message_id:
+                return _operation_response(
+                    handle_session_message_read(
+                        message_id,
+                        context,
+                        intent=request.intent,
+                    ),
+                    method=method,
+                    path=path,
+                )
+        if method == "GET" and suffix.startswith("turns/"):
+            turn_id = suffix.removeprefix("turns/").rstrip("/")
+            if turn_id:
+                return _operation_response(
+                    handle_session_turn_read(
+                        turn_id,
+                        context,
+                        intent=request.intent,
+                    ),
+                    method=method,
+                    path=path,
+                )
         if method == "POST" and suffix.endswith("/summarize"):
             session_id = suffix.removesuffix("/summarize").rstrip("/")
             if session_id:

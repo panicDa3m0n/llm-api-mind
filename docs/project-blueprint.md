@@ -579,12 +579,19 @@ Retrieval should become multi-stage over time:
 5. Relevance guard to separate `selected`, `near_miss`, and `excluded`.
 6. Conflict detection when active memories describe the same subject inconsistently.
 
-The first implementation slice does not require embeddings. The current v0 implementation starts with automatic per-turn lexical retrieval over active memory records, a relevance guard, runtime context injection, and `memory.context` traces. SQLite FTS5/BM25, dense retrieval, and cross-encoder reranking can follow after the automatic pipeline is observable in live use.
+The first implementation slice did not require embeddings. V1.29.0 now keeps
+the rich retrieval snapshot separate from a canonical
+`scarlet-model-context-v2` projection. The model receives compact navigable
+session/memory hooks; traces, UI, maintenance, ranking, KG, near misses, and
+conflict diagnostics retain the richer evidence. Local MiniMax and external
+GPT must consume the same projection rather than provider-specific context
+semantics.
 
 Prompt contract:
 
 - use runtime context as operational evidence, not as user-authored text;
-- do not claim memory is absent unless `memory_context.searched` is true, or unless a memory search tool result supports the claim;
+- do not claim memory is absent from empty automatic V2 hint lists; use a
+  memory search tool result when absence matters;
 - if `selected` is empty and `searched` is true, say that no relevant memory was found;
 - if conflicts are present, name the conflict instead of silently choosing one;
 - use runtime `capabilities` as the source of truth for implemented vs unavailable APIs;

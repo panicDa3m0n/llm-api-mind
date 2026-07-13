@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -36,6 +37,16 @@ class Settings(BaseSettings):
     maintenance_idle_seconds: int = Field(default=900, ge=0)
     maintenance_worker_interval_seconds: float = Field(default=5.0, gt=0)
     maintenance_job_batch_size: int = Field(default=5, ge=1, le=50)
+    summary_reconcile_enabled: bool = True
+    summary_reconcile_batch_size: int = Field(default=2, ge=1, le=20)
+    summary_reconcile_max_attempts: int = Field(default=3, ge=1, le=10)
+    summary_reconcile_retry_backoff_seconds: int = Field(default=60, ge=1)
+
+    model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
+    model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
+    model_context_relevant_memories_limit: int = Field(default=5, ge=0, le=20)
+    model_context_recent_user_memories_limit: int = Field(default=5, ge=0, le=20)
+    model_context_recent_general_memories_limit: int = Field(default=5, ge=0, le=20)
 
     retrieval_shadow_enabled: bool = False
     retrieval_shadow_backend: str = "none"

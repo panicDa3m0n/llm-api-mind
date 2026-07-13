@@ -22,6 +22,7 @@ class MindAPIContext:
     engine: Engine
     session_id: str | None = None
     turn_id: str | None = None
+    source_message_id: str | None = None
     settings: Any | None = None
     provider_factory: Callable[[Any], Any] | None = None
 

@@ -1670,6 +1670,7 @@ function DashboardPanel({
 
 function ModelInputPanel({ traces }: { traces: TraceItem[] }) {
   const requestTrace = latestTraceByKind(traces, "llm.request");
+  const modelContextTrace = latestTraceByKind(traces, "model.context");
   if (!requestTrace) {
     return (
       <div className="dashboard-panel">
@@ -1711,6 +1712,7 @@ function ModelInputPanel({ traces }: { traces: TraceItem[] }) {
       </div>
 
       <div className="dashboard-scroll model-input-scroll">
+        <ExactModelContextReadout trace={modelContextTrace} />
         <ModelSystemReadout payload={payload} />
         <ModelRuntimeContextReadout
           compatibilityKeys={compatibilityKeys}
@@ -1722,6 +1724,34 @@ function ModelInputPanel({ traces }: { traces: TraceItem[] }) {
         <JsonDetails label="Trace llm.request completa" value={payload} />
       </div>
     </div>
+  );
+}
+
+function ExactModelContextReadout({ trace }: { trace: TraceItem | null }) {
+  if (!trace) {
+    return null;
+  }
+  const document = recordValue(trace.payload.document) ?? {};
+  const memories = recordValue(document.memories) ?? {};
+  return (
+    <section className="model-section runtime-section">
+      <div className="model-section-header">
+        <div>
+          <small>Documento model-facing esatto</small>
+          <strong>Contesto compilato</strong>
+        </div>
+        <span>{stringValue(document.schema_version) || "model context"}</span>
+      </div>
+      <div className="evidence-grid">
+        <EvidenceMetric label="Profilo" value={stringValue(trace.payload.profile)} />
+        <EvidenceMetric label="Byte" value={stringValue(trace.payload.serialized_bytes)} />
+        <EvidenceMetric label="Rilevanti" value={String(recordArray(memories.relevant).length)} />
+        <EvidenceMetric label="Utente" value={String(recordArray(memories.recent_user).length)} />
+        <EvidenceMetric label="Generali" value={String(recordArray(memories.recent_general).length)} />
+      </div>
+      <JsonDetails label="Documento esatto consegnato al modello" value={document} />
+      <JsonDetails label="Metadati trace model.context" value={trace.payload} />
+    </section>
   );
 }
 
@@ -3443,6 +3473,22 @@ function stepsFromTraces(traces: TraceItem[]): AgentStep[] {
         phase: "persisted",
         title: runtimeContextTitle(trace.payload),
         body: runtimeContextSummary(trace.payload),
+        data: trace.payload,
+        status: "done"
+      });
+    }
+
+    if (trace.kind === "model.context") {
+      const document = recordValue(trace.payload.document) ?? {};
+      const memories = recordValue(document.memories) ?? {};
+      steps.push({
+        id: `trace-model-context-${trace.id}`,
+        kind: "runtime",
+        seq: seq++,
+        blockId: `model-context-${trace.id}`,
+        phase: "persisted",
+        title: "Exact model context",
+        body: `${recordArray(memories.relevant).length} relevant, ${recordArray(memories.recent_user).length} user, ${recordArray(memories.recent_general).length} general`,
         data: trace.payload,
         status: "done"
       });

@@ -4,6 +4,165 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-12 - V1.29.0 Context Packet Rework Completed
+
+Goal:
+
+Implement the owner-reviewed compact dynamic context contract end to end while
+preserving rich backend evidence and protecting every production/laboratory DB.
+
+Changes:
+
+- Added the canonical `scarlet-model-context-v2` projection shared by MiniMax
+  and GPT Actions, with one local clock, compact session/user/world state, two
+  previous-session hints, and three globally deduplicated memory blocks.
+- Added append-only cognitive memory activity, complete live source-message
+  provenance, strict automatic-hook resolvability, and direct
+  `session message` / `session turn` navigation.
+- Added summary audit/reconciliation and provenance audit/repair operations;
+  fixed retry idempotency and detached scheduled-job results.
+- Activated V2 behind reversible settings while retaining full legacy runtime
+  evidence in traces and adding exact `model.context` UI visibility.
+- Updated native/GPT prompts and runtime contract knowledge for V2.
+
+Data And Live Evidence:
+
+- Only `/tmp/llm-api-mind-v129-lab.db`, copied from the local laboratory DB,
+  received migrations, repairs, summaries, or live-test sessions.
+- Provenance dry-run found 36 unambiguous records; repair completed 36/36.
+- Summary reconciliation completed 34/34 real provider jobs in two bounded
+  batches; final audit: 146 current, 6 blocked active turns, 11 empty.
+- Live Scarlet correctly handled local time/location, automatic Zero-Luce
+  recall, exact source inspection, previous-session continuity, personal
+  preference persistence, and later no-tool automatic recall.
+- One thinking-only MiniMax turn returned an empty public answer; recorded as
+  BUG-0067 and successfully isolated from the context/memory implementation by
+  a fresh-session write/recall retry.
+
+Verification:
+
+- Backend: `138 passed`.
+- Frozen preliminary regression: `9/9`.
+- Frontend: `npm run build`.
+- Disposable summary reconciliation: `34/34 completed`.
+- Source DB and VPS production DB were not mutated or deployed.
+
+Next Suggested Step:
+
+Review the still-preserved dialogue/runtime-event/capability/Scarlet-state
+families and provider-native tool history as the next packet discussion. Treat
+BUG-0067 separately from context routing.
+
+## 2026-07-12 - V1.29.0 Context Packet Implementation Plan
+
+Goal:
+
+Convert the owner-reviewed context-packet discussion into an implementable,
+testable, and reversible plan without changing current runtime behavior.
+
+Changes:
+
+- Added `docs/context-packet-implementation-plan.md` with the accepted compact
+  session and memory contracts, one-user-time rule, cross-block memory
+  deduplication, cognitive-recency semantics, direct source navigation, phased
+  shadow rollout, provider parity, verification matrix, and commit slices.
+- Kept rich backend evidence distinct from the exact model-facing projection,
+  so trace/UI/debug data is preserved while Scarlet receives only approved
+  dynamic context.
+- Added mandatory decision gates for dynamic packets not yet reviewed by the
+  owner rather than assigning them an inferred contract.
+- Closed the reviewed-family gates for current-session fields, missing-summary
+  fallback, immediate memory-recency state, legacy provenance repair, and
+  MiniMax/GPT context parity.
+- Recorded that the existing 900-second idle summary job remains the primary
+  automatic path; the reviewed plan now adds bounded asynchronous
+  reconciliation during maintenance cycles and new-session creation.
+- Clarified that duplicate/conflict candidate discovery and semantic judgment
+  require a separate design workstream; they are not part of the V1.29.0
+  packet compiler.
+- Corrected the planned legacy-recency bootstrap: current `updated_at` and
+  `last_used_at` cannot be trusted blindly because automatic reads may have
+  changed them. A sourceable audit and creation-time fallback replace inferred
+  historical access.
+- Recorded ADR-0071 so the shared MiniMax/GPT compact dynamic-context contract
+  is architectural project memory rather than only a working-note decision.
+- Explicitly deferred memory-conflict semantics, historical activity backfill,
+  multi-user migration, embodiment routing, and legacy-field removal.
+- Linked the plan from the documentation index and the working inventory.
+
+Verification:
+
+- Cross-checked the plan against the owner notes in
+  `docs/context-packet-inventory.md`, current `app.mind.context` composition,
+  GPT bridge rendering, memory activity fields, and Mind shell session
+  commands.
+- Documentation-only change; no runtime, prompt, schema, database, deployment,
+  or test behavior changed.
+
+Next Suggested Step:
+
+Keep undiscussed context families unchanged. Run the frozen preliminary
+baseline and provenance report, then implement complete live source-message
+capture before activity tracking, historical repair, or the V2 shadow compiler.
+
+Implementation-readiness review:
+
+- Verified the current chat, storage, maintenance, Mind shell, context builder,
+  GPT bridge, SQLite schema, and laboratory state before implementation.
+- Found that all 36 laboratory memories lack `source_message_id`, although all
+  have a valid source turn with exactly one user and one assistant message.
+- Found that direct write omits message provenance and maintenance
+  normalization discards message ids already present in its source prompt.
+- Found that automatic and manual memory reads mutate semantic `updated_at`;
+  32 of 33 used laboratory memories have `updated_at == last_used_at`.
+- Reordered the plan so live provenance and activity semantics precede legacy
+  repair and the V2 shadow compiler.
+- Added BUG-0064 and BUG-0065 and corrected the plan's profile-isolation claim:
+  current memory visibility is single-user/scope-based, not profile-owned.
+- Verified the current relevant backend contracts with 45 passing tests across
+  storage, maintenance, GPT bridge, Mind shell, and chat API.
+- Full backend regression suite also passed: `131 passed`.
+- Classified summary coverage in the read-only laboratory DB: 34 completed
+  non-empty sessions are backfillable, 6 are blocked by `started` turns, and 4
+  are empty. Thirty-nine non-empty missing-summary sessions had no maintenance
+  job; one had a provider-failed job.
+- Added BUG-0066 and a summary-reconciliation phase with dry-run/batching,
+  summary-only historical repair, retry/backoff, stale-turn isolation, and
+  periodic/new-session repair checks.
+
+## 2026-07-11 - Context Packet Inventory Review
+
+Goal:
+
+Make automatic data delivery to Scarlet inspectable before changing the
+runtime-context architecture or introducing context-pack routing.
+
+Changes:
+
+- Added `docs/context-packet-inventory.md`, separating automatic local model
+  input, automatic GPT bootstrap data, conditional organ blocks, manual shell
+  results, and trace/UI-only diagnostics.
+- Recorded packet functions, source modules, current selection limits,
+  compatibility mirrors, and explicit exclusions such as raw retrieval/graph
+  diagnostics and external sensory feeds.
+- Linked the inventory from the documentation index and refreshed the block
+  registry's reviewed baseline metadata.
+
+Evidence:
+
+- Current context builder, chat request assembly, shell presentation, episodic
+  recall, bridge renderer, runtime events, and laboratory request traces were
+  inspected read-only.
+- Selected automatic memory is compacted for model input while raw retrieval
+  diagnostics stay trace-only. Previous sessions and user-profile memories are
+  currently recency-selected.
+
+Open Review:
+
+No context selection policy changed. Owner review of the inventory precedes any
+decision about future always-on, conditional, on-demand, or trace/UI-only
+context packs.
+
 ## 2026-07-10 - V1.28.0 Storage Repository Domain Split
 
 Goal:

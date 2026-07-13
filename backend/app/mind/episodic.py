@@ -293,6 +293,158 @@ def handle_session_read(
     )
 
 
+def handle_session_message_read(
+    message_id: str,
+    context: MindAPIContext | None,
+    *,
+    intent: str,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("sessions.message")
+    with Session(context.engine) as db:
+        message = repositories.get_message(db, message_id)
+        if message is None:
+            return MemoryOperationResult(
+                ok=False,
+                error_code="session.message_not_found",
+                error_message=f"Message not found: {message_id}",
+                suggested_next_actions=["Use session open to inspect the transcript"],
+                confidence=1.0,
+            )
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.session.message",
+            payload={
+                "operation": "sessions.message",
+                "message_id": message.id,
+                "source_session_id": message.session_id,
+                "source_turn_id": message.turn_id,
+            },
+        )
+        result = {
+            "operation": "sessions.message",
+            "intent": intent,
+            "message": _message_payload(message),
+            "source": {
+                "session_id": message.session_id,
+                "turn_id": message.turn_id,
+            },
+            "trace_ids": [trace.id],
+        }
+    return MemoryOperationResult(
+        ok=True,
+        result=result,
+        cognitive_hint=(
+            "This is the exact persisted public message. Open its turn when the "
+            "surrounding user, tool, and assistant evidence matters."
+        ),
+        suggested_next_actions=[
+            f"session turn {message.turn_id}" if message.turn_id else "session open",
+        ],
+        confidence=1.0,
+    )
+
+
+def handle_session_turn_read(
+    turn_id: str,
+    context: MindAPIContext | None,
+    *,
+    intent: str,
+) -> MemoryOperationResult:
+    if context is None or context.session_id is None:
+        return _context_required("sessions.turn")
+    with Session(context.engine) as db:
+        turn = repositories.get_turn(db, turn_id)
+        if turn is None:
+            return MemoryOperationResult(
+                ok=False,
+                error_code="session.turn_not_found",
+                error_message=f"Turn not found: {turn_id}",
+                suggested_next_actions=["Use session list to locate the source session"],
+                confidence=1.0,
+            )
+        messages = repositories.list_messages_for_turn(db, turn_id=turn.id)
+        tool_calls = repositories.list_tool_calls_for_turn(db, turn_id=turn.id)
+        public_events = [
+            event
+            for event in repositories.list_events_for_turn(db, turn_id=turn.id)
+            if event.visibility == "public"
+        ]
+        traces = repositories.list_traces_for_turn(db, turn_id=turn.id)
+        trace = repositories.add_trace(
+            db,
+            session_id=context.session_id,
+            turn_id=context.turn_id,
+            kind="mind.session.turn",
+            payload={
+                "operation": "sessions.turn",
+                "source_turn_id": turn.id,
+                "source_session_id": turn.session_id,
+                "message_count": len(messages),
+                "tool_call_count": len(tool_calls),
+            },
+        )
+        result = {
+            "operation": "sessions.turn",
+            "intent": intent,
+            "turn": {
+                "id": turn.id,
+                "session_id": turn.session_id,
+                "status": turn.status,
+                "model": turn.model,
+                "started_at": _isoformat(turn.started_at),
+                "completed_at": _isoformat(turn.completed_at),
+            },
+            "messages": [_message_payload(message) for message in messages],
+            "public_events": [
+                {
+                    "id": event.id,
+                    "type": event.type,
+                    "source": event.source,
+                    "actor": event.actor,
+                    "status": event.status,
+                    "message_id": event.message_id,
+                    "tool_call_id": event.tool_call_id,
+                    "payload": event.payload_json,
+                    "created_at": _isoformat(event.created_at),
+                }
+                for event in public_events
+            ],
+            "tool_calls": [
+                {
+                    "id": call.id,
+                    "tool_name": call.tool_name,
+                    "arguments": call.arguments_json,
+                    "result": call.result_json,
+                    "status": call.status,
+                    "created_at": _isoformat(call.created_at),
+                }
+                for call in tool_calls
+            ],
+            "trace_references": [
+                {
+                    "id": item.id,
+                    "kind": item.kind,
+                    "created_at": _isoformat(item.created_at),
+                }
+                for item in traces
+            ],
+            "trace_ids": [trace.id],
+        }
+    return MemoryOperationResult(
+        ok=True,
+        result=result,
+        cognitive_hint=(
+            "This turn view contains persisted public dialogue and tool evidence, "
+            "but never hidden provider reasoning."
+        ),
+        suggested_next_actions=[f"session open {turn.session_id}"],
+        confidence=1.0,
+    )
+
+
 def handle_session_summarize(
     session_id: str,
     body: dict[str, Any],

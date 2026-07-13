@@ -30,6 +30,7 @@ from app.mind.organs import (
 from app.runtime.events import compact_event_for_context
 from app.runtime.preferences import RuntimePreferences
 from app.mind.command_registry import COMMAND_FAMILIES
+from app.mind.context_projection import compile_model_context_v2
 from app.mind.schema import build_mind_shell_catalog, shell_metadata
 from app.mind.search import (
     entity_token_groups,
@@ -77,6 +78,9 @@ class MemoryContextBuild:
     runtime_payload: dict[str, Any]
     metacognitive_trace_id: str | None = None
     metacognitive_payload: dict[str, Any] | None = None
+    model_context_trace_id: str | None = None
+    model_context_payload: dict[str, Any] | None = None
+    model_context_profile: str = "legacy"
 
 
 def build_memory_context(
@@ -195,15 +199,12 @@ def build_memory_context(
 
     selected: list[dict[str, Any]] = []
     for item in selected_ranked[:MODEL_SELECTED_LIMIT]:
-        updated = (
-            repositories.mark_memory_used(db, memory_id=item.memory.id) or item.memory
-        )
         selected.append(
             _candidate_payload(
                 item,
-                memory=updated,
+                memory=item.memory,
                 classification="selected",
-                facts=facts_by_memory.get(updated.id, []),
+                facts=facts_by_memory.get(item.memory.id, []),
             )
         )
 
@@ -244,6 +245,21 @@ def build_memory_context(
         kind="memory.context",
         payload=payload,
     )
+    for item in selected_ranked[:MODEL_SELECTED_LIMIT]:
+        if not (item.hybrid_signals or {}).get("rerank_signal"):
+            continue
+        repositories.add_memory_activity(
+            db,
+            memory_id=item.memory.id,
+            activity_kind="automatic_reranked_context",
+            source="automatic_context",
+            profile_id=preferences.profile_id,
+            session_id=chat_session.id,
+            turn_id=turn_id,
+            message_id=current_user_message.id,
+            trace_id=trace.id,
+            metadata={"packet_version": MODEL_MEMORY_PACKET_VERSION},
+        )
     payload["trace_id"] = trace.id
     metacognitive_payload = _build_metacognitive_context(
         chat_session=chat_session,
@@ -289,7 +305,38 @@ def build_memory_context(
         payload=runtime_payload,
     )
     runtime_payload["trace_id"] = runtime_trace.id
-    runtime_context = render_runtime_context(runtime_payload, capabilities=capabilities)
+    model_context_profile = str(getattr(settings, "model_context_profile", "legacy"))
+    model_context_payload: dict[str, Any] | None = None
+    model_context_trace_id: str | None = None
+    if model_context_profile in {"v2_shadow", "v2"}:
+        model_context_payload = compile_model_context_v2(
+            db,
+            chat_session=chat_session,
+            rich_memory_context=payload,
+            legacy_runtime_payload=runtime_payload,
+            now=timestamp,
+            preferences=preferences,
+            settings=settings,
+        )
+        model_trace = repositories.add_trace(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn_id,
+            kind="model.context",
+            payload={
+                "profile": model_context_profile,
+                "source_trace_ids": [trace.id, runtime_trace.id],
+                "serialized_bytes": len(
+                    json.dumps(model_context_payload, ensure_ascii=True).encode("utf-8")
+                ),
+                "document": model_context_payload,
+            },
+        )
+        model_context_trace_id = model_trace.id
+    if model_context_profile == "v2" and model_context_payload is not None:
+        runtime_context = render_model_context(model_context_payload)
+    else:
+        runtime_context = render_runtime_context(runtime_payload, capabilities=capabilities)
     return MemoryContextBuild(
         trace_id=trace.id,
         payload=payload,
@@ -298,6 +345,9 @@ def build_memory_context(
         runtime_payload=runtime_payload,
         metacognitive_trace_id=metacognitive_trace_id,
         metacognitive_payload=metacognitive_payload,
+        model_context_trace_id=model_context_trace_id,
+        model_context_payload=model_context_payload,
+        model_context_profile=model_context_profile,
     )
 
 
@@ -462,6 +512,14 @@ def render_runtime_context(
     return (
         "<runtime_context>\n"
         + json.dumps(model_payload, ensure_ascii=True, indent=2)
+        + "\n</runtime_context>"
+    )
+
+
+def render_model_context(model_context_payload: dict[str, Any]) -> str:
+    return (
+        "<runtime_context>\n"
+        + json.dumps(model_context_payload, ensure_ascii=True, indent=2)
         + "\n</runtime_context>"
     )
 

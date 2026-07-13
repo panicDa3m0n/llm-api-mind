@@ -102,6 +102,8 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
         "commands": [
             "session list --query \"topic or date\" --limit 5",
             "session open ses_... --limit 200",
+            "session message msg_...",
+            "session turn turn_...",
             "session summarize ses_... --force",
         ],
     },

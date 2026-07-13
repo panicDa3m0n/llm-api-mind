@@ -5,9 +5,16 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import func
 from sqlmodel import Session, select
 
-from app.storage.models import MemoryFact, MemoryProposal, MemoryRecord, utc_now
+from app.storage.models import (
+    MemoryActivity,
+    MemoryFact,
+    MemoryProposal,
+    MemoryRecord,
+    utc_now,
+)
 from app.storage.repository._shared import touch_session as _touch_session
 
 
@@ -18,6 +25,115 @@ RESOLVED_MEMORY_PROPOSAL_STATUSES = {
     "archived_rejected",
     "pending_review",
 }
+
+
+def add_memory_activity(
+    db: Session,
+    *,
+    memory_id: str,
+    activity_kind: str,
+    source: str,
+    profile_id: str | None = None,
+    actor: str = "scarlet",
+    session_id: str | None = None,
+    turn_id: str | None = None,
+    message_id: str | None = None,
+    trace_id: str | None = None,
+    eligible_for_recent: bool = True,
+    metadata: dict[str, Any] | None = None,
+) -> MemoryActivity:
+    activity = MemoryActivity(
+        memory_id=memory_id,
+        activity_kind=activity_kind,
+        profile_id=profile_id,
+        actor=actor,
+        source=source,
+        session_id=session_id,
+        turn_id=turn_id,
+        message_id=message_id,
+        trace_id=trace_id,
+        eligible_for_recent=eligible_for_recent,
+        metadata_json=metadata or {},
+    )
+    db.add(activity)
+    db.commit()
+    db.refresh(activity)
+    return activity
+
+
+def list_memory_activities(
+    db: Session,
+    *,
+    memory_id: str | None = None,
+    eligible_for_recent: bool | None = None,
+    limit: int | None = None,
+) -> list[MemoryActivity]:
+    statement = select(MemoryActivity)
+    if memory_id is not None:
+        statement = statement.where(MemoryActivity.memory_id == memory_id)
+    if eligible_for_recent is not None:
+        statement = statement.where(
+            MemoryActivity.eligible_for_recent == eligible_for_recent
+        )
+    statement = statement.order_by(
+        MemoryActivity.occurred_at.desc(),
+        MemoryActivity.id.desc(),
+    )
+    if limit is not None:
+        statement = statement.limit(limit)
+    return list(db.exec(statement).all())
+
+
+def list_recent_memories_by_activity(
+    db: Session,
+    *,
+    scope: str | None = None,
+    exclude_memory_ids: set[str] | None = None,
+    limit: int = 5,
+) -> list[MemoryRecord]:
+    """Return active memories ordered by meaningful use, then creation time."""
+
+    if limit <= 0:
+        return []
+    excluded = exclude_memory_ids or set()
+    latest_activity = (
+        select(
+            MemoryActivity.memory_id.label("memory_id"),
+            func.max(MemoryActivity.occurred_at).label("last_activity_at"),
+        )
+        .where(MemoryActivity.eligible_for_recent == True)  # noqa: E712
+        .group_by(MemoryActivity.memory_id)
+        .subquery()
+    )
+    statement = (
+        select(MemoryRecord)
+        .join(latest_activity, latest_activity.c.memory_id == MemoryRecord.id)
+        .where(MemoryRecord.status == "active")
+        .order_by(
+            latest_activity.c.last_activity_at.desc(),
+            MemoryRecord.created_at.desc(),
+            MemoryRecord.id.desc(),
+        )
+    )
+    if scope is not None:
+        statement = statement.where(MemoryRecord.scope == scope)
+    if excluded:
+        statement = statement.where(MemoryRecord.id.notin_(excluded))
+    recent = list(db.exec(statement.limit(limit)).all())
+    if len(recent) >= limit:
+        return recent
+
+    selected_ids = excluded | {memory.id for memory in recent}
+    fallback = select(MemoryRecord).where(MemoryRecord.status == "active")
+    if scope is not None:
+        fallback = fallback.where(MemoryRecord.scope == scope)
+    if selected_ids:
+        fallback = fallback.where(MemoryRecord.id.notin_(selected_ids))
+    fallback = fallback.order_by(
+        MemoryRecord.created_at.desc(),
+        MemoryRecord.id.desc(),
+    ).limit(limit - len(recent))
+    return recent + list(db.exec(fallback).all())
 
 def add_memory(
     db: Session,
@@ -402,6 +518,24 @@ def list_all_memories(
 
 def get_memory(db: Session, memory_id: str) -> MemoryRecord | None:
     return db.get(MemoryRecord, memory_id)
+
+
+def update_memory_source_message(
+    db: Session,
+    *,
+    memory_id: str,
+    source_message_id: str,
+) -> MemoryRecord | None:
+    """Repair provenance without pretending the semantic content changed."""
+
+    memory = db.get(MemoryRecord, memory_id)
+    if memory is None:
+        return None
+    memory.source_message_id = source_message_id
+    db.add(memory)
+    db.commit()
+    db.refresh(memory)
+    return memory
 
 
 def update_memory_lifecycle(

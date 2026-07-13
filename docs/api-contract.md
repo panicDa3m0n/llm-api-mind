@@ -248,11 +248,13 @@ not both in the same GPT configuration.
 Bootstrap response profile:
 
 `POST /gpt/bootstrap` returns `context.profile=gpt-bootstrap-compact-v1`. The
-action response includes the model-facing `<runtime_context>`, compact memory
-packet, runtime summary, recent provider-message summary, action endpoints, and
-trace ids. Full effective prompt, base prompt, raw runtime payload, raw memory
-query plan, full provider messages, and retrieval debug diagnostics are
-trace-only to avoid ChatGPT Actions response-size failures.
+transport envelope version remains V1 for compatibility. When
+`model_context_profile=v2`, the response includes the canonical
+`context.model_context` and its identical `<runtime_context>` serialization,
+plus recent provider-message summary, action endpoints, and trace ids. Separate
+legacy runtime/memory compact copies are omitted. Full effective prompt, rich
+runtime/retrieval snapshots, full provider messages, and retrieval diagnostics
+remain trace-only.
 
 Authentication:
 
@@ -337,9 +339,15 @@ Output includes:
   "context": {
     "profile": "gpt-bootstrap-compact-v1",
     "runtime_context": "<runtime_context>...",
-    "runtime_payload_summary": {},
-    "memory_context": {
-      "profile": "memory-packet-v1"
+    "model_context": {
+      "schema_version": "scarlet-model-context-v2",
+      "session": {},
+      "memories": {
+        "relevant": [],
+        "recent_user": [],
+        "recent_general": []
+      },
+      "preserved_context": []
     },
     "metacognitive_context": {},
     "provider_messages_recent": [],
@@ -355,6 +363,23 @@ Output includes:
   "required_next_steps": []
 }
 ```
+
+### Model Context V2
+
+Status: implemented and active by default in V1.29.0
+
+`model_context_profile` accepts `legacy`, `v2_shadow`, or `v2`. V2 is compiled
+from the same rich evidence already collected for retrieval/runtime traces; it
+does not run a second retrieval pipeline. Every delivered document is stored
+verbatim in a `model.context` trace with source trace ids and serialized byte
+count. Native MiniMax receives that document inside `<runtime_context>`; GPT
+bootstrap returns the same JSON in `context.model_context`.
+
+Automatic memory hooks contain only `id`, `content`, user-local `created_at`
+and `updated_at`, `source_session_id`, and `source_message_id`. Hooks whose
+source message cannot be resolved inside the stated source session are excluded
+from automatic V2 context and remain available to internal diagnostics/manual
+inspection.
 
 `POST /gpt/action`
 
@@ -2116,6 +2141,25 @@ Trace Behavior:
 The read-only operation is represented by the surrounding `mind.tool_call`
 trace. It does not mutate cognitive state.
 
+### `session message <message_id>` through Mind shell
+
+Status: implemented in V1.29.0
+
+Reads one exact persisted public message by id and returns its session/turn
+hooks, role, content, timestamp, and metadata. The shell maps this command to
+the internal `GET /mind/sessions/messages/{message_id}` handler and records a
+traceable cognitive operation.
+
+### `session turn <turn_id>` through Mind shell
+
+Status: implemented in V1.29.0
+
+Returns the public evidence bundle for one turn: user/assistant messages,
+public runtime notes/events, tool arguments/results, turn status/timing, and
+trace id/kind references. Trace payloads and hidden provider reasoning are not
+returned. This is the direct source route from a compact memory hook when the
+whole session would be excessive.
+
 ### POST /mind/sessions/{session_id}/summarize through mind_api
 
 Status: implemented
@@ -3219,6 +3263,35 @@ Trace Behavior:
 
 Creates `memory.conflicts` and the model-facing `mind.tool_call`.
 
+### GET /api/maintenance/summary/audit
+
+Status: implemented in V1.29.0
+
+Read-only classification of every session summary as current, missing, stale,
+empty, blocked by an active turn, or associated only with failed repair jobs.
+It uses the actual last visible user/assistant message, never
+`sessions.updated_at`.
+
+### POST /api/maintenance/summary/reconcile
+
+Status: implemented in V1.29.0
+
+Dry-run by default. With `dry_run=false`, schedules a bounded batch of
+`session.summary_repair` jobs for completed non-empty missing/stale sessions.
+Jobs are idempotent by session plus actual last message plus attempt, support
+bounded exponential retry, and invoke the normal episodic summarizer without
+running historical memory review.
+
+### GET /api/maintenance/memory/provenance
+
+Status: implemented in V1.29.0
+
+Dry-run by default (`apply=false`). Classifies memory source hooks by scope and
+proposes a source message only when the recorded source turn contains exactly
+one matching persisted user message. `apply=true` writes only those
+unambiguous hooks and does not alter semantic memory timestamps. Ambiguous or
+invalid sources remain unresolved and are excluded from automatic V2 hints.
+
 ### GET /api/maintenance/overview
 
 Status: implemented
@@ -3756,7 +3829,10 @@ POST /mind/memory/propose
 POST /mind/memory/compact
 GET  /api/maintenance/memory/proposals                         implemented
 POST /api/maintenance/memory/proposals/{proposal_id}/archive    implemented
+GET  /api/maintenance/memory/provenance                         implemented
 GET  /api/maintenance/overview                                  implemented
+GET  /api/maintenance/summary/audit                             implemented
+POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```

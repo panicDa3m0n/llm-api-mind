@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-10
-App baseline: V1.28.1
+Last updated: 2026-07-12
+App baseline: V1.29.0
 Status: canonical current-state map
 
 This document is the high-level map for the current project state. It does not
@@ -59,9 +59,16 @@ system is a local agentic runtime for Scarlet with:
 - active NetworkX associative graph expansion over memory domains, used to
   surface field-of-discourse personal memories such as food/drink/body limits
   even when the user does not name the stored memory directly;
-- compact model-facing memory packets (`memory-packet-v1`) in runtime context,
-  while full retrieval diagnostics remain in `memory.context` traces for UI,
-  debugging, and evaluator analysis;
+- canonical `scarlet-model-context-v2` shared by MiniMax and GPT Actions,
+  containing compact session/user/world hints and deduplicated relevant/user/
+  general memory hooks, while full retrieval/runtime diagnostics remain in
+  separate traces;
+- an exact `model.context` trace and UI readout for the document delivered to
+  the model;
+- append-only cognitive memory activity plus direct message/turn provenance
+  navigation;
+- bounded missing/stale summary reconciliation and dry-run-first historical
+  provenance repair;
 - compact model-facing `mind_shell` result profiles for memory search and
   conflict inspection, with full retrieval/conflict diagnostics kept in traces;
 - a central `mind_shell` command registry that validates command families,
@@ -192,7 +199,7 @@ Implemented:
 
 Confirmed:
 
-- Backend test suite currently passes at `131 passed` on the V1.28.1 full
+- Backend test suite currently passes at `138 passed` on the V1.29.0 full
   sweep.
 - Health endpoint reports active provider and model.
 - Local backend and frontend run on `127.0.0.1:8000` and `127.0.0.1:5173`.
@@ -535,35 +542,27 @@ Primary docs:
 
 Implemented:
 
-- Every chat turn builds a `memory.context` trace.
-- Every chat turn now also builds a block-based `runtime.context` trace.
-- The model-facing system prompt is composed with backend-generated
-  `<runtime_context>`.
-- Runtime context is stratified into `session_context`, `message_context`, and
-  `scarlet_state` blocks while preserving legacy top-level fields for
-  compatibility.
-- `session_context` includes current-session identity, recent previous session
-  summaries, and the latest memories sourced from the previous session.
-- `message_context` includes current-message perception, temporal world data,
-  active user-scope memory hints, automatic memory retrieval, recent dialogue,
-  recent runtime events, and API Mind schema/capability metadata.
-- `scarlet_state` is a backend-seeded operational state block for focus,
-  posture, active goal, and open loops until dedicated state APIs exist.
-- Temporal context is backend-owned and is Scarlet's only operational clock.
-  It now exposes one configured runtime time (`temporal_context.now`) instead
-  of separate local/UTC clocks. Default timezone is `Europe/Rome`.
-- Platform language is backend-owned and exposed through
-  `message_context.current_message.language`; default language is Italian and
-  no automatic language heuristic is currently used.
-- `message_context.world.location` exposes the configured country/timezone
-  locale. It is valid for local calendar and time reasoning, but not exact
-  physical presence.
-- `message_context.user_profile.identity` exposes the active operational user
-  profile for recognition, personalization, and future multi-user separation.
-- `message_context.user_profile.privacy` exposes the active memory/privacy
-  boundary for user-scope facts.
-- Dashboard runtime settings can override timezone, language, country, active
-  profile id, privacy scope, and local user display name for future turns.
+- Every turn retains rich `memory.context` and `runtime.context` evidence for
+  backend/UI/debug and compiles a separate exact `model.context` document.
+- Active model delivery is `scarlet-model-context-v2`, shared by native MiniMax
+  and GPT Actions and wrapped in `<runtime_context>`.
+- `session` contains current session id/title/creation, user name, one
+  user-local clock/timezone/location, and at most two prior session hints
+  ordered by actual last message time.
+- `memories` contains globally deduplicated `relevant`, `recent_user`, and
+  `recent_general` hooks. Every automatic hook requires resolvable source
+  session/message ids; facts, KG, lifecycle, ranking, conflicts, and debug
+  signals are opened on demand.
+- Cognitive recency comes from append-only `memory_activities`; reads no longer
+  overwrite semantic update time and recent-packet delivery does not refresh
+  itself.
+- `preserved_context` carries focus/affect/metacognition/Scarlet-state and the
+  undiscussed dialogue/event/capability families until separate review.
+- `session message` and `session turn` navigate directly from compact hooks to
+  exact public evidence.
+- Summary reconciliation and provenance repair are bounded, audited, and
+  dry-run-first; dashboard runtime preferences still provide timezone,
+  country, display name, and current single-user profile settings.
 
 Confirmed:
 
@@ -587,6 +586,9 @@ Confirmed:
     automatic retrieval selects a different memory.
 - Backend tests now assert that runtime context includes configured locale,
   profile identity, and privacy scope before the model request.
+- V1.29.0 live tests confirmed no-tool local time/location, compact relevant
+  recall, exact source navigation, previous-session continuity, fully sourced
+  preference writes, and no-tool recall in a later session.
 - V1.7.1 instructs Scarlet to treat already-injected runtime context, selected
   memory, and visible same-session history as sufficient evidence for
   contextual answers when no source-sensitive or state-changing claim is being
@@ -1277,21 +1279,20 @@ After any major feature slice, update:
 
 ## 6. Current Best Next Step
 
-The next work cycle should focus on context-pack shadow planning before new
-automation:
+The next work cycle should review and classify the dynamic context families
+deliberately preserved by V1.29.0 before implementing mode routing:
 
 ```txt
-runtime context-pack shadow router + continued M3 human testing
+preserved packet review + provider-history compaction design + continued M3 testing
 ```
 
 Reason:
 
-The backend already emits events, schedules idle maintenance, summarizes
-sessions, reviews missed memories, creates/handles proposals, and preserves a
-daily ledger. Scarlet also now has enough organs that context routing itself is
-becoming an architectural risk. The highest-value next move is to trace which
-context pack each real turn would have selected while continuing human M3
-sessions, then use that evidence before changing live model input.
+V1.29.0 established the compact always-on session/memory spine. Live evidence
+also showed that tool-heavy provider-native history can exceed the compact
+context itself and that preserved runtime-event/capability/Scarlet-state data
+still needs field-by-field owner review. The next router should be designed
+from those measured boundaries rather than adding more automatic blocks.
 
 Parallel non-coding review:
 

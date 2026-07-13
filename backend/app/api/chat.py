@@ -48,7 +48,10 @@ from app.runtime.events import (
     record_tool_call_completed,
     record_tool_call_started,
 )
-from app.runtime.maintenance import schedule_session_idle_maintenance
+from app.runtime.maintenance import (
+    schedule_session_idle_maintenance,
+    schedule_summary_repairs,
+)
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.models import ChatSession, CognitiveEvent, Message, Trace, Turn
@@ -140,6 +143,12 @@ def build_chat_router(
                 db,
                 title=request.title,
                 metadata=request.metadata,
+            )
+            schedule_summary_repairs(
+                db,
+                settings=settings,
+                limit=1,
+                exclude_session_id=chat_session.id,
             )
             return _session_response(chat_session)
 
@@ -269,6 +278,8 @@ def build_chat_router(
             if memory_context.metacognitive_trace_id is not None:
                 trace_ids.append(memory_context.metacognitive_trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
+            if memory_context.model_context_trace_id is not None:
+                trace_ids.append(memory_context.model_context_trace_id)
             record_event(
                 db,
                 session_id=session_id,
@@ -337,6 +348,8 @@ def build_chat_router(
                         memory_context.metacognitive_payload or {}
                     ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
+                    "model_context_profile": memory_context.model_context_profile,
+                    "model_context_trace_id": memory_context.model_context_trace_id,
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -387,6 +400,7 @@ def build_chat_router(
                     provider_factory=provider_factory,
                     session_id=session_id,
                     turn_id=turn_id,
+                    source_message_id=user_message_response.id,
                     trace_ids=trace_ids,
                 ),
                 max_tool_calls=None,
@@ -791,6 +805,7 @@ def _build_mind_tool_runner(
     provider_factory: ProviderFactory,
     session_id: str,
     turn_id: str,
+    source_message_id: str,
     trace_ids: list[str],
     event_sink: list[CognitiveEvent] | None = None,
 ) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
@@ -816,6 +831,7 @@ def _build_mind_tool_runner(
                 engine=engine,
                 session_id=session_id,
                 turn_id=turn_id,
+                source_message_id=source_message_id,
                 settings=settings,
                 provider_factory=provider_factory,
             ),
@@ -976,6 +992,7 @@ def _stream_turn_events(
                 provider_factory=provider_factory,
                 session_id=session_id,
                 turn_id=turn_id,
+                source_message_id=user_message_response.id,
                 trace_ids=trace_ids,
                 event_sink=pending_runtime_events,
             ),

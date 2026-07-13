@@ -229,10 +229,13 @@ def schedule_session_maintenance_job(
     trigger_event_id: str | None,
     due_at: datetime,
     input_payload: dict[str, Any] | None = None,
+    idempotency_key: str | None = None,
 ) -> tuple[MaintenanceJob, list[MaintenanceJob]]:
-    idempotency_key = f"{kind}:{session_id}:{trigger_turn_id or 'session'}"
+    resolved_idempotency_key = idempotency_key or (
+        f"{kind}:{session_id}:{trigger_turn_id or 'session'}"
+    )
     existing_statement = select(MaintenanceJob).where(
-        MaintenanceJob.idempotency_key == idempotency_key
+        MaintenanceJob.idempotency_key == resolved_idempotency_key
     )
     existing = db.exec(existing_statement).first()
     if existing is not None:
@@ -253,7 +256,7 @@ def schedule_session_maintenance_job(
         trigger_turn_id=trigger_turn_id,
         trigger_event_id=trigger_event_id,
         due_at=due_at,
-        idempotency_key=idempotency_key,
+        idempotency_key=resolved_idempotency_key,
         input_json=input_payload or {},
     )
     now = utc_now()
@@ -354,4 +357,3 @@ def complete_maintenance_job(
     db.commit()
     db.refresh(job)
     return job
-

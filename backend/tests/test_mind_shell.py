@@ -42,6 +42,74 @@ def test_mind_shell_help_returns_command_catalog(db_engine: Engine) -> None:
     assert response.result["schema"]["schema_command"] == "help"
 
 
+def test_mind_shell_opens_source_message_and_public_turn_bundle(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Source navigation")
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        user_message = repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="user",
+            content="Ricordati che preferisco risposte concise.",
+        )
+        repositories.add_tool_call(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            tool_name="mind_shell",
+            arguments={"command": "memory write ..."},
+            result={"ok": True},
+            status="completed",
+        )
+        repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Va bene, sarò concisa.",
+        )
+        repositories.complete_turn(db, turn_id=turn.id)
+        session_id = chat_session.id
+        turn_id = turn.id
+        message_id = user_message.id
+
+    context = _context(db_engine, session_id=session_id)
+    message_result = dispatch_mind_shell(
+        MindShellRequest(
+            command=f"session message {message_id}",
+            intent="Inspect the exact memory source message.",
+        ),
+        context=context,
+    )
+    assert message_result.ok is True
+    assert message_result.result["data"]["message"]["id"] == message_id
+    assert message_result.result["data"]["source"]["turn_id"] == turn_id
+
+    turn_result = dispatch_mind_shell(
+        MindShellRequest(
+            command=f"session turn {turn_id}",
+            intent="Inspect the complete public source turn.",
+        ),
+        context=context,
+    )
+    assert turn_result.ok is True
+    data = turn_result.result["data"]
+    assert [message["role"] for message in data["messages"]] == [
+        "user",
+        "assistant",
+    ]
+    assert data["tool_calls"][0]["tool_name"] == "mind_shell"
+    assert all("payload" not in trace for trace in data["trace_references"])
+
+
 def test_mind_shell_memory_write_and_search_use_command_arguments(
     db_engine: Engine,
 ) -> None:

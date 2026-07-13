@@ -11,7 +11,12 @@ from sqlmodel import Session, select
 from app.config import Settings
 from app.llm.factory import build_llm_provider
 from app.mind.memory import memory_proposal_payload
-from app.runtime.maintenance import run_maintenance_job
+from app.runtime.maintenance import (
+    memory_provenance_audit,
+    run_maintenance_job,
+    schedule_summary_repairs,
+    session_summary_audit,
+)
 from app.storage import repositories
 from app.storage.models import MaintenanceJob, MemoryProposal, MemoryRecord, utc_now
 
@@ -146,6 +151,46 @@ def build_maintenance_router(
             "has_more": has_more,
             "next_offset": offset + limit if has_more else None,
             "jobs": [_maintenance_job_payload(job) for job in visible],
+        }
+
+    @router.get("/summary/audit")
+    def audit_session_summaries() -> dict[str, Any]:
+        with Session(engine) as db:
+            return {
+                "operation": "maintenance.summary.audit",
+                **session_summary_audit(db),
+            }
+
+    @router.post("/summary/reconcile")
+    def reconcile_session_summaries(
+        dry_run: bool = Query(default=True),
+        limit: int = Query(default=2, ge=1, le=100),
+    ) -> dict[str, Any]:
+        with Session(engine) as db:
+            audit = session_summary_audit(db)
+            scheduled = (
+                []
+                if dry_run
+                else schedule_summary_repairs(db, settings=settings, limit=limit)
+            )
+        return {
+            "operation": "maintenance.summary.reconcile",
+            "dry_run": dry_run,
+            "limit": limit,
+            "audit": audit,
+            "scheduled_job_ids": [job.id for job in scheduled],
+        }
+
+    @router.get("/memory/provenance")
+    def audit_memory_provenance(
+        apply: bool = Query(default=False),
+        limit: int | None = Query(default=None, ge=1, le=10000),
+    ) -> dict[str, Any]:
+        with Session(engine) as db:
+            report = memory_provenance_audit(db, apply=apply, limit=limit)
+        return {
+            "operation": "maintenance.memory.provenance",
+            **report,
         }
 
     @router.post("/jobs/{job_id}/run")
