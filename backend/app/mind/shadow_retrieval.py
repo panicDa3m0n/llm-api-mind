@@ -46,12 +46,14 @@ def run_memory_surface_shadow_search(
     candidate_memory_ids: Iterable[str],
     settings: Any | None,
     limit: int | None = None,
+    include_surface_rerank: bool = True,
 ) -> dict[str, Any]:
-    """Run optional vector-shadow retrieval over derived memory surfaces.
+    """Run optional vector retrieval over derived memory surfaces.
 
-    V1.3.1 intentionally keeps this path trace-only. Results are diagnostic
-    evidence for future hybrid retrieval and must not affect active memory
-    ordering until real embeddings and scoring policies are validated.
+    The historical function/trace name is retained for compatibility. In
+    `off` and `shadow` modes results remain observational; in `active` mode
+    grouped eligible memories form one recall route into the final memory-level
+    reranker. Dense scores never accept or order final memories themselves.
     """
 
     status = retrieval_shadow_status(settings)
@@ -127,7 +129,14 @@ def run_memory_surface_shadow_search(
         return payload
     if backend == "openrouter":
         payload.update(
-            _run_openrouter_shadow(db, query, surfaces, settings, requested_limit)
+            _run_openrouter_shadow(
+                db,
+                query,
+                surfaces,
+                settings,
+                requested_limit,
+                include_surface_rerank=include_surface_rerank,
+            )
         )
         return payload
     return payload
@@ -304,6 +313,8 @@ def _run_openrouter_shadow(
     surfaces: list[MemorySurface],
     settings: Any | None,
     limit: int,
+    *,
+    include_surface_rerank: bool,
 ) -> dict[str, Any]:
     api_key = str(getattr(settings, "openrouter_api_key", "") or "").strip()
     if not api_key:
@@ -359,8 +370,8 @@ def _run_openrouter_shadow(
             backend="openrouter",
             embedding_model=model,
             why_relevant=(
-                "OpenRouter cloud embedding shadow over memory_surfaces; "
-                "trace-only and not used for active ranking."
+                "OpenRouter cloud embedding over memory_surfaces; this is "
+                "surface-level recall evidence, not final relevance."
             ),
         )
         for score, surface in scored
@@ -370,8 +381,8 @@ def _run_openrouter_shadow(
         backend="openrouter",
         embedding_model=model,
         why_relevant=(
-            "OpenRouter cloud embedding shadow grouped by target memory; "
-            "trace-only unless retrieval_hybrid_mode promotes it."
+            "OpenRouter cloud embedding grouped by target memory; eligible "
+            "results may enter the recall pool but cannot decide acceptance."
         ),
         limit=max(
             limit,
@@ -390,13 +401,23 @@ def _run_openrouter_shadow(
         "truncated_surface_count": max(len(surfaces) - len(limited_surfaces), 0),
         "vector_dim": len(query_vector),
         "embedding_cache": cache_stats,
-        "rerank": _run_openrouter_rerank_shadow(
-            client,
-            query=query,
-            scored_surfaces=scored,
-            grouped_candidates=grouped_candidates,
-            settings=settings,
-            limit=limit,
+        "rerank": (
+            _run_openrouter_rerank_shadow(
+                client,
+                query=query,
+                scored_surfaces=scored,
+                grouped_candidates=grouped_candidates,
+                settings=settings,
+                limit=limit,
+            )
+            if include_surface_rerank
+            else {
+                **_rerank_status(settings),
+                "ok": False,
+                "status": "deferred_to_memory_level_final_arbiter",
+                "results": [],
+                "grouped_results": [],
+            }
         ),
     }
 
@@ -558,8 +579,8 @@ def _run_openrouter_rerank_shadow(
             backend="openrouter_rerank",
             embedding_model=model,
             why_relevant=(
-                "OpenRouter rerank shadow over dense candidates; trace-only "
-                "and not used for active ranking unless hybrid mode is active."
+                "Legacy OpenRouter surface rerank diagnostic over dense "
+                "candidates; not the final memory-level relevance arbiter."
             ),
         )
         result["rerank_rank"] = rank
@@ -637,8 +658,8 @@ def _run_openrouter_grouped_rerank_shadow(
         candidate["backend"] = "openrouter_grouped_rerank"
         candidate["embedding_model"] = model
         candidate["why_relevant"] = (
-            "OpenRouter rerank over memory-level dense candidates; trace-only "
-            "unless retrieval_hybrid_mode promotes it."
+            "Legacy OpenRouter grouped rerank diagnostic; V1.31 active "
+            "acceptance uses the separate final memory-level reranker."
         )
         results.append(_public_grouped_result(candidate))
     return {

@@ -17,6 +17,7 @@ from app.storage import repositories
 AGENT_MODE_REGISTRY_VERSION = "2026-07-13.agent-modes-v1"
 AGENT_MODE_SETTING_PREFIX = "agent_mode"
 AGENT_MODE_VALUES = ("idle", "interactive", "scouting")
+AGENT_MODE_RESUMABLE_VALUES = ("idle", "scouting")
 
 
 @dataclass(frozen=True)
@@ -143,6 +144,7 @@ def agent_mode_registry() -> dict[str, Any]:
                 "tag": mode.tag,
                 "purpose": mode.purpose,
                 "implemented_runtime": mode.implemented_runtime,
+                "manually_resumable": mode.tag in AGENT_MODE_RESUMABLE_VALUES,
             }
             for mode in AGENT_MODES
         ],
@@ -158,6 +160,7 @@ def agent_mode_registry() -> dict[str, Any]:
             for spec in MODE_CAPABILITIES
         ],
         "background_processes_are_agent_modes": False,
+        "manually_resumable_tags": list(AGENT_MODE_RESUMABLE_VALUES),
     }
 
 

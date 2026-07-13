@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-13
-App baseline: V1.30.0
+App baseline: V1.32.0
 
 ## Response Philosophy
 
@@ -85,7 +85,7 @@ backend-owned fields if the model sends them inside free-form metadata.
 ## Model-Facing API Mind Tool
 
 Status: implemented in V1.22.0, stabilized in V1.23.0, capability boundary
-aligned in V1.25.4
+aligned in V1.25.4, organ conformance verified in V1.32.0
 
 Scarlet's active model-facing API Mind surface is now:
 
@@ -164,8 +164,8 @@ Examples:
 - `memory search` model-facing results keep memory ids, content, provenance,
   compact facts, query-time scores, concise graph/hybrid/rerank signals,
   trace ids, and a list of omitted debug sections. Full
-  `retrieval_shadow`, `retrieval_graph`, and `retrieval_hybrid` payloads stay
-  in `mind.memory.search` traces.
+  `retrieval_shadow`, `retrieval_graph`, `retrieval_rerank`, and legacy
+  `retrieval_hybrid` payloads stay in `mind.memory.search` traces.
 - `memory conflicts` model-facing results return true atomic conflicts plus a
   compact sample of `related_overlaps`. Related overlaps are maintenance
   signals, not contradictions.
@@ -210,9 +210,40 @@ Recoverable errors return shell usage guidance:
 }
 ```
 
+### V1.32 Shell Organ Conformance
+
+The command registry is executable contract, not descriptive metadata:
+
+- all 23 family/namespace aliases must agree between validation and execution;
+- every command published by `help` must validate as available;
+- `help <alias>` resolves to canonical family help and unknown families return
+  `shell.help_unknown_namespace`;
+- `memory show/get` are accepted aliases of `memory open`;
+- `focus search` and `volition search` reject empty queries before dispatch;
+- targeted `focus read --id ...` and `affect read --id ...` return explicit
+  not-found errors instead of a successful empty result;
+- session, focus, volition, and affect collections return `count` plus truthful
+  `has_more` continuation state;
+- `focus hold` persists `status=held` while retaining the held item as current
+  foreground focus;
+- `volition create/update` accepts `--next-review-at` and
+  `--review-interval-seconds`; invalid intervals fail before mutation;
+- `volition promote` returns an executable `focus set ...` command carrying
+  source-intention metadata, while the internal endpoint may retain its
+  structured dispatcher candidate;
+- `metacognition step` forwards `--turn-scope` and `--detail` to the reviewer;
+- `session list` query/time filtering is exhaustive over the stored session
+  index, and ordinary pagination no longer has a hidden 500-session ceiling;
+- `session open --limit N` limits only the returned message window. Fallback
+  summary generation still uses the complete transcript.
+
+These rules are covered by lifecycle and negative-path tests and by the frozen
+whole-system regression gate. They do not imply that Scarlet will choose every
+available command in natural conversation.
+
 ### Agent Mode
 
-Status: implemented in V1.30.0
+Status: implemented in V1.30.0, resumable boundary corrected in V1.32.0
 
 Shell commands:
 
@@ -229,18 +260,22 @@ Internal dispatcher route:
 POST /mind/mode
 ```
 
-Body actions are `read`, `list`, and `set`. `set` requires a supported mode and
-a reason. The persistent setting belongs to the active profile. During a
-human-facing turn the system condition `interactive` remains active; a manual
-selection is returned as `resume_tag` and is the posture to resume afterward.
+Body actions are `read`, `list`, and `set`. `set` requires a supported,
+manually resumable mode and a reason. The persistent setting belongs to the
+active profile. During a human-facing turn the system condition `interactive`
+remains active; a manual selection is returned as `resume_tag` and is the
+posture to resume afterward.
 The response also returns `execution_started=false` and
 `runtime_effect=persistent_posture_only_no_autonomous_cycle`. Persisting a mode
 does not launch work; `scouting` has no autonomous sensor runtime in V1.30.0.
 
-The current registry contains `idle`, `interactive`, and `scouting`. It tags
-automatic context/organ capabilities with one or more modes. Maintenance,
-summarization, and Dream are explicitly not agent modes. V1.30.0 routing can
-filter automatic context blocks but does not disable on-demand shell commands.
+The current registry contains `idle`, `interactive`, and `scouting`, while only
+`idle` and `scouting` are manually resumable. `interactive` is system-owned
+during human turns and `mode set interactive` returns
+`mode.set_not_resumable`. The registry tags automatic context/organ
+capabilities with one or more modes. Maintenance, summarization, and Dream are
+explicitly not agent modes. Routing can filter automatic context blocks but
+does not disable on-demand shell commands.
 
 State changes write an `agent.mode` trace and `agent.mode.changed` event.
 
@@ -796,9 +831,11 @@ Selected memories inside the model-facing runtime context use
 }
 ```
 
-Full `signals`, raw shadow/rerank payloads, thresholds, weights, metadata, and
-long diagnostic traces remain available in the associated `memory.context`
-trace. They are intentionally not repeated in the model-facing packet.
+Full `signals`, raw recall-route/rerank payloads, thresholds, metadata, and long
+diagnostic traces remain available in the associated `memory.context` trace.
+They are intentionally not repeated in the model-facing packet. Legacy weight
+settings may still appear in configuration snapshots for compatibility but do
+not participate in V1.31.0 active relevance.
 
 ### Metacognitive Context Shadow
 
@@ -989,27 +1026,24 @@ Required behavior:
 
 Current retrieval plan:
 
-1. Implemented: SQLite FTS5/BM25 sparse retrieval over backend-built search
-   documents for memory context and manual memory/session search.
-2. Implemented: relevance guard that separates `selected`, `near_miss`, and `excluded`.
-3. Implemented: simple conflict grouping over selected active memories that appear to describe the same subject.
-4. Implemented: temporal filters for manual memory/session search, resolved by
+1. Implemented: SQLite FTS5/BM25 sparse recall over backend-built documents.
+2. Implemented: dense recall over role-aware memory surfaces.
+3. Implemented: NetworkX associative graph recall over backend-owned concepts.
+4. Implemented: deduplicated round-robin candidate pooling across sparse,
+   dense, graph, and lexical routes, without weighted score fusion.
+5. Implemented in V1.31.0: final memory-level rerank over canonical content
+   and active facts. In active mode it alone accepts and orders results.
+6. Implemented: `selected`, `near_miss`, and `excluded` reflect final rerank
+   acceptance/evaluation when active.
+7. Implemented: temporal filters for manual memory/session search, resolved by
    the backend from runtime time rather than by model-side date arithmetic.
-5. Implemented as V1.10.0 shadow: OpenRouter cloud embedding comparison over
-   stable `memory_surfaces`, with SQLite cache keyed by surface content hash.
-6. Implemented as V1.10.0 shadow: optional OpenRouter rerank comparison over
-   dense candidates.
-7. Implemented as V1.11.0: memory-level grouped dense/rerank candidates and
-   configurable `retrieval_hybrid_mode=off|shadow|active`.
-8. Implemented as V1.11.1: NetworkX associative graph expansion over
-   backend-owned memory domains, surfaced as `retrieval_graph` in
-   `memory.context` and `/mind/memory/search`.
+8. Implemented: conflict diagnostics over selected active facts; semantic
+   conflict adjudication remains a separate workstream.
 
 Deferred retrieval plan:
 
-- Default promotion of active hybrid ranking after live Scarlet calibration.
-- Hybrid sparse+dense rank fusion.
-- Promotion of cross-encoder reranking from shadow evidence to active ranking.
+- Larger realistic candidate-coverage and threshold calibration.
+- Global scalable vector indexing beyond the bounded cloud surface sample.
 - Mature KG entity resolution and graph traversal beyond lightweight
   field-of-discourse domains.
 - Post-response validator for unverifiable memory claims.
@@ -2737,7 +2771,7 @@ Purpose:
 
 Search active Memory v0 records and return sourceable context with provenance,
 usage metadata, temporal filter metadata, sparse/dense/KG retrieval evidence,
-and query-time relevance scores.
+and final query-time rerank evidence.
 
 Model-facing call shape:
 
@@ -2787,13 +2821,14 @@ Temporal behavior:
 
 Retrieval behavior:
 
-Memory search builds derived SQLite FTS5/BM25 sparse documents, deterministic
-content/fact surfaces, optional dense/rerank shadow results, and NetworkX
-associative graph evidence. Static stored confidence/salience are legacy audit
-columns and are not active ranking features. Query-time relevance is computed
-from the current request, selected retrieval stages, and rerank/hybrid signals.
-The canonical memory rows remain the source of truth; indexes are derived and
-rebuildable.
+Memory search builds SQLite FTS5/BM25 sparse evidence, deterministic
+content/fact surfaces, dense surface evidence, and NetworkX associative graph
+evidence. These are recall routes only. Their scores may order candidates
+inside each route but cannot accept or order final active results. Candidates
+are deduplicated by memory id and interleaved round-robin; one memory-level
+reranker over canonical content and active facts decides acceptance and final
+order. Static confidence/salience remain legacy audit columns. Canonical memory
+rows remain the source of truth; indexes are derived and rebuildable.
 
 V1.3.0 also synchronizes retrieval-readiness artifacts whenever memory
 documents are synced or memory/fact lifecycle operations run. These artifacts
@@ -2818,10 +2853,10 @@ V1.3.1 adds optional retrieval shadow mode over `memory_surfaces`:
   dependency is installed;
 - shadow results are trace-only and never change the returned memory ranking.
 
-`POST /mind/memory/search` still exposes the same model-facing route and keeps
-FTS5/lexical ranking as the active retrieval behavior. The readiness manifest
-is included in traces/results so evaluator tooling can see which derived
-indexes and optional shadow comparisons are available.
+`POST /mind/memory/search` keeps the same model-facing route. In
+`RETRIEVAL_HYBRID_MODE=active`, reranker availability is mandatory and failure
+returns no memories rather than falling back to deterministic relevance. The
+readiness manifest remains available for evaluator tooling.
 
 Response result:
 
@@ -2837,7 +2872,13 @@ Response result:
       "to": "2026-05-24T12:00:00+00:00"
     }
   },
-  "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+  "retrieval_stages": [
+    "fts5_sparse_v1",
+    "dense_memory_surfaces_v1",
+    "networkx_graph_recall_v1",
+    "round_robin_recall_pool_v1",
+    "memory_level_rerank_final_arbiter_v1"
+  ],
   "retrieval_readiness": {
     "active_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
     "readiness_stages": [
@@ -2849,7 +2890,7 @@ Response result:
       "openrouter_embedding_shadow_v1",
       "openrouter_rerank_shadow_v1",
       "memory_grouped_dense_v1",
-      "hybrid_retrieval_v1"
+      "memory_level_rerank_final_arbiter_v1"
     ],
     "surface_taxonomy": {
       "taxonomy_version": "memory-surface-taxonomy-v1",
@@ -2924,53 +2965,34 @@ Response result:
       "grouped_results": []
     }
   },
-  "retrieval_hybrid": {
-    "enabled": true,
+  "retrieval_rerank": {
     "ok": true,
     "mode": "active",
     "active": true,
-    "ranking_policy": "sparse_dense_memory_group_hybrid_v1",
     "status": "completed",
-    "dense_group_count": 8,
-    "rerank_group_count": 8,
-    "thresholds": {
-      "min_dense_score": 0.38,
-      "min_rerank_score": 0.55
-    },
-    "weights": {
-      "base": 0.35,
-      "sparse": 0.15,
-      "dense": 0.35,
-      "rerank": 0.2,
-      "support": 0.05,
-      "salience": 0.0,
-      "confidence": 0.0
-    },
-    "deprecated_weights": {
-      "stored_salience": 0.05,
-      "stored_confidence": 0.05,
-      "policy": "stored confidence/salience are retained for legacy audit only and do not affect active ranking"
-    },
+    "ranking_policy": "memory_level_rerank_final_arbiter_v1",
+    "recall_pool_policy": "round_robin_sparse_dense_graph_lexical_v1",
+    "legacy_weighted_fusion": false,
+    "fail_closed": true,
+    "candidate_count": 8,
+    "evaluated_count": 8,
+    "accepted_count": 1,
+    "acceptance_threshold": 0.01,
     "entries": [
       {
         "memory_id": "mem_...",
-        "score": 0.918,
-        "strong_signal": true,
-        "why_relevant": "dense memory-level match score=0.822 support=0.910 surface=memory_text signal=true",
-        "signals": {
-          "dense_score": 0.822,
-          "rerank_score": 0.91,
-          "support_score": 0.91,
-          "dense_signal": true,
-          "rerank_signal": true,
-          "base_signal": false,
-          "surface_roles": ["primary_content", "supporting_context"],
-          "promotable_surface_kinds": ["memory_text"],
-          "support_surface_kinds": ["future_use_text"],
-          "active_rank_eligible": true
-        }
+        "rank": 1,
+        "score": 0.91,
+        "accepted": true,
+        "evaluated": true,
+        "recall_routes": ["sparse", "dense"],
+        "route_ranks": {"sparse": 1, "dense": 2}
       }
     ]
+  },
+  "retrieval_hybrid": {
+    "compatibility_alias_of": "retrieval_rerank",
+    "legacy_weighted_fusion": false
   },
   "count": 1,
   "memories": [
@@ -2981,10 +3003,15 @@ Response result:
       "source_session_id": "ses_...",
       "source_turn_id": "turn_...",
       "usage_count": 1,
-      "score": 2.375,
-      "why_relevant": "FTS5/BM25 sparse match; token overlap: formato, sal",
+      "score": 0.91,
+      "why_relevant": "Final memory-level reranker accepted this candidate.",
       "retrieval_signals": {
-        "hybrid": null
+        "hybrid": {
+          "final_arbiter": true,
+          "rerank_score": 0.91,
+          "rerank_signal": true,
+          "recall_routes": ["sparse", "dense"]
+        }
       },
       "facts": []
     }
@@ -3007,23 +3034,21 @@ Search scoring includes fact text when facts exist, so aliases such as
 when the narrative memory used another language. This is still sparse lexical
 retrieval, not dense semantic embedding.
 
-`retrieval_shadow.results` is raw surface-level evidence. It is useful for
-debugging but can contain several surfaces from the same memory.
-`retrieval_shadow.grouped_results` deduplicates those surfaces by
-`target_id`, keeps the best surface score, and preserves contributing surfaces
-for inspection. When `RETRIEVAL_SHADOW_RERANK_ENABLED=true`,
-`retrieval_shadow.rerank.results` reports raw surface rerank while
-`retrieval_shadow.rerank.grouped_results` reports rerank over memory-level
-grouped candidates.
+`retrieval_shadow.results` remains raw surface-level evidence and may contain
+several surfaces from one memory. `retrieval_shadow.grouped_results`
+deduplicates those surfaces by `target_id` for the dense recall route. In
+active V1.31 operation the old surface/grouped rerank is skipped to avoid
+multiple semantic judgments and duplicate provider calls.
 
-`retrieval_hybrid` is the active promotion layer. With
-`RETRIEVAL_HYBRID_MODE=off`, dense/rerank evidence is only diagnostic. With
-`shadow`, the backend computes hybrid entries but does not change selected
-memories. With `active`, memory context and memory search can use grouped
-dense/rerank evidence plus sparse/base scores and graph signals to rank
-returned memories. Stored confidence/salience are intentionally neutral in the
-active ranker. Thresholds are explicit because vector search always has
-nearest neighbors, including for unrelated negative-control queries.
+`retrieval_rerank` is the final active arbitration record. It exposes which
+recall routes proposed each memory, whether the reranker evaluated and accepted
+it, and the query-time rank/score. `retrieval_hybrid` temporarily mirrors this
+payload for old evaluator clients; no weighted hybrid fusion occurs. With
+`RETRIEVAL_HYBRID_MODE=off`, the deterministic legacy baseline remains
+explicit. With `shadow`, final rerank evidence is observed without changing
+results. With `active`, only accepted rerank entries are returned. The
+acceptance threshold is calibrated model output handling, not a fusion of
+backend-authored semantic weights.
 
 ### POST /mind/memory/graph through mind_api
 

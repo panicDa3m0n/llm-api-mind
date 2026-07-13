@@ -144,6 +144,42 @@ def test_focus_error_returns_usage_guide(db_engine: Engine) -> None:
     assert body["suggested_next_actions"][0].startswith("Use usage_guide")
 
 
+def test_focus_hold_persists_held_foreground_status(db_engine: Engine) -> None:
+    client = make_client(db_engine)
+    session = client.post("/api/chat/sessions", json={"title": "Focus hold"}).json()
+
+    created = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "method": "POST",
+            "path": "/mind/focus",
+            "body": {"action": "set", "object": "Hold lifecycle evidence"},
+            "intent": "Set focus before holding it.",
+        },
+    ).json()
+    focus_id = created["result"]["active_focus"]["id"]
+
+    held = client.post(
+        "/mind/call",
+        json={
+            "session_id": session["id"],
+            "method": "POST",
+            "path": "/mind/focus",
+            "body": {"action": "hold", "focus_id": focus_id, "reason": "Keep it foreground."},
+            "intent": "Hold foreground focus.",
+        },
+    ).json()
+
+    assert held["ok"] is True
+    assert held["result"]["active_focus"]["status"] == "held"
+    with Session(db_engine) as db:
+        current = repositories.get_active_focus(db, owner_profile_id="local-user")
+    assert current is not None
+    assert current.id == focus_id
+    assert current.status == "held"
+
+
 def test_focus_context_runtime_block_is_model_facing_when_enabled(
     db_engine: Engine,
 ) -> None:

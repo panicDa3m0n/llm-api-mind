@@ -37,6 +37,11 @@ def test_mode_registry_uses_agent_tags_and_excludes_background_processes() -> No
     assert set(focus["mode_tags"]) == {"idle", "interactive", "scouting"}
     assert registry["background_processes_are_agent_modes"] is False
     assert registry["routing_scope"] == "automatic_model_context_v1"
+    assert registry["manually_resumable_tags"] == ["idle", "scouting"]
+    interactive = next(
+        item for item in registry["modes"] if item["tag"] == "interactive"
+    )
+    assert interactive["manually_resumable"] is False
 
 
 def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
@@ -108,3 +113,26 @@ def test_mode_routing_filters_only_automatic_context_blocks() -> None:
         "message_context",
         "affective_context",
     ]
+
+
+def test_mode_shell_rejects_persisting_system_owned_interactive_mode(
+    db_engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Mode ownership")
+        session_id = chat_session.id
+
+    response = dispatch_mind_shell(
+        MindShellRequest(
+            command='mode set interactive --reason "persist human exchange"'
+        ),
+        context=_context(db_engine, session_id=session_id),
+    )
+
+    assert response.ok is False
+    assert response.error is not None
+    assert response.error.code == "mode.set_not_resumable"
+    with Session(db_engine) as db:
+        state = resolve_agent_mode(db, profile_id="local-user")
+    assert state["active_tag"] == "idle"

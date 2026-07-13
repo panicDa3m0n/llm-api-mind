@@ -237,13 +237,17 @@ def make_client(
     provider_factory=None,
     settings_overrides: dict | None = None,
 ) -> TestClient:
+    settings_data = {
+        "app_name": "Test Mind",
+        "environment": "test",
+        "minimax_api_key": "test-key",
+        "minimax_model": "MiniMax-M2.7",
+        "minimax_max_tokens": 4096,
+        "retrieval_hybrid_mode": "off",
+    }
+    settings_data.update(settings_overrides or {})
     settings = Settings(
-        app_name="Test Mind",
-        environment="test",
-        minimax_api_key="test-key",
-        minimax_model="MiniMax-M2.7",
-        minimax_max_tokens=4096,
-        **(settings_overrides or {}),
+        **settings_data,
     )
     return TestClient(
         create_app(
@@ -268,7 +272,9 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == "2026-07-13.agent-modes-v1"
+    assert body["result"]["schema_version"] == (
+        "2026-07-13.shell-organ-conformance-v1"
+    )
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"
@@ -1887,7 +1893,9 @@ def test_mind_memory_search_active_hybrid_does_not_promote_support_only_surface(
     assert group["support_score"] >= 0.38
     assert "future_use_text" in group["support_surface_kinds"]
     assert "future_use_text" not in group["promotable_surface_kinds"]
-    assert shadow["rerank"]["grouped_status"] == "no_grouped_candidates"
+    assert shadow["rerank"]["status"] == (
+        "deferred_to_memory_level_final_arbiter"
+    )
     assert body["result"]["retrieval_hybrid"]["entry_count"] == 0
     assert body["result"]["memories"] == []
 

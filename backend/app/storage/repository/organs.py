@@ -132,6 +132,7 @@ def update_focus_record(
     reason: str | None = None,
     intensity: float | None = None,
     duration_policy: str | None = None,
+    status: str | None = None,
     metadata: dict[str, Any] | None = None,
 ) -> FocusRecord | None:
     focus = get_focus_record(db, focus_id)
@@ -147,6 +148,8 @@ def update_focus_record(
         focus.intensity = intensity
     if duration_policy is not None:
         focus.duration_policy = duration_policy
+    if status is not None:
+        focus.status = status
     if metadata:
         focus.metadata_json = {**focus.metadata_json, **metadata}
     focus.updated_at = utc_now()
@@ -224,6 +227,7 @@ def list_focus_transitions(
     owner_profile_id: str = "local-user",
     focus_id: str | None = None,
     limit: int = 20,
+    offset: int = 0,
 ) -> list[FocusTransition]:
     statement = select(FocusTransition).where(
         FocusTransition.owner_profile_id == owner_profile_id
@@ -233,10 +237,14 @@ def list_focus_transitions(
             (FocusTransition.from_focus_id == focus_id)
             | (FocusTransition.to_focus_id == focus_id)
         )
-    statement = statement.order_by(
-        FocusTransition.created_at.desc(),
-        FocusTransition.id,
-    ).limit(limit)
+    statement = (
+        statement.order_by(
+            FocusTransition.created_at.desc(),
+            FocusTransition.id,
+        )
+        .offset(offset)
+        .limit(limit)
+    )
     return list(db.exec(statement).all())
 
 

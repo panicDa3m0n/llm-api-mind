@@ -8,6 +8,21 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Added
 
+- Added V1.32.0 executable shell-conformance coverage across all 23 registered
+  family/namespace aliases, every help-published command, lifecycle paths,
+  pagination, targeted not-found errors, and retrospective metacognition
+  controls.
+- Added direct disposable MiniMax M3 evaluation across episodic recall,
+  affect, focus, volition, and metacognition, with exact tool evidence and no
+  production database mutation.
+
+- Added V1.31.0 memory-level final rerank arbitration. Sparse FTS, dense
+  surfaces, NetworkX graph expansion, and lexical/entity matching now build a
+  deduplicated round-robin candidate pool; only the reranker can accept and
+  order active automatic or manual retrieval results.
+- Added explicit rerank trace entries with recall routes/ranks, evaluation and
+  acceptance state, query-time score, and fail-closed diagnostics.
+
 - Added V1.30.0 context accounting and non-destructive compaction planning:
   exact local character/byte channels, provider first-step observations,
   separate tool-loop totals, calibrated token estimates, and a shadow-only
@@ -24,6 +39,24 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ### Changed
 
+- Advanced session list/search beyond the old hidden 500-row boundary and made
+  fallback summaries use the complete transcript even when the returned
+  message window is limited.
+- Made volition review scheduling shell-accessible, converted promoted focus
+  candidates into executable shell commands with source linkage, and limited
+  manually resumable agent modes to `idle` and `scouting`.
+
+- Removed the obsolete hand-weighted hybrid ranker. The historical
+  `retrieval_hybrid` trace key remains temporarily compatible but reports the
+  final rerank policy with `legacy_weighted_fusion=false`.
+- Stopped duplicating the current user message in automatic retrieval queries.
+  Active rerank failure now returns no relevant memory instead of silently
+  falling back to deterministic relevance.
+- Calibrated the first active rerank threshold from `0.55` to provisional
+  `0.01` after two real Italian positive controls and a negative control, and added a provider-
+  delivery assertion so rich selection alone cannot be mistaken for model
+  evidence.
+
 - Removed the redundant structured `context.model_context` copy from GPT
   bootstrap while retaining the single canonical serialized runtime document
   and full diagnostics in traces.
@@ -32,6 +65,18 @@ This project uses a practical changelog rather than a release-only log: each mea
   summarization, and Dream remain background processes.
 
 ### Fixed
+
+- Fixed `focus hold` persisting an active status, affect read ignoring filters,
+  targeted focus/affect misses returning successful empty payloads,
+  metacognition dropping retrospective flags, help alias drift, and advertised
+  memory aliases not executing.
+- Fixed Mind API tests inheriting production retrieval mode from the local
+  `.env`; the test client now declares `off` unless a scenario explicitly
+  exercises active retrieval.
+
+- Fixed the initial final-rerank thresholds rejecting positive controls at
+  rank 1/`0.465327` and rank 1/`0.089455`; sourceable full-DB turns delivered
+  the expected memories while an unrelated control remained below `0.0004`.
 
 - Fixed GPT bootstrap accounting so assigned trace IDs are explicitly excluded
   from the otherwise exact measured boundary and the returned diagnostics list

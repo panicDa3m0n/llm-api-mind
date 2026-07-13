@@ -514,8 +514,40 @@ def add_project_memory(
     *,
     content: str,
     tags: list[str] | None = None,
+    with_provenance: bool = False,
 ) -> str:
     with Session(db_engine) as db:
+        source_session_id: str | None = None
+        source_turn_id: str | None = None
+        source_message_id: str | None = None
+        if with_provenance:
+            source_session = repositories.create_chat_session(
+                db,
+                title="Memory source fixture",
+            )
+            source_turn = repositories.create_turn(
+                db,
+                session_id=source_session.id,
+                model="test",
+            )
+            source_message = repositories.add_message(
+                db,
+                session_id=source_session.id,
+                turn_id=source_turn.id,
+                role="user",
+                content=content,
+            )
+            repositories.add_message(
+                db,
+                session_id=source_session.id,
+                turn_id=source_turn.id,
+                role="assistant",
+                content="Stored as a sourceable memory fixture.",
+            )
+            repositories.complete_turn(db, turn_id=source_turn.id)
+            source_session_id = source_session.id
+            source_turn_id = source_turn.id
+            source_message_id = source_message.id
         memory = repositories.add_memory(
             db,
             memory_type="project_fact",
@@ -526,6 +558,9 @@ def add_project_memory(
             salience=0.85,
             scope="project",
             tags=tags or [],
+            source_session_id=source_session_id,
+            source_turn_id=source_turn_id,
+            source_message_id=source_message_id,
         )
         return memory.id
 
@@ -1014,6 +1049,7 @@ def test_chat_turn_active_hybrid_selects_paraphrased_memory_context(
         db_engine,
         content="The owner prefers cacao tea during evening focus work.",
         tags=["cacao", "focus"],
+        with_provenance=True,
     )
     add_project_memory(
         db_engine,
@@ -1034,6 +1070,155 @@ def test_chat_turn_active_hybrid_selects_paraphrased_memory_context(
     assert memory_context["selected"][0]["id"] == cacao_memory_id
     assert memory_context["selected"][0]["signals"]["hybrid"]["dense_signal"] is True
     assert memory_context["selected"][0]["signals"]["hybrid"]["rerank_signal"] is True
+    request_trace = next(
+        trace["payload"] for trace in traces if trace["kind"] == "llm.request"
+    )
+    runtime_payload = json.loads(
+        request_trace["runtime_context"]
+        .removeprefix("<runtime_context>\n")
+        .removesuffix("\n</runtime_context>")
+    )
+    relevant = runtime_payload["memories"]["relevant"]
+    assert [item["id"] for item in relevant] == [cacao_memory_id]
+    assert relevant[0]["source_session_id"].startswith("ses_")
+    assert relevant[0]["source_message_id"].startswith("msg_")
+
+
+def test_chat_turn_final_reranker_rejects_strong_deterministic_match(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_cloud_surface_limit": 20,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 5,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_rerank_score": 0.55,
+        },
+    )
+    memory_id = add_project_memory(
+        db_engine,
+        content="Il protocollo Zero-Luce verifica la continuita della memoria.",
+        tags=["zero-luce"],
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Cosa prevede esattamente il protocollo Zero-Luce?"},
+    )
+
+    assert response.status_code == 200
+    traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
+    memory_context = traces[0]["payload"]
+    assert memory_context["selected"] == []
+    rerank = memory_context["query_plan"]["retrieval_rerank"]
+    rejected = next(item for item in rerank["entries"] if item["memory_id"] == memory_id)
+    assert rejected["evaluated"] is True
+    assert rejected["accepted"] is False
+    assert "sparse" in rejected["recall_routes"]
+
+
+def test_chat_turn_sparse_candidate_reaches_final_reranker_outside_dense_sample(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(
+        "app.mind.shadow_retrieval.OpenRouterRetrievalClient",
+        FakeOpenRouterRetrievalClient,
+    )
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_embedding_model": "test/embed",
+            "retrieval_shadow_cloud_surface_limit": 1,
+            "retrieval_shadow_rerank_enabled": True,
+            "retrieval_shadow_rerank_model": "test/rerank",
+            "retrieval_shadow_rerank_candidate_limit": 10,
+            "retrieval_shadow_rerank_top_n": 5,
+            "retrieval_hybrid_mode": "active",
+            "retrieval_hybrid_min_rerank_score": 0.55,
+        },
+    )
+    cacao_memory_id = add_project_memory(
+        db_engine,
+        content="The owner prefers cacao tea during evening focus work.",
+        tags=["cacao", "focus"],
+    )
+    add_project_memory(
+        db_engine,
+        content="The owner likes quiet hiking routes on weekends.",
+        tags=["hiking", "weekend"],
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Ricordi la mia preferenza per il cacao?"},
+    )
+
+    assert response.status_code == 200
+    traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
+    memory_context = traces[0]["payload"]
+    assert memory_context["selected"][0]["id"] == cacao_memory_id
+    rerank = memory_context["query_plan"]["retrieval_rerank"]
+    accepted = next(
+        item for item in rerank["entries"] if item["memory_id"] == cacao_memory_id
+    )
+    assert accepted["accepted"] is True
+    assert "sparse" in accepted["recall_routes"]
+    assert "dense" not in accepted["recall_routes"]
+
+
+def test_chat_turn_active_rerank_fails_closed_when_reranker_is_unavailable(
+    db_engine: Engine,
+) -> None:
+    client = make_client(
+        db_engine,
+        settings_overrides={
+            "openrouter_api_key": "test-openrouter-key",
+            "retrieval_shadow_enabled": True,
+            "retrieval_shadow_backend": "openrouter",
+            "retrieval_shadow_rerank_enabled": False,
+            "retrieval_hybrid_mode": "active",
+        },
+    )
+    memory_id = add_project_memory(
+        db_engine,
+        content="Il protocollo Zero-Luce verifica la continuita della memoria.",
+        tags=["zero-luce"],
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Cosa prevede il protocollo Zero-Luce?"},
+    )
+
+    assert response.status_code == 200
+    traces = client.get(f"/api/debug/traces/{response.json()['turn_id']}").json()
+    memory_context = traces[0]["payload"]
+    assert memory_context["selected"] == []
+    assert memory_context["negative_evidence"] == "final_rerank_unavailable"
+    rerank = memory_context["query_plan"]["retrieval_rerank"]
+    assert rerank["status"] == "configuration_error"
+    assert rerank["fail_closed"] is True
+    assert any(item["memory_id"] == memory_id for item in rerank["entries"])
 
 
 def test_chat_turn_graph_expansion_selects_dynamic_personal_food_constraint(

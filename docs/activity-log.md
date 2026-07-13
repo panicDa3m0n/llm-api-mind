@@ -4,6 +4,103 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-13 - V1.32.0 Cognitive Shell Organ Conformance
+
+Goal:
+
+Audit every current cognitive-shell organ after the memory work, repair proven
+registry/parser/handler/storage drift, and verify representative behavior with
+real Scarlet without touching production data.
+
+Changes:
+
+- Removed the hidden 500-session ceiling and separated transcript return
+  windows from complete fallback-summary evidence.
+- Corrected focus hold state, focus/affect targeted misses, list pagination,
+  affect filters, resumable mode ownership, volition scheduling, executable
+  focus promotion, metacognition retrospective flags, and help/alias parity.
+- Added conformance tests proving all 23 family/namespace aliases agree and all
+  help-published commands validate as executable.
+- Ran five natural MiniMax M3 scenarios on a disposable DB copy covering
+  episodic recall, affect, focus, volition, and metacognition.
+
+Verification:
+
+- Full backend suite: `161 passed`.
+- Frozen preliminary regression: `9/9` at
+  `backend/app/evals/runs/20260713_211233_preliminary-regression-v1`.
+- Live report: ignored runtime artifact
+  `backend/app/evals/runs/20260713_v132-shell-live.json`; the disposable DB was
+  deleted after extraction.
+- Frontend production build and `git diff --check` passed.
+- The Mind API test factory now pins retrieval mode `off` unless a case
+  explicitly overrides it, so developer `.env` production settings cannot
+  silently change deterministic test semantics.
+
+Residual Risk:
+
+Technical shell conformance does not prove autonomous command choice. Focus
+maintenance, affect calibration, volition cycles, and metacognitive follow-up
+still need longitudinal behavioral experiments.
+
+## 2026-07-13 - V1.31.0 Final Memory Rerank Arbitration
+
+Goal:
+
+Apply the established memory principle that deterministic retrieval signals
+find candidates while an advanced contextual reranker alone decides what is
+relevant to Scarlet's current turn.
+
+Changes:
+
+- Replaced active weighted hybrid fusion with a deduplicated round-robin pool
+  over sparse, dense, NetworkX graph, and lexical recall routes.
+- Added one final memory-level rerank over canonical content and active facts.
+- Made automatic context and manual memory search accept/order results only
+  from rerank in active mode; unavailable rerank now fails closed.
+- Removed the obsolete hybrid ranker, retained a compatibility trace key, and
+  stopped duplicate current-message text from biasing retrieval queries.
+- Preserved rich route scores for traces without allowing them to become final
+  relevance judgments.
+
+Verification:
+
+- Focused final-arbiter contracts: `7 passed`.
+- Chat/Mind/V2/GPT bridge slice: `67 passed`.
+- Final-arbiter/V2 provider-delivery contracts: `3 passed` after adding the
+  sourceable-hook assertion.
+- Full backend suite on the final state: `149 passed`.
+- Frontend production build passed.
+- Python compilation and `git diff --check` passed.
+- Direct MiniMax M3 positive/negative controls:
+  `docs/evaluations/v1.31-final-memory-rerank-live.md`.
+
+Live Evidence:
+
+- The initial `0.55` threshold rejected the predicted top-ranked mint-tea
+  memory at `0.465327`; an intermediate `0.40` passed that case but failed the
+  frozen exact Zero-Luce positive at `0.089455`. The provisional default is
+  now `0.01`; the observed negative remains below `0.0004`.
+- A second run was rejected as evidence because rich selection did not reach
+  the provider while historical message provenance was incomplete.
+- After applying the existing deterministic provenance repair to a fresh
+  disposable full copy, the expected memory appeared in both V2
+  `memories.relevant` and `llm.request`; Scarlet answered from it explicitly.
+- An independent jazz/cooking session selected zero relevant memories, with a
+  maximum near-miss score of `0.000391`.
+- Frozen preliminary regression: initial `8/9` at `0.40`, then accepted `9/9`
+  at `0.01` in `20260713_202744_preliminary-regression-v1`.
+- Final sourceable live repetition at `0.01`: expected mint preference rank 1,
+  compatible caffeine constraint rank 2, provider delivery verified, and
+  independent negative still selected zero relevant memories.
+
+Residual Risk:
+
+Reranker availability is now an active dependency. The candidate pool remains
+bounded, the `0.01` threshold is only initially calibrated, and historical
+memories without complete source provenance remain ineligible for automatic V2
+delivery until a sourceable repair is applied.
+
 ## 2026-07-13 - V1.30.0 Context Accounting, Agent Modes, And Behavioral Gate
 
 Goal:

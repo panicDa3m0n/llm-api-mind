@@ -348,7 +348,7 @@ def _list_or_search_intentions(
         intentions = repositories.list_open_intention_records(
             db,
             owner_profile_id=owner_profile_id,
-            limit=request.limit,
+            limit=request.limit + 1,
             offset=request.offset,
         )
     elif request.action == "list_due":
@@ -356,7 +356,7 @@ def _list_or_search_intentions(
             db,
             owner_profile_id=owner_profile_id,
             include_unscheduled=request.include_unscheduled,
-            limit=request.limit,
+            limit=request.limit + 1,
             offset=request.offset,
         )
     else:
@@ -372,9 +372,11 @@ def _list_or_search_intentions(
             owner_profile_id=owner_profile_id,
             status=request.status,
             query=request.query,
-            limit=request.limit,
+            limit=request.limit + 1,
             offset=request.offset,
         )
+    has_more = len(intentions) > request.limit
+    intentions = intentions[: request.limit]
     return MemoryOperationResult(
         ok=True,
         result={
@@ -386,6 +388,8 @@ def _list_or_search_intentions(
                 )
                 for item in intentions
             ],
+            "count": len(intentions),
+            "has_more": has_more,
             "limit": request.limit,
             "offset": request.offset,
             "query": request.query,
@@ -655,7 +659,9 @@ def _promote_to_focus_candidate(
             "This produced a focus candidate only. It did not change active focus; "
             "call /mind/focus explicitly if Scarlet chooses to foreground it."
         ),
-        suggested_next_actions=["Call POST /mind/focus only if this intention should become foreground focus"],
+        suggested_next_actions=[
+            "Use the returned focus_candidate command only if this intention should become foreground focus"
+        ],
     )
 
 

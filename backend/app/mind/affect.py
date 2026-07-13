@@ -213,6 +213,13 @@ def handle_affect(
                 request=request,
                 owner_profile_id=owner_profile_id,
             )
+            if request.affect_id is not None and state is None:
+                return _error(
+                    code="affect.not_found",
+                    message=f"No affect state matched id {request.affect_id}.",
+                    hint="List affect history before retrying a targeted read.",
+                    actions=["Use affect list --limit 10"],
+                )
             return MemoryOperationResult(
                 ok=True,
                 result={
@@ -233,14 +240,18 @@ def handle_affect(
             status=request.status,
             emotion=request.emotion,
             mode=request.mode,
-            limit=request.limit,
+            limit=request.limit + 1,
             offset=request.offset,
         )
+        has_more = len(states) > request.limit
+        states = states[: request.limit]
         return MemoryOperationResult(
             ok=True,
             result={
                 "operation": "affect.list",
                 "items": [_affect_state_payload(item) for item in states],
+                "count": len(states),
+                "has_more": has_more,
                 "limit": request.limit,
                 "offset": request.offset,
                 "emotion": request.emotion,
@@ -728,17 +739,25 @@ def _target_affect_state(
 ) -> AffectState | None:
     if request.affect_id:
         state = repositories.get_affect_state(db, request.affect_id)
-        if state is not None and state.owner_profile_id == owner_profile_id:
+        if (
+            state is not None
+            and state.owner_profile_id == owner_profile_id
+            and (request.status is None or state.status == request.status)
+            and (request.emotion is None or state.emotion == request.emotion)
+            and (request.mode is None or state.mode == request.mode)
+        ):
             return state
         return None
-    state = repositories.get_latest_affect_state(
+    states = repositories.list_affect_states(
         db,
         owner_profile_id=owner_profile_id,
-        include_inactive=request.status is not None,
+        status=request.status,
+        emotion=request.emotion,
+        mode=request.mode,
+        active_only=request.status is None,
+        limit=1,
     )
-    if state is not None and request.status is not None and state.status != request.status:
-        return None
-    return state
+    return states[0] if states else None
 
 
 def _affect_state_payload(state: AffectState | None) -> dict[str, Any] | None:

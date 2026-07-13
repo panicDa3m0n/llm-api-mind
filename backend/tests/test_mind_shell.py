@@ -1,15 +1,91 @@
+import json
+from datetime import datetime, timedelta, timezone
+
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from app.config import Settings
-from app.mind.command_registry import validate_shell_command
+from app.llm.provider import LLMTextResult
+from app.mind.command_registry import COMMAND_FAMILIES, validate_shell_command
 from app.mind.memory import MindAPIContext
+from app.mind.schema import MIND_SHELL_COMMANDS
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.storage import repositories
 from app.storage.db import init_db
+from app.storage.models import ChatSession
 
 
-def _context(db_engine: Engine, *, session_id: str | None = None) -> MindAPIContext:
+class FakeShellSessionSummaryProvider:
+    calls = 0
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def generate_text(
+        self,
+        *,
+        prompt: str,
+        system: str | None = None,
+        max_tokens: int | None = None,
+    ) -> LLMTextResult:
+        self.__class__.calls += 1
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=json.dumps(
+                {
+                    "summary": "Scarlet ha verificato la navigazione episodica.",
+                    "topics": ["session shell"],
+                    "decisions": ["Usare gli id per rileggere le fonti."],
+                    "open_questions": [],
+                    "notable_context": ["Il transcript resta la fonte esatta."],
+                }
+            ),
+            usage={"input_tokens": 10, "output_tokens": 20},
+            provider_message_id="session_shell_summary",
+            stop_reason="end_turn",
+        )
+
+
+class FakeShellMetacognitionProvider:
+    prompts: list[str] = []
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def generate_text(
+        self,
+        *,
+        prompt: str,
+        system: str | None = None,
+        max_tokens: int | None = None,
+    ) -> LLMTextResult:
+        self.__class__.prompts.append(prompt)
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=json.dumps(
+                {
+                    "review_summary": "Shell metacognition verified.",
+                    "risks": [],
+                    "claim_checks": [],
+                    "missing_evidence": [],
+                    "recommended_internal_actions": [],
+                    "should_continue": False,
+                    "next_focus_question": None,
+                    "public_summary": "Verifica completata.",
+                }
+            ),
+            usage={"input_tokens": 10, "output_tokens": 20},
+            provider_message_id="metacognition_shell",
+            stop_reason="end_turn",
+        )
+
+
+def _context(
+    db_engine: Engine,
+    *,
+    session_id: str | None = None,
+    provider_factory=None,
+) -> MindAPIContext:
     return MindAPIContext(
         engine=db_engine,
         session_id=session_id,
@@ -18,6 +94,7 @@ def _context(db_engine: Engine, *, session_id: str | None = None) -> MindAPICont
             environment="test",
             minimax_api_key="test-key",
         ),
+        provider_factory=provider_factory,
     )
 
 
@@ -40,6 +117,41 @@ def test_mind_shell_help_returns_command_catalog(db_engine: Engine) -> None:
     assert commands[0]["namespace"] == "memory"
     assert any("memory search" in item for item in commands[0]["commands"])
     assert response.result["schema"]["schema_command"] == "help"
+
+    alias = dispatch_mind_shell(
+        MindShellRequest(command="help mem"),
+        context=_context(db_engine),
+    )
+    assert alias.ok is True
+    assert alias.result["catalog"]["commands"][0]["namespace"] == "memory"
+
+    unknown = dispatch_mind_shell(
+        MindShellRequest(command="help nonsense"),
+        context=_context(db_engine),
+    )
+    assert unknown.ok is False
+    assert validate_shell_command("help nonsense")["call_is_available"] is False
+
+
+def test_mind_shell_registry_and_help_examples_are_executable_contracts(
+    db_engine: Engine,
+) -> None:
+    context = _context(db_engine)
+    for canonical, family in COMMAND_FAMILIES.items():
+        for surface in (canonical, *family.aliases):
+            command = surface if canonical == "help" else f"help {surface}"
+            validation = validate_shell_command(command)
+            response = dispatch_mind_shell(
+                MindShellRequest(command=command),
+                context=context,
+            )
+            assert validation["call_is_available"] is True, command
+            assert response.ok is True, command
+
+    for family in MIND_SHELL_COMMANDS:
+        for command in family["commands"]:
+            validation = validate_shell_command(command)
+            assert validation["call_is_available"] is True, command
 
 
 def test_mind_shell_opens_source_message_and_public_turn_bundle(
@@ -158,6 +270,13 @@ def test_mind_shell_memory_write_and_search_use_command_arguments(
     assert [item["id"] for item in memories] == [memory_id]
     assert memories[0]["source"]
 
+    shown = dispatch_mind_shell(
+        MindShellRequest(command=f"memory show {memory_id}"),
+        context=context,
+    )
+    assert shown.ok is True
+    assert shown.result["target"] == "memory.open"
+
 
 def test_mind_shell_missing_memory_write_fields_returns_shell_guide(
     db_engine: Engine,
@@ -200,6 +319,153 @@ def test_mind_shell_session_list_and_open(db_engine: Engine) -> None:
     assert opened.result["data"]["transcript_window"]["returned_count"] >= 0
 
 
+def test_mind_shell_session_list_paginates_beyond_internal_history_size(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    now = repositories.utc_now()
+    sessions = [
+        ChatSession(
+            title=f"Deep episodic history {index:03d}",
+            created_at=now - timedelta(minutes=505 - index),
+            updated_at=now - timedelta(minutes=505 - index),
+        )
+        for index in range(505)
+    ]
+    expected_tail_ids = [item.id for item in reversed(sessions[:5])]
+    oldest_session_id = sessions[0].id
+    calling_session_id = sessions[-1].id
+    with Session(db_engine) as db:
+        db.add_all(sessions)
+        db.commit()
+
+    response = dispatch_mind_shell(
+        MindShellRequest(command="session list --limit 10 --offset 500"),
+        context=_context(db_engine, session_id=calling_session_id),
+    )
+
+    assert response.ok is True
+    assert response.result["data"]["count"] == 5
+    assert response.result["data"]["has_more"] is False
+    assert [item["id"] for item in response.result["data"]["sessions"]] == (
+        expected_tail_ids
+    )
+
+    searched = dispatch_mind_shell(
+        MindShellRequest(
+            command='session list --query "Deep episodic history 000" --limit 5'
+        ),
+        context=_context(db_engine, session_id=calling_session_id),
+    )
+
+    assert searched.ok is True
+    assert [item["id"] for item in searched.result["data"]["sessions"]] == [
+        oldest_session_id
+    ]
+
+
+def test_mind_shell_session_open_fallback_uses_complete_transcript(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(
+            db,
+            title="Complete fallback evidence",
+        )
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        first_message = repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="user",
+            content="La prima evidenza non deve sparire dal fallback.",
+        )
+        last_message = repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="La finestra manuale puo restare compatta.",
+        )
+        session_id = chat_session.id
+        first_message_content = first_message.content
+        last_message_id = last_message.id
+
+    response = dispatch_mind_shell(
+        MindShellRequest(command=f"session open {session_id} --limit 1"),
+        context=_context(db_engine, session_id=session_id),
+    )
+
+    assert response.ok is True
+    data = response.result["data"]
+    assert [message["id"] for message in data["messages"]] == [last_message_id]
+    assert data["summary"]["status"] == "fallback"
+    assert data["summary"]["message_count"] == 2
+    assert data["summary"]["last_message_id"] == last_message_id
+    assert first_message_content in data["summary"]["summary"]
+
+
+def test_mind_shell_session_summarize_is_traceable_and_idempotent(
+    db_engine: Engine,
+) -> None:
+    FakeShellSessionSummaryProvider.calls = 0
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(
+            db,
+            title="Session shell summary",
+        )
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="user",
+            content="Controlliamo tutti i comandi sessione.",
+        )
+        repositories.add_message(
+            db,
+            session_id=chat_session.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Uso gli id come ganci verso le fonti.",
+        )
+        session_id = chat_session.id
+
+    context = _context(
+        db_engine,
+        session_id=session_id,
+        provider_factory=FakeShellSessionSummaryProvider,
+    )
+    summarized = dispatch_mind_shell(
+        MindShellRequest(command=f"session summarize {session_id} --force"),
+        context=context,
+    )
+
+    assert summarized.ok is True
+    assert summarized.result["target"] == "session.summarize"
+    assert summarized.result["data"]["summary"]["status"] == "active"
+    assert FakeShellSessionSummaryProvider.calls == 1
+
+    repeated = dispatch_mind_shell(
+        MindShellRequest(command=f"session summarize {session_id}"),
+        context=context,
+    )
+
+    assert repeated.ok is True
+    assert repeated.result["data"]["up_to_date"] is True
+    assert FakeShellSessionSummaryProvider.calls == 1
+
+
 def test_mind_shell_focus_volition_and_affect_commands(db_engine: Engine) -> None:
     session_id = _session(db_engine)
     context = _context(db_engine, session_id=session_id)
@@ -231,6 +497,63 @@ def test_mind_shell_focus_volition_and_affect_commands(db_engine: Engine) -> Non
     )
     assert affect.ok is True
     assert affect.result["target"] == "affect.prototypes"
+
+
+def test_mind_shell_focus_lifecycle_matches_advertised_commands(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    context = _context(db_engine, session_id=session_id)
+
+    created = dispatch_mind_shell(
+        MindShellRequest(
+            command='focus set "Audit focus" --reason "direct shell verification"'
+        ),
+        context=context,
+    )
+    assert created.ok is True
+    focus_id = created.result["data"]["active_focus"]["id"]
+
+    held = dispatch_mind_shell(
+        MindShellRequest(command=f'focus hold {focus_id} --reason "keep foreground"'),
+        context=context,
+    )
+    assert held.ok is True
+    assert held.result["data"]["active_focus"]["status"] == "held"
+
+    searched = dispatch_mind_shell(
+        MindShellRequest(command='focus search "Audit focus" --limit 1'),
+        context=context,
+    )
+    assert searched.ok is True
+    assert searched.result["data"]["count"] == 1
+    assert searched.result["data"]["items"][0]["id"] == focus_id
+    assert "has_more" in searched.result["data"]
+
+    missing_query = dispatch_mind_shell(
+        MindShellRequest(command="focus search"),
+        context=context,
+    )
+    assert missing_query.ok is False
+    assert missing_query.error is not None
+    assert missing_query.error.code == "shell.focus_search_missing_query"
+
+    resolved = dispatch_mind_shell(
+        MindShellRequest(
+            command=f'focus resolve {focus_id} --resolution "audit complete"'
+        ),
+        context=context,
+    )
+    assert resolved.ok is True
+    assert resolved.result["data"]["closed_focus"]["status"] == "resolved"
+
+    timeline = dispatch_mind_shell(
+        MindShellRequest(command="focus timeline --limit 2"),
+        context=context,
+    )
+    assert timeline.ok is True
+    assert timeline.result["data"]["edge_count"] == 2
+    assert timeline.result["data"]["has_more_edges"] is True
 
 
 def test_mind_shell_memory_unavailable_action_is_classified(
@@ -318,3 +641,227 @@ def test_mind_shell_accepts_registry_canonical_volition_alias(
 
     assert closed.ok is True
     assert closed.result["target"] == "volition.mark_impossible"
+
+
+def test_mind_shell_volition_due_queue_and_focus_candidate_are_executable(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    context = _context(db_engine, session_id=session_id)
+    due_at = (datetime.now(timezone.utc) - timedelta(minutes=5)).isoformat()
+
+    created = dispatch_mind_shell(
+        MindShellRequest(
+            command=(
+                'volition create "Rivedere la coda volitiva" --reason "audit" '
+                f'--next-review-at "{due_at}" --review-interval-seconds 3600'
+            )
+        ),
+        context=context,
+    )
+    assert created.ok is True
+    intention = created.result["data"]["intention"]
+    assert intention["next_review_at"] is not None
+    assert intention["review_interval_seconds"] == 3600
+
+    due = dispatch_mind_shell(
+        MindShellRequest(command="volition list due --limit 1"),
+        context=context,
+    )
+    assert due.ok is True
+    assert due.result["data"]["count"] == 1
+    assert due.result["data"]["items"][0]["id"] == intention["id"]
+    assert "has_more" in due.result["data"]
+
+    promoted = dispatch_mind_shell(
+        MindShellRequest(
+            command=f'volition promote {intention["id"]} --reason "foreground audit"'
+        ),
+        context=context,
+    )
+    assert promoted.ok is True
+    candidate = promoted.result["data"]["focus_candidate"]
+    assert set(candidate).isdisjoint({"method", "path", "body"})
+    assert candidate["command"].startswith("focus set")
+    assert intention["id"] in candidate["command"]
+
+    applied = dispatch_mind_shell(
+        MindShellRequest(command=candidate["command"]),
+        context=context,
+    )
+    assert applied.ok is True
+    active_focus = applied.result["data"]["active_focus"]
+    assert active_focus["metadata"]["source_intention_id"] == intention["id"]
+
+    missing_query = dispatch_mind_shell(
+        MindShellRequest(command="volition search"),
+        context=context,
+    )
+    assert missing_query.ok is False
+    assert missing_query.error is not None
+    assert missing_query.error.code == "shell.volition_search_missing_query"
+
+
+def test_mind_shell_affect_read_filters_and_pagination_are_explicit(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    with Session(db_engine) as db:
+        repositories.create_affect_state(
+            db,
+            owner_profile_id="local-user",
+            session_id=session_id,
+            turn_id=None,
+            mode="shadow",
+            emotion="curiosity",
+            intensity=0.6,
+            intensity_label="medium",
+            valence=0.3,
+            activation=0.5,
+            prototype_version="test",
+            variables={},
+            causes=[],
+            tendencies={},
+            pack={},
+        )
+        repositories.create_affect_state(
+            db,
+            owner_profile_id="local-user",
+            session_id=session_id,
+            turn_id=None,
+            mode="model",
+            emotion="frustration",
+            intensity=0.7,
+            intensity_label="high",
+            valence=-0.4,
+            activation=0.7,
+            prototype_version="test",
+            variables={},
+            causes=[],
+            tendencies={},
+            pack={},
+        )
+    context = _context(db_engine, session_id=session_id)
+
+    filtered = dispatch_mind_shell(
+        MindShellRequest(command="affect read --emotion curiosity"),
+        context=context,
+    )
+    assert filtered.ok is True
+    assert filtered.result["data"]["affect_state"]["emotion"] == "curiosity"
+
+    listed = dispatch_mind_shell(
+        MindShellRequest(command="affect list --limit 1"),
+        context=context,
+    )
+    assert listed.ok is True
+    assert listed.result["data"]["count"] == 1
+    assert listed.result["data"]["has_more"] is True
+
+    missing = dispatch_mind_shell(
+        MindShellRequest(command="affect read --id affect_missing"),
+        context=context,
+    )
+    assert missing.ok is False
+    assert missing.error is not None
+    assert missing.error.code == "affect.not_found"
+
+    prototypes = dispatch_mind_shell(
+        MindShellRequest(command="affect prototypes"),
+        context=context,
+    )
+    assert prototypes.ok is True
+    assert len(prototypes.result["data"]["items"]) >= 7
+
+
+def test_mind_shell_targeted_focus_read_reports_missing_id(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    response = dispatch_mind_shell(
+        MindShellRequest(command="focus read --id focus_missing"),
+        context=_context(db_engine, session_id=session_id),
+    )
+
+    assert response.ok is False
+    assert response.error is not None
+    assert response.error.code == "focus.not_found"
+
+
+def test_mind_shell_mode_commands_preserve_system_and_resume_ownership(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Mode shell")
+        turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        session_id = chat_session.id
+        turn_id = turn.id
+    settings = Settings(environment="test", minimax_api_key="test-key")
+    turn_context = MindAPIContext(
+        engine=db_engine,
+        session_id=session_id,
+        turn_id=turn_id,
+        settings=settings,
+    )
+
+    listed = dispatch_mind_shell(
+        MindShellRequest(command="mode list"),
+        context=turn_context,
+    )
+    assert listed.ok is True
+    assert listed.result["data"]["registry"]["manually_resumable_tags"] == [
+        "idle",
+        "scouting",
+    ]
+
+    selected = dispatch_mind_shell(
+        MindShellRequest(command='mode set Scouting --reason "resume audit"'),
+        context=turn_context,
+    )
+    assert selected.ok is True
+    assert selected.result["data"]["agent_mode"]["active_tag"] == "interactive"
+    assert selected.result["data"]["agent_mode"]["resume_tag"] == "scouting"
+
+    rejected = dispatch_mind_shell(
+        MindShellRequest(
+            command='mode set interactive --reason "invalid persistent chat"'
+        ),
+        context=turn_context,
+    )
+    assert rejected.ok is False
+    assert rejected.error is not None
+    assert rejected.error.code == "mode.set_not_resumable"
+
+
+def test_mind_shell_metacognition_forwards_retrospection_controls(
+    db_engine: Engine,
+) -> None:
+    FakeShellMetacognitionProvider.prompts = []
+    session_id = _session(db_engine)
+    context = _context(
+        db_engine,
+        session_id=session_id,
+        provider_factory=FakeShellMetacognitionProvider,
+    )
+
+    response = dispatch_mind_shell(
+        MindShellRequest(
+            command=(
+                'metacognition step --objective "Rivedere il processo precedente" '
+                "--mode review_previous_turn --turn-scope previous --detail raw"
+            )
+        ),
+        context=context,
+    )
+
+    assert response.ok is True
+    prompt = json.loads(
+        FakeShellMetacognitionProvider.prompts[-1].split("\n\n", 1)[1]
+    )
+    assert prompt["turn_scope"] == "previous"
+    assert prompt["detail"] == "raw"

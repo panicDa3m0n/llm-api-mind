@@ -143,7 +143,44 @@ def handle_sessions_list(
     with Session(context.engine) as db:
         query = _normalized_query(request.query)
         resolved_time = resolve_interval(request.time)
-        candidates = repositories.list_chat_sessions(db, limit=500, offset=0)
+        if query is None and request.time is None:
+            page = repositories.list_chat_sessions(
+                db,
+                limit=request.limit + 1,
+                offset=request.offset,
+            )
+            selected_sessions = page[: request.limit]
+            has_more = len(page) > request.limit
+            session_payloads = [
+                _session_index_payload(db, chat_session)
+                for chat_session in selected_sessions
+            ]
+            return MemoryOperationResult(
+                ok=True,
+                result={
+                    "operation": "sessions.list",
+                    "intent": intent,
+                    "limit": request.limit,
+                    "offset": request.offset,
+                    "query": request.query,
+                    "time": time_filter_payload(request.time, resolved_time),
+                    "retrieval_stages": [],
+                    "count": len(session_payloads),
+                    "has_more": has_more,
+                    "sessions": session_payloads,
+                },
+                cognitive_hint=(
+                    "Use session summaries as an episodic navigation index. When exact "
+                    "wording or provenance matters, read the full session by id."
+                ),
+                suggested_next_actions=[
+                    "Call GET /mind/sessions/{session_id} for the exact transcript",
+                    "Call POST /mind/sessions/{session_id}/summarize if a session has only a fallback summary",
+                ],
+                confidence=0.92,
+            )
+
+        candidates = repositories.list_chat_sessions(db, limit=None, offset=0)
         candidates = _filter_sessions_by_time(
             db,
             candidates,
@@ -237,8 +274,9 @@ def handle_session_read(
         if chat_session is None:
             return _session_not_found(session_id, operation="sessions.read")
 
-        messages = repositories.list_messages(db, session_id=session_id)
-        all_message_count = len(messages)
+        all_messages = repositories.list_messages(db, session_id=session_id)
+        messages = all_messages
+        all_message_count = len(all_messages)
         truncated = False
         if request.message_limit is not None and len(messages) > request.message_limit:
             messages = messages[-request.message_limit :]
@@ -253,7 +291,7 @@ def handle_session_read(
         summary_payload = _summary_or_fallback_payload(
             chat_session,
             summary,
-            messages=messages,
+            messages=all_messages,
             memories=memories,
         )
         result: dict[str, Any] = {

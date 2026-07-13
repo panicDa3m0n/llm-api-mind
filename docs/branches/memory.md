@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-13
-System version assessed: V1.29.1
+System version assessed: V1.32.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -120,8 +120,9 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   usata da memoria, retrieval, shell, chat e manutenzione: stato canonico,
   facts/proposal lifecycle e artefatti derivati hanno ora confini di codice
   leggibili ma lo stesso contratto transazionale.
-- Il rerank resta un secondo stadio sui candidati gia trovati: migliora la
-  precisione osservabile, ma non sostituisce embedding/sparse/KG.
+- V1.31.0 separa recall e giudizio: FTS, embedding, KG ed euristiche trovano
+  candidati; il reranker memory-level e l'unico arbitro finale in modalita
+  attiva e il sistema fallisce chiuso quando non e disponibile.
 - Prove live: Scarlet recupera sessioni precedenti, ricorda dati personali e
   usa memoria utente per personalizzazione.
 - V1.14.4 aggiunge una mitigazione prompt per MiniMax M3: Scarlet deve trattare
@@ -154,7 +155,22 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.29.1.
+Sistema valutato: V1.32.0.
+
+Aggiornamento V1.31.0:
+
+- Sparse, dense, NetworkX e matching lessicale/entita sono route di recall e
+  non possono piu dichiarare una memoria rilevante.
+- I candidati sono interleavati round-robin e deduplicati per `memory_id`,
+  evitando una fusione con coefficienti manuali.
+- Il reranker riceve documenti memory-level basati su contenuto canonico e
+  facts attivi; solo gli elementi sopra la soglia query-time diventano
+  `selected` o risultati della ricerca manuale.
+- `retrieval_hybrid_mode=active` e fail-closed. Errori di configurazione o
+  provider producono `final_rerank_unavailable`, non fallback deterministico.
+- I punteggi dei motori di recall restano nei trace per osservabilita. La chiave
+  `retrieval_hybrid` e mantenuta temporaneamente per compatibilita evaluator,
+  ma descrive la nuova policy e dichiara `legacy_weighted_fusion=false`.
 
 Aggiornamento V1.25.4:
 
@@ -409,24 +425,37 @@ Aggiornamento V1.13.0 - corrected context eval:
   tags/metadata moved out of the normal Scarlet write contract, internal
   content chunks, dynamic KG concepts, and `/mind/memory/graph` navigation.
 
-## Verifica V1.29.1
+## Verifica V1.32.0
 
 - Implementazione: memoria semantica, fatti, episodica, lifecycle, attivita
   cognitiva, provenance, summary, sparse/KG/dense-shadow/hybrid retrieval,
   proposal e maintenance.
-- Test deterministici: e il ramo piu coperto; include API, shell, storage,
-  context V2, maintenance e casi reali congelati nella regressione 9/9.
+- Test deterministici: include API, shell, storage, context V2, maintenance,
+  casi reali congelati e contratti final-arbiter su rigetto, recall cross-route
+  e fail-closed.
 - Evidenza Scarlet: recall automatico/manuale, navigazione sorgente,
   personalizzazione cross-session e write provenance verificati; restano
   fallimenti comportamentali del modello.
-- Integrazione runtime: sempre attiva tramite retrieval ricco interno e hook
-  V2 compatti. Il ranking ibrido cloud resta configurabile, non assunto attivo.
+- Integrazione runtime: retrieval ricco interno e hook V2 compatti sono sempre
+  costruiti; la configurazione `active` usa OpenRouter rerank come dipendenza
+  esplicita e non assume fallback deterministico.
 - Produzione: 46 memorie storiche riparate deterministicamente; 242 restano
   senza evidenza sufficiente e non devono essere inventate. Summary eleggibili
   riconciliate, con maintenance ordinaria a 15 minuti.
-- Prossimo gate: separare evidence detection da adjudication per duplicati e
-  conflitti, introdurre ownership utente reale, calibrare retrieval e retry
-  maintenance prima di merge/deprecate automatici.
+- Prossimo gate: misurare candidate coverage, latenza, disponibilita e soglia
+  del final rerank su DB completo; poi separare evidence detection da
+  adjudication per duplicati/conflitti e introdurre ownership utente reale.
+- Prima calibrazione live V1.31.0: le soglie `0.55` e `0.40` hanno respinto
+  rispettivamente una memoria personale prevista a `0.465327` e un match
+  Zero-Luce quasi letterale a `0.089455`. Il controllo negativo osservato
+  resta sotto `0.0004`; la soglia corrente e quindi `0.01`, ancora provvisoria
+  e soggetta a controlli positivi/negativi piu ampi.
+- Episodic shell V1.32: `session list` non nasconde piu risultati oltre il
+  limite interno 500, query e filtri temporali lavorano sull'indice completo,
+  e il fallback summary usa il transcript completo anche quando `session open`
+  restituisce una finestra limitata. MiniMax M3 ha usato una ricerca sessioni,
+  una ricerca memoria e tre transcript completi per ricostruire una catena
+  storica reale.
 
 ## Evolutive
 
@@ -437,14 +466,14 @@ Aggiornamento V1.13.0 - corrected context eval:
 - Applicazione controllata avanzata delle proposal: merge/update/deprecate.
 - Compaction semantica e merge duplicati.
 - Stale-memory detection e deprecazione assistita.
-- Test live OpenRouter active-hybrid su query italiane, sinonimi, parafrasi,
-  negative control, ambiguita e conflitti per calibrare soglie/pesi.
+- Test live OpenRouter final-rerank su query italiane, sinonimi, parafrasi,
+  negative control e ambiguita per calibrare candidate pool e soglia.
 - Dashboard/lab view per confrontare raw surfaces, grouped dense, grouped
   rerank e selected/near_miss/excluded nello stesso turno.
 - Milvus Lite/Qdrant in shadow mode con embedding reale sopra
   `memory_surfaces`.
-- Hybrid retrieval: sparse + dense embeddings + NetworkX graph expansion +
-  reranking.
+- Recall multi-route: sparse + dense embeddings + NetworkX graph expansion,
+  seguito da final rerank memory-level.
 - Knowledge graph maturo con entita, relazioni, salienza, temporalita,
   staleness e percorsi spiegabili oltre ai domini leggeri V1.11.1.
 - Pesi emotivi/affettivi collegati a memorie personali.

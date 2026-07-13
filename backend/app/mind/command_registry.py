@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-07-08.mind-shell-command-registry-v1"
+COMMAND_REGISTRY_VERSION = "2026-07-13.mind-shell-command-registry-v2"
 
 
 @dataclass(frozen=True)
@@ -130,7 +130,11 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
         actions={
             "read": CommandAction(status="implemented", aliases=("open", "inspect", "show", "get", "current")),
             "list": CommandAction(status="implemented"),
-            "search": CommandAction(status="implemented"),
+            "search": CommandAction(
+                status="implemented",
+                requires_any=("arg", "query", "q"),
+                suggested_command='focus search "query" --limit 10',
+            ),
             "set": CommandAction(status="implemented", requires_any=("arg", "object")),
             "shift": CommandAction(status="implemented", requires_any=("arg", "object")),
             "update": CommandAction(status="implemented"),
@@ -156,7 +160,11 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
                 aliases=("list", "list-active"),
             ),
             "list_due": CommandAction(status="implemented", aliases=("list-due",)),
-            "search": CommandAction(status="implemented"),
+            "search": CommandAction(
+                status="implemented",
+                requires_any=("arg", "query", "q"),
+                suggested_command='volition search "query" --limit 10',
+            ),
             "create": CommandAction(
                 status="implemented",
                 requires_all=("arg|desire", "reason|why"),
@@ -267,15 +275,39 @@ def validate_shell_command(command: str | None) -> dict[str, Any]:
 
     if canonical_namespace == "help":
         action = _normalize_token(tokens[1]) if len(tokens) > 1 else ""
+        if not action:
+            return _validation(
+                command=command,
+                namespace=namespace,
+                canonical_namespace=canonical_namespace,
+                schema_status="implemented_command",
+                call_is_available=True,
+                suggested_command="help",
+            )
+        target_namespace = canonical_command_namespace(action)
+        if target_namespace is None:
+            return _validation(
+                command=command,
+                namespace=namespace,
+                canonical_namespace=canonical_namespace,
+                action=action,
+                schema_status="unknown_help_namespace",
+                call_is_available=False,
+                suggested_action="Use help to inspect available command families.",
+            )
         return _validation(
             command=command,
             namespace=namespace,
             canonical_namespace=canonical_namespace,
             action=action or None,
-            canonical_action=action or None,
-            schema_status="implemented_command",
+            canonical_action=target_namespace,
+            schema_status=(
+                "implemented_command_alias"
+                if action != target_namespace
+                else "implemented_command"
+            ),
             call_is_available=True,
-            suggested_command="help",
+            suggested_command=f"help {target_namespace}",
         )
 
     family = COMMAND_FAMILIES[canonical_namespace]
@@ -359,6 +391,10 @@ def command_family_summaries() -> list[dict[str, str]]:
         }
         for namespace, family in COMMAND_FAMILIES.items()
     ]
+
+
+def canonical_command_namespace(namespace: str) -> str | None:
+    return _canonical_namespace(_normalize_token(namespace))
 
 
 def _canonical_namespace(namespace: str) -> str | None:

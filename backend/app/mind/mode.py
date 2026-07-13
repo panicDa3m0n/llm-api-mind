@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from sqlmodel import Session
 
 from app.mind.agent_modes import (
     AGENT_MODE_VALUES,
+    AGENT_MODE_RESUMABLE_VALUES,
     agent_mode_registry,
     resolve_agent_mode,
     set_preferred_agent_mode,
@@ -22,6 +23,13 @@ class AgentModeRequest(BaseModel):
     action: Literal["read", "list", "set"] = "read"
     mode: str | None = None
     reason: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("mode")
+    @classmethod
+    def normalize_mode(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return value.strip().casefold().replace(" ", "_")
 
 
 def handle_agent_mode(
@@ -71,12 +79,28 @@ def handle_agent_mode(
                 result={"operation": "mode.read", "agent_mode": state},
                 cognitive_hint="The system-enforced interactive mode applies only to the active human turn.",
             )
-        if request.mode not in AGENT_MODE_VALUES or not request.reason:
+        if request.mode not in AGENT_MODE_VALUES:
             return _error(
-                "mode.set_missing_fields",
-                "mode set requires a supported mode and a reason.",
+                "mode.set_unsupported",
+                "mode set requires a supported mode.",
                 ['mode set idle --reason "..."', 'mode set scouting --reason "..."'],
                 details={"supported_modes": list(AGENT_MODE_VALUES)},
+            )
+        if request.mode not in AGENT_MODE_RESUMABLE_VALUES:
+            return _error(
+                "mode.set_not_resumable",
+                "interactive is system-owned during a human-facing turn and cannot be persisted as a resume mode.",
+                ['mode set idle --reason "..."', 'mode set scouting --reason "..."'],
+                details={
+                    "requested_mode": request.mode,
+                    "manually_resumable_modes": list(AGENT_MODE_RESUMABLE_VALUES),
+                },
+            )
+        if not request.reason:
+            return _error(
+                "mode.set_missing_reason",
+                "mode set requires a reason.",
+                [f'mode set {request.mode} --reason "..."'],
             )
         changed = set_preferred_agent_mode(
             db,

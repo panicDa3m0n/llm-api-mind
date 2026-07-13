@@ -9,6 +9,107 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0062 - Cross-Organ Shell Conformance And Natural Use
+
+Status: completed for V1.32.0; longitudinal behavioral validation remains open
+
+Hypothesis:
+
+A shell that is coherent across registry, parser, handlers, persistence, and
+presentation will support natural Scarlet use without organ-specific transport
+workarounds, while still exposing errors instead of hiding them.
+
+Method:
+
+- exercise every family/namespace alias and every help-published command;
+- run stateful lifecycle and negative-path checks on disposable databases;
+- rerun the unchanged frozen whole-system suite;
+- give MiniMax M3 five natural, non-command-like prompts in separate sessions
+  for episodic recall, affect, focus, volition, and metacognition;
+- inspect exact tool calls, responses, traces, persisted state, and cleanup.
+
+Results:
+
+- 23 aliases produced zero registry/execution mismatches;
+- backend `161/161` and frozen regression `9/9` passed;
+- all five MiniMax turns completed, with 20 successful shell calls;
+- Scarlet recovered from one malformed memory-write command using returned
+  guidance;
+- episodic navigation opened exact sources, affect stayed evidence-bound,
+  focus persisted, volition scheduling reached storage, and metacognition
+  explicitly rejected overgeneralization;
+- the disposable DB was deleted and production data was not used.
+
+Decision:
+
+Accept V1.32.0 as the shell-organ conformance baseline. Evaluate autonomous
+tool choice and longitudinal organ behavior separately rather than treating
+transport correctness as cognitive maturity.
+
+Related Files:
+
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+- `backend/app/evals/runs/20260713_v132-shell-live.json` (ignored run artifact)
+
+## EXP-0061 - Final Rerank Memory Arbitration
+
+Status: deterministic implementation and first direct Scarlet controls accepted;
+broader calibration pending
+
+Hypothesis:
+
+Separating broad multi-route recall from final memory-level reranking will
+reduce irrelevant automatic memories without losing candidates found through
+exact sparse search, semantic surfaces, or KG associations.
+
+Baseline:
+
+V1.30 active hybrid retrieval fused manual base/sparse/dense/rerank/support
+weights. Strong deterministic evidence could select a memory without final
+reranker approval.
+
+Variant:
+
+V1.31 interleaves sparse, dense, graph, and lexical candidate ids without
+weighted fusion. One memory-level rerank over canonical content/facts is the
+only active acceptance and ordering step. Active backend/configuration failure
+returns no relevant memories and explicit trace evidence.
+
+Acceptance Method:
+
+1. Deterministic contracts cover rejection, cross-route candidate coverage,
+   fail-closed behavior, and shared automatic/manual semantics.
+2. Before a live call, inspect an immutable full database, choose one existing
+   memory and a natural query, and record the predicted memory id.
+3. Run a real Scarlet turn on a disposable complete copy and inspect both the
+   rich `memory.context` trace and delivered V2 `memories.relevant` hooks.
+4. Record competing candidates, rerank score/rank, final answer use, latency,
+   and any retrieval backend failure. One success is initial evidence only.
+
+Initial Result:
+
+- The first full-DB positive run put the predicted mint-tea memory first but
+  scored it `0.465327`; the uncalibrated `0.55` threshold rejected it.
+- At the intermediate `0.40` threshold, rich retrieval selected it. A trace
+  inspection then correctly invalidated that run because historical missing
+  message provenance kept it outside the V2 provider payload.
+- On a fresh complete copy, the existing deterministic provenance audit found
+  all 36 rows repairable from exactly one persisted user message and repaired
+  them without guessing.
+- The valid positive turn delivered the predicted memory in
+  `memories.relevant` and `llm.request`; MiniMax M3 explicitly used the mint-tea
+  preference.
+- An independent jazz/cooking negative control selected no relevant memories;
+  its highest rerank score was `0.000391`.
+- The frozen preliminary gate then exposed a weaker but exact positive:
+  Zero-Luce scored `0.089455` at rank 1 while the second candidate scored
+  `0.001561`. At the final provisional `0.01` threshold, the unchanged gate
+  passed 9/9 and the live positive/negative pair remained correct.
+
+Evidence:
+
+`docs/evaluations/v1.31-final-memory-rerank-live.md`
+
 ## EXP-0060 - Agent Mode Routing Behavioral Validation
 
 Status: deterministic foundation implemented; first direct scenario accepted,

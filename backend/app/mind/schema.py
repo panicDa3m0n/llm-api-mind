@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-13.agent-modes-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-13.agent-modes-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -132,11 +132,11 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "volition list active --limit 10",
             "volition list due --limit 10",
             "volition search \"query\" --limit 10",
-            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6",
+            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6 --next-review-at \"2026-07-14T10:00:00+02:00\" --review-interval-seconds 86400",
             "volition read int_...",
             "volition update int_... --reason \"...\"",
-            "volition defer int_... --reason \"...\"",
-            "volition review int_... --reason \"...\"",
+            "volition defer int_... --reason \"...\" --next-review-at \"2026-07-14T10:00:00+02:00\"",
+            "volition review int_... --reason \"...\" --review-interval-seconds 86400",
             "volition promote int_... --reason \"...\"",
             "volition resolve int_... --resolution \"...\"",
             "volition impossible int_... --reason \"...\"",
@@ -168,6 +168,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
         "commands": [
             "metacognition step --objective \"...\" --mode critic --question \"...\"",
             "metacognition step --objective \"...\" --mode memory_curator --draft \"...\"",
+            "metacognition step --objective \"...\" --mode review_previous_turn --turn-scope previous --detail digest",
         ],
     },
 ]

@@ -199,7 +199,7 @@ def _memory_command(
             ),
             context=context,
         )
-    if action in {"open", "read", "inspect"}:
+    if action in {"open", "read", "inspect", "show", "get"}:
         memory_id = _first_arg_or_flag(parsed, "id", "memory-id")
         if not memory_id:
             return _shell_error(
@@ -511,6 +511,15 @@ def _focus_command(
             "object": focus_object,
             "reason": _flag_string(parsed, "reason", "why") or intent,
         }
+        source_intention_id = _flag_string(parsed, "source-intention-id")
+        if source_intention_id is not None:
+            body["metadata"] = {
+                "source_intention_id": source_intention_id,
+                "source_intention_status": _flag_string(
+                    parsed,
+                    "source-intention-status",
+                ),
+            }
     else:
         body = {"action": action}
     _copy_flags(
@@ -535,6 +544,14 @@ def _focus_command(
         body["offset"] = _flag_int(parsed, 0, "offset")
         if action == "search" and "query" not in body:
             body["query"] = _joined_args(parsed)
+        if action == "search" and not body.get("query"):
+            return _shell_error(
+                code="shell.focus_search_missing_query",
+                message="focus search requires a query.",
+                parsed=parsed,
+                namespace="focus",
+                actions=['focus search "query" --limit 10'],
+            )
     intensity = _flag_float(parsed, None, "intensity")
     if intensity is not None:
         body["intensity"] = intensity
@@ -630,6 +647,14 @@ def _volition_command(
         body["offset"] = _flag_int(parsed, 0, "offset")
         if action == "search":
             body["query"] = _joined_args(parsed) or _flag_string(parsed, "query", "q")
+            if not body["query"]:
+                return _shell_error(
+                    code="shell.volition_search_missing_query",
+                    message="volition search requires a query.",
+                    parsed=parsed,
+                    namespace="volition",
+                    actions=['volition search "query" --limit 10'],
+                )
         if action == "list_due":
             body["include_unscheduled"] = _flag_bool(parsed, False, "include-unscheduled")
     _copy_flags(
@@ -641,6 +666,7 @@ def _volition_command(
             "autonomy_level": ("autonomy", "autonomy-level"),
             "reason": ("reason", "why"),
             "next_possible_reflection": ("next-reflection",),
+            "next_review_at": ("next-review-at",),
             "resolution": ("resolution",),
             "impossible_reason": ("impossible-reason", "reason"),
             "status": ("status",),
@@ -650,6 +676,18 @@ def _volition_command(
     intensity = _flag_float(parsed, None, "intensity")
     if intensity is not None:
         body["intensity"] = intensity
+    raw_review_interval = _flag_string(parsed, "review-interval-seconds")
+    if raw_review_interval is not None:
+        try:
+            body["review_interval_seconds"] = int(raw_review_interval)
+        except ValueError:
+            return _shell_error(
+                code="shell.volition_invalid_review_interval",
+                message="review interval must be an integer number of seconds.",
+                parsed=parsed,
+                namespace="volition",
+                actions=["Use --review-interval-seconds 3600"],
+            )
     return _dispatch_api_as_shell(
         parsed,
         target=f"volition.{action}",
@@ -776,6 +814,8 @@ def _metacognition_command(
             "focus_question": ("question", "focus-question"),
             "internal_prompt": ("prompt", "internal-prompt"),
             "draft_answer": ("draft", "draft-answer"),
+            "turn_scope": ("turn-scope", "reasoning-scope"),
+            "detail": ("detail", "reasoning-detail"),
         },
     )
     return _dispatch_api_as_shell(

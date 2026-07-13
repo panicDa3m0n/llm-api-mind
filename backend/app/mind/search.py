@@ -218,7 +218,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "openrouter_embedding_shadow_v1",
             "openrouter_rerank_shadow_v1",
             "memory_grouped_dense_v1",
-            "hybrid_retrieval_v1",
+            "memory_level_rerank_final_arbiter_v1",
             "networkx_associative_memory_graph_v1",
         ],
         "source_of_truth": [
@@ -241,7 +241,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
             "V1.3.1 shadow retrieval is trace-only and does not change active ranking.",
             "V1.4.0 memory surfaces are compiled by the backend, not written by Scarlet.",
             "V1.10.0 OpenRouter embedding/rerank can provide dense retrieval evidence.",
-            "V1.11.0 hybrid retrieval changes active ranking only when retrieval_hybrid_mode=active.",
+            "V1.31.0 uses sparse, dense, graph, and lexical signals only for recall; the memory-level reranker alone accepts and orders active results.",
             "V1.11.1 NetworkX graph expansion adds field-of-discourse associative recall.",
             "Milvus Lite can consume memory_surfaces when the optional dependency is installed.",
         ],

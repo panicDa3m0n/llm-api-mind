@@ -2,7 +2,7 @@
 
 Status: active planning  
 Last updated: 2026-07-13
-App baseline: V1.30.0
+App baseline: V1.32.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -112,7 +112,7 @@ What still waits for stronger embedding/KG evidence:
 - automatic merge of similar memories;
 - automatic update versus deprecation decisions for stale facts;
 - semantic duplicate detection beyond current conservative preflight;
-- lifecycle mutation driven by hybrid sparse + dense + graph ranking;
+- lifecycle mutation driven only by retrieval similarity or relevance output;
 - stale-memory repair that relies on similarity, entity resolution, or temporal
   contradiction scoring.
 - rich cognitive memory parameters such as `applies_when`,
@@ -683,26 +683,29 @@ and cognition routes correctly before retrieval hardening continues.
 
 Next M4 step:
 
-Run active-hybrid OpenRouter retrieval and, later, Milvus Lite or another vector
-backend over `memory_surfaces`; compare sparse/dense/grouped-rerank/hybrid
-candidates in traces and calibrate thresholds before making hybrid retrieval
-the default path.
+Calibrate the active OpenRouter memory-level reranker on frozen and disposable
+full-DB copies. Compare sparse, dense, graph, and lexical candidate coverage
+against final reranker decisions, then evaluate Milvus Lite or another vector
+backend for stronger dense recall. Recall routes must not become competing
+final relevance authorities.
 
 Add in order:
 
 1. Implemented: SQLite FTS5/BM25 candidate retrieval over derived search
    documents.
 2. Implemented: minimal temporal search for memories and sessions.
-3. Next: entity-aware relevance guard.
-4. Next: better `selected` vs `near_miss` vs `excluded` thresholds from live
-   evidence.
-5. Implemented: optional dense/rerank grouping over `memory_surfaces`.
-6. Implemented: configurable hybrid rank fusion in `off|shadow|active` mode.
+3. Next: entity-aware candidate coverage guard before final rerank.
+4. Next: calibrate the reranker acceptance threshold and candidate-pool size
+   from live evidence.
+5. Implemented: optional dense grouping over `memory_surfaces` as a recall
+   route.
+6. Implemented in V1.31.0: configurable final memory-level rerank in
+   `off|shadow|active` mode, with no weighted score fusion.
 7. Implemented: role-aware surface gating. Content/fact surfaces may promote a
    memory; future-use, temporal, and lifecycle guard surfaces only support or
    explain candidates found through stronger routes.
-8. Next: entity-aware relevance guard and threshold tuning from dirty-DB
-   evidence.
+8. Next: entity-aware recall coverage and final-rerank tuning from disposable
+   full-DB evidence.
 
 Acceptance:
 
@@ -809,7 +812,8 @@ Recommended next implementation order:
 2. Preserve LLM/human judgment for semantic conflict decisions; similarity is
    never sufficient by itself.
 3. Add deterministic authenticated user ownership before multi-user use.
-4. Calibrate sparse/KG/hybrid retrieval on frozen and live negative controls.
+4. Calibrate recall-route coverage and final reranking on frozen and live
+   negative controls.
 5. Add maintenance retry/resume and evaluate pending proposal quality.
 6. Repair historical provenance only where source evidence is defensible.
 7. Add branch-level behavioral acceptance and operator memory-health views.

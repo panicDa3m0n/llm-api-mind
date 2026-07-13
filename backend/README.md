@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.30.0.
+App baseline: V1.32.0.
 
 Current scope:
 
@@ -22,15 +22,18 @@ Current scope:
 - optional retrieval shadow adapter over `memory_surfaces` for local
   deterministic plumbing tests, Milvus Lite trace-only comparison, or
   OpenRouter cloud embedding/rerank shadow evaluation;
-- optional active hybrid memory retrieval that groups dense/rerank evidence by
-  memory and can rank `memory.context` / `memory.search` when explicitly
-  enabled;
+- active memory-level rerank arbitration over a deduplicated sparse/dense/KG/
+  lexical recall pool; deterministic signals find candidates but never accept
+  or order final relevant memories;
 - metacognitive context shadow traces for evaluator-visible candidate lessons,
   with controlled injection mode for A/B tests;
 - backend-owned memory surface taxonomy for derived cognitive retrieval
   facets; Scarlet writes canonical memory fields, not surface internals;
 - model-controlled, unbounded API Mind cognitive loop through the single
   `mind_shell(command, intent)` interface;
+- executable command-registry/help conformance, truthful collection
+  pagination, explicit targeted misses, and lifecycle-tested session, focus,
+  volition, affect, mode, and metacognition families;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
 - semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede
@@ -140,22 +143,23 @@ RETRIEVAL_SHADOW_RERANK_ENABLED=false
 RETRIEVAL_SHADOW_RERANK_MODEL=nvidia/llama-nemotron-rerank-vl-1b-v2:free
 ```
 
-The OpenRouter path writes diagnostic `retrieval_shadow` payloads only while
-hybrid mode is off. Surface embeddings are cached in SQLite by content hash;
-query embeddings are generated per search. Rerank is an optional second-stage
-comparison over dense candidates, not a replacement for embedding retrieval.
+The OpenRouter path writes diagnostic `retrieval_shadow` payloads. Surface
+embeddings are cached in SQLite by content hash; query embeddings are generated
+per search. Dense results provide one recall route and do not decide final
+relevance.
 
-To test real hybrid ranking over grouped dense/rerank evidence, enable it
-explicitly:
+To make one memory-level reranker the sole final relevance authority, enable
+active mode explicitly:
 
 ```txt
 RETRIEVAL_HYBRID_MODE=active
 RETRIEVAL_HYBRID_MIN_DENSE_SCORE=0.38
-RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.55
+RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.01
 ```
 
-Use `RETRIEVAL_HYBRID_MODE=shadow` when you want hybrid scores in traces
-without changing selected memories.
+Use `RETRIEVAL_HYBRID_MODE=shadow` to record final-rerank decisions without
+changing selected memories. The setting name is retained for compatibility;
+V1.31.0 does not perform weighted hybrid score fusion.
 
 If the same session receives another user turn before the timer expires, the
 older pending job is superseded. Jobs for other sessions continue independently.

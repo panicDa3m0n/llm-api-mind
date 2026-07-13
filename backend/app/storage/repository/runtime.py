@@ -129,6 +129,7 @@ def list_affect_states(
     status: str | None = None,
     emotion: str | None = None,
     mode: str | None = None,
+    active_only: bool = False,
     limit: int = 20,
     offset: int = 0,
 ) -> list[AffectState]:
@@ -145,6 +146,8 @@ def list_affect_states(
         statement = statement.where(AffectState.emotion == emotion)
     if mode is not None:
         statement = statement.where(AffectState.mode == mode)
+    if active_only:
+        statement = statement.where(AffectState.status.in_(ACTIVE_AFFECT_STATUSES))
     statement = (
         statement.order_by(AffectState.created_at.desc(), AffectState.id.desc())
         .offset(offset)

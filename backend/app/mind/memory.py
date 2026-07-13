@@ -27,10 +27,12 @@ from app.mind.graph_retrieval import (
     build_memory_graph_expansion,
     graph_signals_by_memory,
 )
-from app.mind.hybrid_retrieval import (
-    HybridBaseScore,
-    hybrid_rank_status_payload,
-    rank_hybrid_memories,
+from app.mind.relevance_rerank import (
+    FINAL_RERANK_POLICY,
+    MemoryRerankEntry,
+    build_memory_recall_pool,
+    rerank_status_payload,
+    run_memory_relevance_rerank,
 )
 from app.mind.search import (
     entity_token_groups,
@@ -691,12 +693,27 @@ def handle_memory_search(
             limit=max(request.top_k, 20),
         )
         graph_signals = graph_signals_by_memory(graph_expansion)
+        rerank_candidate_limit = int(
+            getattr(
+                context.settings,
+                "retrieval_shadow_rerank_candidate_limit",
+                20,
+            )
+            or 20
+        )
+        final_rerank_enabled = (
+            str(
+                getattr(context.settings, "retrieval_hybrid_mode", "off") or "off"
+            ).lower()
+            in {"shadow", "active"}
+        )
         retrieval_shadow = run_memory_surface_shadow_search(
             db,
             query=retrieval_query,
             candidate_memory_ids=[memory.id for memory in candidates],
             settings=context.settings,
-            limit=request.top_k,
+            limit=rerank_candidate_limit,
+            include_surface_rerank=not final_rerank_enabled,
         )
         scored = _score_memories(
             candidates,
@@ -705,22 +722,44 @@ def handle_memory_search(
             sparse_matches=sparse_matches,
             graph_signals=graph_signals,
         )
-        hybrid_plan = rank_hybrid_memories(
+        recall_pool = build_memory_recall_pool(
             candidates,
-            base_scores=_hybrid_base_scores_from_memory_search(
-                scored,
-                sparse_matches,
-                graph_signals=graph_signals,
-            ),
-            retrieval_shadow=retrieval_shadow,
-            settings=context.settings,
-            limit=max(request.top_k, 20),
+            facts_by_memory=facts_by_memory,
+            routes={
+                "sparse": list(sparse_matches),
+                "dense": [
+                    str(item["target_id"])
+                    for item in retrieval_shadow.get("grouped_results", [])
+                    if item.get("active_rank_eligible") is True
+                    and isinstance(item.get("target_id"), str)
+                ],
+                "graph": list(graph_signals),
+                "lexical": [memory.id for memory, _, _ in scored],
+            },
+            limit=rerank_candidate_limit,
         )
-        if hybrid_plan.active:
-            scored = _memory_scores_from_hybrid(hybrid_plan.entries, scored)
+        rerank_plan = run_memory_relevance_rerank(
+            query=retrieval_query,
+            candidates=recall_pool,
+            settings=context.settings,
+            selected_limit=request.top_k,
+        )
+        retrieval_stages = (
+            [
+                "fts5_sparse_v1",
+                "dense_memory_surfaces_v1",
+                "networkx_graph_recall_v1",
+                "round_robin_recall_pool_v1",
+                FINAL_RERANK_POLICY,
+            ]
+            if rerank_plan.status.get("mode") != "off"
+            else ["fts5_sparse_v1", "lexical_fallback_v1"]
+        )
+        if rerank_plan.active:
+            scored = _memory_scores_from_final_rerank(rerank_plan.entries)
         hybrid_signals_by_id = {
-            entry.memory_id: entry.signals
-            for entry in hybrid_plan.entries
+            entry.memory_id: _final_rerank_signals(entry)
+            for entry in rerank_plan.entries
         }
         graph_signal_payload_by_id = {
             memory_id: {
@@ -751,11 +790,12 @@ def handle_memory_search(
                 "fact_candidate_count": sum(
                     len(facts) for facts in facts_by_memory.values()
                 ),
-                "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+                "retrieval_stages": retrieval_stages,
                 "retrieval_readiness": retrieval_stage_manifest(),
                 "retrieval_graph": graph_expansion,
                 "retrieval_shadow": retrieval_shadow,
-                "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
+                "retrieval_rerank": rerank_status_payload(rerank_plan),
+                "retrieval_hybrid": rerank_status_payload(rerank_plan),
             },
         )
         trace_id = trace.id
@@ -794,11 +834,12 @@ def handle_memory_search(
             "query": request.query,
             "retrieval_query": retrieval_query,
             "time": time_filter_payload(request.time, resolved_time),
-            "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+            "retrieval_stages": retrieval_stages,
             "retrieval_readiness": retrieval_stage_manifest(),
             "retrieval_graph": graph_expansion,
             "retrieval_shadow": retrieval_shadow,
-            "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
+            "retrieval_rerank": rerank_status_payload(rerank_plan),
+            "retrieval_hybrid": rerank_status_payload(rerank_plan),
             "memories": memories,
             "count": len(memories),
             "trace_ids": [trace_id],
@@ -2121,69 +2162,33 @@ def _score_memories(
     )
 
 
-def _hybrid_base_scores_from_memory_search(
-    scored: list[tuple[MemoryRecord, float, str]],
-    sparse_matches: dict[str, Any],
-    *,
-    graph_signals: dict[str, Any],
-) -> dict[str, HybridBaseScore]:
-    return {
-        memory.id: HybridBaseScore(
-            score=score,
-            reason=reason,
-            sparse_score=(
-                sparse_matches[memory.id].score
-                if memory.id in sparse_matches
-                else 0.0
-            ),
-            strong_signal=_memory_search_strong_signal(
-                memory=memory,
-                reason=reason,
-                sparse_match=sparse_matches.get(memory.id),
-                graph_signal=graph_signals.get(memory.id),
-            ),
-        )
-        for memory, score, reason in scored
-    }
-
-
-def _memory_search_strong_signal(
-    *,
-    memory: MemoryRecord,
-    reason: str,
-    sparse_match: Any | None,
-    graph_signal: Any | None,
-) -> bool:
-    _ = memory
-    graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
-    if sparse_match is not None:
-        return True
-    if graph_score >= 2.0:
-        return True
-    if "query entity support" in reason or "query substring match" in reason:
-        return True
-    if "tag overlap:" in reason:
-        return True
-    token_marker = "token overlap:"
-    if token_marker in reason:
-        token_part = reason.split(token_marker, 1)[1].split(";", 1)[0]
-        tokens = [token.strip() for token in token_part.split(",") if token.strip()]
-        return len(tokens) >= 2
-    return False
-
-
-def _memory_scores_from_hybrid(
-    entries: list[Any],
-    scored: list[tuple[MemoryRecord, float, str]],
+def _memory_scores_from_final_rerank(
+    entries: list[MemoryRerankEntry],
 ) -> list[tuple[MemoryRecord, float, str]]:
-    base_reason_by_id = {memory.id: reason for memory, _, reason in scored}
-    results: list[tuple[MemoryRecord, float, str]] = []
-    for entry in entries:
-        reason = entry.why_relevant
-        if entry.memory_id in base_reason_by_id and base_reason_by_id[entry.memory_id]:
-            reason = entry.why_relevant
-        results.append((entry.memory, entry.score, reason))
-    return results
+    return [
+        (
+            entry.memory,
+            entry.score,
+            "Final memory-level reranker accepted this candidate.",
+        )
+        for entry in entries
+        if entry.accepted
+    ]
+
+
+def _final_rerank_signals(entry: MemoryRerankEntry) -> dict[str, Any]:
+    return {
+        "ranking_policy": FINAL_RERANK_POLICY,
+        "mode": "active",
+        "final_arbiter": True,
+        "rerank_score": round(entry.score, 6),
+        "rerank_rank": entry.rank,
+        "rerank_signal": entry.accepted,
+        "rerank_evaluated": entry.evaluated,
+        "dense_signal": "dense" in entry.routes,
+        "recall_routes": list(entry.routes),
+        "route_ranks": entry.route_ranks,
+    }
 
 
 def _expanded_retrieval_query(query: str, *, memory_types: list[str]) -> str:

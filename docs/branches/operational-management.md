@@ -1,8 +1,8 @@
 # Branch: Gestione Operativa
 
 Last updated: 2026-07-13
-System version assessed: V1.30.0
-Status: first focus organ standalone surface closed
+System version assessed: V1.32.0
+Status: focus shell lifecycle and error contract verified
 
 ## Filosofia del ramo
 
@@ -26,6 +26,9 @@ separare task attivi da idee future, e mantenere il filo operativo.
   runtime block e timeline di transizione.
 - V1.30.0 aggiunge la modalita agentica come postura operativa separata dal
   focus: `interactive` e una condizione di turno, non l'oggetto attentivo.
+- V1.32.0 corregge `focus hold` affinche persista davvero `status=held`, rende
+  esplicita la paginazione di list/search/timeline e restituisce
+  `focus.not_found` per letture mirate inesistenti.
 
 ## Stato attuale
 
@@ -36,7 +39,7 @@ permette set/update/hold/shift/defer/resolve/impossible/read/list/search e
 V1.21.0 aggiunge `timeline` per ispezionare gli spostamenti attentivi.
 Goal, task e open loops restano ancora teorici/progettuali.
 
-Sistema valutato: V1.30.0.
+Sistema valutato: V1.32.0.
 
 ## Sviluppi precedenti
 
@@ -48,13 +51,16 @@ Sistema valutato: V1.30.0.
 - V1.18.0 focus records/transitions, `/mind/focus`, `focus_context`.
 - V1.21.0 `focus.timeline` per chiudere l'ispezione storica standalone.
 
-## Verifica V1.30.0
+## Verifica V1.32.0
 
 - Implementazione: focus persistente e tracciato; maintenance jobs gestiscono
   lavoro backend, non task di Scarlet.
-- Test deterministici: coprono lifecycle focus, transizioni e timeline.
-- Evidenza Scarlet: standalone presente, ma nessuna prova longitudinale di
-  mantenimento autonomo del focus.
+- Test deterministici: coprono lifecycle focus, stato held persistito,
+  transizioni, timeline paginata, ricerca e not-found mirato.
+- Evidenza Scarlet: in un DB isolato MiniMax M3 ha letto l'assenza di focus,
+  consultato `help focus`, impostato un focus coerente col vincolo umano e
+  recuperato correttamente da un successivo comando memoria malformato. Resta
+  assente una prova longitudinale di mantenimento autonomo del focus.
 - Integrazione runtime: `organ_focus_mode=off` di default; goal/task/open
   loop restano non implementati.
 - Modalita: registry e shell `mode` sono implementati, ma non sostituiscono

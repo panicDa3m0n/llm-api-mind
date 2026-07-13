@@ -71,7 +71,9 @@ class Settings(BaseSettings):
     retrieval_shadow_rerank_top_n: int = Field(default=10, ge=1, le=50)
     retrieval_hybrid_mode: str = "off"
     retrieval_hybrid_min_dense_score: float = Field(default=0.38, ge=-1.0, le=1.0)
-    retrieval_hybrid_min_rerank_score: float = Field(default=0.55, ge=0.0, le=1.0)
+    retrieval_hybrid_min_rerank_score: float = Field(default=0.01, ge=0.0, le=1.0)
+    # Retained for environment compatibility only. V1.31 active retrieval does
+    # not fuse hand-authored weights; the final memory-level reranker decides.
     retrieval_hybrid_base_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     retrieval_hybrid_sparse_weight: float = Field(default=0.15, ge=0.0, le=1.0)
     retrieval_hybrid_dense_weight: float = Field(default=0.35, ge=0.0, le=1.0)

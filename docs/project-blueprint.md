@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.30.0
+Version: 1.32.0
 Status: active experimental runtime
 Last updated: 2026-07-13
 Primary human: project owner, evaluator, direction, validation  
@@ -591,9 +591,11 @@ Retrieval should become multi-stage over time:
 
 1. Lexical search with SQLite FTS5/BM25 for exact names and rare terms.
 2. Dense embeddings for paraphrases and conceptual similarity.
-3. Rank fusion, initially Reciprocal Rank Fusion, to combine sparse and dense rankings.
-4. Reranking to evaluate whether a candidate helps this turn.
-5. Relevance guard to separate `selected`, `near_miss`, and `excluded`.
+3. Independent sparse, dense, graph, and lexical recall routes whose candidates
+   are deduplicated and interleaved without combining incomparable scores.
+4. One memory-level reranker over canonical content and active facts to decide
+   whether a candidate helps this turn and to establish final order.
+5. Reranker-backed classification into `selected`, `near_miss`, and `excluded`.
 6. Conflict detection when active memories describe the same subject inconsistently.
 
 The first implementation slice did not require embeddings. V1.29.0 now keeps
@@ -603,6 +605,11 @@ session/memory hooks; traces, UI, maintenance, ranking, KG, near misses, and
 conflict diagnostics retain the richer evidence. Local MiniMax and external
 GPT must consume the same projection rather than provider-specific context
 semantics.
+
+V1.31.0 implements stages 1 through 5. In active mode the reranker is the sole
+final relevance authority; route-local scores are candidate-recall evidence
+only. Active reranker failure returns no selected memories instead of silently
+falling back to deterministic weighted relevance.
 
 Prompt contract:
 

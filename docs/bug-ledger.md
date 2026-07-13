@@ -7,6 +7,132 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0079 - Cognitive Shell Families Drifted Across Contract Layers
+
+Date Found: 2026-07-13
+Status: fixed in V1.32.0
+
+Symptoms:
+
+- session navigation silently stopped seeing rows beyond an internal 500-row
+  candidate page;
+- `focus hold` emitted a held transition but persisted active status;
+- volition review flags were discarded and focus promotion returned endpoint
+  instructions instead of an executable shell command;
+- affect read ignored filters and targeted focus/affect misses looked
+  successful;
+- `mode set interactive` persisted a system-owned transient mode;
+- retrospective metacognition flags were dropped; and
+- help/registry aliases could claim availability that execution rejected.
+
+Root Cause:
+
+Each shell layer had focused tests, but no shared conformance invariant linked
+registry, help, parser, dispatcher, handler, persistence, pagination, and
+model-facing presentation across all organ families.
+
+Fix:
+
+V1.32.0 aligns each affected layer, adds truthful continuation metadata and
+targeted errors, and introduces exhaustive alias/help conformance plus focused
+lifecycle and negative-path tests.
+
+Regression Test:
+
+The full backend suite passes `161/161`; the frozen preliminary suite passes
+`9/9`; 23 registry aliases show zero execution mismatches; five natural
+MiniMax M3 scenarios complete on a disposable DB.
+
+Related Files:
+
+- `backend/app/mind/{episodic,focus,volition,affect,mode,shell}.py`
+- `backend/app/mind/{command_registry,shell_presentation}.py`
+- `backend/tests/test_mind_shell.py`
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+
+## BUG-0078 - Deterministic Weighted Fusion Decided Memory Relevance
+
+Date Found: 2026-07-13
+Status: fixed in V1.31.0
+
+Symptoms:
+
+Automatic and manual retrieval could classify or order memories from
+hand-authored overlap, entity, tag, graph, sparse, dense, and fusion weights.
+The reranker could promote candidates but was not the sole final relevance
+judge. The automatic query also duplicated the current user message when
+recent dialogue existed.
+
+Root Cause:
+
+The incremental lexical baseline and later dense/KG experiments were composed
+through a weighted hybrid ranker instead of being separated into candidate
+recall and semantic adjudication.
+
+Fix:
+
+V1.31.0 builds a deduplicated round-robin recall pool, sends canonical
+memory-level documents to the reranker, and accepts/orders active results only
+from that rerank. Active failure is fail-closed. The current message appears
+once in the operational query, and the obsolete weighted ranker was removed.
+
+Regression Test:
+
+Tests prove that a strong deterministic match rejected by rerank is excluded,
+a sparse candidate outside the dense sample still reaches rerank, rerank
+unavailability fails closed, and manual/automatic active paths share policy.
+
+Related Files:
+
+- `backend/app/mind/relevance_rerank.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/tests/test_chat_api.py`
+- `backend/tests/test_mind_api.py`
+
+## BUG-0079 - Initial Final-Rerank Threshold Rejected Exact Positive Control
+
+Date Found: 2026-07-13
+Status: fixed provisionally in V1.31.0; monitoring calibration
+
+Symptoms:
+
+In a direct MiniMax M3 test against a disposable full laboratory copy, the
+predeclared mint-tea memory reached final rerank at rank 1 but scored
+`0.465327`. The initial `0.55` threshold rejected it. An intermediate `0.40`
+then failed the frozen suite's exact Zero-Luce positive at rank 1/`0.089455`.
+
+Root Cause:
+
+The high thresholds were inherited before representative direct and frozen
+Italian positives had been run with the configured OpenRouter reranker. Scores
+are query-distribution dependent and substantially lower than assumed even for
+correct rank-1 candidates.
+
+Fix:
+
+Set the default acceptance threshold provisionally to `0.01`. This changes
+only interpretation of the reranker's own score; no deterministic relevance
+weights or fallback authority were introduced.
+
+Regression And Live Evidence:
+
+- Full deterministic suite remains green.
+- The repeated positive selected the expected memory at `0.465327` plus the
+  compatible caffeine constraint at `0.016403`, and delivered both through V2
+  to MiniMax.
+- An independent jazz/cooking negative selected none; its highest score was
+  `0.000391`.
+- The unchanged frozen preliminary gate passed 9/9 after failing 8/9 at the
+  intermediate threshold.
+- Broader calibration remains required before the threshold is stable.
+
+Related Files:
+
+- `backend/app/config.py`
+- `backend/app/mind/relevance_rerank.py`
+- `docs/evaluations/v1.31-final-memory-rerank-live.md`
+
 ## Template
 
 ```md

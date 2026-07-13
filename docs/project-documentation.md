@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-13
-App baseline: V1.30.0
+App baseline: V1.32.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -67,6 +67,9 @@ discussed before a new fix is attempted.
   validation contract for direct Scarlet experiments.
 - `docs/evaluations/v1.30-agent-mode-live.md`: exact first application of that
   contract to agent-mode selection, state persistence, and overclaim limits.
+- `docs/evaluations/v1.32-shell-organ-audit.md`: command-family conformance,
+  negative paths, lifecycle evidence, and five disposable MiniMax M3 organ
+  scenarios.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/database-topology.md`: canonical ownership map and deployment/test

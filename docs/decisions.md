@@ -7,6 +7,94 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0082 - The Shell Registry Is An Executable Organ Contract
+
+Date: 2026-07-13
+Status: accepted and implemented in V1.32.0
+
+Context:
+
+The model-facing shell had grown through several organs. Help, registry
+validation, parser aliases, endpoint handlers, persistence, and model-facing
+suggestions could each be locally correct while disagreeing as a whole. This
+produced false availability, discarded flags, hidden pagination limits, and
+endpoint-shaped next actions that Scarlet could not execute as shell commands.
+
+Decision:
+
+- treat the command registry and help catalog as executable contract;
+- require alias parity and validate every published command in tests;
+- expose truthful pagination and explicit targeted not-found errors;
+- keep internal endpoint payloads available for backend use, but translate
+  model-facing cross-organ suggestions into executable shell commands;
+- verify each organ at parser, handler, storage, negative-path, whole-system,
+  and representative live-model layers.
+
+Consequences:
+
+Shell capability claims now have mechanical evidence instead of documentation
+alone. Internal `/mind/*` endpoints remain deterministic implementation
+surfaces; this decision does not expose them as a second model tool or imply
+autonomous use of every organ.
+
+Links:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/app/mind/shell_presentation.py`
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+
+## ADR-0081 - Reranker Is The Final Memory Relevance Arbiter
+
+Date: 2026-07-13
+Status: accepted and implemented in V1.31.0
+
+Context:
+
+The active memory pipeline combined hand-authored lexical, entity, tag, graph,
+sparse, dense, and rerank coefficients. Those values were useful for finding
+candidates and debugging, but they also decided which memories became
+`selected`. The memory backlog had already established the intended principle:
+embedding finds direct candidates, KG finds nearby context, temporal filters
+constrain the field, and rerank decides what matters now.
+
+Decision:
+
+- sparse FTS, dense surfaces, NetworkX expansion, and lexical/entity matching
+  are recall routes only;
+- candidates are interleaved round-robin and deduplicated by canonical memory
+  id, without weighted rank fusion;
+- the final reranker evaluates memory-level documents containing canonical
+  content and active facts;
+- in `retrieval_hybrid_mode=active`, only reranker-accepted candidates may
+  become selected or be returned by manual search;
+- stored confidence, salience, dense score, graph score, and hand-authored
+  coefficients do not control final ordering;
+- active mode fails closed when reranking is unavailable instead of silently
+  reverting to deterministic relevance;
+- `off` remains an explicit legacy baseline and `shadow` observational;
+- `retrieval_hybrid` remains temporarily as a compatibility trace key, but it
+  now reports `legacy_weighted_fusion=false`.
+- the first live-calibrated acceptance threshold is provisionally `0.01`;
+  threshold calibration uses declared positive/negative reranker evidence and
+  remains distinct from prohibited weighted score fusion.
+
+Consequences:
+
+Recall engines can remain broad and independently testable without becoming
+semantic judges. Active retrieval now depends on the external reranker, so
+availability, latency, candidate coverage, and the calibrated acceptance
+threshold require direct monitoring. Failure produces less automatic relevant
+context rather than unsupported context.
+
+Links:
+
+- `backend/app/mind/relevance_rerank.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `docs/branches/memory.md`
+- `docs/evaluations/v1.31-final-memory-rerank-live.md`
+
 ## ADR-0080 - Agent Modes Use One Active Tag And Multi-Tag Capabilities
 
 Date: 2026-07-13

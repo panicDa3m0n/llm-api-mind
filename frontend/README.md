@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-App baseline: V1.30.0.
+App baseline: V1.32.0.
 
 Current scope:
 

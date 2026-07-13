@@ -9,9 +9,14 @@ evolve without changing the command grammar or handlers.
 from __future__ import annotations
 
 import re
+import shlex
 from typing import Any
 
-from app.mind.command_registry import COMMAND_REGISTRY_VERSION, validate_shell_command
+from app.mind.command_registry import (
+    COMMAND_REGISTRY_VERSION,
+    canonical_command_namespace,
+    validate_shell_command,
+)
 from app.mind.contracts import MindAPIContext
 from app.mind.dispatcher import (
     MindAPIError,
@@ -73,6 +78,17 @@ def help_response(parsed: ParsedCommand) -> MindAPIResponse:
     namespace = parsed.action
     if parsed.namespace in {"schema", "capabilities"}:
         namespace = None
+    elif namespace is not None:
+        canonical_namespace = canonical_command_namespace(namespace)
+        if canonical_namespace is None:
+            return shell_error(
+                code="shell.help_unknown_namespace",
+                message=f"No help namespace found for: {namespace}",
+                parsed=parsed,
+                namespace=None,
+                actions=["help"],
+            )
+        namespace = canonical_namespace
     commands = shell_command_catalog(namespace)
     if namespace and not commands:
         return shell_error(
@@ -168,13 +184,67 @@ def model_facing_data(target: str, data: Any) -> Any:
         return compact_memory_conflicts(data)
     if target == "session.open":
         return annotate_session_window(data)
+    if target == "volition.promote_to_focus_candidate":
+        return shell_volition_focus_candidate(data)
     return data
+
+
+def shell_volition_focus_candidate(data: dict[str, Any]) -> dict[str, Any]:
+    updated = dict(data)
+    raw_candidate = data.get("focus_candidate")
+    body = (
+        raw_candidate.get("body")
+        if isinstance(raw_candidate, dict) and isinstance(raw_candidate.get("body"), dict)
+        else {}
+    )
+    command = ["focus", "set", shlex.quote(str(body.get("object") or ""))]
+    for flag, key in (
+        ("--type", "type"),
+        ("--duration", "duration_policy"),
+        ("--reason", "reason"),
+    ):
+        value = body.get(key)
+        if value is not None:
+            command.extend([flag, shlex.quote(str(value))])
+    if body.get("intensity") is not None:
+        command.extend(["--intensity", str(body["intensity"])])
+    metadata = body.get("metadata") if isinstance(body.get("metadata"), dict) else {}
+    if metadata.get("source_intention_id") is not None:
+        command.extend(
+            [
+                "--source-intention-id",
+                shlex.quote(str(metadata["source_intention_id"])),
+            ]
+        )
+    if metadata.get("source_intention_status") is not None:
+        command.extend(
+            [
+                "--source-intention-status",
+                shlex.quote(str(metadata["source_intention_status"])),
+            ]
+        )
+    updated["focus_candidate"] = {
+        "command": " ".join(command),
+        "object": body.get("object"),
+        "type": body.get("type"),
+        "intensity": body.get("intensity"),
+        "duration_policy": body.get("duration_policy"),
+        "reason": body.get("reason"),
+        "source_intention_id": metadata.get("source_intention_id"),
+        "source_intention_status": metadata.get("source_intention_status"),
+    }
+    return updated
 
 
 def compact_memory_search(data: dict[str, Any]) -> dict[str, Any]:
     omitted = [
         key
-        for key in ("retrieval_shadow", "retrieval_graph", "retrieval_hybrid")
+        for key in (
+            "retrieval_shadow",
+            "retrieval_graph",
+            "retrieval_rerank",
+            "retrieval_hybrid",
+        )
         if key in data
     ]
     return {

@@ -79,15 +79,16 @@ def update_chat_session_provider_history(
 def list_chat_sessions(
     db: Session,
     *,
-    limit: int = 30,
+    limit: int | None = 30,
     offset: int = 0,
 ) -> list[ChatSession]:
     statement = (
         select(ChatSession)
         .order_by(ChatSession.updated_at.desc(), ChatSession.created_at.desc())
         .offset(offset)
-        .limit(limit)
     )
+    if limit is not None:
+        statement = statement.limit(limit)
     return list(db.exec(statement).all())
 
 

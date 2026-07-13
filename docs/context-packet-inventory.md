@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-13
-Code baseline reviewed: V1.30.0
+Code baseline reviewed: V1.32.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -17,6 +17,11 @@ this file. Sections describing `runtime-context-v1` remain as the audit of the
 rich internal/legacy source snapshot. Active model delivery now uses
 `scarlet-model-context-v2`; undiscussed families are carried under
 `preserved_context` until their own review.
+
+V1.31.0 does not change the compact memory-hook shape. It changes which
+memories qualify for `relevant`: multi-route recall remains internal, while a
+memory-level reranker alone accepts and orders the automatic relevant list in
+active mode.
 
 For every packet this inventory records its contents, why Scarlet receives it, its destination, and its delivery class.
 

@@ -14,10 +14,13 @@ from app.mind.graph_retrieval import (
     build_memory_graph_expansion,
     graph_signals_by_memory,
 )
-from app.mind.hybrid_retrieval import (
-    HybridBaseScore,
-    hybrid_rank_status_payload,
-    rank_hybrid_memories,
+from app.mind.relevance_rerank import (
+    FINAL_RERANK_POLICY,
+    MemoryRerankEntry,
+    MemoryRerankPlan,
+    build_memory_recall_pool,
+    rerank_status_payload,
+    run_memory_relevance_rerank,
 )
 from app.mind.metacognitive_context import (
     build_metacognitive_context_payload,
@@ -146,7 +149,10 @@ def build_memory_context(
         for memory in candidates
     }
     sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
-    sparse_query = " ".join(lexical_queries)
+    # The final query already contains the current message plus recent context.
+    # Joining every diagnostic variant would duplicate the current message and
+    # bias both sparse recall and the final reranker.
+    sparse_query = lexical_queries[-1]
     sparse_matches = sparse_results_by_source(
         search_documents(
             db,
@@ -163,12 +169,20 @@ def build_memory_context(
         limit=INTERNAL_CANDIDATE_LIMIT,
     )
     graph_signals = graph_signals_by_memory(graph_expansion)
+    rerank_candidate_limit = int(
+        getattr(settings, "retrieval_shadow_rerank_candidate_limit", 20) or 20
+    )
+    final_rerank_enabled = (
+        str(getattr(settings, "retrieval_hybrid_mode", "off") or "off").lower()
+        in {"shadow", "active"}
+    )
     retrieval_shadow = run_memory_surface_shadow_search(
         db,
         query=sparse_query,
         candidate_memory_ids=[memory.id for memory in candidates],
         settings=settings,
-        limit=MODEL_SELECTED_LIMIT,
+        limit=rerank_candidate_limit,
+        include_surface_rerank=not final_rerank_enabled,
     )
     ranked_base = _rank_candidates(
         candidates,
@@ -178,16 +192,42 @@ def build_memory_context(
         sparse_matches=sparse_matches,
         graph_signals=graph_signals,
     )
-    hybrid_plan = rank_hybrid_memories(
+    recall_pool = build_memory_recall_pool(
         candidates,
-        base_scores=_hybrid_base_scores_from_context(ranked_base),
-        retrieval_shadow=retrieval_shadow,
-        settings=settings,
-        limit=INTERNAL_CANDIDATE_LIMIT,
+        facts_by_memory=facts_by_memory,
+        routes={
+            "sparse": list(sparse_matches),
+            "dense": [
+                str(item["target_id"])
+                for item in retrieval_shadow.get("grouped_results", [])
+                if item.get("active_rank_eligible") is True
+                and isinstance(item.get("target_id"), str)
+            ],
+            "graph": list(graph_signals),
+            "lexical": [item.memory.id for item in ranked_base],
+        },
+        limit=rerank_candidate_limit,
     )
-    if hybrid_plan.active:
-        ranked = _context_candidates_from_hybrid(
-            hybrid_plan.entries,
+    rerank_plan = run_memory_relevance_rerank(
+        query=sparse_query,
+        candidates=recall_pool,
+        settings=settings,
+        selected_limit=MODEL_SELECTED_LIMIT,
+    )
+    retrieval_stages = (
+        [
+            "fts5_sparse_v1",
+            "dense_memory_surfaces_v1",
+            "networkx_graph_recall_v1",
+            "round_robin_recall_pool_v1",
+            FINAL_RERANK_POLICY,
+        ]
+        if rerank_plan.status.get("mode") != "off"
+        else ["fts5_sparse_v1", "lexical_guard_v1"]
+    )
+    if rerank_plan.active:
+        ranked = _context_candidates_from_final_rerank(
+            rerank_plan.entries,
             base_ranked=ranked_base,
         )
     else:
@@ -227,17 +267,22 @@ def build_memory_context(
             "lexical_queries": lexical_queries,
             "semantic_queries": [],
             "sparse_query": _truncate(sparse_query, 1500),
-            "retrieval_stages": ["fts5_sparse_v1", "lexical_guard_v1"],
+            "retrieval_stages": retrieval_stages,
             "retrieval_readiness": retrieval_stage_manifest(),
             "retrieval_graph": graph_expansion,
             "retrieval_shadow": retrieval_shadow,
-            "retrieval_hybrid": hybrid_rank_status_payload(hybrid_plan),
+            "retrieval_rerank": rerank_status_payload(rerank_plan),
+            # Compatibility key for evaluator clients written before V1.31.0.
+            "retrieval_hybrid": rerank_status_payload(rerank_plan),
         },
         "selected": selected,
         "near_miss": near_miss,
         "excluded": excluded,
         "conflicts": conflicts,
-        "negative_evidence": "none" if selected else "no_relevant_memory_selected",
+        "negative_evidence": _memory_negative_evidence(
+            selected=selected,
+            rerank_plan=rerank_plan,
+        ),
         "candidate_count": len(candidates),
         "ranked_candidate_count": len(ranked),
         "selected_count": len(selected),
@@ -1368,6 +1413,15 @@ def _classify_candidates(
     )
 
     for item in ranked:
+        final_signals = item.hybrid_signals or {}
+        if final_signals.get("final_arbiter") is True:
+            if final_signals.get("rerank_signal") is True:
+                selected.append(item)
+            elif final_signals.get("rerank_evaluated") is True:
+                near_miss.append(item)
+            else:
+                excluded.append(item)
+            continue
         if (
             has_user_associative_context
             and item.graph_score <= 0
@@ -1393,22 +1447,8 @@ def _has_confirmed_hybrid_signal(item: MemoryCandidateScore) -> bool:
     return bool(signals.get("dense_signal") or signals.get("rerank_signal"))
 
 
-def _hybrid_base_scores_from_context(
-    ranked: list[MemoryCandidateScore],
-) -> dict[str, HybridBaseScore]:
-    return {
-        item.memory.id: HybridBaseScore(
-            score=item.score,
-            reason=item.why_relevant,
-            sparse_score=item.sparse_score,
-            strong_signal=item.strong_signal,
-        )
-        for item in ranked
-    }
-
-
-def _context_candidates_from_hybrid(
-    entries: list[Any],
+def _context_candidates_from_final_rerank(
+    entries: list[MemoryRerankEntry],
     *,
     base_ranked: list[MemoryCandidateScore],
 ) -> list[MemoryCandidateScore]:
@@ -1416,12 +1456,29 @@ def _context_candidates_from_hybrid(
     candidates: list[MemoryCandidateScore] = []
     for entry in entries:
         base = base_by_id.get(entry.memory_id)
+        signals = {
+            "ranking_policy": FINAL_RERANK_POLICY,
+            "mode": "active",
+            "final_arbiter": True,
+            "rerank_score": round(entry.score, 6),
+            "rerank_rank": entry.rank,
+            "rerank_signal": entry.accepted,
+            "rerank_evaluated": entry.evaluated,
+            "dense_signal": "dense" in entry.routes,
+            "recall_routes": list(entry.routes),
+            "route_ranks": entry.route_ranks,
+        }
+        reason = (
+            "Final memory-level reranker accepted this candidate."
+            if entry.accepted
+            else "Final memory-level reranker did not accept this candidate."
+        )
         if base is not None:
             candidates.append(
                 MemoryCandidateScore(
                     memory=entry.memory,
                     score=entry.score,
-                    why_relevant=entry.why_relevant,
+                    why_relevant=reason,
                     sparse_score=base.sparse_score,
                     current_overlap=base.current_overlap,
                     context_overlap=base.context_overlap,
@@ -1429,9 +1486,9 @@ def _context_candidates_from_hybrid(
                     tag_overlap=base.tag_overlap,
                     graph_score=base.graph_score,
                     graph_signal=base.graph_signal,
-                    strong_signal=entry.strong_signal,
+                    strong_signal=entry.accepted,
                     hybrid_score=entry.score,
-                    hybrid_signals=entry.signals,
+                    hybrid_signals=signals,
                 )
             )
             continue
@@ -1439,20 +1496,32 @@ def _context_candidates_from_hybrid(
             MemoryCandidateScore(
                 memory=entry.memory,
                 score=entry.score,
-                why_relevant=entry.why_relevant,
-                sparse_score=float(entry.signals.get("sparse_score", 0.0)),
+                why_relevant=reason,
+                sparse_score=0.0,
                 current_overlap=[],
                 context_overlap=[],
                 generic_overlap=[],
                 tag_overlap=[],
                 graph_score=0.0,
                 graph_signal=None,
-                strong_signal=entry.strong_signal,
+                strong_signal=entry.accepted,
                 hybrid_score=entry.score,
-                hybrid_signals=entry.signals,
+                hybrid_signals=signals,
             )
         )
     return candidates
+
+
+def _memory_negative_evidence(
+    *,
+    selected: list[dict[str, Any]],
+    rerank_plan: MemoryRerankPlan,
+) -> str:
+    if selected:
+        return "none"
+    if rerank_plan.active and not rerank_plan.completed:
+        return "final_rerank_unavailable"
+    return "no_relevant_memory_selected"
 
 
 def _candidate_payload(

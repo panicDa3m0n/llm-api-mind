@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-13
-App baseline: V1.30.0
+App baseline: V1.32.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -85,7 +85,7 @@ Implemented and verified:
 
 Verification baseline on 2026-07-13:
 
-- backend: 146 tests passed;
+- backend: 161 tests passed;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -93,6 +93,14 @@ Verification baseline on 2026-07-13:
 - V1.30.0 disposable MiniMax mode probe: explicit `mode set scouting`, persisted
   resumable posture, interactive override, and no-autonomous-runtime boundary
   all observed after iterative correction.
+- V1.32.0 shell-organ audit: all 23 registered family/namespace aliases agree
+  across registry and execution; session, focus, volition, affect, mode,
+  metacognition, help, and recovery contracts passed focused lifecycle and
+  negative-path tests.
+- V1.32.0 disposable MiniMax M3 run: five natural scenarios completed across
+  episodic recall, affect, focus, volition, and metacognition. Scarlet used 20
+  shell calls, recovered from the one malformed memory-write command, and did
+  not mutate production data.
 
 ### 3.2 Dynamic Context
 
@@ -142,9 +150,12 @@ Implemented command families:
 | metacognition | step | One LLM-backed route, not an automatic control loop. |
 
 Shell parsing, registry validation, dispatcher translation, model-facing
-presentation, and endpoint handlers are separate modules. Tests cover parity
-and invalid command recovery. Internal facts backfill and maintenance routes
-are intentionally absent from normal shell help.
+presentation, and endpoint handlers are separate modules. V1.32.0 makes the
+registry/help/parser contract executable: every published command validates,
+all aliases resolve consistently, targeted reads return explicit not-found
+errors, and paginated collections expose truthful continuation state. Internal
+facts backfill and maintenance routes are intentionally absent from normal
+shell help.
 
 ### 3.4 Memory And Retrieval
 
@@ -155,8 +166,8 @@ Implemented:
 - episodic summaries and exact transcript navigation;
 - automatic retrieval plus manual shell retrieval;
 - FTS5/BM25 sparse search, NetworkX associative expansion, derived memory
-  surfaces, embedding cache, OpenRouter shadow/rerank, and configurable hybrid
-  ranking;
+  surfaces, embedding cache, and OpenRouter final memory-level rerank over a
+  deduplicated multi-route recall pool;
 - query-time relevance separated from legacy stored confidence/salience;
 - memory activity ledger for cognitive recency;
 - compact automatic hooks and compact shell result profiles;
@@ -172,17 +183,19 @@ Current limits:
 - single-user scope is operational convention, not authenticated ownership;
 - autonomous write behavior and immediate use of retrieved preferences remain
   model-dependent;
-- hybrid thresholds and KG entity resolution need broader live calibration;
+- final-rerank threshold (provisionally `0.01` after two V1.31 positive
+  controls and one negative control), candidate coverage, provider
+  availability, and KG entity resolution need broader live calibration;
 - maintenance retry/resume and future Dream review remain incomplete.
 
 ### 3.5 Organs
 
 | Organ | Code state | Default/runtime state | Evidence | Current limit |
 |---|---|---|---|---|
-| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | deterministic tests and direct standalone verification | not connected to goal/task lifecycle; autonomous upkeep unvalidated |
-| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | deterministic tests and standalone verification | register only; no autonomous cycle or execution |
-| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | config default `off`; shadow/model modes available | deterministic tests and standalone verification | primitive lexical/event prototypes; long-run behavioral calibration missing |
-| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | deterministic contract tests; mixed live behavior | recommendations can be ignored; no guaranteed continuation or final gate |
+| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus direct V1.32 set/read/recovery use | not connected to goal/task lifecycle; autonomous upkeep unvalidated |
+| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle test plus direct scheduled V1.32 creation | register only; no autonomous cycle or execution |
+| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | config default `off`; shadow/model modes available | filter/not-found/pagination tests plus direct V1.32 read | primitive lexical/event prototypes; long-run behavioral calibration missing |
+| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding tests and direct V1.32 critic use | recommendations can be ignored; no guaranteed continuation or final gate |
 | Temporal experience | Registry/config reservation only | `off` | manifest tests only | no computation, persistence, shell, or behavioral experiment |
 | Dream/consolidation | Registry/config reservation plus maintenance terminology | `off` | no organ test beyond manifest | no dream cycle, continuity delta, or autonomous review organ |
 
@@ -278,8 +291,8 @@ Missing engineering surfaces:
    similarity alone.
 3. Improve historical provenance only where session/message evidence is
    defensible.
-4. Calibrate hybrid/KG retrieval and maintenance retries on frozen and live
-   cases.
+4. Calibrate final-rerank candidate coverage/thresholds, KG recall, and
+   maintenance retries on frozen and live cases.
 5. Design authenticated user ownership before multi-user data exists.
 
 ### P3 - Validate Existing Organs
