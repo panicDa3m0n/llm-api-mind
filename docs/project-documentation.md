@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-13
-App baseline: V1.29.1
+App baseline: V1.30.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -60,8 +60,13 @@ discussed before a new fix is attempted.
   implemented compact dynamic context contract, memory activity, source
   navigation, provider parity, repair procedures, and regression acceptance.
 - `docs/runtime-context-packs.md`: planning baseline for always-on context
-  spine, mode packs, organ/source classification, and future embodied runtime
-  routing.
+  spine, measured context budgets, agent-mode tags, organ/source
+  classification, compaction gates, and future embodied routing.
+- `docs/behavioral-validation-framework.md`: versioned starting-condition,
+  technical-evidence, cognitive-choice, answer-outcome, and longitudinal
+  validation contract for direct Scarlet experiments.
+- `docs/evaluations/v1.30-agent-mode-live.md`: exact first application of that
+  contract to agent-mode selection, state persistence, and overclaim limits.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/database-topology.md`: canonical ownership map and deployment/test

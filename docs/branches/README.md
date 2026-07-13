@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-13
-App baseline: V1.29.1
+App baseline: V1.30.0
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -34,15 +34,15 @@ turns. Every branch document must state:
 
 | Branch | Level | Implementation | Runtime/behavior | Next gate |
 |---|---:|---|---|---|
-| Communication | L4 | Prompt, stream semantics, public notes, dev/mobile rendering | active; good but not uniformly proportional | repeatable natural-behavior suite |
+| Communication | L4 | Prompt, stream semantics, public notes, dev/mobile rendering, behavioral contracts | active; good but not uniformly proportional | populate repeatable natural-behavior scenarios |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
-| Perception and context | L4 | shared V2 context and exact model trace | active; preserved families/history unbudgeted | field review and shadow router |
+| Perception and context | L4 | shared V2, accounting, exact trace, mode router | active routing; compaction shadow-only | long-session calibration and active degradation design |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
 | Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3 | one route, retrospective modes, shadow lessons | model-invoked; recommendations can be skipped | behavioral utility and continuation policy |
-| Operational management | L2/L3 | focus organ plus events/maintenance | focus disabled by default; no goal/task organ | approve and implement goal/task semantics |
-| Decision autonomy | L2/L3 | model-controlled shell and volition register | volition manual-only, no autonomous cycle | risk/permission policy and receipts |
+| Operational management | L2/L3 | focus organ, agent posture, events/maintenance | focus disabled; mode active; no goal/task organ | validate posture/focus separation longitudinally |
+| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register | volition manual-only, no autonomous cycle | risk/permission policy and receipts |
 | External operativity | L1 | supporting traces/events only | no external-world action suite | permission/safety/rollback architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |

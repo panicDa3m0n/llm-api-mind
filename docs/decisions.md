@@ -7,6 +7,88 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0080 - Agent Modes Use One Active Tag And Multi-Tag Capabilities
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+Future embodiment will add sensory and operational surfaces that cannot all
+compete for model attention continuously. Earlier planning described named
+intent packs such as chat or source-sensitive mode, while the owner clarified
+that modes should describe Scarlet's current agent posture. An organ may be
+useful in several postures, and maintenance/Dream are background processes
+rather than states of the main agent.
+
+Decision:
+
+- one agent mode tag is active at a time;
+- initial tags are `idle`, `interactive`, and `scouting`;
+- organs, contexts, and capabilities declare one or more matching tags;
+- a human-facing turn deterministically enforces `interactive`;
+- Scarlet can persist the `idle` or `scouting` posture to resume after the
+  exchange through `mode set ... --reason ...`;
+- persistence changes posture state only and never starts a background or
+  autonomous execution cycle;
+- V1 routing filters automatic context blocks and records its decision;
+- on-demand shell cognition remains available independently;
+- maintenance, summarization, and Dream are never agent modes.
+
+Consequences:
+
+New organs can join modes by registry metadata instead of rewriting mode
+definitions. Current conversation behavior is protected from premature hard
+gating. Scouting is a real registry/resumable state but not an implemented
+sensor runtime or autonomous loop.
+
+Links:
+
+- `backend/app/mind/agent_modes.py`
+- `backend/app/mind/mode.py`
+- `docs/runtime-context-packs.md`
+
+## ADR-0079 - Context Accounting Precedes Non-Destructive Compaction
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+MiniMax supports a one-million-token window, while API Mind intentionally uses
+at most 500k input tokens and should consider compaction around 400k. Theory
+suggested a roughly 100k chronological summary plus the latest eight complete
+turns, but real tool-heavy turns vary greatly and full chronology must remain
+navigable.
+
+Decision:
+
+- measure static policy, dynamic runtime, provider history, current message,
+  tool schema, and request structure separately;
+- distinguish estimated preflight tokens, first-provider-step usage, and
+  aggregate tool-loop usage;
+- configure 1M/500k/400k/100k/8 as validated policy values;
+- keep compaction in `shadow` until long varied direct tests exist;
+- preserve messages, traces, source transcripts, and canonical provider
+  history append-only;
+- treat any future compact history as a derived model-input view with coverage,
+  provenance, rollback, and an explicit degradation rule when eight turns do
+  not fit;
+- label GPT accounting partial because the external provider context is not
+  fully observable.
+
+Consequences:
+
+V1.30.0 can quantify the real problem without silently changing continuity.
+An eight-turn tail remains a desired shape, not a fixed guarantee. Active
+compaction requires a separate evidence-backed decision.
+
+Links:
+
+- `backend/app/runtime/context_accounting.py`
+- `docs/runtime-context-packs.md`
+- `docs/behavioral-validation-framework.md`
+
 ## ADR-0001 - Documentation As Project Memory
 
 Date: 2026-05-08  

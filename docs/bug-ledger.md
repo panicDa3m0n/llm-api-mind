@@ -24,18 +24,53 @@ Notes:
 
 ## Known Environment Notes
 
+## BUG-0077 - Bare Volition List Reached Handler With Invalid Action
+
+Date Found: 2026-07-13
+Status: fixed in V1.30.0
+
+Symptoms:
+
+During a disposable live MiniMax mode probe, Scarlet called `volition list`.
+The command registry classified it as implemented, but the shell forwarded
+`action=list`; the volition handler accepts `list_active` or `list_due` and
+returned a recoverable validation error.
+
+Root Cause:
+
+The command registry treated `list` as an implemented volition action while
+the parser translated only `volition list active|due`, not the bare form.
+
+Fix:
+
+Bare `volition list` now canonicalizes to `list_active`. The registry maps
+`list`/`list-active` to `list_active` and `list-due` to `list_due`.
+
+Regression Test:
+
+`test_mind_shell_focus_volition_and_affect_commands` verifies both
+`volition list active --limit 5` and bare `volition list` resolve to
+`volition.list_active`.
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/tests/test_mind_shell.py`
+
 ## BUG-0076 - Provider-Native History Has No Independent Context Budget
 
 Date Found: 2026-07-13
-Status: open / architectural risk
+Status: monitoring / measured but not actively compacted
 
 Symptoms:
 
 The V2 dynamic packet is compact, but native MiniMax turns still append the
 complete persisted provider-native history. Tool-heavy sessions can therefore
-grow far beyond the compact packet; one live session reached 54,826 JSON
-characters before a thinking-only provider response. No causal link is proven,
-but V2 alone does not bound total model input.
+grow far beyond the compact packet. Read-only V1.30 analysis found one local
+laboratory provider history at 1,228,332 JSON characters and recent-tail proxy
+costs ranging from about 63k tokens for eight turns to 323k for five tool-heavy
+turns. No causal link to thinking-only responses is proven.
 
 Root Cause:
 
@@ -45,22 +80,25 @@ summary degradation, or trace-only eviction policy.
 
 Fix:
 
-Pending design. Measure dynamic packet, provider history, shell results, and
-static prompt separately. Add a provider-history budget that preserves recent
-semantic/tool continuity and source navigation without silently discarding
-required evidence. Validate in shadow mode before activation.
+V1.30.0 adds per-channel `context.accounting.preflight`, provider-authoritative
+`context.accounting.observed`, validated 1M/500k/400k/100k/8-turn policy
+settings, and a non-destructive compaction plan. The full canonical chronology
+is unchanged. Active summary/window degradation remains intentionally pending
+long-session behavioral evidence and an approved rule for tails that do not fit.
 
 Regression Test:
 
-Pending: long same-session tool-loop fixture plus live Scarlet comparison for
-continuity, source use, token cost, and response completion before/after the
-budget policy.
+Deterministic tests verify channel accounting, first-step versus tool-loop
+usage, retained-turn measurement, trigger planning, external-GPT uncertainty,
+and zero canonical mutation. Still pending: long post-V1.30 same-session direct
+Scarlet comparison before/after an active derived-history strategy.
 
 Related Files:
 
 - `backend/app/api/chat.py`
 - `backend/app/providers/minimax.py`
 - `backend/app/storage/repository/runtime.py`
+- `backend/app/runtime/context_accounting.py`
 - `docs/runtime-context-packs.md`
 - `docs/project-state.md`
 

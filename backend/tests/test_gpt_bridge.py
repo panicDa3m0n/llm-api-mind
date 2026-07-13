@@ -44,16 +44,11 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     turn_id = bootstrap_payload["turn_id"]
     context = bootstrap_payload["context"]
     assert context["profile"] == "gpt-bootstrap-compact-v1"
-    assert context["model_context"]["schema_version"] == "scarlet-model-context-v2"
+    assert "model_context" not in context
     assert "system" not in context
     assert "base_system" not in context
     assert "runtime_payload" not in context
     assert context["runtime_context"]
-    assert set(context["model_context"]["memories"]) == {
-        "relevant",
-        "recent_user",
-        "recent_general",
-    }
     assert "memory_context" not in context
     assert "runtime_payload_summary" not in context
     assert context["tools"][0]["name"] == "mind_shell"
@@ -67,7 +62,25 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     model_context_trace = next(
         trace for trace in traces if trace["kind"] == "model.context"
     )
-    assert context["model_context"] == model_context_trace["payload"]["document"]
+    serialized_model_context = json.dumps(
+        model_context_trace["payload"]["document"],
+        ensure_ascii=False,
+        indent=2,
+    )
+    assert serialized_model_context in context["runtime_context"]
+    accounting_trace = next(
+        trace for trace in traces if trace["kind"] == "context.accounting.preflight"
+    )
+    assert accounting_trace["payload"]["measurement_boundary"][
+        "is_total_model_input"
+    ] is False
+    request_trace = next(trace for trace in traces if trace["kind"] == "llm.request")
+    assert accounting_trace["id"] in context["full_diagnostics"][
+        "available_in_trace_ids"
+    ]
+    assert request_trace["id"] in context["full_diagnostics"][
+        "available_in_trace_ids"
+    ]
 
     action = client.post(
         "/gpt/action",

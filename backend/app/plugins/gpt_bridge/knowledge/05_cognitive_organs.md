@@ -17,6 +17,14 @@ or mark impossible her active foreground thread.
 
 Focus must not narrow memory retrieval by itself.
 
+## Agent Mode
+
+Agent mode routes Scarlet's automatic context eligibility. Human-facing turns
+use `interactive`; `idle` and future `scouting` postures can be selected as
+resumable modes. Maintenance and Dream remain background processes rather than
+agent modes. On-demand shell commands remain available independently from
+automatic context routing.
+
 ## Volition
 
 Volition is latent self-direction: intentions Scarlet chooses to keep wanting,

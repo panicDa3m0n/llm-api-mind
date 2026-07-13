@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.29.1
+Version: 1.30.0
 Status: active experimental runtime
 Last updated: 2026-07-13
 Primary human: project owner, evaluator, direction, validation  
@@ -86,6 +86,11 @@ mind_shell(command, intent)
 ```
 
 The internal API can evolve without constantly retraining or reprompting the agent. The LLM learns the command protocol, while the backend owns the implementation details. Legacy endpoint dispatch can remain behind the command runtime for internal handlers, deterministic maintenance, debug, tests, and rollback, but the active model-facing interface should stay one cognitive surface.
+
+Agent modes follow the same rule: one active posture tag routes automatic
+context, while organs and capabilities can belong to multiple tags. Modes
+describe Scarlet, never background maintenance. On-demand cognition remains
+available unless a later safety experiment explicitly gates it.
 
 ### 2.3 API As Cognitive Environment
 

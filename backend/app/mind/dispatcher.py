@@ -26,6 +26,7 @@ from app.mind.episodic import (
 from app.mind.affect import handle_affect
 from app.mind.focus import handle_focus
 from app.mind.metacognition import handle_metacognition_step
+from app.mind.mode import handle_agent_mode
 from app.mind.schema import (
     build_mind_schema,
     implemented_route_summaries,
@@ -125,14 +126,15 @@ def dispatch_mind_api(
                 "route; focus is available as a dedicated foreground-attention "
                 "state route; volition is available as a manual latent-intention "
                 "register; affect is available as a read-only backend-appraised "
-                "state route; reflection stays inside the single metacognition "
-                "route for now."
+                "state route; agent mode is Scarlet's foreground operating "
+                "posture; reflection stays inside the single metacognition route."
             ),
             suggested_next_actions=[
                 "Call implemented routes only",
                 "Use /mind/focus to set, inspect, shift, defer, resolve, or archive foreground focus",
                 "Use /mind/volition to create, inspect, review, or close latent self-generated intentions",
                 "Use /mind/affect to inspect current affect state or prototypes without mutating emotions",
+                "Use /mind/mode to inspect or select Scarlet's agent operating posture",
                 "Use memory lifecycle routes when persistent context conflicts",
                 "Use session recall routes when a memory's source conversation matters",
             ],
@@ -277,6 +279,13 @@ def dispatch_mind_api(
     if method == "POST" and path == "/mind/affect":
         return _operation_response(
             handle_affect(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/mode":
+        return _operation_response(
+            handle_agent_mode(body, context, intent=request.intent),
             method=method,
             path=path,
         )

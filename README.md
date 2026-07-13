@@ -17,7 +17,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.29.1**.
+Current app baseline: **V1.30.0**.
 
 The project has a working local baseline runtime:
 
@@ -43,6 +43,11 @@ The project has a working local baseline runtime:
 - episodic recall through session summaries plus full transcript retrieval by session id;
 - rich automatic retrieval/runtime traces plus a compact
   `scarlet-model-context-v2` packet shared by native MiniMax and GPT Actions;
+- per-channel context accounting, provider first-step observations, and a
+  non-destructive 400k-trigger compaction plan targeting a future 100k
+  chronology plus measured recent turns;
+- agent-only `idle`/`interactive`/`scouting` modes with multi-tag automatic
+  context eligibility and shell inspection/selection;
 - runtime event control plane feeding the cockpit timeline and compact
   next-turn operational context;
 - backend-owned per-session idle maintenance for session summary refresh,
@@ -80,20 +85,25 @@ The project has a working local baseline runtime:
 - `docs/memory-roadmap.md`: detailed roadmap for a robust API/CLI-first memory system.
 - `docs/cognitive-api-roadmap.md`: roadmap for schema discipline and the
   single-route internal metacognition experiment.
+- `docs/runtime-context-packs.md`: context budget, compaction, agent-mode, and
+  future embodiment-routing contract.
+- `docs/behavioral-validation-framework.md`: evidence-grounded direct Scarlet
+  evaluation contract.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: concrete history of meaningful changes.
 
 ## Immediate Roadmap
 
 ```txt
-1. Finish field-by-field review of V2 preserved context and provider-history
-   budgeting.
-2. Implement a trace-only context-mode router before changing model input.
-3. Calibrate memory duplicate/conflict handling and retrieval quality with
-   evidence from real and frozen test state.
-4. Validate focus, volition, affect, metacognition, identity, and communication
-   behavior before coupling organs or adding autonomous cycles.
-5. Design deterministic multi-user/privacy ownership before personal data or
+1. Accumulate exact post-V1.30 accounting from long, varied real sessions.
+2. Validate a derived 100k chronology plus desired eight-turn tail and define
+   degradation when the tail does not fit under 500k.
+3. Populate natural behavioral scenarios for context, communication, focus,
+   volition, affect, metacognition, identity, and memory.
+4. Validate those existing organs and behaviors before coupling organs or
+   adding autonomous cycles.
+5. Keep duplicate/conflict automation and authenticated ownership as separate
+   later workstreams; design ownership before personal data or
    external/embodied operation expands.
 6. Reduce code monoliths behind the frozen regression gate.
 ```

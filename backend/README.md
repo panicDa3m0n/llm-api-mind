@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.29.1.
+App baseline: V1.30.0.
 
 Current scope:
 
@@ -40,6 +40,10 @@ Current scope:
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
 - automatic rich retrieval/runtime traces plus the compact
   `scarlet-model-context-v2` document shared by native MiniMax and GPT Actions;
+- exact character/byte context accounting, provider token observations, and
+  shadow-only history compaction planning;
+- agent-mode registry, automatic block routing, persistent resumable posture,
+  and `mode` shell family;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - per-session idle maintenance that schedules summary refresh, missed-memory
@@ -47,7 +51,8 @@ Current scope:
   proposal ledger updates after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest contracts for health, provider wiring, storage, chat, shell/API parity,
-  context V2, GPT bridge, maintenance, memory, focus, volition, and affect.
+  context V2/accounting, GPT bridge, agent modes, behavioral contracts,
+  maintenance, memory, focus, volition, and affect.
 
 ## Setup
 

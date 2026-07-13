@@ -151,9 +151,11 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
         aliases=("intention", "intentions"),
         default_action="list_active",
         actions={
-            "list": CommandAction(status="implemented", aliases=("list-active", "list_active", "list-due", "list_due")),
-            "list_active": CommandAction(status="implemented"),
-            "list_due": CommandAction(status="implemented"),
+            "list_active": CommandAction(
+                status="implemented",
+                aliases=("list", "list-active"),
+            ),
+            "list_due": CommandAction(status="implemented", aliases=("list-due",)),
             "search": CommandAction(status="implemented"),
             "create": CommandAction(
                 status="implemented",
@@ -186,6 +188,22 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
             "read": CommandAction(status="implemented", aliases=("show", "get", "current")),
             "list": CommandAction(status="implemented", aliases=("history", "states")),
             "prototypes": CommandAction(status="implemented"),
+        },
+    ),
+    "mode": CommandFamily(
+        aliases=("operating-mode",),
+        default_action="read",
+        actions={
+            "read": CommandAction(
+                status="implemented",
+                aliases=("show", "get", "current"),
+            ),
+            "list": CommandAction(status="implemented"),
+            "set": CommandAction(
+                status="implemented",
+                requires_all=("arg|mode|tag", "reason|why"),
+                suggested_command='mode set scouting --reason "..."',
+            ),
         },
     ),
     "metacognition": CommandFamily(

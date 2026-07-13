@@ -5,6 +5,21 @@ Planning target: V1.29.0
 Status: implemented and verified in V1.29.0
 Branch: `checkpoint/rework-baseline`
 
+## V1.30.0 Follow-Up
+
+The V1.29 packet plan remains the historical implementation record. V1.30.0
+adds the next control layer without rewriting that result:
+
+- one canonical GPT runtime serialization instead of a duplicate object/string;
+- per-channel native context accounting and partial GPT packet accounting;
+- shadow-only 400k compaction planning toward a 100k chronology plus measured
+  recent complete turns;
+- one active agent mode tag with multi-tag automatic context eligibility;
+- deterministic behavioral scenario/run contracts.
+
+No V1.30 operation compacts or replaces canonical chronology. Duplicate and
+conflict adjudication remains outside this follow-up.
+
 ## Implementation Result
 
 V1.29.0 implements Phases 1 through 10 for the reviewed packet families. The

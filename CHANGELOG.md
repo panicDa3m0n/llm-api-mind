@@ -6,6 +6,42 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Added
+
+- Added V1.30.0 context accounting and non-destructive compaction planning:
+  exact local character/byte channels, provider first-step observations,
+  separate tool-loop totals, calibrated token estimates, and a shadow-only
+  `100k summary + desired eight-turn tail` plan under the 1M/500k/400k policy.
+  Canonical messages, traces, transcripts, and provider history remain
+  unchanged and navigable.
+- Added V1.30.0 agent modes with one active tag and multi-tag capability
+  eligibility. Human turns enforce `interactive`; Scarlet can persist
+  `idle`/`scouting` as a resumable posture through `mode` shell commands.
+  Mode changes are traced and explicitly do not start autonomous cycles.
+- Added `behavioral-scenario-v1`, a four-layer behavioral validation contract
+  covering technical execution, cognitive choice, answer outcome, and
+  longitudinal effect against declared real starting evidence.
+
+### Changed
+
+- Removed the redundant structured `context.model_context` copy from GPT
+  bootstrap while retaining the single canonical serialized runtime document
+  and full diagnostics in traces.
+- Advanced backend, frontend, OpenAPI runtime, prompt, and project metadata to
+  V1.30.0 and documented agent modes as main-agent posture only; maintenance,
+  summarization, and Dream remain background processes.
+
+### Fixed
+
+- Fixed GPT bootstrap accounting so assigned trace IDs are explicitly excluded
+  from the otherwise exact measured boundary and the returned diagnostics list
+  contains both accounting and request traces.
+- Fixed bare `volition list` so the advertised command resolves to
+  `volition.list_active` instead of reaching the handler with an invalid body.
+- Tightened mode guidance after live MiniMax evaluation so an explicit
+  post-conversation posture request triggers `mode set` without being replaced
+  by a volition or memory write, while avoiding claims of autonomous scouting.
+
 ### Changed
 
 - Completed the V1.29.1 integrated code and documentation audit:

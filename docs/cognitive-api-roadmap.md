@@ -2,7 +2,7 @@
 
 Status: active experiment
 Last updated: 2026-07-13
-App baseline: V1.29.1
+App baseline: V1.30.0
 
 This document tracks the non-memory cognitive API work: schema discipline and
 Scarlet's internal metacognition.
@@ -54,8 +54,8 @@ Implemented:
 Current registry/schema versions:
 
 ```txt
-2026-07-08.memory-conflict-taxonomy-v1
-2026-07-08.mind-shell-output-profiles-v1
+2026-07-13.agent-modes-v1
+2026-07-13.agent-modes-v1
 2026-07-08.mind-shell-command-registry-v1
 ```
 
@@ -64,6 +64,9 @@ cognitive roadmap still keeps one metacognition route; session recall belongs
 to memory architecture, not to a second metacognition path.
 Runtime events are now backend-owned and therefore are not exposed as a
 model-facing `/mind/events/emit` route.
+
+V1.30.0 adds `mode` to the shell/route contract. It is an agent posture
+surface, not another metacognitive route and not a background-process control.
 
 ## 3. Single Metacognition Route
 

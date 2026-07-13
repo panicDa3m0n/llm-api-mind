@@ -9,6 +9,94 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0060 - Agent Mode Routing Behavioral Validation
+
+Status: deterministic foundation implemented; first direct scenario accepted,
+broader repetitions pending
+
+Hypothesis:
+
+A single active agent tag with multi-tag organ/context eligibility can reduce
+irrelevant automatic context without reducing Scarlet's ability to retrieve
+needed evidence on demand.
+
+Variant:
+
+V1.30.0 adds `idle`, `interactive`, and `scouting`, persistent resumable mode,
+automatic block routing, registry traces, and `mode` shell commands. Human
+turns enforce `interactive`; shell commands remain callable in every mode.
+
+Current Result:
+
+Deterministic tests verify registry membership, background-process exclusion,
+manual persistence, system override/resume behavior, and automatic block
+filtering.
+
+One natural prompt was repeated on four independent disposable copies of the
+same frozen DB. It asked Scarlet to remain in dialogue now and return to calm
+exploration afterward without naming a shell command. Iteration 1 exposed a
+real `volition list` parser/catalog mismatch. Iteration 2 wrote a preference but
+did not set mode. Iteration 3 set `scouting` but described execution as
+automatic. After fixing those three boundaries, iteration 4:
+
+- called `mode set scouting` and wrote the optional durable user preference;
+- produced one `agent.mode` trace and persisted `resume_tag=scouting`;
+- left the active human turn in `interactive`;
+- stated that `scouting` is posture only and that no autonomous loop or sensor
+  runtime exists.
+
+Accepted evidence: disposable session
+`ses_0c19e70c61774bde9837d19ff69685a2`, turn
+`turn_771df91d1e574f268726442d581af777`. The DB was deleted after inspection.
+The exact four-run report is in
+`docs/evaluations/v1.30-agent-mode-live.md`. This is initial behavioral
+evidence, not broad longitudinal validation.
+
+Acceptance Method:
+
+Use `behavioral-scenario-v1` with natural prompts, explicit starting state,
+trace/state checks, answer rubric, longitudinal checks, and independent
+repetitions. Next compare mode coherence across multiple turns/sessions and
+negative controls. Do not implement scouting sensors merely to exercise the
+tag.
+
+## EXP-0059 - Long-Session Accounting And Compaction Calibration
+
+Status: shadow measurement active; compaction not active
+
+Hypothesis:
+
+Per-channel accounting and first-step provider usage can identify when a
+derived chronological summary plus recent complete turns would fit safely
+below API Mind's 500k input policy without damaging canonical continuity.
+
+Baseline:
+
+V1.29.1 preserved full provider history with no independent budget. Historical
+`llm.response.usage.input_tokens` could include multiple tool-loop requests and
+therefore was not a reliable measure of one context window.
+
+Variant:
+
+V1.30.0 adds preflight/observed accounting and a 400k shadow trigger. The
+provisional derived shape targets about 100k summary tokens plus eight complete
+turns, but produces only a plan and never mutates history.
+
+Read-Only Laboratory Evidence:
+
+Three real sessions showed first-step ratios around 3.75-4.83 chars/token.
+Eight-turn proxies varied from about 63k to 159k estimated tokens; one
+tool-heavy five-turn session reached about 323k. This falsifies the assumption
+that a fixed recent-turn count has a stable cost.
+
+Next Test:
+
+Collect exact V1.30 traces during a long varied direct Scarlet session. Compare
+full history with a source-labelled derived compaction for semantic continuity,
+tool provenance, exact-source navigation, answer quality, latency, and failed
+or thinking-only completions. Activation requires an approved insufficient-
+headroom degradation rule.
+
 ## EXP-0057 - ChatGPT MCP/App Bridge Usability
 
 Status: deprecated after V1.25.2 platform evaluation

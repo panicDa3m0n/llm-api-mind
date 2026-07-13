@@ -25,6 +25,7 @@ def project_session_context(
     now: datetime,
     preferences: RuntimePreferences,
     previous_sessions_limit: int,
+    agent_mode: dict[str, Any],
 ) -> dict[str, Any]:
     states = repositories.list_session_summary_states(
         db,
@@ -63,6 +64,17 @@ def project_session_context(
             ),
         },
         "user": {"name": preferences.user_display_name},
+        "agent_mode": {
+            "active_tag": agent_mode.get("active_tag"),
+            "active_runtime_implemented": agent_mode.get(
+                "active_runtime_implemented"
+            ),
+            "source": agent_mode.get("source"),
+            "resume_tag": agent_mode.get("resume_tag"),
+            "resume_runtime_implemented": agent_mode.get(
+                "resume_runtime_implemented"
+            ),
+        },
         "now": render_user_time(now, timezone_id=preferences.timezone),
         "timezone": timezone_packet(now, timezone_id=preferences.timezone),
         "location": preferences.country_label,

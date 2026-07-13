@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-13
-App baseline: V1.29.1
+App baseline: V1.30.0
 
 ## Response Philosophy
 
@@ -113,6 +113,7 @@ session
 focus
 volition
 affect
+mode
 metacognition
 ```
 
@@ -129,6 +130,8 @@ session open ses_... --limit 200
 focus read
 volition list active --limit 10
 affect prototypes
+mode read
+mode set scouting --reason "Continue environmental study after the exchange"
 metacognition step --objective "check source-sensitive claim" --mode critic
 ```
 
@@ -207,6 +210,66 @@ Recoverable errors return shell usage guidance:
 }
 ```
 
+### Agent Mode
+
+Status: implemented in V1.30.0
+
+Shell commands:
+
+```txt
+mode read
+mode list
+mode set idle --reason "..."
+mode set scouting --reason "..."
+```
+
+Internal dispatcher route:
+
+```txt
+POST /mind/mode
+```
+
+Body actions are `read`, `list`, and `set`. `set` requires a supported mode and
+a reason. The persistent setting belongs to the active profile. During a
+human-facing turn the system condition `interactive` remains active; a manual
+selection is returned as `resume_tag` and is the posture to resume afterward.
+The response also returns `execution_started=false` and
+`runtime_effect=persistent_posture_only_no_autonomous_cycle`. Persisting a mode
+does not launch work; `scouting` has no autonomous sensor runtime in V1.30.0.
+
+The current registry contains `idle`, `interactive`, and `scouting`. It tags
+automatic context/organ capabilities with one or more modes. Maintenance,
+summarization, and Dream are explicitly not agent modes. V1.30.0 routing can
+filter automatic context blocks but does not disable on-demand shell commands.
+
+State changes write an `agent.mode` trace and `agent.mode.changed` event.
+
+### Context Accounting
+
+Status: implemented preflight/observation and shadow planning in V1.30.0
+
+Native chat writes:
+
+```txt
+context.accounting.preflight
+context.accounting.observed
+```
+
+The preflight trace reports exact local JSON characters and bytes plus clearly
+labelled token estimates for static policy, dynamic runtime, provider history,
+current message, tool schema, and request structure. The observed trace records
+provider first-step input separately from aggregate tool-loop usage and can
+calibrate future estimates for that model/session.
+
+GPT bootstrap writes only the preflight measure of the backend response packet.
+It explicitly lists manual GPT policy, native ChatGPT history, Actions
+serialization, request structure, and provider token usage as unobserved. It
+must not be interpreted as total ChatGPT model input.
+
+Compaction remains `shadow`: traces can say the 400k trigger would fire and
+project a 100k summary plus the desired eight complete turns, but no canonical
+message, transcript, trace, or provider-history record is mutated.
+
 ## Planned Chat And Debug API
 
 ```txt
@@ -257,12 +320,11 @@ Bootstrap response profile:
 
 `POST /gpt/bootstrap` returns `context.profile=gpt-bootstrap-compact-v1`. The
 transport envelope version remains V1 for compatibility. When
-`model_context_profile=v2`, the response includes the canonical
-`context.model_context` and its identical `<runtime_context>` serialization,
-plus recent provider-message summary, action endpoints, and trace ids. Separate
-legacy runtime/memory compact copies are omitted. Full effective prompt, rich
-runtime/retrieval snapshots, full provider messages, and retrieval diagnostics
-remain trace-only.
+`model_context_profile=v2`, the response includes one canonical
+`context.runtime_context` serialization, plus recent provider-message hints,
+action endpoints, and trace ids. V1.30.0 removes the redundant structured
+`context.model_context` copy. Full effective prompt, rich runtime/retrieval
+snapshots, full provider messages, and retrieval diagnostics remain trace-only.
 
 Authentication:
 
@@ -346,17 +408,7 @@ Output includes:
   "model": "external-gpt",
   "context": {
     "profile": "gpt-bootstrap-compact-v1",
-    "runtime_context": "<runtime_context>...",
-    "model_context": {
-      "schema_version": "scarlet-model-context-v2",
-      "session": {},
-      "memories": {
-        "relevant": [],
-        "recent_user": [],
-        "recent_general": []
-      },
-      "preserved_context": []
-    },
+    "runtime_context": "<runtime_context>...scarlet-model-context-v2...",
     "metacognitive_context": {},
     "provider_messages_recent": [],
     "tools": [],
@@ -380,8 +432,8 @@ Status: implemented and active by default in V1.29.0
 from the same rich evidence already collected for retrieval/runtime traces; it
 does not run a second retrieval pipeline. Every delivered document is stored
 verbatim in a `model.context` trace with source trace ids and serialized byte
-count. Native MiniMax receives that document inside `<runtime_context>`; GPT
-bootstrap returns the same JSON in `context.model_context`.
+count. Native MiniMax and GPT bootstrap receive the same serialized document
+inside `context.runtime_context`; GPT does not receive a duplicate object.
 
 Automatic memory hooks contain only `id`, `content`, user-local `created_at`
 and `updated_at`, `source_session_id`, and `source_message_id`. Hooks whose

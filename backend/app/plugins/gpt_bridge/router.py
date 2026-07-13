@@ -36,6 +36,7 @@ from app.runtime.events import (
     record_tool_call_completed,
     record_tool_call_started,
 )
+from app.runtime.context_accounting import build_external_context_accounting_preflight
 from app.runtime.maintenance import (
     schedule_session_idle_maintenance,
     schedule_summary_repairs,
@@ -291,6 +292,29 @@ def build_gpt_bridge_router(
                 system_prompt["content"],
                 memory_context.runtime_context,
             )
+            bootstrap_context = _gpt_bootstrap_context_payload(
+                runtime_context=memory_context.runtime_context,
+                metacognitive_payload=memory_context.metacognitive_payload,
+                llm_messages=llm_messages,
+                provider_history_source=provider_history_source,
+                provider_message_stats=provider_message_stats,
+                trace_ids=trace_ids,
+            )
+            accounting_payload = build_external_context_accounting_preflight(
+                session_id=session_id,
+                turn_id=turn_id,
+                transport="gpt_bridge_bootstrap",
+                payload=bootstrap_context,
+                settings=settings,
+            )
+            accounting_trace = repositories.add_trace(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                kind="context.accounting.preflight",
+                payload=accounting_payload,
+            )
+            trace_ids.append(accounting_trace.id)
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -320,6 +344,14 @@ def build_gpt_bridge_router(
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
                     "model_context_profile": memory_context.model_context_profile,
                     "model_context_trace_id": memory_context.model_context_trace_id,
+                    "context_accounting_trace_id": accounting_trace.id,
+                    "context_accounting": {
+                        "schema_version": accounting_payload["schema_version"],
+                        "measurement_boundary": accounting_payload[
+                            "measurement_boundary"
+                        ],
+                        "total": accounting_payload["total"],
+                    },
                     "tool_loop_policy": "external_gpt_required_action_finalize",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -341,6 +373,9 @@ def build_gpt_bridge_router(
                 },
             )
             trace_ids.append(request_trace.id)
+            bootstrap_context["full_diagnostics"]["available_in_trace_ids"] = list(
+                trace_ids
+            )
             record_event(
                 db,
                 session_id=session_id,
@@ -368,18 +403,7 @@ def build_gpt_bridge_router(
                 user_message=_message_response(user_message),
                 trace_ids=trace_ids,
                 model="external-gpt",
-                context=_gpt_bootstrap_context_payload(
-                    runtime_context=memory_context.runtime_context,
-                    runtime_payload=memory_context.runtime_payload,
-                    memory_payload=memory_context.payload,
-                    model_context_payload=memory_context.model_context_payload,
-                    model_context_profile=memory_context.model_context_profile,
-                    metacognitive_payload=memory_context.metacognitive_payload,
-                    llm_messages=llm_messages,
-                    provider_history_source=provider_history_source,
-                    provider_message_stats=provider_message_stats,
-                    trace_ids=trace_ids,
-                ),
+                context=bootstrap_context,
                 required_next_steps=[
                     "Use this returned context as Scarlet's active turn context.",
                     "Call POST /gpt/action for every mind_shell command you need.",
@@ -1466,10 +1490,6 @@ def _mcp_tool_result(
 def _gpt_bootstrap_context_payload(
     *,
     runtime_context: str,
-    runtime_payload: dict[str, Any],
-    memory_payload: dict[str, Any],
-    model_context_payload: dict[str, Any] | None,
-    model_context_profile: str,
     metacognitive_payload: dict[str, Any] | None,
     llm_messages: list[Any],
     provider_history_source: str,
@@ -1515,11 +1535,6 @@ def _gpt_bootstrap_context_payload(
             "reason": "ChatGPT Actions has a practical response-size limit; full diagnostics remain in backend traces.",
         },
     }
-    if model_context_profile == "v2" and model_context_payload is not None:
-        payload["model_context"] = model_context_payload
-    else:
-        payload["runtime_payload_summary"] = _compact_runtime_payload(runtime_payload)
-        payload["memory_context"] = _compact_memory_payload(memory_payload)
     return payload
 
 

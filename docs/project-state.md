@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-13
-App baseline: V1.29.1
+App baseline: V1.30.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -76,16 +76,23 @@ Implemented and verified:
   maintenance, debug, and rollback, not exposed as a second native model tool;
 - GPT Actions bridge using mandatory bootstrap/action/finalize lifecycle and
   the same context compiler and shell dispatcher as native Scarlet;
+- per-turn context accounting with exact character/byte channels, provider
+  first-step observations, and non-destructive compaction planning;
+- agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
+  context routing, persistent resumable posture, and `mode` shell commands;
 - deprecated MCP experiment retained temporarily but not part of the target
   Custom GPT flow.
 
 Verification baseline on 2026-07-13:
 
-- backend: 138 tests passed;
+- backend: 146 tests passed;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
 - V1.29.0 production rollout: native MiniMax and GPT Actions smoke tests passed.
+- V1.30.0 disposable MiniMax mode probe: explicit `mode set scouting`, persisted
+  resumable posture, interactive override, and no-autonomous-runtime boundary
+  all observed after iterative correction.
 
 ### 3.2 Dynamic Context
 
@@ -115,7 +122,8 @@ Still open:
   hints when their legacy conditions apply;
 - provider-native history is not budgeted or compacted and can outweigh V2 in
   tool-heavy sessions;
-- no mode/context-pack router exists yet;
+- the first mode router is active for automatic runtime blocks; on-demand
+  shell operations remain available independently;
 - no high-frequency perception or embodiment stream exists.
 
 ### 3.3 Cognitive Shell
@@ -130,6 +138,7 @@ Implemented command families:
 | focus | read/list/search/set/shift/update/hold/defer/resolve/impossible/timeline | One foreground focus per profile. |
 | volition | list/search/create/read/update/defer/review/promote/resolve/impossible/deprecate | No autonomous execution and no automatic chat injection. |
 | affect | read/list/prototypes | Read-only to Scarlet; backend appraises state. |
+| mode | read/list/set | Agent-only posture; human turns enforce `interactive`, manual selection sets the resumable tag. |
 | metacognition | step | One LLM-backed route, not an automatic control loop. |
 
 Shell parsing, registry validation, dispatcher translation, model-facing
@@ -189,7 +198,7 @@ the canonical integrated read.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | stable behavioral suite for natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
-| Perception and context | L4 | Shared V2 packet, exact model trace, time/provenance rules, GPT parity | preserved-family review, provider-history budget, shadow mode router |
+| Perception and context | L4 | Shared V2 packet, exact model trace, time/provenance rules, accounting and automatic mode router | preserved-family review and measured active compaction design |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
@@ -239,9 +248,10 @@ Missing engineering surfaces:
 - no backend lint/static-type configuration beyond pytest;
 - no measured code-coverage baseline;
 - no automated documentation link/identifier check;
-- behavioral experiments are rich historically but not yet one small,
-  continuously repeatable branch acceptance suite;
-- provider-history growth has no hard budget/degradation policy.
+- behavioral scenarios now have a versioned four-layer contract, but the first
+  small continuously repeated cross-branch suite still needs populated cases;
+- provider-history growth is measured and shadow-planned but has no active
+  compaction/degradation policy.
 
 ## 6. Priority Plan
 
@@ -253,14 +263,13 @@ Missing engineering surfaces:
   rework;
 - keep database role/preflight and frozen 9-case gate mandatory.
 
-### P1 - Complete Context Classification
+### P1 - Validate And Activate Context Control
 
-1. Review each `preserved_context` family with the owner.
-2. Measure byte/token cost separately for V2, provider history, shell results,
-   and GPT bootstrap.
-3. Define provider-history windows/summaries without losing tool provenance.
-4. Implement a trace-only mode router.
-5. Promote routing only after identical direct tests show no regression.
+1. Continue field-by-field review of preserved families.
+2. Accumulate exact accounting from long varied post-V1.30 sessions.
+3. Design and test the derived 100k chronology plus desired eight-turn tail.
+4. Define degradation when the measured tail cannot fit below 500k.
+5. Promote active compaction only after direct continuity/source tests.
 
 ### P2 - Memory Integrity
 
@@ -309,10 +318,10 @@ behavior:
 
 ## 7. Current Best Next Step
 
-The next implementation should be the remaining V2 context review plus
-provider-history budgeting and a trace-only router. In parallel, prepare a
-small branch-level behavioral acceptance suite and a design for memory
-duplicate/conflict evidence.
+The next implementation should collect post-V1.30 accounting from long varied
+sessions and populate the behavioral contract with natural branch-level cases.
+That evidence should decide the active compaction/degradation algorithm.
+Duplicate/conflict adjudication remains a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

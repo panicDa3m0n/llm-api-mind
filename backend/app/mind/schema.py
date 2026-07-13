@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-08.memory-conflict-taxonomy-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-08.mind-shell-output-profiles-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-13.agent-modes-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-13.agent-modes-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -42,7 +42,7 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
     "name": "mind_shell",
     "description": (
         "Scarlet's internal cognitive command shell. Use concise commands to "
-        "navigate memory, sessions, focus, volition, affect, metacognition, "
+        "navigate memory, sessions, focus, volition, affect, agent mode, metacognition, "
         "and capability help without exposing endpoint mechanics to the user."
     ),
     "input_schema": {
@@ -79,6 +79,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "help focus",
             "help volition",
             "help affect",
+            "help mode",
             "help metacognition",
         ],
     },
@@ -149,6 +150,16 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "affect read",
             "affect list --limit 10",
             "affect prototypes",
+        ],
+    },
+    {
+        "namespace": "mode",
+        "purpose": "Inspect or select Scarlet's foreground agent operating posture.",
+        "commands": [
+            "mode read",
+            "mode list",
+            "mode set idle --reason \"...\"",
+            "mode set scouting --reason \"...\"",
         ],
     },
     {
@@ -1399,6 +1410,50 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "action": "promote_to_focus_candidate",
                     "intention_id": "intent_example",
                     "reason": "This latent direction is now relevant enough to become foreground attention.",
+                },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/mode",
+        "status": "implemented",
+        "purpose": (
+            "Inspect Scarlet's current agent-only operating posture, list the "
+            "mode registry, or persist the posture that resumes outside a "
+            "system-enforced human interaction. Background maintenance and "
+            "Dream are not agent modes."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["read", "list", "set"],
+                },
+                "mode": {
+                    "type": ["string", "null"],
+                    "enum": ["idle", "interactive", "scouting", None],
+                },
+                "reason": {"type": ["string", "null"]},
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/mode",
+                "intent": "Inspect Scarlet's current operating posture.",
+                "body": {"action": "read"},
+            },
+            {
+                "method": "POST",
+                "path": "/mind/mode",
+                "intent": "Keep scouting as the posture to resume after this exchange.",
+                "body": {
+                    "action": "set",
+                    "mode": "scouting",
+                    "reason": "Continue studying the environment after the conversation.",
                 },
             },
         ],

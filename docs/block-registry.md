@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-13
-System version assessed: V1.29.1
+System version assessed: V1.30.0
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -14,7 +14,7 @@ These are required delivery surfaces, not dynamic context packs:
 | Surface | Native MiniMax | External GPT | Authority |
 |---|---|---|---|
 | Static system policy | repository Scarlet prompt | prompt pasted in GPT Builder | identity and operating policy |
-| Active-session history | provider-native session history | ChatGPT history plus bridge provider summary | same-session continuity |
+| Active-session history | provider-native session history | ChatGPT history plus compact bridge provider hints | same-session continuity |
 | Cognitive tool schema | one `mind_shell` tool | three GPT Actions | callable transport |
 
 They have dedicated lifecycle and are not selected by the future dynamic
@@ -29,9 +29,9 @@ scarlet-model-context-v2
 ```
 
 Native MiniMax receives its JSON inside `<runtime_context>`. GPT bootstrap
-returns the same object as `context.model_context` and also returns the
-identical rendered runtime string. Every document is persisted in a
-`model.context` trace.
+returns that canonical rendered runtime string once; it no longer duplicates
+the same document under `context.model_context`. Every document is persisted
+in a `model.context` trace.
 
 ### 2.1 Session Area
 
@@ -43,6 +43,13 @@ identical rendered runtime string. Every document is persisted in a
     "created_at": "..."
   },
   "user": {"name": "..."},
+  "agent_mode": {
+    "active_tag": "interactive",
+    "active_runtime_implemented": true,
+    "source": "system_condition",
+    "resume_tag": "scouting",
+    "resume_runtime_implemented": false
+  },
   "now": "...",
   "timezone": {
     "id": "Europe/Rome",
@@ -131,6 +138,8 @@ Destinations:
 | Trace/block | Model-facing | UI/debug | Maintenance/eval |
 |---|---:|---:|---:|
 | `model.context` | exact delivered V2 | yes | yes |
+| `context.accounting.preflight` | no; request measurement | yes | yes |
+| `context.accounting.observed` | no; provider measurement | yes | yes |
 | `memory.context` | only through compact V2 projection | yes | yes |
 | `runtime.context` | only preserved V2 projection | yes | yes |
 | `llm.request` | request itself | yes | yes |
@@ -173,17 +182,18 @@ automatic context packets.
 | focus | current/history/lifecycle | organ trace/events |
 | volition | intentions/links/lifecycle | organ trace/events |
 | affect | state/history/prototypes | appraisal trace/events |
+| mode | active/resumable posture and registry | mode trace/events/settings |
 | metacognition | structured review and valid recommendations | metacognition trace |
 | help | command catalog and syntax | command registry/schema |
 
 ## 6. Current Risks
 
-1. Provider-native history has no token/byte budget and can exceed V2 after
-   tool-heavy turns.
+1. Provider-native history is now measured and shadow-planned but still has no
+   active compaction/degradation policy.
 2. `undiscussed_context` can reintroduce data that V2 removed from the
    reviewed session/memory spine.
-3. GPT bootstrap carries both object and rendered serialization of V2 for
-   transport convenience.
+3. GPT total model input remains partly unobservable because ChatGPT owns its
+   manual prompt, native history, Actions serialization, and token accounting.
 4. Future organ registry entries can look implemented unless code/tests/default
    activation are checked separately.
 5. Frontend renderers still contain compatibility support for old runtime
@@ -192,8 +202,8 @@ automatic context packets.
 ## 7. Next Registry Work
 
 - decide every preserved family with the owner;
-- trace independent size budgets for model context, provider history, shell
-  results, and GPT bootstrap;
-- add a trace-only context mode selection record;
-- update this registry before promoting any router or removing compatibility
-  rendering.
+- accumulate long-session provider observations and validate the 100k plus
+  desired eight-turn compaction shape;
+- populate natural behavioral scenarios for mode routing and continuity;
+- update this registry before promoting active compaction or hard-gating any
+  cognitive command by mode.

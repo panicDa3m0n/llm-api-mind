@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from sqlmodel import Session
 
 from app.mind.affect import build_affective_context
+from app.mind.agent_modes import resolve_agent_mode, route_context_blocks
 from app.mind.facts import fact_payload, fact_search_text
 from app.mind.graph_retrieval import (
     build_memory_graph_expansion,
@@ -107,6 +108,13 @@ def build_memory_context(
         source="context_default",
     )
     recent_dialogue = _recent_dialogue(history)
+    agent_mode = resolve_agent_mode(
+        db,
+        profile_id=preferences.profile_id,
+        default=str(getattr(settings, "agent_mode_default", "idle")),
+        system_mode="interactive",
+        system_reason="A human-facing turn is active.",
+    )
     recent_events = _recent_runtime_events(
         db,
         session_id=chat_session.id,
@@ -294,6 +302,7 @@ def build_memory_context(
         temporal_context=temporal_context,
         timestamp=timestamp,
         runtime_preferences=preferences,
+        agent_mode=agent_mode,
         metacognitive_context=metacognitive_payload,
         settings=settings,
     )
@@ -317,6 +326,7 @@ def build_memory_context(
             now=timestamp,
             preferences=preferences,
             settings=settings,
+            agent_mode=agent_mode,
         )
         model_trace = repositories.add_trace(
             db,
@@ -326,6 +336,8 @@ def build_memory_context(
             payload={
                 "profile": model_context_profile,
                 "source_trace_ids": [trace.id, runtime_trace.id],
+                "agent_mode": agent_mode,
+                "mode_routing": runtime_payload.get("mode_routing"),
                 "serialized_bytes": len(
                     json.dumps(model_context_payload, ensure_ascii=True).encode("utf-8")
                 ),
@@ -364,9 +376,17 @@ def build_runtime_context_payload(
     temporal_context: dict[str, Any],
     timestamp: datetime,
     runtime_preferences: RuntimePreferences,
+    agent_mode: dict[str, Any] | None = None,
     metacognitive_context: dict[str, Any] | None = None,
     settings: Any | None = None,
 ) -> dict[str, Any]:
+    resolved_agent_mode = agent_mode or resolve_agent_mode(
+        db,
+        profile_id=runtime_preferences.profile_id,
+        default=str(getattr(settings, "agent_mode_default", "idle")),
+        system_mode="interactive",
+        system_reason="A human-facing turn is active.",
+    )
     focus_block = _focus_context_block(
         db,
         chat_session=chat_session,
@@ -387,6 +407,7 @@ def build_runtime_context_payload(
     )
     blocks = [
         _session_context_block(db, chat_session=chat_session),
+        _agent_mode_context_block(resolved_agent_mode),
         _message_context_block(
             db,
             current_user_message=current_user_message,
@@ -413,6 +434,11 @@ def build_runtime_context_payload(
     )
     if metacognitive_context and metacognitive_context.get("model_facing") is True:
         blocks.append(metacognitive_context_runtime_block(metacognitive_context))
+    blocks, mode_routing = route_context_blocks(
+        blocks,
+        active_tag=str(resolved_agent_mode["active_tag"]),
+        routing_mode=str(getattr(settings, "agent_mode_routing", "active")),
+    )
     model_memory_context = _model_memory_context(memory_context)
     return {
         "schema_version": "runtime-context-v1",
@@ -420,6 +446,8 @@ def build_runtime_context_payload(
         "generated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
         "session_id": chat_session.id,
         "turn_id": turn_id,
+        "agent_mode": resolved_agent_mode,
+        "mode_routing": mode_routing,
         "context_policy": {
             "purpose": (
                 "Backend-composed operational context for Scarlet. Blocks are "
@@ -456,6 +484,17 @@ def build_runtime_context_payload(
         "temporal_context": temporal_context,
         "recent_runtime_events": recent_events,
         "capabilities": capabilities,
+    }
+
+
+def _agent_mode_context_block(agent_mode: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": "scarlet.agent_mode",
+        "type": "agent_mode_context",
+        "scope": "profile",
+        "lifetime": "dynamic",
+        "source": "backend.agent_mode_resolver",
+        "content": agent_mode,
     }
 
 

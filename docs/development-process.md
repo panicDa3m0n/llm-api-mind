@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-13
-Current app version: V1.29.1
+Current app version: V1.30.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -148,7 +148,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.29.1 baseline includes:
+The current V1.30.0 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -161,6 +161,10 @@ The current V1.29.1 baseline includes:
   timezone;
 - Tailwind dashboard with chat, sessions, agent stream, memory, profile, and
   settings.
+- traceable per-channel model-input accounting, shadow-only chronological
+  compaction planning, and an agent-mode registry/router for automatic context;
+- versioned four-layer behavioral scenario/run contracts for direct Scarlet
+  validation;
 - Codex test database isolation through startup-level `CODEX_TEST`, used for
   evaluator experiments that must exercise real endpoints without mutating the
   production/laboratory Scarlet DB.

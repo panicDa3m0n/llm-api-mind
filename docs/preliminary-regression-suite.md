@@ -135,9 +135,10 @@ repository facade preserved session, memory, organ, trace, and bridge behavior.
 
 The V1.29.0 canonical context implementation and the V1.29.1 integrated
 documentation/code audit both passed the unchanged suite `9/9`; the latest
-recorded run is `20260713_130851_preliminary-regression-v1`. This confirms the
-frozen assembled contracts, not free-form provider behavior or the semantic
-quality of every branch.
+V1.30.0 context-accounting/agent-mode implementation also passed `9/9`; the
+latest recorded run is `20260713_163648_preliminary-regression-v1`. This
+confirms the frozen assembled contracts, not free-form provider behavior or
+the semantic quality of every branch.
 
 A post-rework change is admissible only when all of the following hold:
 

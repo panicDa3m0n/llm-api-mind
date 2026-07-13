@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-13
-Backend baseline: V1.29.1
+Backend baseline: V1.30.0
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -51,6 +51,11 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 | `backend/data/codex-memory-eval-v2-run.db` | Current disposable dirty-memory evaluator run | Created only by `codex_test_memory_harness.py`; ignored and name-guarded. |
 | `data/app.db` | Old ignored root-level SQLite residue | Empty of Scarlet sessions/memories at the audit. No current config selects it. Do not treat it as a source. |
 | `backend/app/app.db`, `backend/scarlet.db` | Empty ignored residues | Both are zero-byte files from 2026-05-23 and are not selected by current configuration. Do not delete them as part of unrelated work. |
+
+V1.30.0 context calibration opened `backend/data/app.db` through SQLite
+`mode=ro` only. The role preflight reported `laboratory`, integrity `ok`, and no
+records were modified. Session ids quoted in `docs/runtime-context-packs.md`
+are therefore laboratory measurements, never claims about VPS production.
 | `data/milvus_lite_shadow.db` | Rebuildable derived retrieval cache when enabled | Ignored; never an authority for memory or a deployment source. |
 
 The historical files remain on disk because deletion is a separate data

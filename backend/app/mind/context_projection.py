@@ -23,7 +23,13 @@ def compile_model_context_v2(
     now: datetime,
     preferences: RuntimePreferences,
     settings: Any,
+    agent_mode: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    resolved_agent_mode = agent_mode or {
+        "active_tag": "idle",
+        "source": "projection_default",
+        "resume_tag": None,
+    }
     preserved_types = {
         "focus_context",
         "affective_context",
@@ -71,6 +77,7 @@ def compile_model_context_v2(
             now=now,
             preferences=preferences,
             previous_sessions_limit=settings.model_context_previous_sessions_limit,
+            agent_mode=resolved_agent_mode,
         ),
         memories=project_memory_context(
             db,

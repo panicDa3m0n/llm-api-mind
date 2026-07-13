@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-13
-Code baseline reviewed: V1.29.1
+Code baseline reviewed: V1.30.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -84,12 +84,13 @@ The active `model_context_profile=v2` sends one dynamic document:
 
 | Area | Model-facing data | System-only data |
 |---|---|---|
-| session | current session id/title/created time, user name, one user-local clock/timezone/location, two previous-session hints | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
+| session | current session id/title/created time, user name, active/resumable agent mode, one user-local clock/timezone/location, two previous-session hints | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
 | memories | deduplicated relevant/recent-user/recent-general hooks with id/content/times/source session+message | facts, scores, KG, lifecycle, near misses, exclusions, query plans, maintenance |
 | preserved context | only legacy families copied by explicit type | full rich runtime snapshot and compatibility mirrors |
 
 The exact JSON is stored in `model.context`. Native MiniMax receives its
-rendered form; GPT bootstrap receives the same object and rendering.
+rendered form; GPT bootstrap receives that same rendered form once, without a
+second `context.model_context` copy.
 
 ## Rich Internal Source Packets
 
@@ -209,6 +210,7 @@ Compact events retain identity plus selected operational fields such as operatio
 | `affective_context` | `automatic_model_conditional` | `organ_affect_mode=model` plus a model block | Tone/caution/warmth posture, never factual truth. | Full appraisal diagnostics/history remain manual/trace. |
 | `metacognitive_context` | `automatic_model_conditional` | `metacognitive_context_mode=inject` | Controlled A/B injection of few trigger-matched operating lessons. | Default `shadow` payload is trace/UI-only and non-influential. |
 | `scarlet_state` | `automatic_model` | always built | Transitional backend-seeded focus/posture/goal/open-loop surface. | No arbitrary hidden backend state is rendered. |
+| `agent_mode_context` | `automatic_model` in rich runtime; compacted into V2 session | every turn | Current/resumable tags plus whether each has implemented runtime. | Registry diagnostics stay trace/system-side; mode persistence never implies that autonomous execution started. |
 
 `volition` has no automatic runtime block today; it is shell-only.
 
@@ -242,13 +244,13 @@ They are not copied into the active V2 document.
 | Function | Give the external GPT backend perception, continuity, and capability context for the turn. |
 | Excluded from | Full effective local prompt, raw runtime payload, raw retrieval diagnostics. |
 
-### P-13 Runtime Summary And Protocol Metadata
+### P-13 Protocol Metadata
 
 | Property | Current behavior |
 | --- | --- |
 | Delivery | `automatic_gpt_bootstrap` |
-| Contents | Block summaries/counts, clock/capability metadata, session/turn ids, provider-history statistics, action/finalize hints, tool identity, trace ids, omitted-diagnostics declaration. |
-| Function | Let the GPT orient itself and continue the bridge protocol without all backend diagnostics. |
+| Contents | Session/turn ids, provider-history statistics and recent hints, action/finalize hints, tool identity, trace ids, compact metacognitive status, and omitted-diagnostics declaration. |
+| Function | Let the GPT continue the bridge protocol without duplicating the canonical runtime document or raw backend diagnostics. |
 
 ### P-14 Legacy Compact Bridge Memory Context
 
@@ -259,8 +261,9 @@ They are not copied into the active V2 document.
 | Function | Make automatic-memory processing inspectable to the external GPT. |
 | Excluded from | Raw turn frame and raw retrieval readiness/graph/shadow/hybrid diagnostics. |
 
-V1.29.0 removed this duplicate from active V2 bootstrap. The canonical memory
-area is `context.model_context.memories`.
+V1.29.0 removed this legacy memory copy from active V2 bootstrap. V1.30.0 also
+removed the duplicate structured model-context copy. The canonical memory area
+is the `memories` object inside `context.runtime_context`.
 
 ### P-15 Compact Metacognitive Context
 
@@ -286,6 +289,7 @@ area is `context.model_context.memories`.
 | full `memory.context` trace | Query, raw candidate ranking, selected records, graph/shadow/hybrid diagnostics, budget | Retrieval mechanics can dwarf direct evidence. |
 | `metacognitive.context` in shadow mode | Evaluate lesson selection before behavioral injection | Shadow mode must not influence the request. |
 | `runtime.context` and `llm.request` traces | Audit exact request, rendering profile, history source, tools | Observability copies, not additional evidence. |
+| `context.accounting.preflight` / `observed` | Per-channel size, estimates, first-step usage, tool-loop totals, shadow compaction plan | Measurement and planning, never extra model evidence. |
 | `llm.response`, raw provider messages, captured thinking events | Replay provider behavior | Historical diagnostic material. P-02 is the separate continuity path. |
 | full cognitive-event payloads | UI/debug timeline and recovery evidence | P-08 sends compact summaries only. |
 | raw KG nodes/edges, retrieval documents, embeddings/search indexes | Retrieval/debug/maintenance | Backend machinery, not direct automatic evidence. |
@@ -303,6 +307,7 @@ The following information can reach Scarlet only after an explicit shell call; i
 | focus | `read`, `list`, `timeline` | Foreground state and transitions. |
 | volition | `list`, `read`, `review` | Intentions and links. |
 | affect | `read`, `list`, `prototypes` | Appraised state/history/prototypes. |
+| mode | `read`, `list`, `set` | Active mode, resumable preference, and registry. |
 | metacognition | `metacognition step` | Risks, evidence gaps, recommended available actions, public summary. |
 | help | `help`, `help <family>` | Current shell catalog and syntax. |
 
@@ -317,6 +322,10 @@ Manual result size is a separate budget concern: `session open` currently has no
 - Previous-session summaries are navigation aids, not exact historical proof.
 - Current world perception is configured time/locale only, not live sensors or external-world feeds.
 - Focus, affect and metacognitive lessons are conditional; volition is manual-only.
+- Agent mode is automatic; human turns resolve to `interactive`, while a
+  manual `idle`/`scouting` selection is retained as the resumable posture.
+- Automatic context routing is mode-aware; on-demand shell commands remain
+  available regardless of automatic block eligibility.
 
 ## Review Questions Before Context-Pack Changes
 

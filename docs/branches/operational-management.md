@@ -1,7 +1,7 @@
 # Branch: Gestione Operativa
 
 Last updated: 2026-07-13
-System version assessed: V1.29.1
+System version assessed: V1.30.0
 Status: first focus organ standalone surface closed
 
 ## Filosofia del ramo
@@ -24,6 +24,8 @@ separare task attivi da idee future, e mantenere il filo operativo.
   introdurre API o storage operativi.
 - V1.18.0/V1.21.0 implementa il primo organo focus: storage, lifecycle,
   runtime block e timeline di transizione.
+- V1.30.0 aggiunge la modalita agentica come postura operativa separata dal
+  focus: `interactive` e una condizione di turno, non l'oggetto attentivo.
 
 ## Stato attuale
 
@@ -34,7 +36,7 @@ permette set/update/hold/shift/defer/resolve/impossible/read/list/search e
 V1.21.0 aggiunge `timeline` per ispezionare gli spostamenti attentivi.
 Goal, task e open loops restano ancora teorici/progettuali.
 
-Sistema valutato: V1.29.1.
+Sistema valutato: V1.30.0.
 
 ## Sviluppi precedenti
 
@@ -46,7 +48,7 @@ Sistema valutato: V1.29.1.
 - V1.18.0 focus records/transitions, `/mind/focus`, `focus_context`.
 - V1.21.0 `focus.timeline` per chiudere l'ispezione storica standalone.
 
-## Verifica V1.29.1
+## Verifica V1.30.0
 
 - Implementazione: focus persistente e tracciato; maintenance jobs gestiscono
   lavoro backend, non task di Scarlet.
@@ -55,6 +57,8 @@ Sistema valutato: V1.29.1.
   mantenimento autonomo del focus.
 - Integrazione runtime: `organ_focus_mode=off` di default; goal/task/open
   loop restano non implementati.
+- Modalita: registry e shell `mode` sono implementati, ma non sostituiscono
+  focus, goal o task e non rappresentano processi background.
 - Prossimo gate: approvare teoria goal-focus-task, definire ownership e
   lifecycle minimi, poi collegare il focus senza trasformarlo in filtro
   memoria.

@@ -76,20 +76,21 @@ def test_affect_model_injects_compact_pack_when_signal_exists(
 
         events = repositories.list_events_for_turn(db, turn_id=turn.id)
 
-    block_types = [block["type"] for block in runtime["blocks"]]
-    assert block_types == [
-        "session_context",
-        "message_context",
-        "affective_context",
-        "scarlet_state",
-    ]
-    affect_block = runtime["blocks"][2]
+        block_types = [block["type"] for block in runtime["blocks"]]
+        assert block_types == [
+            "session_context",
+            "agent_mode_context",
+            "message_context",
+            "affective_context",
+            "scarlet_state",
+        ]
+    affect_block = runtime["blocks"][3]
     assert affect_block["content"]["current_emotion"] == "enthusiasm"
     assert affect_block["content"]["usage"]["affects"] == "model_behavior_only"
     assert affect_block["content"]["usage"]["does_not_change_memory_retrieval"] is True
     assert affect_block["content"]["usage"]["does_not_change_focus"] is True
     assert affect_block["content"]["usage"]["does_not_change_intentions"] is True
-    assert runtime["blocks"][3]["content"]["mood_expression"].startswith(
+    assert runtime["blocks"][4]["content"]["mood_expression"].startswith(
         "See affective_context"
     )
     assert "organ.affect.surfaced" in [event.type for event in events]

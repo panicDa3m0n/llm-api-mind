@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-13
-System version assessed: V1.29.1
+System version assessed: V1.30.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -74,7 +74,7 @@ confrontare cio che l'utente vede con cio che MiniMax riceve realmente. Il ramo
 non e ancora L5 perche il comportamento agentico intermedio non e sempre
 naturale, coerente o proporzionato al lavoro in corso.
 
-Sistema valutato: V1.29.1.
+Sistema valutato: V1.30.0.
 Aggiornamento V1.7.1: il ramo ora include una policy esplicita di
 proporzionalita. La qualita comunicativa non dipende solo da trasparenza e
 verifica, ma anche dalla capacita di non trasformare ogni risposta in un
@@ -132,7 +132,7 @@ chat naturale.
 - V1.16.1: prompt fix per rimuovere il frame assistente/servizio nelle prime
   sezioni del system prompt.
 
-## Verifica V1.29.1
+## Verifica V1.30.0
 
 - Implementazione: prompt identitario, effort routing, note pubbliche,
   semantic stream, replay storico e due superfici UI.
@@ -144,6 +144,9 @@ chat naturale.
   manuale equivalente ma indipendente.
 - Prossimo gate: una suite comportamentale piccola e ripetibile su greeting,
   risposta concisa, disaccordo, lavoro lungo e fallimento tool.
+- Framework V1.30.0: ogni scenario naturale separa esecuzione tecnica, scelta
+  cognitiva, qualita della risposta ed effetto longitudinale, con condizioni
+  iniziali, evidenze e ripetizioni dichiarate prima del test.
 
 ## Evolutive
 

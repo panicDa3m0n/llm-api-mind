@@ -10,9 +10,9 @@ size limits.
 ## Important Context Fields
 
 - `context.profile`: response profile, currently `gpt-bootstrap-compact-v1`.
-- `context.runtime_context`: model-facing `<runtime_context>` string.
-- `context.model_context`: the canonical `scarlet-model-context-v2` JSON also
-  serialized inside `context.runtime_context`.
+- `context.runtime_context`: the single model-facing `<runtime_context>` string
+  containing the canonical `scarlet-model-context-v2` JSON. The bridge does
+  not return a duplicate structured `context.model_context` copy.
 - `context.metacognitive_context`: optional compact metacognitive context.
 - `context.provider_messages_recent`: compact recent provider-style history.
 - `context.tools`: current `mind_shell` tool name/description.

@@ -400,6 +400,7 @@ def sanitize_text(value: str | None) -> str:
         "POST /mind/focus": "focus",
         "POST /mind/volition": "volition",
         "POST /mind/affect": "affect",
+        "POST /mind/mode": "mode",
         "mind_api": "mind_shell",
     }
     sanitized = value

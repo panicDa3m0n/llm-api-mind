@@ -215,6 +215,16 @@ def test_mind_shell_focus_volition_and_affect_commands(db_engine: Engine) -> Non
     assert volition.ok is True
     assert volition.result["target"] == "volition.list_active"
 
+    bare_volition_list = dispatch_mind_shell(
+        MindShellRequest(command="volition list"),
+        context=context,
+    )
+    assert bare_volition_list.ok is True
+    assert bare_volition_list.result["target"] == "volition.list_active"
+    bare_validation = validate_shell_command("volition list")
+    assert bare_validation["call_is_available"] is True
+    assert bare_validation["canonical_action"] == "list_active"
+
     affect = dispatch_mind_shell(
         MindShellRequest(command="affect prototypes"),
         context=context,

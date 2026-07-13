@@ -205,17 +205,18 @@ def test_focus_context_runtime_block_is_model_facing_when_enabled(
     block_types = [block["type"] for block in runtime["blocks"]]
     assert block_types == [
         "session_context",
+        "agent_mode_context",
         "message_context",
         "focus_context",
         "scarlet_state",
     ]
-    focus_block = runtime["blocks"][2]
+    focus_block = runtime["blocks"][3]
     assert focus_block["content"]["current_focus"]["id"] == focus_id
     assert focus_block["content"]["current_focus"]["object"] == (
         "Stabilizzare l'organo focus"
     )
     assert focus_block["content"]["usage"]["does_not_limit_memory_retrieval"] is True
-    assert runtime["blocks"][3]["content"]["focus"].startswith("See focus_context")
+    assert runtime["blocks"][4]["content"]["focus"].startswith("See focus_context")
 
     with Session(db_engine) as db:
         events = repositories.list_events_for_turn(db, turn_id=turn_id)

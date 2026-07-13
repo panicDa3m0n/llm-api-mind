@@ -318,6 +318,22 @@ def list_messages(db: Session, *, session_id: str) -> list[Message]:
     return list(db.exec(statement).all())
 
 
+def list_turns_for_session(
+    db: Session,
+    *,
+    session_id: str,
+    status: str | None = None,
+    limit: int | None = None,
+) -> list[Turn]:
+    statement = select(Turn).where(Turn.session_id == session_id)
+    if status is not None:
+        statement = statement.where(Turn.status == status)
+    statement = statement.order_by(Turn.started_at, Turn.id)
+    if limit is not None:
+        statement = statement.limit(limit)
+    return list(db.exec(statement).all())
+
+
 def latest_message_for_turn(
     db: Session,
     *,

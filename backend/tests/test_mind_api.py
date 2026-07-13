@@ -268,7 +268,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == "2026-07-08.memory-conflict-taxonomy-v1"
+    assert body["result"]["schema_version"] == "2026-07-13.agent-modes-v1"
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"

@@ -4,6 +4,74 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-13 - V1.30.0 Context Accounting, Agent Modes, And Behavioral Gate
+
+Goal:
+
+Measure every model-input family before designing history compaction, introduce
+main-agent operating modes without confusing them with background jobs, and
+make behavioral acceptance depend on declared real evidence rather than tool
+availability alone.
+
+Changes:
+
+- Added native per-channel accounting and provider-authoritative first-step
+  observations. Aggregate tool-loop usage remains a separate metric.
+- Configured the MiniMax 1M window, API Mind 500k operating boundary, 400k
+  compaction trigger, provisional 100k chronological summary, and desired
+  eight complete turns. Compaction remains shadow-only and never mutates the
+  canonical chronology.
+- Added `idle`, `interactive`, and `scouting`, one active tag, multi-tag organ
+  eligibility, persistent resumable posture, automatic block routing, and
+  `mode read/list/set` with traces/events.
+- Made mode state explicit that `scouting` has no autonomous sensor runtime and
+  that `mode set` persists posture without starting a background cycle.
+- Added the evidence-first `behavioral-scenario-v1` contract and its four
+  result layers.
+- Removed the duplicate GPT `context.model_context` payload and added partial
+  bridge accounting that never claims visibility into ChatGPT-native tokens.
+- Fixed the shell mismatch where bare `volition list` was advertised but
+  reached the handler as an invalid action.
+
+Real Evidence:
+
+- Read-only laboratory inspection found first-step calibration around
+  3.75-4.83 characters/token. Eight-turn proxies ranged from about 63k to
+  159k tokens; a five-turn tool-heavy tail reached about 323k. Eight turns are
+  therefore a desired tail, not a guaranteed fixed window.
+- Four same-prompt MiniMax M3 probes ran on independent disposable copies of
+  the frozen preliminary DB. The first exposed a malformed `volition list`,
+  the second replaced mode change with memory, and the third set mode but
+  overclaimed automatic execution. After targeted fixes, the fourth called
+  `mode set scouting`, wrote the optional durable preference, persisted
+  `resume_tag=scouting`, kept `interactive` active, and explicitly stated that
+  no autonomous loop or sensor runtime exists.
+- The accepted direct turn was
+  `turn_771df91d1e574f268726442d581af777` in disposable session
+  `ses_0c19e70c61774bde9837d19ff69685a2`; the disposable DB was deleted after
+  inspection and no production/laboratory data was changed.
+
+Verification:
+
+- Backend suite: `146 passed`.
+- Frozen preliminary regression: `9/9` in
+  `20260713_163648_preliminary-regression-v1`.
+- Frontend production build passed.
+- GPT prompt length: `7809` bytes, below the protected 8,000-character limit.
+
+Residual Risk:
+
+Active compaction is not yet justified. The accepted mode probe validates one
+natural scenario after correction, not broad longitudinal behavior. Scouting
+is state/registry only until an independently designed runtime exists.
+
+Next Suggested Step:
+
+Accumulate post-V1.30 accounting in a genuinely long varied session, then build
+and compare a source-labelled derived chronology without activating it. Expand
+the behavioral scenario set before adding sensors, autonomous cycles, or more
+agent modes.
+
 ## 2026-07-13 - V1.29.1 Integrated System And Documentation Audit
 
 Goal:

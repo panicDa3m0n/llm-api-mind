@@ -26,6 +26,7 @@ Current families include:
 - `focus`;
 - `volition`;
 - `affect`;
+- `mode`;
 - `metacognition`.
 
 Always trust returned shell help over remembered syntax.
@@ -45,8 +46,18 @@ focus read
 volition list active --limit 10
 affect read
 affect prototypes
+mode read
+mode set scouting --reason "..."
 metacognition step --objective "..." --mode critic
 ```
+
+Agent mode is Scarlet's foreground posture. Human-facing turns remain
+`interactive`; `mode set idle|scouting --reason "..."` selects the posture to
+resume afterward. A request for a post-conversation posture is a mode change,
+not a volition. Apply an explicit request in the same turn; a memory does not
+replace `mode set`. The command persists posture only; it starts no autonomous
+cycle. Scouting has no autonomous sensor runtime yet. Maintenance and Dream are
+not agent modes.
 
 ## Error Recovery
 

@@ -95,6 +95,8 @@ def dispatch_mind_shell(
         return _volition_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"affect", "emotion", "emotions"}:
         return _affect_command(parsed, context=context, intent=intent)
+    if parsed.namespace in {"mode", "operating-mode"}:
+        return _mode_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"metacognition", "meta", "reflect"}:
         return _metacognition_command(parsed, context=context, intent=intent)
 
@@ -103,7 +105,7 @@ def dispatch_mind_shell(
         message=f"Unknown mind shell namespace: {parsed.namespace}",
         parsed=parsed,
         namespace=None,
-        actions=["help", "help memory", "help session", "help focus"],
+        actions=["help", "help memory", "help session", "help mode"],
     )
 
 
@@ -556,14 +558,26 @@ def _volition_command(
     intent: str,
 ) -> MindAPIResponse:
     action = parsed.action or "list_active"
-    if action == "list" and parsed.args:
-        list_kind = _normalize_token(parsed.args[0])
+    if action == "list":
+        list_kind = _normalize_token(parsed.args[0]) if parsed.args else "active"
         if list_kind in {"active", "open"}:
             action = "list_active"
-            parsed = ParsedCommand(parsed.raw, parsed.namespace, parsed.action, parsed.args[1:], parsed.flags)
+            parsed = ParsedCommand(
+                parsed.raw,
+                parsed.namespace,
+                parsed.action,
+                parsed.args[1:] if parsed.args else [],
+                parsed.flags,
+            )
         elif list_kind in {"due", "review"}:
             action = "list_due"
-            parsed = ParsedCommand(parsed.raw, parsed.namespace, parsed.action, parsed.args[1:], parsed.flags)
+            parsed = ParsedCommand(
+                parsed.raw,
+                parsed.namespace,
+                parsed.action,
+                parsed.args[1:],
+                parsed.flags,
+            )
     action = {
         "list-active": "list_active",
         "list_active": "list_active",
@@ -683,6 +697,40 @@ def _affect_command(
         api_request=MindAPIRequest(
             method="POST",
             path="/mind/affect",
+            body=body,
+            intent=intent,
+        ),
+        context=context,
+    )
+
+
+def _mode_command(
+    parsed: ParsedCommand,
+    *,
+    context: MindAPIContext | None,
+    intent: str,
+) -> MindAPIResponse:
+    action = parsed.action or "read"
+    action = {"show": "read", "get": "read", "current": "read"}.get(action, action)
+    body: dict[str, Any] = {"action": action}
+    if action == "set":
+        mode = _first_arg_or_flag(parsed, "mode", "tag")
+        reason = _flag_string(parsed, "reason", "why")
+        if not mode or not reason:
+            return _shell_error(
+                code="shell.mode_set_missing_fields",
+                message="mode set requires a mode tag and reason.",
+                parsed=parsed,
+                namespace="mode",
+                actions=['mode set idle --reason "..."', 'mode set scouting --reason "..."'],
+            )
+        body.update({"mode": mode, "reason": reason})
+    return _dispatch_api_as_shell(
+        parsed,
+        target=f"mode.{action}",
+        api_request=MindAPIRequest(
+            method="POST",
+            path="/mind/mode",
             body=body,
             intent=intent,
         ),
