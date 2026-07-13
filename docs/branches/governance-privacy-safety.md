@@ -1,7 +1,7 @@
 # Branch: Governance, Privacy E Sicurezza Cognitiva
 
-Last updated: 2026-07-10
-System version assessed: V1.27.0
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: early branch
 
 ## Filosofia del ramo
@@ -35,7 +35,7 @@ Il ramo ha i primi ganci strutturali, ma non e maturo. Non esiste vero
 multiutente, non esiste cancellazione privacy completa, non esistono policy
 di consenso avanzate o access control su memorie.
 
-Sistema valutato: V1.27.0.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -47,6 +47,20 @@ Sistema valutato: V1.27.0.
   safety gate e degradazione.
 - Topologia DB e preflight read-only: i dati reali VPS sono un confine
   operativo distinto dalla snapshot laboratorio e dai DB disposable.
+
+## Verifica V1.29.1
+
+- Implementazione: ruoli DB, preflight, trace/audit, backend field ownership,
+  profilo e privacy hint configurati.
+- Test deterministici: coprono boundary DB e autenticazione bridge/UI, non
+  isolamento dati multiutente.
+- Evidenza reale: produzione e test sono separati; il modello V2 riceve solo il
+  nome utente, mentre profile id e policy restano sistemici.
+- Integrazione runtime: single-user per convenzione. `scope=user` e
+  `profile_id` non sono ancora access control.
+- Prossimo gate: ownership persistente per user id autenticato, query filtrate
+  deterministicamente, export/correzione/cancellazione e classificazione
+  safety per azioni esterne.
 
 ## Evolutive
 

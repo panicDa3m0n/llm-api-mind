@@ -133,6 +133,12 @@ The V1.28.0 repository-domain split passed the unchanged suite `9/9` in
 `20260710_152411_preliminary-regression-v1`, confirming that the stable
 repository facade preserved session, memory, organ, trace, and bridge behavior.
 
+The V1.29.0 canonical context implementation and the V1.29.1 integrated
+documentation/code audit both passed the unchanged suite `9/9`; the latest
+recorded run is `20260713_130851_preliminary-regression-v1`. This confirms the
+frozen assembled contracts, not free-form provider behavior or the semantic
+quality of every branch.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

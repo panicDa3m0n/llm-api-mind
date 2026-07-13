@@ -4,7 +4,12 @@ This file tracks hypotheses, baselines, variants, scenarios, metrics, and result
 
 The project should not accept a cognitive module only because it feels intelligent. Each meaningful module should have a measurable experiment.
 
-## EXP-0036 - ChatGPT MCP/App Bridge Usability
+Identifier note: V1.29.1 removed legacy duplicate headings. Historical activity
+entries may still mention the original reused identifiers; current canonical
+ids are the headings in this file. Experiment results and dates were not
+rewritten.
+
+## EXP-0057 - ChatGPT MCP/App Bridge Usability
 
 Status: deprecated after V1.25.2 platform evaluation
 
@@ -73,7 +78,7 @@ the active tool surface; the GPT editor exposed only Actions. The endpoint is
 therefore deprecated and retained temporarily only for traceability. Actions
 remain the active path even though each turn requires user approval.
 
-## EXP-0035 - Mind Shell Output And Memory Relevance Calibration
+## EXP-0056 - Mind Shell Output And Memory Relevance Calibration
 
 Status: accepted for V1.23.0 technical stabilization
 
@@ -146,7 +151,7 @@ model-facing runtime capabilities from the shell registry. Endpoint-only
 maintenance such as `memory.facts.backfill` is now explicitly
 `internal_maintenance_only`.
 
-## EXP-0034 - Mind Shell Model-Facing Cognition
+## EXP-0055 - Mind Shell Model-Facing Cognition
 
 Status: accepted for V1.22.0 after technical and live e2e validation
 
@@ -218,7 +223,7 @@ selected it, while trace inspection showed the decisive evidence came from the
 explicit shell search. This is not a CLI conversion bug, but it remains a
 behavioral evaluation target for future source-discipline work.
 
-## EXP-0033 - First Three Digital Organs Standalone Verification
+## EXP-0054 - First Three Digital Organs Standalone Verification
 
 Status: technical verification complete; live behavior evaluation pending
 
@@ -248,7 +253,7 @@ Live evaluation still needed:
 - verify `/mind/affect` helps introspection without letting Scarlet invent or
   mutate emotions.
 
-## EXP-0032 - Affective Context Model-Only Integration
+## EXP-0053 - Affective Context Model-Only Integration
 
 Status: planned
 
@@ -308,7 +313,7 @@ Decision:
 
 Pending direct Scarlet probes.
 
-## EXP-0030 - Focus Organ Foreground Continuity
+## EXP-0052 - Focus Organ Foreground Continuity
 
 Status: planned
 
@@ -3879,7 +3884,7 @@ Links:
 - `docs/branches/metacognition.md`
 - `backend/app/mind/metacognition.py`
 
-## EXP-0031 - Metacognitive Context Shadow
+## EXP-0058 - Metacognitive Context Shadow
 
 Status: active
 

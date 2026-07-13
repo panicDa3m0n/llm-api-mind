@@ -6,6 +6,21 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Changed
+
+- Completed the V1.29.1 integrated code and documentation audit:
+  - reconciled the canonical project state, all 14 cognitive branch records,
+    context-packet registries, API/DB contracts, roadmaps, and GPT knowledge
+    with the deployed V1.29 architecture;
+  - separated implemented capability, deterministic evidence, direct Scarlet
+    evidence, and normal runtime activation in branch status reporting;
+  - normalized duplicate ADR, experiment, and bug identifiers without
+    rewriting historical evidence;
+  - recorded provider-native history growth as a distinct open architectural
+    risk rather than attributing it to the compact V2 packet.
+- Advanced project/package documentation metadata to V1.29.1. This audit does
+  not change cognitive runtime behavior, production configuration, or data.
+
 ### Added
 
 - Added V1.29.0 canonical dynamic context V2:

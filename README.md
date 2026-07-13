@@ -1,6 +1,7 @@
 # LLM API Mind
 
-Experimental laboratory for testing whether an LLM can become more capable, coherent, and inspectable when supported by a modular cognitive API.
+Experimental laboratory for building and evaluating the external cognitive
+architecture of Scarlet, a digital individual in development.
 
 The project starts with a simple principle:
 
@@ -8,11 +9,15 @@ The project starts with a simple principle:
 Build the microscope before the mind.
 ```
 
-The first milestone is a local MiniMax M2.7 chat runtime where every turn is stored, inspectable, and ready for later cognitive API experiments.
+The long-term direction is a complex, inspectable cognitive system that can
+support memory, perception, self-monitoring, relationship, affect, attention,
+volition, learning, action, and eventually embodiment. Human-like cognitive
+functions are research targets, not claims that the current implementation has
+already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.29.0**.
+Current app baseline: **V1.29.1**.
 
 The project has a working local baseline runtime:
 
@@ -22,7 +27,8 @@ The project has a working local baseline runtime:
 - configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, traces, and ordered runtime
   events;
-- traceable `mind_api` schema tool loop;
+- traceable single-tool `mind_shell(command, intent)` cognitive loop, backed by
+  internal `/mind/*` handlers;
 - model-controlled, unbounded API Mind cognitive loop during chat turns;
 - cognitive API support for schema discipline and a single LLM-backed internal
   metacognition route;
@@ -35,7 +41,8 @@ The project has a working local baseline runtime:
   embeddable cognitive facets such as preference, future-use, temporal, fact,
   and conflict/update surfaces;
 - episodic recall through session summaries plus full transcript retrieval by session id;
-- Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
+- rich automatic retrieval/runtime traces plus a compact
+  `scarlet-model-context-v2` packet shared by native MiniMax and GPT Actions;
 - runtime event control plane feeding the cockpit timeline and compact
   next-turn operational context;
 - backend-owned per-session idle maintenance for session summary refresh,
@@ -45,8 +52,10 @@ The project has a working local baseline runtime:
 - streaming React cockpit with inline ordered agent-turn timeline and recent
   session sidebar for reopening persisted conversations by title;
 - scripted and interactive evaluation runner;
-- accepted baseline, tool-loop, streaming trace, runtime-event, and initial
-  Memory v0 experiments.
+- focus, volition, and affect as implemented standalone organ surfaces, with
+  different runtime activation and validation levels;
+- accepted baseline, shell, streaming, context V2, memory, organ, and
+  preliminary whole-system regression experiments;
 - a declared database boundary between production, mutable laboratory state,
   disposable tests, and frozen preliminary regression runs.
 - active memory robustness roadmap for response-control, lifecycle, atomic facts, retrieval quality, compaction, CLI/API inspection, and evals.
@@ -77,13 +86,16 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Calibrate and validate active hybrid memory retrieval with live Scarlet
-   probes and negative controls.
-2. Retrieval quality and memory health.
-3. Source-sensitive answer validation.
-4. Metacognition deepening inside the single route.
-5. Human operator surfaces: CLI and cockpit memory views.
-6. Broader behavioral evals for memory, metacognition, and runtime events.
+1. Finish field-by-field review of V2 preserved context and provider-history
+   budgeting.
+2. Implement a trace-only context-mode router before changing model input.
+3. Calibrate memory duplicate/conflict handling and retrieval quality with
+   evidence from real and frozen test state.
+4. Validate focus, volition, affect, metacognition, identity, and communication
+   behavior before coupling organs or adding autonomous cycles.
+5. Design deterministic multi-user/privacy ownership before personal data or
+   external/embodied operation expands.
+6. Reduce code monoliths behind the frozen regression gate.
 ```
 
 See `docs/project-state.md` for the integrated current-state map and the

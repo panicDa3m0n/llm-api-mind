@@ -1,7 +1,7 @@
 # Branch: Gestione Flussi Utente
 
-Last updated: 2026-06-20
-System version assessed: V1.14.5
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: active prototype branch
 
 ## Filosofia del ramo
@@ -37,14 +37,14 @@ identita, tempo, luogo, lingua, privacy e continuita.
 
 ## Stato attuale
 
-Valutazione: L2.
+Valutazione: L2/L3.
 
 Esistono ora due superfici distinte: cockpit tecnico per sviluppo e app mobile
 consumer per uso normale. La mobile app abilita chat, memoria visibile, profilo
 e settings reali, ma non ha ancora onboarding, multiutente, session close
 esplicito, revisione guidata memoria o workflow privacy avanzati.
 
-Sistema valutato: V1.14.5.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -63,6 +63,19 @@ Sistema valutato: V1.14.5.
 - V1.14.5: blocco mobile `activity` per richiesta in corso, contesto,
   retrieval memoria, salvataggio ricordi, tool waits, errori recuperabili e
   metacognizione.
+
+## Verifica V1.29.1
+
+- Implementazione: cockpit tecnico completo e mobile consumer funzionante su
+  chat/sessioni/memoria/profilo/settings.
+- Test deterministici: contratti API e build TypeScript; non esiste una suite
+  browser E2E stabile.
+- Evidenza utente: preview mobile usata e corretta su telefono; workflow
+  avanzati assenti.
+- Integrazione runtime: attiva, ma i file `App.tsx` e `MobileApp.tsx` sono
+  monoliti rispettivamente di circa 4.5k e 1.8k righe.
+- Prossimo gate: componentizzazione dietro regressione visiva/E2E, poi
+  onboarding, session lifecycle e controllo dati personali.
 
 ## Evolutive
 

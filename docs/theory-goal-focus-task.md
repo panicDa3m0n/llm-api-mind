@@ -1,8 +1,12 @@
 # Goal, Focus, Task Theory
 
-Last updated: 2026-06-14
-System baseline: V1.5.0
+Last updated: 2026-07-13
+System baseline: theory originated in V1.5.0; implementation compared at V1.29.1
 Status: theory for owner review, not implementation spec
+
+Current boundary: focus is implemented as a standalone organ; goal, task, and
+open-loop stores are not. This document remains the theory review source and
+must not be read as the current API contract.
 
 This document defines what goal, focus, task, and operational continuity should
 mean for Scarlet as a digital individual. It intentionally does not describe a

@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-07-10
-Current app version: V1.29.0
+Last updated: 2026-07-13
+Current app version: V1.29.1
 Process baseline: V1.0.1
 Status: accepted
 
@@ -148,7 +148,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-V1.0.1 baseline includes:
+The current V1.29.1 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and

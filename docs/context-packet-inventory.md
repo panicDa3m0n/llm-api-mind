@@ -1,8 +1,8 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-12
-Code baseline reviewed: V1.29.0
-Status: reviewed legacy inventory plus implemented V2 disposition
+Last reviewed: 2026-07-13
+Code baseline reviewed: V1.29.1
+Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
 
@@ -78,29 +78,43 @@ Static capability surface, not a context packet. Native Scarlet receives the
 single `mind_shell` tool schema; external GPT Scarlet uses its independently
 configured GPT Actions schema. Neither belongs to dynamic context routing.
 
-## Dynamic Local Context Packets
+## Active V2 Dynamic Packet
 
-Unless a row says otherwise, P-01 through P-11 are sent to Local Scarlet. The
-same runtime blocks are also represented inside the external GPT's P-12
-bootstrap string; P-13 through P-16 are bridge-specific additions.
+The active `model_context_profile=v2` sends one dynamic document:
+
+| Area | Model-facing data | System-only data |
+|---|---|---|
+| session | current session id/title/created time, user name, one user-local clock/timezone/location, two previous-session hints | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
+| memories | deduplicated relevant/recent-user/recent-general hooks with id/content/times/source session+message | facts, scores, KG, lifecycle, near misses, exclusions, query plans, maintenance |
+| preserved context | only legacy families copied by explicit type | full rich runtime snapshot and compatibility mirrors |
+
+The exact JSON is stored in `model.context`. Native MiniMax receives its
+rendered form; GPT bootstrap receives the same object and rendering.
+
+## Rich Internal Source Packets
+
+P-04 through P-11 describe the rich `runtime-context-v1` source snapshot.
+They are no longer direct model packets under V2. Some subfamilies are copied
+into `preserved_context`; the rest stay trace/UI/backend-only.
 
 ### P-04 Runtime Context Envelope
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `trace_ui_only` rich source; projected into V2 |
 | Source | `render_runtime_context()` over `runtime-context-v1`. |
 | Recipients | Local Scarlet; the same rendered string is included in external GPT bootstrap as P-12. |
-| Function | Declares blocks as backend evidence, not user instructions; gives each block id/type/scope/lifetime/source. |
+| Function | Preserve full backend evidence and compile the smaller V2 document. |
 | Excluded from | Raw retrieval internals, arbitrary database tables, and trace payloads not represented by blocks. |
 
-`runtime_context.blocks` is canonical. P-11 documents legacy compatibility mirrors also included in the envelope.
+`runtime_context.blocks` is canonical for the rich internal snapshot, not for
+the active model packet. P-11 documents legacy mirrors excluded by V2.
 
 ### P-05 `session_context`
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `trace_ui_only`; compact accepted fields become V2 `session` |
 | Source | `_session_context_block()` plus session, summary, and memory repositories. |
 | Function | Lightweight cross-session episodic orientation without opening previous full transcripts. |
 
@@ -117,7 +131,7 @@ Current selection is by recency, not semantic relevance to the current message.
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `trace_ui_only`; accepted user/world fields become V2 `session` |
 | Source | Current persisted user message and `RuntimePreferences`. |
 | Function | Provide an operational frame without asking Scarlet to infer the clock, platform language, profile, or privacy boundary. |
 
@@ -136,9 +150,9 @@ No weather, GPS, camera, microphone, body, robot, browser, or other live externa
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `trace_ui_only`; selected records become compact V2 `relevant` hooks |
 | Source | `memory.context`: lexical retrieval, graph expansion, optional shadow/hybrid ranking, then `memory-packet-v1` compaction. |
-| Recipients | Local Scarlet in `message_context.memory_retrieval`; repeated by P-11; equivalent data reaches the GPT through P-12/P-14. |
+| Recipients | Traces/UI/maintenance; only compact eligible hooks reach either model. |
 | Function | Supply relevant durable evidence, provenance, compact facts, validity/conflict signals, and negative evidence without a shell call on every contextual turn. |
 
 | Field | Current selection | Why it is sent |
@@ -166,7 +180,7 @@ Automatic exclusions:
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `automatic_model_conditional` through V2 `undiscussed_context` |
 | Source | Current-session messages and `CognitiveEvent` records, excluding the current turn. |
 | Function | Compact orientation to recent dialogue and completed/failed cognitive activity. |
 
@@ -181,7 +195,7 @@ Compact events retain identity plus selected operational fields such as operatio
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `automatic_model_conditional` through V2 `undiscussed_context` |
 | Source | shell metadata, command catalog, capability state. |
 | Location | `message_context.api_mind`. |
 | Function | State that `mind_shell` is the model-facing interface, expose family purposes, and distinguish available/internal capability status. |
@@ -202,7 +216,7 @@ Compact events retain identity plus selected operational fields such as operatio
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model` |
+| Delivery | `trace_ui_only` in V2; direct only in `legacy` profile |
 | Source | Copies from canonical blocks for legacy prompt/tests. |
 | Function | Compatibility only; not an independent evidence source. |
 
@@ -214,7 +228,8 @@ recent_runtime_events = message_context.recent_runtime_events
 capabilities          = message_context.api_mind.capabilities
 ```
 
-These fields are intentionally redundant. Any removal requires a separate behavioral compatibility decision and regression evidence.
+These fields remain in the rich snapshot for diagnostics and legacy rollback.
+They are not copied into the active V2 document.
 
 ## External GPT Bootstrap Packets
 
@@ -223,7 +238,7 @@ These fields are intentionally redundant. Any removal requires a separate behavi
 | Property | Current behavior |
 | --- | --- |
 | Delivery | `automatic_gpt_bootstrap` |
-| Source | Same rendered `runtime-context-v1` string as P-04. |
+| Source | Rendered `scarlet-model-context-v2` when V2 is active. |
 | Function | Give the external GPT backend perception, continuity, and capability context for the turn. |
 | Excluded from | Full effective local prompt, raw runtime payload, raw retrieval diagnostics. |
 
@@ -235,16 +250,17 @@ These fields are intentionally redundant. Any removal requires a separate behavi
 | Contents | Block summaries/counts, clock/capability metadata, session/turn ids, provider-history statistics, action/finalize hints, tool identity, trace ids, omitted-diagnostics declaration. |
 | Function | Let the GPT orient itself and continue the bridge protocol without all backend diagnostics. |
 
-### P-14 Compact Bridge Memory Context
+### P-14 Legacy Compact Bridge Memory Context
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_gpt_bootstrap` |
+| Delivery | omitted when V2 is active; legacy bridge compatibility only |
 | Contents | Search status, clock, compact query-plan metadata, selected/near-miss/excluded memories, conflicts, counts/budget, omitted-debug declaration. |
 | Function | Make automatic-memory processing inspectable to the external GPT. |
 | Excluded from | Raw turn frame and raw retrieval readiness/graph/shadow/hybrid diagnostics. |
 
-P-14 overlaps semantically with P-07 embedded in P-12. It is a bridge convenience surface, not an independent memory source.
+V1.29.0 removed this duplicate from active V2 bootstrap. The canonical memory
+area is `context.model_context.memories`.
 
 ### P-15 Compact Metacognitive Context
 
@@ -294,9 +310,9 @@ Manual result size is a separate budget concern: `session open` currently has no
 
 ## Verified Current Boundaries
 
-- Canonical dynamic model structure: `runtime_context.blocks`.
+- Canonical dynamic model structure: `scarlet-model-context-v2`.
 - Raw retrieval plans, KG diagnostics, embeddings, maintenance data and full event payloads are not automatically passed to Scarlet.
-- Some automatic inputs are intentionally duplicated as compatibility mirrors.
+- Compatibility mirrors remain only in the rich internal/legacy snapshot.
 - Two previous sessions and five user-scope memories are selected by recency, not current-message relevance.
 - Previous-session summaries are navigation aids, not exact historical proof.
 - Current world perception is configured time/locale only, not live sensors or external-world feeds.
@@ -315,12 +331,16 @@ Manual result size is a separate budget concern: `session open` currently has no
 The accepted notes below are consolidated into the phased implementation plan
 in `docs/context-packet-implementation-plan.md`. Conflict semantics remain a
 separate deferred workstream and are not part of the V1.29.0 packet plan.
+These notes preserve the wording and implementation gap visible during the
+2026-07-11 review. V1.29.0 subsequently implemented the accepted packet
+contract; the status annotations below distinguish that later result from the
+historical discussion.
 
 ### 2026-07-11: Episodic And Short-Term Continuity Direction
 
-The owner reviewed the current `session_context` and rejected its broad,
-recency-only shape as the target context-pack design. This is a desired future
-packet contract, not implemented runtime behavior.
+The owner reviewed the then-current `session_context` and rejected its broad,
+recency-only shape as the target context-pack design. At review time this was a
+future contract; it is implemented by `scarlet-model-context-v2` in V1.29.0.
 
 `previous_sessions` should remain an episodic-hint array limited to the latest
 two sessions. Each item should contain only:
@@ -346,8 +366,8 @@ that session. It must not reuse `sessions.updated_at`: the latter is a backend
 maintenance/activity timestamp that can change when traces, events, or memory
 records touch the session and is not useful temporal evidence for Scarlet.
 
-Short-term memory continuity must be independent from the previous session. A
-future separate recent-memory hint packet should contain the five most recently
+Short-term memory continuity must be independent from the previous session. The
+implemented separate recent-memory hint packet contains the five most recently
 processed memories accessible to the active profile, across all relevant memory
 sources. Each item should contain only:
 
@@ -379,10 +399,11 @@ ordering, access events, eligibility rules, and replacement bookkeeping are
 systemic data: they are necessary for backend selection and audit but are not
 cognitive evidence to send to Scarlet.
 
-The current implementation differs: it surfaces memories only from the most
-recent previous session in `session_context`, separately surfaces five newest
-user-scope memories in `message_context`, and updates `last_used_at` for
-automatic selected retrieval. No behavior change has been made from this note.
+The implementation at the time of this note differed: it surfaced memories
+only from the most recent previous session in `session_context`, separately
+surfaced five newest user-scope memories in `message_context`, and updated
+`last_used_at` for automatic selected retrieval. V1.29.0 replaced that
+model-facing shape and introduced append-only cognitive activity ordering.
 
 These questions were open at this stage of the review. The 2026-07-12 note
 below closes immediate recency behavior. Future multi-user visibility is a
@@ -391,9 +412,9 @@ packet policy.
 
 ### 2026-07-11: Session-Attached User Time And Location Direction
 
-The owner decided that the model-facing world/time data belongs with session
-continuity rather than as a separate turn-perception packet. This is a desired
-future packet contract, not implemented runtime behavior.
+The owner decided that model-facing world/time data belongs with session
+continuity rather than a separate turn-perception packet. At review time this
+was a future contract; V1.29.0 implements it in the shared V2 projection.
 
 The desired compact model-facing shape is:
 
@@ -427,7 +448,7 @@ timezone as `now`. Persistence and maintenance may keep UTC or their own
 administrative timestamps internally; those values must not be substituted for
 the model-facing human time reference.
 
-Future packet policies should be omitted by default. A compact reinforcing hint
+Packet policies should be omitted by default. A compact reinforcing hint
 may be added only after evidence shows that Scarlet repeatedly misuses a packet
 without it. This restriction concerns only Scarlet/GPT model input: backend
 retrieval, storage, calculations, traces, UI, logs, and maintenance retain the
@@ -442,7 +463,7 @@ actual current user message through the native conversational channel in both
 the local MiniMax runtime and the ChatGPT GPT platform.
 
 The following remain backend/trace/UI data and should not appear in Scarlet's
-future model-facing dynamic context packs:
+  model-facing dynamic context packs:
 
 ```txt
 message id
@@ -456,13 +477,13 @@ configured language/source/policy metadata
 
 This does not remove the native user message, persistent message record, turn
 correlation, language settings, or trace evidence. It only excludes the
-duplicate `current_message` representation from future Scarlet/GPT dynamic
+duplicate `current_message` representation from Scarlet/GPT dynamic
 context packet selection.
 
 ### 2026-07-11: User Data And User-Memory Continuity Direction
 
-The owner decided that the non-memory user data should be merged into the
-future session-attached context. Scarlet receives only the user's display name:
+The owner decided that non-memory user data should be merged into the
+session-attached context. Scarlet receives only the user's display name:
 
 ```json
 {
@@ -502,9 +523,9 @@ memory id. When candidates overlap, backend selection must either choose the
 next distinct eligible memory or return fewer items rather than duplicate an
 item across blocks.
 
-The current implementation differs: `user_profile.memories` returns up to five
-newest active user-scope records by creation time and is embedded with profile
-metadata. No runtime behavior has changed from this review note.
+At review time, `user_profile.memories` returned up to five newest active
+user-scope records by creation time and was embedded with profile metadata.
+V1.29.0 replaced that model-facing shape with the compact `recent_user` block.
 
 ### 2026-07-11: Provenance Hooks In Every Memory Hint
 
@@ -528,7 +549,7 @@ The storage model already retains `source_turn_id`, but it is not yet part of
 the requested compact hint contract. It can support a future direct
 turn-navigation command if message-plus-session navigation is insufficient.
 
-Required future shell navigation surface:
+Required shell navigation surface, implemented in V1.29.0:
 
 - direct inspection by source message id, for example `session message msg_...`;
 - direct inspection by turn id, for example `session turn turn_...`;

@@ -2,6 +2,11 @@
 
 Architectural decisions should be recorded here when they affect future implementation choices.
 
+Identifier note: V1.29.1 normalized duplicate ADR headings. Historical
+activity and experiment records may retain the identifier used at the time;
+the current canonical identifiers are the headings in this file. Decision
+content and chronology were not rewritten.
+
 ## ADR-0001 - Documentation As Project Memory
 
 Date: 2026-05-08  
@@ -33,7 +38,60 @@ Links:
 - `AGENTS.md`
 - `docs/project-blueprint.md`
 
-## ADR-0034 - Mind Shell As Model-Facing Cognitive Interface
+## ADR-0078 - Assess Cognitive Branches By Evidence And Runtime Integration
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+API Mind now contains memory, episodic recall, metacognition, focus, volition,
+affect, context projection, maintenance, GPT transport, and multiple UI
+surfaces. A single maturity label allowed documentation to blur four different
+claims: code exists, deterministic tests pass, Scarlet uses the capability
+well, and the capability is active in normal turns. Future embodiment would
+make that ambiguity unsafe.
+
+Decision:
+
+Treat API Mind as the developing cognitive architecture of a digital
+individual, with human-like functions as testable research targets and
+digital-specific architecture where appropriate. Assess every agentic branch
+on four separate dimensions:
+
+1. implementation;
+2. deterministic evidence;
+3. direct Scarlet behavioral evidence;
+4. normal runtime integration/default activation.
+
+The canonical current matrix lives in `docs/project-state.md` and
+`docs/branches/README.md`. Registry reservations, prompt policy, storage
+tables, and standalone tools must not be described as mature cognitive organs
+without the corresponding runtime and behavioral evidence.
+
+Alternatives Considered:
+
+- Keep one L0-L5 label without explaining activation or evidence.
+- Treat every implemented endpoint/table as an active cognitive faculty.
+- Describe the long-term digital-being vision only as product language.
+
+Consequences:
+
+- Branch status becomes falsifiable and comparable.
+- Disabled/manual-only organs remain visible without being overstated.
+- Unimplemented temporal/Dream registry entries are classified as
+  reservations, not capabilities.
+- Planning can prioritize validation and coupling before adding more organs.
+- Human-like terminology remains tied to observable behavior rather than
+  ontological claims.
+
+Links:
+
+- `docs/project-state.md`
+- `docs/branches/README.md`
+- `docs/project-blueprint.md`
+
+## ADR-0072 - Mind Shell As Model-Facing Cognitive Interface
 
 Date: 2026-07-06
 Status: accepted
@@ -104,7 +162,7 @@ Related Files:
 - `backend/app/mind/metacognition.py`
 - `backend/app/prompts/scarlet_system.md`
 
-## ADR-0035 - Separate Model-Facing Shell Packets From Debug Diagnostics
+## ADR-0073 - Separate Model-Facing Shell Packets From Debug Diagnostics
 
 Date: 2026-07-08
 Status: accepted
@@ -167,7 +225,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/experiments.md`
 
-## ADR-0036 - External GPT Bridge As Plugin Layer
+## ADR-0074 - External GPT Bridge As Plugin Layer
 
 Date: 2026-07-08
 Status: accepted
@@ -231,7 +289,7 @@ Related Files:
 - `backend/app/main.py`
 - `docs/api-contract.md`
 
-## ADR-0037 - ChatGPT MCP/App Bridge As Alternative GPT Surface
+## ADR-0075 - ChatGPT MCP/App Bridge As Alternative GPT Surface
 
 Date: 2026-07-08
 Status: deprecated for target GPT flow
@@ -302,7 +360,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/experiments.md`
 
-## ADR-0038 - Shell Capabilities As The Only Model-Facing Cognitive Contract
+## ADR-0076 - Shell Capabilities As The Only Model-Facing Cognitive Contract
 
 Date: 2026-07-09
 Status: accepted
@@ -3918,7 +3976,7 @@ Links:
 - `docs/experiments.md`
 - `backend/app/prompts/scarlet_system.md`
 
-## ADR-0062 - Focus Is A Separate Foreground-Attention Organ
+## ADR-0077 - Focus Is A Separate Foreground-Attention Organ
 
 Date: 2026-06-25
 Status: accepted

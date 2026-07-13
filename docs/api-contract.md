@@ -2,6 +2,9 @@
 
 This file documents stable API contracts once they are implemented.
 
+Last reviewed: 2026-07-13
+App baseline: V1.29.1
+
 ## Response Philosophy
 
 Mind API responses should be useful to both code and the LLM agent.
@@ -95,6 +98,11 @@ shell. It is the language Scarlet uses to operate her internal cognition.
 Legacy `/mind/*` HTTP endpoints remain available for backend/debug
 compatibility, tests, and rollback, but they are no longer the active model
 tool contract.
+
+Native `mind_shell` requires `command`; `intent` is optional in the tool
+schema and receives a backend default when omitted. GPT
+`runScarletMindAction` requires both fields because every external bridge
+action must carry an explicit audit reason.
 
 Implemented command families:
 
@@ -497,6 +505,13 @@ Status: implemented
 Purpose:
 
 Build backend-owned operational context before each LLM call. This is not a public user-facing endpoint. It is an internal chat-runtime phase that makes memory evidence perceptual and traceable instead of depending only on optional model tool calls.
+
+V1.29.0 boundary: the rich `runtime-context-v1` and `memory.context`
+payloads described below are collection/trace sources. With
+`model_context_profile=v2`, Scarlet receives their compact
+`scarlet-model-context-v2` projection, not the full block/mirror document.
+The legacy detail remains documented because it is still implemented for
+rollback, diagnostics, maintenance, and UI.
 
 Target turn flow:
 

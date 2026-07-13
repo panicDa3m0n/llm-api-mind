@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
-Last updated: 2026-07-12
-System version assessed: V1.29.0
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -63,7 +63,7 @@ percezione non e ancora completa perche mancano ambiente esterno reale,
 device/app state avanzato, profilo multiutente e stato Scarlet modificabile
 tramite API.
 
-Sistema valutato: V1.29.0.
+Sistema valutato: V1.29.1.
 Aggiornamento V1.7.1: la percezione viene ora usata anche per calibrare lo
 sforzo. Se il runtime context, la memoria selezionata o la history visibile
 contengono gia l'evidenza sufficiente, il prompt istruisce Scarlet a non
@@ -113,6 +113,19 @@ il contesto V2 e deve entrare nella prossima progettazione di budget/modalita.
   trigger/lezioni candidate prima di attivare retrieval metacognitivo reale.
 - V1.26.0 planning: baseline documentale per context pack, classificazione
   organi/fonti/capacita, degradazione sotto budget e shadow router futuro.
+
+## Verifica V1.29.1
+
+- Implementazione: compilatore V2 condiviso, exact `model.context`, tempo
+  utente unico, session/memory hook compatti e provenienza navigabile.
+- Test deterministici: contratti V2, deduplica, timezone, summary fallback,
+  GPT parity e regressione preliminare.
+- Evidenza Scarlet: probe nativo e GPT riusciti; memoria e tempo V2 usati
+  correttamente.
+- Integrazione runtime: V2 attivo. `preserved_context` e provider history non
+  sono ancora classificati/budgeted completamente.
+- Prossimo gate: review campo per campo, metriche byte/token separate e router
+  trace-only prima di qualsiasi modalita dinamica.
 
 ## Evolutive
 

@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-06-26
-System version assessed: V1.21.0
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: first volition register standalone surface closed
 
 ## Filosofia del ramo
@@ -35,7 +35,7 @@ volitivo aggiunge una prima forma di direzione interna tracciabile:
 `list_due` per future code di cicli autonomi. Non esiste ancora esecuzione
 autonoma dei cicli.
 
-Sistema valutato: V1.21.0.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -45,6 +45,18 @@ Sistema valutato: V1.21.0.
 - Endpoint-local error guides.
 - V1.19.0 `intention_records`, `intention_links`, `/mind/volition`.
 - V1.21.0 `volition.list_due` per review queue senza chat injection.
+
+## Verifica V1.29.1
+
+- Implementazione: tool loop model-controlled e registro volitivo con
+  lifecycle, link, coda due e promozione non mutante a focus candidate.
+- Test deterministici: coprono creazione, review, ricerca, due queue,
+  risoluzione e assenza di injection automatica.
+- Evidenza Scarlet: standalone positiva; autonomia complessiva resta
+  discontinua per write, verifiche e recommended actions.
+- Integrazione runtime: volizione manual-only, nessun ciclo autonomo.
+- Prossimo gate: policy machine-readable per rischio, autorizzazione,
+  reversibilita e receipt prima di qualsiasi autonomia esterna.
 
 ## Evolutive
 

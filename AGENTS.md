@@ -42,7 +42,9 @@ Before closing a task:
 ## Focus Rules
 
 - Build the microscope before the mind: tracing comes before cognitive modules.
-- Keep the model-facing tool surface small, ideally `mind_api`.
+- Keep the model-facing tool surface small: the active contract is the single
+  `mind_shell(command, intent)` tool. Legacy `/mind/*` dispatch remains an
+  internal/debug/maintenance implementation boundary, not a second model tool.
 - Prefer small, testable, observable changes.
 - Do not add large abstractions without an experiment or a current need.
 - Work only inside the declared scope. Fix only issues directly caused by the

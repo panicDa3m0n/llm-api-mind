@@ -4,6 +4,66 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-13 - V1.29.1 Integrated System And Documentation Audit
+
+Goal:
+
+Verify the implemented system after the canonical context rework, realign the
+project documentation to current code and deployed evidence, and assess every
+cognitive branch without equating code presence with active cognitive
+behavior.
+
+Changes:
+
+- Rebuilt `project-state.md` and the branch matrix around four independent
+  dimensions: implementation, deterministic tests, direct Scarlet evidence,
+  and normal runtime activation.
+- Reviewed all 14 branch records and aligned their current evidence, limits,
+  defaults, and next technical work to V1.29.1.
+- Reconciled context packet, block registry, API contract, database topology,
+  memory/cognitive roadmaps, GPT knowledge, blueprint, and theory documents
+  with the shared `scarlet-model-context-v2` runtime.
+- Preserved chronological documents as historical evidence while clearly
+  marking implemented plans and normalized duplicate ADR/EXP/BUG identifiers.
+- Recorded unbudgeted provider-native history as BUG-0076 and documented the
+  largest maintainability concentrations without changing runtime code.
+
+Verified State:
+
+- `mind_shell(command, intent)` is the single model-facing cognitive surface;
+  internal `/mind/*` endpoints remain deterministic backend boundaries.
+- Memory, episodic recall, V2 context, tracing, maintenance, GPT transport,
+  focus, volition, affect, and metacognition exist, but organ activation and
+  behavioral evidence vary by branch.
+- Temporal experience and Dream remain registry/config reservations, not
+  implemented organs. External operativity and broad autonomy remain early.
+- The long-term target is an inspectable cognitive architecture for a digital
+  individual with human-like functional research goals and explicit digital
+  differences, not an unsupported equivalence claim.
+
+Scope Boundary:
+
+This was a documentation/version audit. It did not mutate production or local
+databases, alter runtime behavior, change provider prompts, deploy services, or
+activate cognitive organs. The pre-existing mutable `backend/data/app.db`
+remained excluded.
+
+Verification:
+
+- Backend suite: `138 passed`.
+- Frozen preliminary regression: `9/9` in
+  `20260713_130851_preliminary-regression-v1`.
+- Frontend production build passed.
+- Database boundary guard passed.
+- Documentation identifier, terminology, local-link, and diff checks passed.
+
+Next Suggested Step:
+
+Measure the complete model-input budget by channel and design provider-history
+degradation in shadow mode. In parallel, specify the memory duplicate/conflict
+review protocol and prepare behavior-first activation experiments for focus,
+volition, affect, and metacognition before adding new organs.
+
 ## 2026-07-12 - V1.29.0 Context Packet Rework Completed
 
 Goal:

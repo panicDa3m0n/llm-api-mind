@@ -2,10 +2,15 @@
 
 This file records bugs, fixes, root causes, and regression tests so the project does not rediscover the same problems across sessions.
 
+Identifier note: V1.29.1 normalized legacy duplicate headings. Historical
+activity/experiment text may retain the identifier used at the time; current
+canonical bug ids are the headings in this file. Bug evidence and resolution
+history were not rewritten.
+
 ## Template
 
 ```md
-## BUG-0001 - Short Title
+## BUG-NNNN - Short Title
 
 Date Found:
 Status: open | fixed | monitoring
@@ -18,6 +23,46 @@ Notes:
 ```
 
 ## Known Environment Notes
+
+## BUG-0076 - Provider-Native History Has No Independent Context Budget
+
+Date Found: 2026-07-13
+Status: open / architectural risk
+
+Symptoms:
+
+The V2 dynamic packet is compact, but native MiniMax turns still append the
+complete persisted provider-native history. Tool-heavy sessions can therefore
+grow far beyond the compact packet; one live session reached 54,826 JSON
+characters before a thinking-only provider response. No causal link is proven,
+but V2 alone does not bound total model input.
+
+Root Cause:
+
+Provider continuity and dynamic context are assembled through separate paths.
+The provider-history path currently has no token/byte budget, rolling window,
+summary degradation, or trace-only eviction policy.
+
+Fix:
+
+Pending design. Measure dynamic packet, provider history, shell results, and
+static prompt separately. Add a provider-history budget that preserves recent
+semantic/tool continuity and source navigation without silently discarding
+required evidence. Validate in shadow mode before activation.
+
+Regression Test:
+
+Pending: long same-session tool-loop fixture plus live Scarlet comparison for
+continuity, source use, token cost, and response completion before/after the
+budget policy.
+
+Related Files:
+
+- `backend/app/api/chat.py`
+- `backend/app/providers/minimax.py`
+- `backend/app/storage/repository/runtime.py`
+- `docs/runtime-context-packs.md`
+- `docs/project-state.md`
 
 ## BUG-0067 - MiniMax Can End A Turn With Thinking Only
 
@@ -423,7 +468,7 @@ Related Files:
 - `docs/experiments.md`
 - `docs/runtime-context-packs.md`
 
-## BUG-0026 - Mind Shell Registry Allowed Incomplete Commands
+## BUG-0068 - Mind Shell Registry Allowed Incomplete Commands
 
 Date Found: 2026-07-09
 Status: fixed
@@ -473,7 +518,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/decisions.md`
 
-## BUG-0024 - GPT Bridge Bootstrap ResponseTooLargeError
+## BUG-0069 - GPT Bridge Bootstrap ResponseTooLargeError
 
 Date Found: 2026-07-08
 Status: fixed
@@ -521,7 +566,7 @@ capture. It only separates model-facing GPT Action output from backend debug
 diagnostics. V1.24.2 was deployed to the VPS and public bootstrap/action/
 finalize smoke tests passed against `https://honeylabs.cloud`.
 
-## BUG-0025 - Preview Docker Build Lost Remote-Only Dockerfile And Packaged Data
+## BUG-0070 - Preview Docker Build Lost Remote-Only Dockerfile And Packaged Data
 
 Date Found: 2026-07-08
 Status: fixed
@@ -787,7 +832,7 @@ SQLite is a binary file. If multiple machines write state independently, Git may
 
 ## Implementation Bugs
 
-## BUG-0052 - Tag/Token Overlap Reported As Active Memory Conflict
+## BUG-0071 - Tag/Token Overlap Reported As Active Memory Conflict
 
 Date Found: 2026-07-08
 Status: fixed in V1.23.0
@@ -894,7 +939,7 @@ Related Files:
 - `backend/tests/test_mind_shell.py`
 - `backend/tests/test_mind_api.py`
 
-## BUG-0048 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
+## BUG-0073 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
 
 Date Found: 2026-06-18
 Status: fixed in V1.11.1
@@ -950,7 +995,7 @@ This is retrieval-time evidence only. It must not drive automatic memory
 lifecycle operations until mature embedding/KG matching and staleness evidence
 exist.
 
-## BUG-0049 - Embedded Surfaces Remained Pending After OpenRouter Retrieval
+## BUG-0074 - Embedded Surfaces Remained Pending After OpenRouter Retrieval
 
 Date Found: 2026-06-19
 Status: fixed in V1.11.3
@@ -990,7 +1035,7 @@ Notes:
 This does not change ranking. It stabilizes surface/vector state so future
 debugging and maintenance can trust the derived retrieval substrate.
 
-## BUG-0050 - Facts Endpoint Treated Operational Intent As Data Query
+## BUG-0075 - Facts Endpoint Treated Operational Intent As Data Query
 
 Date Found: 2026-06-19
 Status: fixed in V1.11.3
@@ -1023,7 +1068,7 @@ Related Files:
 - `backend/app/mind/memory.py`
 - `backend/tests/test_mind_api.py`
 
-## BUG-0052 - Chat Prompt Regression Test Still Expects Pre-Golden Identity Phrase
+## BUG-0072 - Chat Prompt Regression Test Still Expects Pre-Golden Identity Phrase
 
 Date Found: 2026-06-25
 Status: open

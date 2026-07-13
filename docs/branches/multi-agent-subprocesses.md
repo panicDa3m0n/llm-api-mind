@@ -1,7 +1,7 @@
 # Branch: Multi-Agente E Sub-Processi
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: planned branch
 
 ## Filosofia del ramo
@@ -26,12 +26,12 @@ agentico principale.
 
 ## Stato attuale
 
-Valutazione: L1.
+Valutazione: L1/L2.
 
 Non esiste un sistema multi-agente. Esiste solo il primo processo background
 deterministico/LLM-assisted per summary e missed-memory review report-only.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -40,6 +40,20 @@ Sistema valutato: V1.25.4.
 - Decisione: non aggiungere endpoint duplicati per reflection/blackboard.
 - Shell come unico contratto model-facing; sub-processi e endpoint interni non
   devono diventare strumenti visibili a Scarlet senza comando esplicito.
+
+## Verifica V1.29.1
+
+- Implementazione: worker maintenance con fasi deterministiche e resolver LLM
+  opzionale; non e un sistema multi-agente.
+- Test deterministici: coprono scheduling, supersession, summary, proposal e
+  risoluzione cauta.
+- Evidenza Scarlet: il risultato puo influire sui turni futuri tramite memoria,
+  ma non esiste coordinamento fra agenti.
+- Integrazione runtime: background-only; job e proposal non sono contesto
+  automatico ne shell model-facing.
+- Prossimo gate: misurare limiti del singolo agente e definire contratti
+  bounded per reviewer/worker prima di introdurre identita o conversazioni
+  multi-agente.
 
 ## Evolutive
 

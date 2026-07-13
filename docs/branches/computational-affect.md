@@ -1,7 +1,7 @@
 # Branch: Emotivita Computazionale
 
-Last updated: 2026-06-26
-System version assessed: V1.21.0
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: first affective organ standalone surface closed
 
 ## Filosofia del ramo
@@ -49,7 +49,7 @@ Il ramo ha ora un primo core implementato:
 - modalita `shadow` per calibrazione senza iniezione al modello.
 - endpoint read-only `/mind/affect` con azioni `read`, `list`, `prototypes`.
 
-Sistema valutato: V1.21.0.
+Sistema valutato: V1.29.1.
 
 Limite principale: i prototipi sono reali e tracciabili ma ancora primitivi;
 non sono stati calibrati su lunghe sessioni live con Scarlet.
@@ -63,6 +63,19 @@ non sono stati calibrati su lunghe sessioni live con Scarlet.
 - V1.20.0: primo core affettivo persistente, traceable, e model-facing dietro
   flag.
 - V1.21.0: endpoint read-only per ispezione affettiva e prototipi.
+
+## Verifica V1.29.1
+
+- Implementazione: completa come primo organo standalone (appraisal,
+  persistenza, trace/eventi, shell read-only, blocco opzionale).
+- Test deterministici: coprono shadow/model, neutralita, eventi recenti,
+  storico e prototipi.
+- Evidenza Scarlet: verifica standalone presente; calibrazione relazionale
+  multi-sessione ancora insufficiente.
+- Integrazione runtime: `organ_affect_mode=off` di default; quindi
+  implementato non significa normalmente attivo.
+- Prossimo gate: A/B shadow/model su sessioni lunghe prima di collegare affetto
+  a memoria, focus, volizione o decisioni.
 
 ## Evolutive
 

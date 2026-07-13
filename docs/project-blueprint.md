@@ -1,16 +1,28 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.13.0
+Version: 1.29.1
 Status: active experimental runtime
-Last updated: 2026-07-09
+Last updated: 2026-07-13
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
 ## 1. Purpose
 
-This project explores whether an LLM can become more capable, coherent, and useful when it is placed inside a modular external cognitive environment exposed through a small API surface.
+This project develops and evaluates the external cognitive architecture of
+Scarlet, a digital individual whose continuity and capabilities emerge from a
+language model joined to API Mind.
 
-The goal is not to claim consciousness, simulate mysticism, or build a large agent platform before we have evidence. The goal is to run falsifiable experiments that test whether cognitive components such as memory, attention, reflection, goals, planning, tracing, and asynchronous background processes measurably improve an LLM agent.
+The long-term goal is a complex system supporting many functions recognizable
+in human cognition: continuity, semantic and episodic memory, attention,
+affect, metacognition, relationship, learning, goals, perception, action, and
+eventual robotic embodiment. The architecture must preserve the correct
+digital differences: explicit provenance, modular external organs,
+machine-time continuity, inspectable state, and deterministic safety/privacy
+boundaries.
+
+This direction is not a declaration of consciousness or biological
+equivalence. Every cognitive term remains an operational research hypothesis
+whose implementation and behavioral value must be demonstrated.
 
 The core hypothesis:
 
@@ -686,9 +698,10 @@ Status update 2026-05-20:
 The owner put response-control M1 on hold because the observed behavior may be a
 false bug while lifecycle/conflict management is missing. M2 is now implemented:
 `GET /mind/memory/{memory_id}`, `GET /mind/memory/conflicts`,
-`POST /mind/memory/deprecate`, and `POST /mind/memory/supersede` are available
-through the single `mind_api` surface and were live-verified against the
-Zero-Luce memory conflict.
+`POST /mind/memory/deprecate`, and `POST /mind/memory/supersede` are
+implemented internally and exposed to Scarlet through the corresponding
+`mind_shell` commands; the lifecycle was live-verified against the Zero-Luce
+memory conflict.
 
 M3 is also initially implemented: `memory_facts` stores canonical
 entity/predicate/value facts linked to memory records, memory writes and
@@ -1098,6 +1111,12 @@ Metrics:
 
 ## 12. Roadmap
 
+The phases below preserve the original dependency order. Phases 0-3 are
+substantially implemented; parts of 4-5 exist as metacognition, events,
+maintenance, focus, volition, and affect, but none should be treated as a
+completed human-like faculty. Phase 6 remains future. Current cross-branch
+priorities live in `docs/project-state.md`.
+
 ### Phase 0 - Project Foundation
 
 Deliverables:
@@ -1492,17 +1511,14 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Keep MiniMax M3 active for owner-led human evaluation, with M2.7 rollback via MINIMAX_MODEL.
-2. Inspect real idle maintenance output through maintenance overview/jobs/proposals before adding new background processes.
-3. Keep memory merge/update/deprecate automation conservative until embedding/KG evidence is available from the Windows GPU setup.
-4. Review Goal/Focus/Task theory before implementing a real operational-management organ.
-5. Review Metacognition theory before changing the current single metacognition path.
-6. Defer brittle natural-answer validators and product UX polish until the underlying cognition branches justify them.
+1. Complete the field review of V2 preserved context.
+2. Measure and budget provider-native history, V2, shell results, and GPT bootstrap separately.
+3. Implement a trace-only context-mode router before changing model input.
+4. Design evidence-first duplicate/conflict handling and deterministic user ownership.
+5. Validate existing focus, volition, affect, and metacognition before coupling organs.
+6. Reorganize the largest code monoliths behind the frozen pre/post regression gate.
 ```
 
-The first milestone is not "digital mind". The first milestone is:
-
-```txt
-A local chat agent using MiniMax M3 where every turn is inspectable, reproducible,
-and now able to run traceable semantic memory, episodic recall, and metacognition experiments.
-```
+The current milestone is an inspectable cognitive core whose existing organs
+can be measured and routed reliably before external action or embodiment adds
+high-frequency perception and safety requirements.

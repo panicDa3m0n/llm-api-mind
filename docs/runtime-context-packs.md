@@ -1,8 +1,8 @@
 # Runtime Context Packs
 
-Last updated: 2026-07-09
-Status: planning baseline
-App baseline: V1.25.4
+Last updated: 2026-07-13
+Status: post-V2 planning baseline
+App baseline: V1.29.1
 
 This document defines the planning baseline for keeping Scarlet coherent as
 her organs, runtime context, and future embodied inputs grow beyond what one
@@ -65,19 +65,20 @@ the safety, privacy, budget, and coupling rules.
 The always-on spine is the minimum context Scarlet must receive to remain
 oriented. It should stay compact and stable.
 
-Always-on:
+The accepted V1.29 spine is:
 
-- current user message;
-- session id, turn id, and recent same-session continuity summary;
-- operational clock, locale, platform language, active profile, and privacy
-  boundary;
-- model-facing Mind shell contract or digest;
-- current capability state for available cognitive commands;
-- compact runtime/source hierarchy rules;
-- selected automatic memory packet when retrieval has already run;
-- active conflicts or warnings that materially affect the current turn;
-- minimal active focus/open-loop surface once present;
-- safety/actuation boundary when external action is possible.
+- current session id/title/creation time;
+- user display name;
+- one user-local `now`, timezone packet, and assembled location;
+- two previous-session summary hooks;
+- five relevant, five recent-user, and five recent-general memory hooks, with
+  cross-list deduplication and source navigation.
+
+The current user message, provider history, static policy, and tool/action
+schema are required technical inputs but are not dynamic context packs.
+Profile id, privacy enforcement, storage clocks, retrieval diagnostics, KG,
+maintenance, and raw capability registries remain systemic unless a later mode
+has a demonstrated cognitive reason to expose a compact result.
 
 Never replace the always-on spine with a mode pack. Mode packs extend it.
 
@@ -131,18 +132,18 @@ Use these axes for every organ, source, and capability.
 | Organ / source | Necessity | Coupling | Model-facing shape |
 |---|---|---|---|
 | Temporal context | always_on | independent | Compact operational clock and locale. |
-| User/profile/privacy | always_on | independent | Active profile, scope, and privacy boundary. |
-| Mind shell capability digest | always_on | independent | Current command families and help hint. |
-| Semantic memory packet | conditional/always-on compact | paired with facts/conflicts | Automatic selected/near-miss/conflict packet; deeper search on demand. |
+| User identity | always_on compact | independent | Display name only; ownership/privacy stay backend-enforced. |
+| Mind shell capability digest | under review | independent | Currently preserved; exact syntax remains on-demand through help. |
+| Semantic memory packet | always-on compact | paired with source navigation | Relevant and recent hooks; facts/conflicts/KG on demand. |
 | Atomic facts | conditional | tightly coupled with semantic memory | Canonical fact state when memory claims or conflicts matter. |
-| Episodic session summaries | conditional | paired with session open | Navigation hints only; exact claims require transcript open. |
+| Episodic session summaries | always-on compact | paired with session open | Two navigation hints; exact claims require transcript open. |
 | Exact session transcripts | on_demand | paired with source-sensitive answers | Retrieved through `session open`. |
 | Memory graph | on_demand | paired with semantic memory | Associative expansion when a memory is a doorway. |
-| Focus | always-on compact once active | paired with volition/tasks | Current foreground state, not a retrieval filter. |
+| Focus | conditional, under review | paired with volition/tasks | Current foreground state, not a retrieval filter. |
 | Volition | conditional | paired with focus/autonomous cycles | Active/due intentions only in relevant modes. |
 | Affect | conditional/compact | paired with response style and safety | Tone/posture influence, not factual truth. |
 | Metacognition | on_demand | paired with source-sensitive/high-impact work | `metacognition step` result, not raw reasoning. |
-| Runtime events | conditional | paired with current session recovery | Compact recent events; full logs remain trace/debug. |
+| Runtime events | conditional, under review | paired with current session recovery | Currently preserved; full logs remain trace/debug. |
 | Maintenance/backfill | background_only | internal services | Never normal live model context; expose status only when relevant. |
 | Future vision | conditional realtime | tightly coupled with embodiment safety | Scene/object/event summaries, not raw frames. |
 | Future audio/voice | conditional realtime | paired with turn-taking and affect | Transcript/prosody summary, not raw audio. |
@@ -159,9 +160,8 @@ Normal conversation.
 Includes:
 
 - always-on spine;
-- recent dialogue;
-- compact selected memory packet;
-- active affect/focus if already present.
+- only preserved families proven useful for ordinary dialogue;
+- active affect/focus only after their own behavioral validation.
 
 ### `source_sensitive`
 
@@ -269,7 +269,7 @@ The router should emit a traceable decision:
 {
   "pack_id": "source_sensitive",
   "spine_version": "runtime-spine-v1",
-  "included_blocks": ["message_context", "memory_context", "session_context"],
+  "included_blocks": ["session", "memories", "preserved_context"],
   "omitted_blocks": ["raw_retrieval_shadow"],
   "reason": "User asked whether a prior evaluation is reliable.",
   "budget": {"estimated_tokens": 4200, "limit": 12000},
@@ -291,9 +291,9 @@ If context budget is tight:
 
 Never drop:
 
-- current user message;
-- turn/session identity;
-- operational clock/profile/privacy;
+- the technical current user message and active-session continuity;
+- current session identity and operational clock;
+- backend privacy enforcement;
 - the active cognitive tool contract;
 - actuator safety constraints in embodied modes;
 - explicit source conflicts that affect the current answer.
@@ -324,6 +324,15 @@ The 2026-07-09 default-token live Scarlet probe showed why this matters:
 These are not embodiment bugs yet. They are early signs that Scarlet needs
 context modes and evidence routing before future real-time body context makes
 the problem larger.
+
+V1.29.0 adds two measured constraints:
+
+- tool-heavy provider-native history can exceed the compact V2 packet;
+- `preserved_context` still carries undiscussed recent dialogue, runtime
+  events, capability hints, and Scarlet-state data.
+
+The first router must therefore remain trace-only and measure V2, provider
+history, shell results, and GPT bootstrap independently.
 
 Tracked as:
 

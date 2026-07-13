@@ -1,7 +1,7 @@
 # Branch: Apprendimento E Adattamento
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: early branch
 
 ## Filosofia del ramo
@@ -34,7 +34,7 @@ Esiste adattamento indiretto tramite memoria semantica, documentazione e prompt.
 Non esiste ancora un sistema di apprendimento operativo con metriche,
 esperimenti automatici, aggiornamento controllato del comportamento e rollback.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -44,6 +44,19 @@ Sistema valutato: V1.25.4.
 - Runtime settings operativi.
 - Context-pack planning per recuperare adattamenti solo quando utili al modo
   operativo corrente.
+
+## Verifica V1.29.1
+
+- Implementazione: adattamento indiretto tramite memorie, facts, preferenze,
+  prompt versionati, settings ed esperimenti.
+- Test deterministici: verificano retrieval e persistenza, non che il
+  comportamento migliori stabilmente dopo feedback.
+- Evidenza Scarlet: personalizzazione cross-session presente; applicazione
+  immediata della forma richiesta non sempre affidabile.
+- Integrazione runtime: attiva solo attraverso contesto/memoria, senza learning
+  controller o rollback comportamentale.
+- Prossimo gate: learning ledger per profilo, ipotesi e metrica prima/dopo,
+  approvazione e rollback per ogni policy adattata.
 
 ## Evolutive
 

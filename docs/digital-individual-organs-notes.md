@@ -3,6 +3,7 @@
 Status: active working notes
 
 Started: 2026-06-24
+Current implementation review: 2026-07-13, V1.29.1
 
 Reference baseline:
 
@@ -63,12 +64,15 @@ For each organ, capture:
 
 ## Current Discussion Pointer
 
-Next organ to implement: Continuous temporal experience.
+Next organ discussion candidate: Continuous temporal experience. It is not
+approved as the next implementation.
 
-Attention, volition, affective integration, and temporal experience have
-working conceptual summaries. Focus, volition, and affect now have standalone
-implementation surfaces closed as V1.21.0. A full implementation roadmap for
-the two remaining organs is not accepted yet.
+Focus, volition, and affect have standalone V1.21.0 surfaces, but are disabled
+or manual-only by default and still need longitudinal behavioral validation.
+Temporal experience and Dream exist only as registry/config reservations and
+theory. The V1.29.1 project review prioritizes context routing, memory
+integrity, privacy ownership, and validation of existing organs before another
+organ is built.
 
 V1.26.0 planning note:
 

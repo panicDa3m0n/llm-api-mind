@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.28.1.
+App baseline: V1.29.1.
 
 Current scope:
 
@@ -29,21 +29,25 @@ Current scope:
   with controlled injection mode for A/B tests;
 - backend-owned memory surface taxonomy for derived cognitive retrieval
   facets; Scarlet writes canonical memory fields, not surface internals;
-- model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
+- model-controlled, unbounded API Mind cognitive loop through the single
+  `mind_shell(command, intent)` interface;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
-- Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;
+- semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede
+  through `mind_shell`; facts backfill remains internal maintenance;
 - maintenance API access for overview, job inspection/manual lab run, pending
   memory proposal review, and archival;
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
-- automatic Memory Context Pipeline v0 traces before model requests;
+- automatic rich retrieval/runtime traces plus the compact
+  `scarlet-model-context-v2` document shared by native MiniMax and GPT Actions;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - per-session idle maintenance that schedules summary refresh, missed-memory
   review, pending memory proposal creation, cautious resolution, and auditable
   proposal ledger updates after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
-- pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
+- pytest contracts for health, provider wiring, storage, chat, shell/API parity,
+  context V2, GPT bridge, maintenance, memory, focus, volition, and affect.
 
 ## Setup
 

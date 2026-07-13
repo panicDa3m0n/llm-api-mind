@@ -1,6 +1,7 @@
 # GPT / MCP Bridge Plugin
 
-Status: V1.25.2 GPT Actions bridge active. MCP/App bridge deprecated after
+Status: V1.29.1 GPT Actions bridge active with shared
+`scarlet-model-context-v2`. MCP/App bridge deprecated after
 platform testing showed it cannot currently be attached to the target custom
 GPT flow.
 

@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-App baseline: V1.1.0.
+App baseline: V1.29.1.
 
 Current scope:
 
@@ -15,7 +15,9 @@ Current scope:
 - runtime settings panel through `/api/dashboard/settings`, including active
   profile id, privacy scope, configured country/locale, timezone, and platform
   language;
-- Tailwind component styling with raw JSON hidden behind detail drawers.
+- developer model inspector for the exact system/runtime/provider/tool request;
+- separate `/mobile` consumer surface for chat, memory, profile, and settings;
+- Tailwind component styling with raw JSON kept in technical detail views.
 
 ## Setup
 

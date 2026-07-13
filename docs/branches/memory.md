@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-12
-System version assessed: V1.29.0
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -154,7 +154,7 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.27.0.
+Sistema valutato: V1.29.1.
 
 Aggiornamento V1.25.4:
 
@@ -409,6 +409,25 @@ Aggiornamento V1.13.0 - corrected context eval:
   tags/metadata moved out of the normal Scarlet write contract, internal
   content chunks, dynamic KG concepts, and `/mind/memory/graph` navigation.
 
+## Verifica V1.29.1
+
+- Implementazione: memoria semantica, fatti, episodica, lifecycle, attivita
+  cognitiva, provenance, summary, sparse/KG/dense-shadow/hybrid retrieval,
+  proposal e maintenance.
+- Test deterministici: e il ramo piu coperto; include API, shell, storage,
+  context V2, maintenance e casi reali congelati nella regressione 9/9.
+- Evidenza Scarlet: recall automatico/manuale, navigazione sorgente,
+  personalizzazione cross-session e write provenance verificati; restano
+  fallimenti comportamentali del modello.
+- Integrazione runtime: sempre attiva tramite retrieval ricco interno e hook
+  V2 compatti. Il ranking ibrido cloud resta configurabile, non assunto attivo.
+- Produzione: 46 memorie storiche riparate deterministicamente; 242 restano
+  senza evidenza sufficiente e non devono essere inventate. Summary eleggibili
+  riconciliate, con maintenance ordinaria a 15 minuti.
+- Prossimo gate: separare evidence detection da adjudication per duplicati e
+  conflitti, introdurre ownership utente reale, calibrare retrieval e retry
+  maintenance prima di merge/deprecate automatici.
+
 ## Evolutive
 
 - Backlog dettagliato dei fix candidati sui campi cognitivi della memoria:
@@ -436,4 +455,5 @@ Aggiornamento V1.13.0 - corrected context eval:
   liberamente dall'agente.
 - Memoria multiutente separata per profilo.
 - Lab dashboard per pending proposal, job falliti/skippati e memorie create da
-  maintenance, mantenendo queste superfici fuori dal `mind_api` model-facing.
+  maintenance, mantenendo queste superfici fuori dal `mind_shell`
+  model-facing.

@@ -25,6 +25,12 @@ for time/location, relevant recall, exact provenance, previous-session
 continuity, write provenance, and cross-session personal recall, plus GPT
 bootstrap/trace identity tests.
 
+Production rollout on 2026-07-13 preserved the VPS database, repaired `46/46`
+unambiguous historical source-message hooks, generated `67/67` eligible
+historical summaries, passed SQLite integrity, and passed native MiniMax and
+public GPT Actions V2 smoke probes. The remaining 242 provenance gaps were not
+guessable and were deliberately left unresolved.
+
 ## Purpose
 
 Implement the compact dynamic context contract reviewed in
@@ -82,14 +88,14 @@ These findings change implementation order: live provenance capture and
 activity semantics must be fixed before V2 recent-memory projection can be
 considered valid.
 
-Two wording/semantic confirmations remain before activation, but do not block
-baseline and implementation work:
+The two wording/semantic confirmations identified during planning were closed
+before activation:
 
 - confirm that a direct turn-time memory uses the triggering persisted user
   message as its compact primary `source_message_id`, while the turn remains
   the complete evidence unit;
-- choose the fixed navigation text for a summary that exists but is stale. It
-  must not be presented as current or silently reused.
+- missing and stale summaries use explicit fixed navigation fallbacks and are
+  never presented as current evidence.
 
 ## Accepted Contract
 

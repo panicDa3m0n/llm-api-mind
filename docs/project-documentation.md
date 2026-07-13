@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-07-12
-App baseline: V1.29.0
+Last updated: 2026-07-13
+App baseline: V1.29.1
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -14,6 +14,11 @@ This is the entry point for project documentation. It separates two layers:
 
 Use `docs/project-state.md` for the current integrated implementation state.
 Use the branch documents when planning work that changes Scarlet as an agent.
+
+Current-state claims must be read from current-state documents and code, not
+from chronological records. `activity-log.md`, `experiments.md`, old ADR text,
+checkpoints, and completed implementation plans preserve what was true when an
+event happened; they are not silently rewritten into present-tense contracts.
 
 ## Development Protocol
 
@@ -40,6 +45,8 @@ discussed before a new fix is attempted.
 - `AGENTS.md`: always-read operating guide for Codex/Scarlet.
 - `docs/project-blueprint.md`: durable philosophy and architecture principles.
 - `docs/project-state.md`: current implementation map and convergent roadmap.
+- `docs/branches/README.md`: compact branch maturity and technical evidence
+  matrix for the current release.
 - `docs/activity-log.md`: chronological work log.
 - `docs/decisions.md`: architectural decision records.
 - `docs/bug-ledger.md`: known bugs, root causes, and monitoring items.
@@ -47,7 +54,8 @@ discussed before a new fix is attempted.
 - `docs/api-contract.md`: implemented and planned API contracts.
 - `docs/block-registry.md`: runtime/model/UI block map for Scarlet turns.
 - `docs/context-packet-inventory.md`: reviewed inventory of automatic local and
-  GPT bridge packets, manual shell boundaries, and trace/UI-only data.
+  GPT bridge packets, including the active V2 model packet, its rich internal
+  source snapshot, manual shell boundaries, and trace/UI-only data.
 - `docs/context-packet-implementation-plan.md`: phased V1.29.0 plan for the
   implemented compact dynamic context contract, memory activity, source
   navigation, provider parity, repair procedures, and regression acceptance.
@@ -60,6 +68,17 @@ discussed before a new fix is attempted.
   boundary for production, laboratory, test, and preliminary databases.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: project-visible change history.
+
+## Document Authority
+
+| Document family | Authority | Update behavior |
+|---|---|---|
+| `project-state.md`, branch index, API contract | Present implementation and current priorities | Update whenever current truth changes. |
+| Branch documents | Current behavior and branch-specific direction | Keep philosophy, evidence, status, limits, and next work aligned. |
+| Blueprint | Durable purpose and architecture constraints | Change only when the project direction or durable boundary changes. |
+| Decisions | Accepted architectural choices | Append or supersede; do not erase the original context. |
+| Experiments, activity log, checkpoints | Historical evidence | Preserve results as recorded; add corrections or current links instead of rewriting outcomes. |
+| Implementation plans | Procedure and acceptance record | Mark completed/deferred phases; do not use as current-state authority after completion. |
 
 ## Vertical Roadmaps
 

@@ -1,7 +1,10 @@
 # Cognitive Organs
 
-Scarlet's current implemented organs are exposed through runtime context and
-Mind shell commands.
+Scarlet's current standalone organs have different activation levels. Focus,
+volition, and affect have Mind shell commands; focus and affect enter runtime
+context only when backend modes enable them, while volition is manual-only.
+Metacognition is an experimental cognitive operation, not an always-running
+organ.
 
 ## Focus
 
@@ -28,8 +31,9 @@ Future autonomous cycles are expected to review batches of intentions.
 
 ## Affect
 
-Affective context is backend-appraised emotional state. Treat it as Scarlet's
-current emotional posture for this turn.
+Affective context is backend-appraised emotional state when bootstrap actually
+contains an `affective_context` block. Treat that block as Scarlet's current
+emotional posture for the turn; do not invent it when absent.
 
 It shapes tone, warmth, caution, curiosity, irritation, enthusiasm, sadness, or
 frustration in a human-like way. It does not rewrite facts, memory retrieval,

@@ -14,7 +14,7 @@ planned, not already active.
 - Memory graph inspection.
 - Focus commands.
 - Volition commands.
-- Affect commands/context.
+- Affect commands; context only when the backend mode surfaces it.
 - Metacognition step.
 
 ## Planned Or Experimental
@@ -31,6 +31,8 @@ returns current command support:
 - direct interaction with other users' agents;
 - production-grade privacy governance;
 - full autonomous task execution outside explicit exposed commands.
+- continuous temporal-experience and Dream organs; registry names are not
+  evidence that those organs are implemented.
 
 ## Rule
 
