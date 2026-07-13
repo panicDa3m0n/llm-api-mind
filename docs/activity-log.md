@@ -4,6 +4,59 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-13 - V1.32.0 Production Deployment
+
+Goal:
+
+Deploy the verified local V1.32 runtime to the HoneyLabs VPS with the same
+active cognitive functions while preserving production-only database and
+maintenance boundaries.
+
+Deployment:
+
+- Created release commit `298d668` on
+  `feature/agent-modes-history-compaction`; `backend/data/app.db` remained
+  unstaged and the staged DB boundary passed.
+- GitHub publication was attempted but rejected by the configured HTTPS
+  credentials. The VPS deployment therefore used the verified local commit
+  directly; no secret was changed or exposed during the failed push.
+- Created production backup
+  `/var/backups/scarlet-mobile-test/v1320-20260713T211855Z` containing an
+  online SQLite backup, previous code, previous runtime configuration, and
+  frontend bundle. Backup integrity was `ok`.
+- Transferred backend and frontend with runtime data, `.env`, virtualenv,
+  caches, evaluator runs, and SQLite files excluded.
+- Added the existing local OpenRouter credential to the protected remote
+  runtime and aligned V2/retrieval/mode configuration: OpenRouter shadow and
+  rerank enabled, active final arbitration, threshold `0.01`, active mode
+  routing, and optional organs off.
+- Preserved production-only settings: `DATABASE_ROLE=production`,
+  `CODEX_TEST=false`, and `SUMMARY_RECONCILE_ENABLED=false`.
+
+Verification:
+
+- The new image passed read-only production preflight before restart:
+  integrity `ok`, 28 tables, 294 memories, 197 sessions, and direct isolation.
+- Running package and OpenAPI report `1.32.0`; `/health` reports MiniMax M3 and
+  production/direct DB ownership.
+- Public GPT Actions smoke completed bootstrap, eight read-only shell families
+  (`help`, session, memory, focus, volition, affect, mode, metacognition), and
+  exact finalize on session `ses_c6931ae93736472e985b05c55714d696`.
+- Native MiniMax smoke completed on session
+  `ses_4d178526036148f58b03b8532570b7f2`.
+- Production traces report final rerank `ok=true`, `status=completed`; the
+  manual memory search accepted 10 candidates using the configured Nemotron
+  reranker.
+- Post-smoke DB preflight remained `integrity=ok`, with 294 memories unchanged;
+  the two expected smoke sessions brought totals to 199 sessions and 811
+  messages. Container logs contained no error, exception, or traceback.
+
+Residual Risk:
+
+GitHub still lacks valid HTTPS credentials for this environment. The release
+exists as local commit plus deployed VPS code until the branch can be
+published.
+
 ## 2026-07-13 - V1.32.0 Cognitive Shell Organ Conformance
 
 Goal:

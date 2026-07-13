@@ -89,7 +89,9 @@ Verification baseline on 2026-07-13:
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
-- V1.29.0 production rollout: native MiniMax and GPT Actions smoke tests passed.
+- V1.32.0 production rollout: native MiniMax and GPT Actions smoke tests passed;
+  OpenRouter final rerank completed in production traces and DB integrity
+  remained `ok`.
 - V1.30.0 disposable MiniMax mode probe: explicit `mode set scouting`, persisted
   resumable posture, interactive override, and no-autonomous-runtime boundary
   all observed after iterative correction.

@@ -6,6 +6,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+V1.32.0 is deployed on the HoneyLabs VPS. Production preserves its real DB and
+maintenance policy while matching the verified local V2, rerank, shell, and
+agent-mode feature configuration.
+
 ### Added
 
 - Added V1.32.0 executable shell-conformance coverage across all 23 registered

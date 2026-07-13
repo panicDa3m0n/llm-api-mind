@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-13
-Backend baseline: V1.30.0
+Backend baseline: V1.32.0
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -43,7 +43,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.29.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.29.0 backup is `/var/backups/scarlet-mobile-test/v1290-20260713T104324Z/app.db.pre-v1290`. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.32.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.32.0 backup is `/var/backups/scarlet-mobile-test/v1320-20260713T211855Z/app.db.pre-v1320`. |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; legacy Git LFS-tracked file | Published index pointer is SHA-256 `827bb...c1ed5`; the current worktree file is a later dirty LFS object `9b6e...0448f`. It is not production and must not be staged except for a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -118,7 +118,7 @@ DATABASE_URL=sqlite:///./data/app.db
 The value `mobile_test` is historical deployment naming; the explicit role is
 what declares that its mounted database contains production data.
 
-Current V1.29.0 production maintenance policy:
+Current V1.32.0 production maintenance policy, retained from V1.29.0:
 
 ```txt
 MAINTENANCE_ENABLED=true
@@ -130,6 +130,13 @@ summaries. New production turns use the established 900-second idle
 maintenance job. The broad repair scanner remains disabled on this deployment
 so it cannot summarize a newly completed turn immediately; it can be enabled
 again after its age policy is separated from historical reconciliation.
+
+V1.32.0 preserves that maintenance boundary while aligning active cognition
+with the verified local runtime: `model_context_profile=v2`, OpenRouter
+retrieval/rerank enabled, active final arbitration at threshold `0.01`, active
+agent-mode routing, and optional focus/volition/affect/temporal/Dream injection
+off. Production role and disabled broad summary reconciliation are deliberate
+deployment differences, not local/remote feature drift.
 
 For every deployment:
 
