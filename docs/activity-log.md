@@ -25,10 +25,11 @@ Changes:
   evidence in traces and adding exact `model.context` UI visibility.
 - Updated native/GPT prompts and runtime contract knowledge for V2.
 
-Data And Live Evidence:
+Pre-Deploy Data And Live Evidence:
 
 - Only `/tmp/llm-api-mind-v129-lab.db`, copied from the local laboratory DB,
-  received migrations, repairs, summaries, or live-test sessions.
+  received migrations, repairs, summaries, or live-test sessions during
+  implementation and evaluation before the production deployment.
 - Provenance dry-run found 36 unambiguous records; repair completed 36/36.
 - Summary reconciliation completed 34/34 real provider jobs in two bounded
   batches; final audit: 146 current, 6 blocked active turns, 11 empty.
@@ -39,19 +40,63 @@ Data And Live Evidence:
   BUG-0067 and successfully isolated from the context/memory implementation by
   a fresh-session write/recall retry.
 
+Production Deployment (2026-07-13):
+
+- Created commit `9472f60` on `checkpoint/rework-baseline`; the mutable local
+  `backend/data/app.db` was excluded and the staged database boundary passed.
+- Created and verified the production backup under
+  `/var/backups/scarlet-mobile-test/v1290-20260713T104324Z`; its online SQLite
+  copy retained 193 sessions, 785 messages, 288 memories, and integrity `ok`,
+  alongside an archive of the previous code and configuration.
+- Transferred backend code with runtime data, `.env`, virtualenv, caches,
+  evaluator runs, and SQLite files excluded. The V1.29.0 image passed a
+  read-only production-role preflight against the existing mount before
+  `scarlet-mobile-api` was recreated.
+- Added the explicit remote `DATABASE_ROLE=production`; `/health` reports
+  direct production isolation and package/OpenAPI version `1.29.0`.
+- Applied the additive `memory_activities` table and repaired 46/46
+  unambiguous source-message links. The remaining 242 historical memories
+  lack sufficient session/turn evidence and were intentionally left
+  unresolved.
+- Generated 67/67 eligible historical session summaries with MiniMax M3,
+  without failures. The stable post-smoke audit reports 170 current summaries,
+  12 empty sessions, and 14 sessions blocked by an active turn. An independently
+  created `Email Monitor` turn appeared as `started` during deployment, then
+  completed normally and received its summary once it became eligible.
+- Enabled the normal 900-second idle maintenance path. Production sets
+  `SUMMARY_RECONCILE_ENABLED=false` after the one-time historical repair so
+  future summaries are produced by the established idle job after 15 minutes,
+  not immediately by the broad repair scanner.
+- Published the V1.29.0 frontend bundle under `/var/www/scarlet` after a
+  timestamped backup.
+- Public GPT bridge smoke passed
+  `bootstrap -> help action -> finalize`; bootstrap returned the shared
+  `scarlet-model-context-v2`, and finalize returned the exact answer.
+- Native MiniMax smoke consumed V2 without a tool call and correctly answered
+  from `Europe/Rome`, `CEST`, and `Italia`. A follow-up GPT finalize scheduled
+  an idle maintenance job at 899 seconds, confirming the production timing.
+- GitHub publication remains pending: the macOS credential helper selected
+  unauthorized account `DavDit94` and GitHub returned HTTP 403. No credential
+  was changed or exposed during recovery attempts.
+
 Verification:
 
 - Backend: `138 passed`.
 - Frozen preliminary regression: `9/9`.
 - Frontend: `npm run build`.
 - Disposable summary reconciliation: `34/34 completed`.
-- Source DB and VPS production DB were not mutated or deployed.
+- Production DB preflight and post-migration integrity: `ok`.
+- Production historical summaries: `67/67 completed`.
+- Production source-message repair: `46/46 repaired`.
+- Public GPT Actions and native MiniMax V2 smokes passed.
 
 Next Suggested Step:
 
-Review the still-preserved dialogue/runtime-event/capability/Scarlet-state
-families and provider-native tool history as the next packet discussion. Treat
-BUG-0067 separately from context routing.
+Run the first human GPT Builder conversation against V1.29.0 and inspect the
+resulting `model.context` trace. Resolve the GitHub credential ownership before
+publishing the checkpoint, then review the still-preserved
+dialogue/runtime-event/capability/Scarlet-state families. Treat BUG-0067
+separately from context routing.
 
 ## 2026-07-12 - V1.29.0 Context Packet Implementation Plan
 
