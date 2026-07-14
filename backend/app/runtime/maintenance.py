@@ -25,6 +25,7 @@ from app.storage.models import MaintenanceJob, utc_now
 
 
 SESSION_IDLE_MAINTENANCE_KIND = "session.idle_maintenance"
+SESSION_SUMMARY_REPAIR_KIND = "session.summary_repair"
 logger = logging.getLogger(__name__)
 
 MEMORY_REVIEW_SYSTEM_PROMPT = """You review a completed chat session for Scarlet's memory maintenance.
@@ -49,6 +50,7 @@ Required JSON shape:
       "expected_future_use": "when this may matter later",
       "tags": ["tag"],
       "evidence": "short transcript-grounded evidence",
+      "source_message_ids": ["msg_..."],
       "write_recommended": true
     }
   ],
@@ -101,6 +103,7 @@ class MaintenanceJobRef:
     session_id: str
     trigger_turn_id: str | None
     trigger_event_id: str | None
+    input_payload: dict[str, Any]
 
 
 def schedule_session_idle_maintenance(
@@ -146,6 +149,214 @@ def schedule_session_idle_maintenance(
     return job, event
 
 
+def schedule_summary_repairs(
+    db: Session,
+    *,
+    settings: Settings,
+    limit: int | None = None,
+    exclude_session_id: str | None = None,
+) -> list[MaintenanceJob]:
+    if not settings.maintenance_enabled or not settings.summary_reconcile_enabled:
+        return []
+
+    scheduled: list[MaintenanceJob] = []
+    batch_limit = limit or settings.summary_reconcile_batch_size
+    for state in repositories.list_session_summary_states(
+        db,
+        exclude_session_id=exclude_session_id,
+    ):
+        if len(scheduled) >= batch_limit:
+            break
+        if state.summary_state not in {"missing", "stale"}:
+            continue
+        if state.latest_turn_status != "completed" or state.last_message_id is None:
+            continue
+
+        prior_jobs = repositories.list_maintenance_jobs(
+            db,
+            kind=SESSION_SUMMARY_REPAIR_KIND,
+            session_id=state.chat_session.id,
+            limit=100,
+        )
+        matching_jobs = [
+            job
+            for job in prior_jobs
+            if job.input_json.get("target_last_message_id") == state.last_message_id
+        ]
+        if any(job.status in {"pending", "running", "completed"} for job in matching_jobs):
+            continue
+        attempt = len(matching_jobs) + 1
+        if attempt > settings.summary_reconcile_max_attempts:
+            continue
+        delay = 0
+        if attempt > 1:
+            delay = settings.summary_reconcile_retry_backoff_seconds * (2 ** (attempt - 2))
+        due_at = utc_now() + timedelta(seconds=delay)
+        idempotency_key = (
+            f"{SESSION_SUMMARY_REPAIR_KIND}:{state.chat_session.id}:"
+            f"{state.last_message_id}:attempt:{attempt}"
+        )
+        job, _ = repositories.schedule_session_maintenance_job(
+            db,
+            kind=SESSION_SUMMARY_REPAIR_KIND,
+            session_id=state.chat_session.id,
+            trigger_turn_id=state.latest_turn_id,
+            trigger_event_id=None,
+            due_at=due_at,
+            input_payload={
+                "target_last_message_id": state.last_message_id,
+                "summary_state": state.summary_state,
+                "attempt": attempt,
+                "max_attempts": settings.summary_reconcile_max_attempts,
+                "source": "summary_reconciler",
+            },
+            idempotency_key=idempotency_key,
+        )
+        scheduled.append(job)
+    for job in scheduled:
+        db.refresh(job)
+    return scheduled
+
+
+def session_summary_audit(
+    db: Session,
+    *,
+    exclude_session_id: str | None = None,
+) -> dict[str, Any]:
+    states = repositories.list_session_summary_states(
+        db,
+        exclude_session_id=exclude_session_id,
+    )
+    counts: dict[str, int] = {}
+    sessions: list[dict[str, Any]] = []
+    for state in states:
+        classification = state.summary_state
+        if classification in {"missing", "stale"} and state.latest_turn_status != "completed":
+            classification = "blocked_active_turn"
+        elif classification in {"missing", "stale"}:
+            jobs = repositories.list_maintenance_jobs(
+                db,
+                kind=SESSION_SUMMARY_REPAIR_KIND,
+                session_id=state.chat_session.id,
+                limit=100,
+            )
+            matching = [
+                job
+                for job in jobs
+                if job.input_json.get("target_last_message_id") == state.last_message_id
+            ]
+            if matching and all(job.status == "failed" for job in matching):
+                classification = "failed_maintenance"
+        counts[classification] = counts.get(classification, 0) + 1
+        sessions.append(
+            {
+                "session_id": state.chat_session.id,
+                "title": state.chat_session.title,
+                "classification": classification,
+                "last_message_id": state.last_message_id,
+                "last_message_at": (
+                    state.last_message_at.isoformat()
+                    if state.last_message_at is not None
+                    else None
+                ),
+                "turn_count": state.turn_count,
+                "latest_turn_id": state.latest_turn_id,
+                "latest_turn_status": state.latest_turn_status,
+                "summary_id": state.summary.id if state.summary is not None else None,
+                "summary_last_message_id": (
+                    state.summary.last_message_id if state.summary is not None else None
+                ),
+            }
+        )
+    return {"counts": counts, "sessions": sessions}
+
+
+def memory_provenance_audit(
+    db: Session,
+    *,
+    apply: bool = False,
+    limit: int | None = None,
+) -> dict[str, Any]:
+    """Classify and optionally repair source-message hooks without guessing."""
+
+    memories = repositories.list_all_memories(db, include_low_confidence=True)
+    items: list[dict[str, Any]] = []
+    repaired = 0
+    for memory in memories:
+        if limit is not None and len(items) >= limit:
+            break
+        classification = "complete"
+        candidate_message_id: str | None = None
+        evidence = "source session and message are already present"
+        old_source_message_id = memory.source_message_id
+        if memory.source_session_id is None or memory.source_turn_id is None:
+            classification = "unresolved_missing_session_or_turn"
+            evidence = "memory lacks a persisted source session or turn hook"
+        elif memory.source_message_id is not None:
+            source_message = repositories.get_message(db, memory.source_message_id)
+            if (
+                source_message is None
+                or source_message.session_id != memory.source_session_id
+                or source_message.turn_id != memory.source_turn_id
+            ):
+                classification = "unresolved_invalid_source_message"
+                evidence = "stored source message does not resolve inside the source turn"
+        else:
+            user_messages = [
+                message
+                for message in repositories.list_messages_for_turn(
+                    db,
+                    turn_id=memory.source_turn_id,
+                )
+                if message.role == "user"
+                and message.session_id == memory.source_session_id
+            ]
+            if len(user_messages) == 1:
+                classification = "repairable_single_user_message"
+                candidate_message_id = user_messages[0].id
+                evidence = "exactly one persisted user message exists in the source turn"
+            else:
+                classification = "unresolved_ambiguous_source_turn"
+                evidence = f"source turn contains {len(user_messages)} matching user messages"
+        if apply and candidate_message_id is not None:
+            repositories.update_memory_source_message(
+                db,
+                memory_id=memory.id,
+                source_message_id=candidate_message_id,
+            )
+            classification = "repaired"
+            repaired += 1
+        items.append(
+            {
+                "memory_id": memory.id,
+                "scope": memory.scope,
+                "status": memory.status,
+                "classification": classification,
+                "source_session_id": memory.source_session_id,
+                "source_turn_id": memory.source_turn_id,
+                "old_source_message_id": old_source_message_id,
+                "proposed_source_message_id": candidate_message_id,
+                "evidence": evidence,
+            }
+        )
+    counts: dict[str, int] = {}
+    counts_by_scope: dict[str, dict[str, int]] = {}
+    for item in items:
+        key = str(item["classification"])
+        counts[key] = counts.get(key, 0) + 1
+        scope = str(item["scope"])
+        scope_counts = counts_by_scope.setdefault(scope, {})
+        scope_counts[key] = scope_counts.get(key, 0) + 1
+    return {
+        "apply": apply,
+        "checked": len(items),
+        "repaired": repaired,
+        "counts": counts,
+        "counts_by_scope": counts_by_scope,
+        "items": items,
+    }
+
+
 def run_due_maintenance_jobs(
     engine: Engine,
     *,
@@ -157,6 +368,7 @@ def run_due_maintenance_jobs(
         return []
 
     with Session(engine) as db:
+        schedule_summary_repairs(db, settings=settings)
         due_jobs = repositories.list_due_maintenance_jobs(
             db,
             now=now,
@@ -193,6 +405,7 @@ def run_maintenance_job(
             session_id=job.session_id,
             trigger_turn_id=job.trigger_turn_id,
             trigger_event_id=job.trigger_event_id,
+            input_payload=job.input_json,
         )
         record_event(
             db,
@@ -208,6 +421,25 @@ def run_maintenance_job(
         )
 
     try:
+        if job_ref.kind == SESSION_SUMMARY_REPAIR_KIND:
+            repair_result = _run_summary_repair(
+                engine,
+                settings=settings,
+                provider_factory=provider_factory,
+                job=job_ref,
+            )
+            status = "completed" if repair_result.get("ok") else "failed"
+            return _finish_job(
+                engine,
+                job_id=job_ref.id,
+                session_id=job_ref.session_id,
+                turn_id=job_ref.trigger_turn_id,
+                trigger_event_id=job_ref.trigger_event_id,
+                status=status,
+                result=repair_result,
+                error=None if status == "completed" else repair_result,
+            )
+
         if job_ref.kind != SESSION_IDLE_MAINTENANCE_KIND:
             result = {"reason": f"Unknown maintenance job kind: {job_ref.kind}"}
             return _finish_job(
@@ -313,6 +545,54 @@ def start_maintenance_worker(
         thread.join(timeout=2)
 
     return stop
+
+
+def _run_summary_repair(
+    engine: Engine,
+    *,
+    settings: Settings,
+    provider_factory: ProviderFactory,
+    job: MaintenanceJobRef,
+) -> dict[str, Any]:
+    with Session(engine) as db:
+        state = next(
+            (
+                item
+                for item in repositories.list_session_summary_states(db)
+                if item.chat_session.id == job.session_id
+            ),
+            None,
+        )
+    if state is None or state.last_message_id is None:
+        return {"ok": True, "status": "skipped", "reason": "session_is_empty"}
+    if state.latest_turn_status != "completed":
+        return {
+            "ok": True,
+            "status": "skipped",
+            "reason": "latest_turn_not_completed",
+            "latest_turn_status": state.latest_turn_status,
+        }
+    target_message_id = job.input_payload.get("target_last_message_id")
+    if target_message_id != state.last_message_id:
+        return {
+            "ok": True,
+            "status": "skipped",
+            "reason": "summary_target_changed",
+            "target_last_message_id": target_message_id,
+            "actual_last_message_id": state.last_message_id,
+        }
+    result = _run_idle_summary(
+        engine,
+        settings=settings,
+        provider_factory=provider_factory,
+        job=job,
+    )
+    return {
+        **result,
+        "status": "completed" if result.get("ok") else "failed",
+        "target_last_message_id": target_message_id,
+        "attempt": job.input_payload.get("attempt"),
+    }
 
 
 def _verify_session_still_idle(
@@ -424,7 +704,15 @@ def _run_memory_review(
         }
         ok = False
     else:
-        parsed = _normalize_memory_review(parsed)
+        valid_message_ids = {
+            message.id
+            for message in messages
+            if message.role in {"user", "assistant"}
+        }
+        parsed = _normalize_memory_review(
+            parsed,
+            valid_message_ids=valid_message_ids,
+        )
         ok = True
 
     with Session(engine) as db:
@@ -992,7 +1280,11 @@ def _parse_json_object(text: str) -> dict[str, Any] | None:
     return parsed if isinstance(parsed, dict) else None
 
 
-def _normalize_memory_review(parsed: dict[str, Any]) -> dict[str, Any]:
+def _normalize_memory_review(
+    parsed: dict[str, Any],
+    *,
+    valid_message_ids: set[str],
+) -> dict[str, Any]:
     candidates = parsed.get("candidates")
     normalized_candidates: list[dict[str, Any]] = []
     if isinstance(candidates, list):
@@ -1002,6 +1294,13 @@ def _normalize_memory_review(parsed: dict[str, Any]) -> dict[str, Any]:
             content = _string(candidate.get("content"))
             if not content:
                 continue
+            source_message_ids = [
+                message_id
+                for message_id in _list_of_strings(
+                    candidate.get("source_message_ids")
+                )
+                if message_id in valid_message_ids
+            ]
             normalized_candidates.append(
                 {
                     "type": _string(candidate.get("type")) or "task_context",
@@ -1012,7 +1311,9 @@ def _normalize_memory_review(parsed: dict[str, Any]) -> dict[str, Any]:
                     "expected_future_use": _string(candidate.get("expected_future_use")),
                     "tags": _list_of_strings(candidate.get("tags"))[:12],
                     "evidence": _string(candidate.get("evidence")),
-                    "write_recommended": bool(candidate.get("write_recommended")),
+                    "source_message_ids": source_message_ids,
+                    "write_recommended": bool(candidate.get("write_recommended"))
+                    and bool(source_message_ids),
                 }
             )
     return {

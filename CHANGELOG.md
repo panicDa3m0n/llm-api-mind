@@ -6,7 +6,189 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+V1.33.0 establishes the first automated engineering-quality baseline and
+includes the owner-validated GPT progress-note correction. V1.32.0 remains the
+currently deployed HoneyLabs production runtime until the verified V1.33.0
+release is published and deployed through the protected database boundary.
+
 ### Added
+
+- Added V1.33.0 blocking Ruff checks for objective Python defects, incremental
+  mypy coverage over six high-value modules, a measured 79.9% backend
+  statement-coverage floor, and deterministic documentation link/reference/
+  identifier validation.
+- Added a GitHub Actions quality workflow that runs backend lint, typing,
+  documentation, full tests with coverage, and the frontend production build
+  without loading production secrets or runtime databases.
+- Made documentation validation independent of locally generated `.venv`,
+  `node_modules`, `dist`, and build directories so clean CI and developer
+  worktrees apply the same repository-reference contract.
+- Added V1.32.0 executable shell-conformance coverage across all 23 registered
+  family/namespace aliases, every help-published command, lifecycle paths,
+  pagination, targeted not-found errors, and retrospective metacognition
+  controls.
+- Added direct disposable MiniMax M3 evaluation across episodic recall,
+  affect, focus, volition, and metacognition, with exact tool evidence and no
+  production database mutation.
+
+- Added V1.31.0 memory-level final rerank arbitration. Sparse FTS, dense
+  surfaces, NetworkX graph expansion, and lexical/entity matching now build a
+  deduplicated round-robin candidate pool; only the reranker can accept and
+  order active automatic or manual retrieval results.
+- Added explicit rerank trace entries with recall routes/ranks, evaluation and
+  acceptance state, query-time score, and fail-closed diagnostics.
+
+- Added V1.30.0 context accounting and non-destructive compaction planning:
+  exact local character/byte channels, provider first-step observations,
+  separate tool-loop totals, calibrated token estimates, and a shadow-only
+  `100k summary + desired eight-turn tail` plan under the 1M/500k/400k policy.
+  Canonical messages, traces, transcripts, and provider history remain
+  unchanged and navigable.
+- Added V1.30.0 agent modes with one active tag and multi-tag capability
+  eligibility. Human turns enforce `interactive`; Scarlet can persist
+  `idle`/`scouting` as a resumable posture through `mode` shell commands.
+  Mode changes are traced and explicitly do not start autonomous cycles.
+- Added `behavioral-scenario-v1`, a four-layer behavioral validation contract
+  covering technical execution, cognitive choice, answer outcome, and
+  longitudinal effect against declared real starting evidence.
+
+### Changed
+
+- Restored authenticated GitHub publication, published the catch-up feature
+  branch and PR #1, and tagged the exact deployed V1.32.0 runtime commit.
+  V1.33.0 remains untagged until its protected VPS rollout.
+- Advanced backend, frontend, GPT Action schema, and canonical project
+  metadata to V1.33.0. The broader mypy baseline remains explicitly measured
+  at 216 errors across 23 files rather than hidden behind global exclusions.
+- Advanced session list/search beyond the old hidden 500-row boundary and made
+  fallback summaries use the complete transcript even when the returned
+  message window is limited.
+- Made volition review scheduling shell-accessible, converted promoted focus
+  candidates into executable shell commands with source linkage, and limited
+  manually resumable agent modes to `idle` and `scouting`.
+
+- Removed the obsolete hand-weighted hybrid ranker. The historical
+  `retrieval_hybrid` trace key remains temporarily compatible but reports the
+  final rerank policy with `legacy_weighted_fusion=false`.
+- Stopped duplicating the current user message in automatic retrieval queries.
+  Active rerank failure now returns no relevant memory instead of silently
+  falling back to deterministic relevance.
+- Calibrated the first active rerank threshold from `0.55` to provisional
+  `0.01` after two real Italian positive controls and a negative control, and added a provider-
+  delivery assertion so rich selection alone cannot be mistaken for model
+  evidence.
+
+- Removed the redundant structured `context.model_context` copy from GPT
+  bootstrap while retaining the single canonical serialized runtime document
+  and full diagnostics in traces.
+- Advanced backend, frontend, OpenAPI runtime, prompt, and project metadata to
+  V1.30.0 and documented agent modes as main-agent posture only; maintenance,
+  summarization, and Dream remain background processes.
+
+### Fixed
+
+- Fixed the GPT bridge prompt so external Scarlet emits concise
+  progress notes during long Action sequences while reserving mandatory
+  finalize for the concluding answer. The Builder schema uses the same
+  distinction, all operation descriptions stay below 300 characters, and the
+  owner confirmed the behavior in a real multi-action GPT turn.
+- Prohibited GPT final drafts from using `:::writing` or other private ChatGPT
+  UI directives that cannot be treated as portable finalized Markdown.
+- Fixed `focus hold` persisting an active status, affect read ignoring filters,
+  targeted focus/affect misses returning successful empty payloads,
+  metacognition dropping retrospective flags, help alias drift, and advertised
+  memory aliases not executing.
+- Fixed Mind API tests inheriting production retrieval mode from the local
+  `.env`; the test client now declares `off` unless a scenario explicitly
+  exercises active retrieval.
+
+- Fixed the initial final-rerank thresholds rejecting positive controls at
+  rank 1/`0.465327` and rank 1/`0.089455`; sourceable full-DB turns delivered
+  the expected memories while an unrelated control remained below `0.0004`.
+
+- Fixed GPT bootstrap accounting so assigned trace IDs are explicitly excluded
+  from the otherwise exact measured boundary and the returned diagnostics list
+  contains both accounting and request traces.
+- Fixed bare `volition list` so the advertised command resolves to
+  `volition.list_active` instead of reaching the handler with an invalid body.
+- Tightened mode guidance after live MiniMax evaluation so an explicit
+  post-conversation posture request triggers `mode set` without being replaced
+  by a volition or memory write, while avoiding claims of autonomous scouting.
+
+### Changed
+
+- Completed the V1.29.1 integrated code and documentation audit:
+  - reconciled the canonical project state, all 14 cognitive branch records,
+    context-packet registries, API/DB contracts, roadmaps, and GPT knowledge
+    with the deployed V1.29 architecture;
+  - separated implemented capability, deterministic evidence, direct Scarlet
+    evidence, and normal runtime activation in branch status reporting;
+  - normalized duplicate ADR, experiment, and bug identifiers without
+    rewriting historical evidence;
+  - recorded provider-native history growth as a distinct open architectural
+    risk rather than attributing it to the compact V2 packet.
+- Advanced project/package documentation metadata to V1.29.1. This audit does
+  not change cognitive runtime behavior, production configuration, or data.
+
+### Added
+
+- Added V1.29.0 canonical dynamic context V2:
+  - introduced the shared `scarlet-model-context-v2` compiler for native
+    MiniMax and the GPT Actions bridge, with compact session/user/world hints,
+    two previous-session summaries, and deduplicated `relevant`,
+    `recent_user`, and `recent_general` memory hooks;
+  - added one user-time rendering boundary and excluded unresolved provenance
+    from automatic memory delivery;
+  - preserved rich retrieval/runtime evidence in traces while adding the exact
+    delivered document as a separate `model.context` trace and UI readout;
+  - added configurable `legacy`, `v2_shadow`, and `v2` rollout profiles.
+- Added V1.29.0 append-only `memory_activities` and cognitive-recency queries.
+  Manual search/open/facts/graph, writes, replacements, maintenance-created
+  memories, and confirmed reranked selections are explicit events; packet
+  delivery and systemic reads do not refresh recency.
+- Added V1.29.0 source navigation through `session message msg_...` and
+  `session turn turn_...`, returning persisted public dialogue, tool evidence,
+  public events, and trace references without hidden provider reasoning.
+- Added V1.29.0 summary/provenance maintenance surfaces:
+  read-only audits, bounded summary reconciliation with retry/backoff, and a
+  dry-run-first deterministic source-message repair operation.
+
+- Added V1.28.0 domain-separated storage repositories while retaining the
+  `storage.repositories` compatibility facade used by existing chat, memory,
+  shell, maintenance, and bridge callers.
+
+- Added V1.27.0 database ownership boundaries:
+  - introduced explicit `production`, `laboratory`, `test`, and `preliminary`
+    roles, a read-only database preflight, and startup validation for ambiguous
+    environments and production/test mixtures;
+  - moved the eager ASGI application to `app.asgi:app`, leaving the reusable
+    factory free of database-opening import side effects;
+  - documented the local/VPS inventory and deployment procedure, including
+    mandatory remote backup and exclusions for runtime `data/` and `.env`;
+  - changed the dirty-memory evaluator to use a marked disposable copy of the
+    frozen baseline rather than resetting the historical `codex_test.db`;
+  - added a staged-change guard for the mutable LFS laboratory snapshot.
+
+- Added V1.26.0 Mind shell organization layers:
+  - moved shared cognitive runtime contracts into `mind/contracts.py`;
+  - moved side-effect-free command parsing and flag/time grammar into
+    `mind/shell_parsing.py`;
+  - moved shell help, errors, sanitization, and compact model-result profiles
+    into `mind/shell_presentation.py`;
+  - added focused parser regression tests while preserving the public shell
+    tool contract.
+
+- Added V1.26.0 preliminary whole-system regression gate:
+  - introduced `preliminary-regression-v1`, an executable pre/post-rework
+    integration suite against a frozen real laboratory DB baseline;
+  - pinned the baseline to its published Git LFS SHA-256 and documented real
+    memory, fact, and source-session references rather than synthetic-only
+    fixtures;
+  - verified automatic retrieval, manual shell navigation, semantic lifecycle,
+    focus, volition, affect, metacognition, internal maintenance boundary, and
+    GPT bridge lifecycle in one disposable test DB run;
+  - recorded the first valid result as `9/9` and made equal-or-better reruns a
+    required acceptance gate for future major procedures.
 
 - Added V1.26.0 runtime context-pack planning:
   - introduced `docs/runtime-context-packs.md` as the baseline for an always-on
@@ -23,6 +205,19 @@ This project uses a practical changelog rather than a release-only log: each mea
     injection.
 
 ### Fixed
+
+- Fixed V1.29.0 missing live memory provenance across native chat, GPT bridge,
+  and maintenance proposal application.
+- Fixed V1.29.0 memory reads overwriting semantic `updated_at`; compatibility
+  usage fields remain stored but no longer drive cognitive recency.
+- Fixed V1.29.0 missing/stale session summaries being permanently skipped
+  after absent or failed idle jobs. A disposable laboratory run generated all
+  34 eligible summaries through the normal provider summarizer (`34/34`).
+- Fixed V1.29.0 detached summary-repair job objects after batched scheduling by
+  refreshing returned jobs before crossing the session boundary.
+
+- Fixed V1.28.1 repository-domain file formatting so the published checkpoint
+  passes whitespace validation.
 
 - Fixed V1.25.4 Mind shell command-registry parity:
   - corrected `validate_shell_command` so flag values no longer count as

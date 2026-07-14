@@ -1,6 +1,7 @@
 # LLM API Mind
 
-Experimental laboratory for testing whether an LLM can become more capable, coherent, and inspectable when supported by a modular cognitive API.
+Experimental laboratory for building and evaluating the external cognitive
+architecture of Scarlet, a digital individual in development.
 
 The project starts with a simple principle:
 
@@ -8,11 +9,15 @@ The project starts with a simple principle:
 Build the microscope before the mind.
 ```
 
-The first milestone is a local MiniMax M2.7 chat runtime where every turn is stored, inspectable, and ready for later cognitive API experiments.
+The long-term direction is a complex, inspectable cognitive system that can
+support memory, perception, self-monitoring, relationship, affect, attention,
+volition, learning, action, and eventually embodiment. Human-like cognitive
+functions are research targets, not claims that the current implementation has
+already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.4.1**.
+Current app baseline: **V1.30.0**.
 
 The project has a working local baseline runtime:
 
@@ -22,7 +27,8 @@ The project has a working local baseline runtime:
 - configurable Scarlet system prompt for the agent identity;
 - SQLite persistence for sessions, messages, turns, traces, and ordered runtime
   events;
-- traceable `mind_api` schema tool loop;
+- traceable single-tool `mind_shell(command, intent)` cognitive loop, backed by
+  internal `/mind/*` handlers;
 - model-controlled, unbounded API Mind cognitive loop during chat turns;
 - cognitive API support for schema discipline and a single LLM-backed internal
   metacognition route;
@@ -35,7 +41,13 @@ The project has a working local baseline runtime:
   embeddable cognitive facets such as preference, future-use, temporal, fact,
   and conflict/update surfaces;
 - episodic recall through session summaries plus full transcript retrieval by session id;
-- Memory Context Pipeline v0 with automatic per-turn memory context traces before the LLM call;
+- rich automatic retrieval/runtime traces plus a compact
+  `scarlet-model-context-v2` packet shared by native MiniMax and GPT Actions;
+- per-channel context accounting, provider first-step observations, and a
+  non-destructive 400k-trigger compaction plan targeting a future 100k
+  chronology plus measured recent turns;
+- agent-only `idle`/`interactive`/`scouting` modes with multi-tag automatic
+  context eligibility and shell inspection/selection;
 - runtime event control plane feeding the cockpit timeline and compact
   next-turn operational context;
 - backend-owned per-session idle maintenance for session summary refresh,
@@ -45,9 +57,12 @@ The project has a working local baseline runtime:
 - streaming React cockpit with inline ordered agent-turn timeline and recent
   session sidebar for reopening persisted conversations by title;
 - scripted and interactive evaluation runner;
-- accepted baseline, tool-loop, streaming trace, runtime-event, and initial
-  Memory v0 experiments.
-- repository-versioned laboratory SQLite state at `backend/data/app.db`.
+- focus, volition, and affect as implemented standalone organ surfaces, with
+  different runtime activation and validation levels;
+- accepted baseline, shell, streaming, context V2, memory, organ, and
+  preliminary whole-system regression experiments;
+- a declared database boundary between production, mutable laboratory state,
+  disposable tests, and frozen preliminary regression runs.
 - active memory robustness roadmap for response-control, lifecycle, atomic facts, retrieval quality, compaction, CLI/API inspection, and evals.
 
 ## Key Documents
@@ -65,22 +80,32 @@ The project has a working local baseline runtime:
 - `docs/bug-ledger.md`: known bugs, fixes, and environment notes.
 - `docs/experiments.md`: hypotheses, baselines, metrics, and results.
 - `docs/api-contract.md`: planned and implemented API contracts.
+- `docs/database-topology.md`: database ownership, test isolation, and VPS
+  deployment safety procedure.
 - `docs/memory-roadmap.md`: detailed roadmap for a robust API/CLI-first memory system.
 - `docs/cognitive-api-roadmap.md`: roadmap for schema discipline and the
   single-route internal metacognition experiment.
+- `docs/runtime-context-packs.md`: context budget, compaction, agent-mode, and
+  future embodiment-routing contract.
+- `docs/behavioral-validation-framework.md`: evidence-grounded direct Scarlet
+  evaluation contract.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: concrete history of meaningful changes.
 
 ## Immediate Roadmap
 
 ```txt
-1. Calibrate and validate active hybrid memory retrieval with live Scarlet
-   probes and negative controls.
-2. Retrieval quality and memory health.
-3. Source-sensitive answer validation.
-4. Metacognition deepening inside the single route.
-5. Human operator surfaces: CLI and cockpit memory views.
-6. Broader behavioral evals for memory, metacognition, and runtime events.
+1. Accumulate exact post-V1.30 accounting from long, varied real sessions.
+2. Validate a derived 100k chronology plus desired eight-turn tail and define
+   degradation when the tail does not fit under 500k.
+3. Populate natural behavioral scenarios for context, communication, focus,
+   volition, affect, metacognition, identity, and memory.
+4. Validate those existing organs and behaviors before coupling organs or
+   adding autonomous cycles.
+5. Keep duplicate/conflict automation and authenticated ownership as separate
+   later workstreams; design ownership before personal data or
+   external/embodied operation expands.
+6. Reduce code monoliths behind the frozen regression gate.
 ```
 
 See `docs/project-state.md` for the integrated current-state map and the
@@ -94,7 +119,7 @@ Backend:
 ```bash
 cd backend
 source .venv/bin/activate
-uvicorn app.main:app --host 127.0.0.1 --port 8000
+uvicorn app.asgi:app --host 127.0.0.1 --port 8000
 ```
 
 Frontend:
@@ -134,9 +159,15 @@ Do not commit real API keys.
 
 ## Laboratory State
 
-The current lab policy intentionally versions `backend/data/app.db` in Git so sessions, traces, runtime events, tool calls, and Memory v0 records can move across development machines.
+`backend/data/app.db` is a legacy LFS-tracked laboratory snapshot, not the VPS
+production database and not an automatic test target. The current worktree
+copy is mutable and must stay out of ordinary code commits. Production data is
+the remote mounted database and is never transferred from this repository.
 
-This is an experimental-lab policy, not a production privacy model. The repository must still exclude API keys, `.env` files, provider credentials, and other secrets.
+The canonical ownership map and deployment procedure live in
+`docs/database-topology.md`. This remains an experimental-lab policy, not a
+production privacy model. The repository must still exclude API keys, `.env`
+files, provider credentials, and other secrets.
 
 Expected future environment variables:
 
@@ -156,4 +187,5 @@ MAINTENANCE_WORKER_INTERVAL_SECONDS=5
 MAINTENANCE_JOB_BATCH_SIZE=5
 AGENT_SYSTEM_PROMPT_PATH=
 DATABASE_URL=sqlite:///./data/app.db
+DATABASE_ROLE=auto
 ```

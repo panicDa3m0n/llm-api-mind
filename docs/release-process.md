@@ -76,6 +76,23 @@ Update `CHANGELOG.md` for every meaningful change that affects:
 
 Small formatting-only edits can skip the changelog if they do not affect project meaning.
 
+## Database Boundary Before Commit Or Deploy
+
+Before committing, run:
+
+```bash
+python scripts/check_database_boundary.py --staged
+```
+
+This refuses accidental inclusion of the mutable laboratory snapshot
+`backend/data/app.db`. The override is reserved for an explicitly reviewed
+data release and must be recorded in the commit and changelog.
+
+Before a VPS deployment, follow `docs/database-topology.md`: back up the
+remote DB, exclude `backend/data/` and `backend/.env` from any transfer, then
+run the new image's read-only preflight with `--expect-role production` before
+restart. Git pushes do not deploy runtime data.
+
 ## Documentation Mapping
 
 Each meaningful commit should usually touch at least one project memory file:
@@ -144,10 +161,12 @@ Current environment notes:
 
 ```txt
 The GitHub connector can access installed repositories, but does not expose repository creation.
-The `gh` CLI is not installed in the local environment.
+GitHub CLI 2.74.2 is installed at ~/.local/bin/gh and authenticated as panicDa3m0n.
+HTTPS Git operations use the CLI credential helper with repo and workflow scopes.
 Initial push was completed by the human owner.
 Non-interactive HTTPS push from this environment succeeded on 2026-05-08.
 SSH push is not currently available because GitHub rejects the local key.
+The incorrect 2026-07-13 HTTPS credential was replaced on 2026-07-14.
 ```
 
 Remote setup options:
@@ -159,14 +178,21 @@ git remote add origin https://github.com/panicDa3m0n/llm-api-mind.git
 git push -u origin main
 ```
 
-2. Install and authenticate GitHub CLI, then create the repository from this folder:
+2. If GitHub CLI authentication expires, restore it from this folder:
 
 ```txt
-gh repo create panicDa3m0n/llm-api-mind --private --source=. --remote=origin --push
+~/.local/bin/gh auth login --hostname github.com --git-protocol https --web
+~/.local/bin/gh auth setup-git
 ```
 
-Current next push command once credentials are available:
+The V1.33.0 catch-up used a verified feature branch and PR #1 instead of
+force-updating stale `main`:
 
 ```txt
-git push -u origin main
+git push -u origin feature/agent-modes-history-compaction
+gh pr create --base main --head feature/agent-modes-history-compaction --draft
 ```
+
+Release tags follow deployed truth. Annotated `v1.32.0` points to `298d668`,
+the code deployed on HoneyLabs. Do not create `v1.33.0` until that version has
+passed the protected VPS backup, preflight, restart, and smoke procedure.

@@ -1,7 +1,7 @@
 # Branch: Metacognizione
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-13
+System version assessed: V1.32.0
 Status: prototype branch with thinking retrospection and shadow context
 
 ## Filosofia del ramo
@@ -71,7 +71,7 @@ Aggiornamento V1.16.0: il ramo resta prompt-led per questa slice. Non sono
 stati aggiunti endpoint o trigger automatici; il cambiamento e la postura
 operativa con cui Scarlet deve osservare e correggere il proprio lavoro.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.32.0.
 
 Aggiornamento V1.23.0: la metacognizione resta un singolo endpoint/command
 `metacognition step`, ma le azioni operative che produce vengono filtrate dal
@@ -116,6 +116,22 @@ richiedono i campi realmente necessari, e le forme canoniche con trattini come
   - test su comandi lifecycle incompleti;
   - test su alias canonici con trattino;
   - capability model-facing allineate alla shell anziche alle rotte endpoint.
+
+## Verifica V1.32.0
+
+- Implementazione: singolo step LLM-backed, modalita retrospettive, contesto
+  lezioni shadow/inject e validazione recommended actions.
+- Test deterministici: coprono contratto, recupero thinking precedente,
+  forwarding reale di `turn_scope` e `detail`, command registry, alias help e
+  trace.
+- Evidenza Scarlet: nel test V1.32 MiniMax M3 ha aperto fonti episodiche,
+  eseguito un critic reale e rifiutato correttamente di trasformare soli
+  successi osservati in prova generale di affidabilita. L'uso proattivo e il
+  seguito delle raccomandazioni restano discontinui.
+- Integrazione runtime: lesson context in shadow di default; lo step resta
+  invocato dal modello, non un gate automatico.
+- Prossimo gate: A/B su risposta pre/post, continuation policy e degradazione
+  esplicita quando manca evidenza raccomandata.
 
 ## Evolutive
 

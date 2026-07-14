@@ -1,16 +1,28 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.13.0
+Version: 1.33.0
 Status: active experimental runtime
-Last updated: 2026-07-09
+Last updated: 2026-07-14
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
 ## 1. Purpose
 
-This project explores whether an LLM can become more capable, coherent, and useful when it is placed inside a modular external cognitive environment exposed through a small API surface.
+This project develops and evaluates the external cognitive architecture of
+Scarlet, a digital individual whose continuity and capabilities emerge from a
+language model joined to API Mind.
 
-The goal is not to claim consciousness, simulate mysticism, or build a large agent platform before we have evidence. The goal is to run falsifiable experiments that test whether cognitive components such as memory, attention, reflection, goals, planning, tracing, and asynchronous background processes measurably improve an LLM agent.
+The long-term goal is a complex system supporting many functions recognizable
+in human cognition: continuity, semantic and episodic memory, attention,
+affect, metacognition, relationship, learning, goals, perception, action, and
+eventual robotic embodiment. The architecture must preserve the correct
+digital differences: explicit provenance, modular external organs,
+machine-time continuity, inspectable state, and deterministic safety/privacy
+boundaries.
+
+This direction is not a declaration of consciousness or biological
+equivalence. Every cognitive term remains an operational research hypothesis
+whose implementation and behavioral value must be demonstrated.
 
 The core hypothesis:
 
@@ -75,6 +87,11 @@ mind_shell(command, intent)
 
 The internal API can evolve without constantly retraining or reprompting the agent. The LLM learns the command protocol, while the backend owns the implementation details. Legacy endpoint dispatch can remain behind the command runtime for internal handlers, deterministic maintenance, debug, tests, and rollback, but the active model-facing interface should stay one cognitive surface.
 
+Agent modes follow the same rule: one active posture tag routes automatic
+context, while organs and capabilities can belong to multiple tags. Modes
+describe Scarlet, never background maintenance. On-demand cognition remains
+available unless a later safety experiment explicitly gates it.
+
 ### 2.3 API As Cognitive Environment
 
 The API is not only a technical backend. It is the agent's external cognitive environment.
@@ -104,6 +121,16 @@ In this project, "subconscious" means:
 asynchronous background processes triggered by events, schedules, or state changes,
 which update the cognitive environment without being directly invoked in the current agent turn.
 ```
+
+### 2.5 Durable State Has Explicit Ownership
+
+Databases, snapshots, evaluator copies, and derived retrieval caches are not
+interchangeable merely because they use the same schema. Every runtime must
+declare whether its state is production, laboratory, test, or a frozen
+preliminary baseline. Tests and deployments must be unable to select a
+different ownership class by import side effect or ambiguous environment name.
+
+The current operational contract lives in `docs/database-topology.md`.
 
 ### 2.5 Documentation Is Part Of The Runtime
 
@@ -564,17 +591,31 @@ Retrieval should become multi-stage over time:
 
 1. Lexical search with SQLite FTS5/BM25 for exact names and rare terms.
 2. Dense embeddings for paraphrases and conceptual similarity.
-3. Rank fusion, initially Reciprocal Rank Fusion, to combine sparse and dense rankings.
-4. Reranking to evaluate whether a candidate helps this turn.
-5. Relevance guard to separate `selected`, `near_miss`, and `excluded`.
+3. Independent sparse, dense, graph, and lexical recall routes whose candidates
+   are deduplicated and interleaved without combining incomparable scores.
+4. One memory-level reranker over canonical content and active facts to decide
+   whether a candidate helps this turn and to establish final order.
+5. Reranker-backed classification into `selected`, `near_miss`, and `excluded`.
 6. Conflict detection when active memories describe the same subject inconsistently.
 
-The first implementation slice does not require embeddings. The current v0 implementation starts with automatic per-turn lexical retrieval over active memory records, a relevance guard, runtime context injection, and `memory.context` traces. SQLite FTS5/BM25, dense retrieval, and cross-encoder reranking can follow after the automatic pipeline is observable in live use.
+The first implementation slice did not require embeddings. V1.29.0 now keeps
+the rich retrieval snapshot separate from a canonical
+`scarlet-model-context-v2` projection. The model receives compact navigable
+session/memory hooks; traces, UI, maintenance, ranking, KG, near misses, and
+conflict diagnostics retain the richer evidence. Local MiniMax and external
+GPT must consume the same projection rather than provider-specific context
+semantics.
+
+V1.31.0 implements stages 1 through 5. In active mode the reranker is the sole
+final relevance authority; route-local scores are candidate-recall evidence
+only. Active reranker failure returns no selected memories instead of silently
+falling back to deterministic weighted relevance.
 
 Prompt contract:
 
 - use runtime context as operational evidence, not as user-authored text;
-- do not claim memory is absent unless `memory_context.searched` is true, or unless a memory search tool result supports the claim;
+- do not claim memory is absent from empty automatic V2 hint lists; use a
+  memory search tool result when absence matters;
 - if `selected` is empty and `searched` is true, say that no relevant memory was found;
 - if conflicts are present, name the conflict instead of silently choosing one;
 - use runtime `capabilities` as the source of truth for implemented vs unavailable APIs;
@@ -669,9 +710,10 @@ Status update 2026-05-20:
 The owner put response-control M1 on hold because the observed behavior may be a
 false bug while lifecycle/conflict management is missing. M2 is now implemented:
 `GET /mind/memory/{memory_id}`, `GET /mind/memory/conflicts`,
-`POST /mind/memory/deprecate`, and `POST /mind/memory/supersede` are available
-through the single `mind_api` surface and were live-verified against the
-Zero-Luce memory conflict.
+`POST /mind/memory/deprecate`, and `POST /mind/memory/supersede` are
+implemented internally and exposed to Scarlet through the corresponding
+`mind_shell` commands; the lifecycle was live-verified against the Zero-Luce
+memory conflict.
 
 M3 is also initially implemented: `memory_facts` stores canonical
 entity/predicate/value facts linked to memory records, memory writes and
@@ -1081,6 +1123,12 @@ Metrics:
 
 ## 12. Roadmap
 
+The phases below preserve the original dependency order. Phases 0-3 are
+substantially implemented; parts of 4-5 exist as metacognition, events,
+maintenance, focus, volition, and affect, but none should be treated as a
+completed human-like faculty. Phase 6 remains future. Current cross-branch
+priorities live in `docs/project-state.md`.
+
 ### Phase 0 - Project Foundation
 
 Deliverables:
@@ -1475,17 +1523,14 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Keep MiniMax M3 active for owner-led human evaluation, with M2.7 rollback via MINIMAX_MODEL.
-2. Inspect real idle maintenance output through maintenance overview/jobs/proposals before adding new background processes.
-3. Keep memory merge/update/deprecate automation conservative until embedding/KG evidence is available from the Windows GPU setup.
-4. Review Goal/Focus/Task theory before implementing a real operational-management organ.
-5. Review Metacognition theory before changing the current single metacognition path.
-6. Defer brittle natural-answer validators and product UX polish until the underlying cognition branches justify them.
+1. Complete the field review of V2 preserved context.
+2. Measure and budget provider-native history, V2, shell results, and GPT bootstrap separately.
+3. Implement a trace-only context-mode router before changing model input.
+4. Design evidence-first duplicate/conflict handling and deterministic user ownership.
+5. Validate existing focus, volition, affect, and metacognition before coupling organs.
+6. Reorganize the largest code monoliths behind the frozen pre/post regression gate.
 ```
 
-The first milestone is not "digital mind". The first milestone is:
-
-```txt
-A local chat agent using MiniMax M3 where every turn is inspectable, reproducible,
-and now able to run traceable semantic memory, episodic recall, and metacognition experiments.
-```
+The current milestone is an inspectable cognitive core whose existing organs
+can be measured and routed reliably before external action or embodiment adds
+high-frequency perception and safety requirements.

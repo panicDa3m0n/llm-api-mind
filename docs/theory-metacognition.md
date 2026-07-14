@@ -1,8 +1,12 @@
 # Metacognition Theory
 
-Last updated: 2026-06-14
-System baseline: V1.5.0
+Last updated: 2026-07-13
+System baseline: theory originated in V1.5.0; implementation compared at V1.29.1
 Status: theory for owner review, not implementation spec
+
+Current boundary: one metacognition step, retrospective modes, command
+validation, and shadow lesson context exist. Autonomous use, continuation, and
+measured answer improvement remain unproven.
 
 This document defines what metacognition should mean for Scarlet as a digital
 individual. The goal is not to add decorative "thinking" text or many similar
@@ -63,7 +67,8 @@ classes, but they should not replace a real metacognitive organ.
 
 Already present:
 
-- `/mind/metacognition/step` exists as one LLM-backed model-facing endpoint;
+- `metacognition step` exists as one shell command backed by the internal
+  `/mind/metacognition/step` route;
 - the prompt tells Scarlet to use API Mind as internal cognition;
 - Scarlet can emit public notes during agentic work;
 - runtime context gives memory, time, profile, events, and session continuity;

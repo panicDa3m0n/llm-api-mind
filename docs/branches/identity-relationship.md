@@ -1,7 +1,7 @@
 # Branch: Identita E Relazione
 
-Last updated: 2026-06-24
-System version assessed: V1.16.1
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -40,7 +40,7 @@ La relazione resta principalmente prompt-driven: non esiste ancora un modello
 persistente di identita o un'evoluzione deliberata della personalita oltre alla
 memoria semantica.
 
-Sistema valutato: V1.16.1.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -53,6 +53,19 @@ Sistema valutato: V1.16.1.
 - V1.16.1 prompt fix anti-assistente: rimosso il frame iniziale "AI agent",
   aggiunto anti-pattern "Come posso aiutarti?", e trasformato API Mind in
   "cognitive body" nel linguaggio identitario.
+
+## Verifica V1.29.1
+
+- Implementazione: identita statica nel prompt, nome utente V2, continuita
+  semantica/episodica e ricordi personali.
+- Test deterministici: verificano prompt baseline e trasporto del contesto, non
+  coerenza identitaria longitudinale.
+- Evidenza Scarlet: riconoscibilita e continuita buone, ma ancora
+  prompt/memory-driven.
+- Integrazione runtime: attiva; non esiste uno stato identitario persistente
+  distinto da prompt, memoria e affetto.
+- Prossimo gate: modello relazionale sourceable e test longitudinali che
+  misurino presenza, coerenza, limiti e correzione senza claim ontologici.
 
 ## Evolutive
 

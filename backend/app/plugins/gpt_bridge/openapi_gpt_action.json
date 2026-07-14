@@ -2,13 +2,13 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scarlet GPT Bridge",
-    "version": "1.25.4",
-    "description": "Minimal GPT Actions schema for an external ChatGPT GPT to bootstrap Scarlet context, execute Mind shell commands, and finalize answers back into Scarlet history."
+    "version": "1.33.0",
+    "description": "GPT Actions schema connecting ChatGPT-hosted Scarlet to API Mind context, cognitive commands, persistent sessions, and answer history."
   },
   "servers": [
     {
       "url": "https://honeylabs.cloud",
-      "description": "HoneyLabs Scarlet preview VPS"
+      "description": "HoneyLabs Scarlet production VPS"
     }
   ],
   "security": [
@@ -20,8 +20,8 @@
     "/gpt/bootstrap": {
       "post": {
         "operationId": "bootstrapScarletBeforeEveryAnswer",
-        "summary": "REQUIRED before every Scarlet answer",
-        "description": "REQUIRED first action before every answer, including greetings and simple messages. Creates/resumes the Scarlet session, stores the user message, and returns session_id, turn_id, runtime context, memory, history, focus, affect, and tool context.",
+        "summary": "MANDATORY FIRST ACTION for every user message",
+        "description": "Always call this first for every user message, including greetings and follow-ups. Do not emit text before it succeeds. Persists the exact user message and returns session_id, turn_id, canonical runtime context, recent provider continuity, and turn action policy.",
         "security": [
           {
             "GPTBridgeKey": []
@@ -54,8 +54,8 @@
     "/gpt/action": {
       "post": {
         "operationId": "runScarletMindAction",
-        "summary": "REQUIRED for memory, sessions, evidence, and state",
-        "description": "Use after bootstrap whenever the answer needs memory, prior sessions, facts, source checks, time ranges, project state, focus, affect, metacognition, command help, or evidence not fully present in bootstrap context.",
+        "summary": "Run one API Mind cognitive command",
+        "description": "Call after bootstrap and before finalize for memory, sessions, focus, volition, affect, mode, metacognition, provenance, verification, or state changes. Before a long action or action cluster, give the user one short progress note. Inspect response.ok before claiming success.",
         "security": [
           {
             "GPTBridgeKey": []
@@ -88,8 +88,8 @@
     "/gpt/finalize": {
       "post": {
         "operationId": "finalizeScarletBeforeAnswer",
-        "summary": "REQUIRED before showing final answer",
-        "description": "REQUIRED before the visible answer. Stores Scarlet's final answer, completes the turn, and returns final_answer_to_show. Output final_answer_to_show verbatim when present.",
+        "summary": "MANDATORY FINAL ACTION before final answer",
+        "description": "Always call after all cognitive actions and before the final answer. Progress notes may appear earlier. Persists the exact final draft, updates Scarlet continuity, and completes the turn. After success, output final_answer_to_show verbatim and call no further tools.",
         "security": [
           {
             "GPTBridgeKey": []
@@ -168,7 +168,7 @@
           },
           "command": {
             "type": "string",
-            "description": "Mind shell command, such as help, memory search, session open, focus read, affect read, or metacognition step."
+            "description": "One API Mind shell command from help, memory, session, focus, volition, affect, mode, or metacognition. Use help when syntax is uncertain."
           },
           "intent": {
             "type": "string",
@@ -219,7 +219,7 @@
           "context": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Compact gpt-bootstrap-compact-v1 context. Use runtime_context, memory_context, provider_messages_recent, and full_diagnostics trace ids."
+            "description": "Compact gpt-bootstrap-compact-v1 context. runtime_context contains the canonical scarlet-model-context-v2 document."
           },
           "required_next_steps": {
             "type": "array",

@@ -1,6 +1,7 @@
 from functools import lru_cache
+from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -27,6 +28,7 @@ class Settings(BaseSettings):
     agent_system_prompt_path: str | None = None
 
     database_url: str = "sqlite:///./data/app.db"
+    database_role: str = "auto"
     codex_test: bool = False
     codex_test_database_url: str = "sqlite:///./data/codex_test.db"
     codex_test_seed_database_url: str | None = None
@@ -35,6 +37,24 @@ class Settings(BaseSettings):
     maintenance_idle_seconds: int = Field(default=900, ge=0)
     maintenance_worker_interval_seconds: float = Field(default=5.0, gt=0)
     maintenance_job_batch_size: int = Field(default=5, ge=1, le=50)
+    summary_reconcile_enabled: bool = True
+    summary_reconcile_batch_size: int = Field(default=2, ge=1, le=20)
+    summary_reconcile_max_attempts: int = Field(default=3, ge=1, le=10)
+    summary_reconcile_retry_backoff_seconds: int = Field(default=60, ge=1)
+
+    model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
+    model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
+    model_context_relevant_memories_limit: int = Field(default=5, ge=0, le=20)
+    model_context_recent_user_memories_limit: int = Field(default=5, ge=0, le=20)
+    model_context_recent_general_memories_limit: int = Field(default=5, ge=0, le=20)
+
+    context_window_tokens: int = Field(default=1_000_000, ge=1)
+    context_operational_input_limit_tokens: int = Field(default=500_000, ge=1)
+    context_compaction_trigger_tokens: int = Field(default=400_000, ge=1)
+    history_compaction_target_tokens: int = Field(default=100_000, ge=1)
+    history_compaction_recent_turns: int = Field(default=8, ge=1, le=100)
+    history_compaction_mode: Literal["off", "shadow"] = "shadow"
+    context_estimated_chars_per_token: float = Field(default=3.5, ge=1.0, le=12.0)
 
     retrieval_shadow_enabled: bool = False
     retrieval_shadow_backend: str = "none"
@@ -51,7 +71,9 @@ class Settings(BaseSettings):
     retrieval_shadow_rerank_top_n: int = Field(default=10, ge=1, le=50)
     retrieval_hybrid_mode: str = "off"
     retrieval_hybrid_min_dense_score: float = Field(default=0.38, ge=-1.0, le=1.0)
-    retrieval_hybrid_min_rerank_score: float = Field(default=0.55, ge=0.0, le=1.0)
+    retrieval_hybrid_min_rerank_score: float = Field(default=0.01, ge=0.0, le=1.0)
+    # Retained for environment compatibility only. V1.31 active retrieval does
+    # not fuse hand-authored weights; the final memory-level reranker decides.
     retrieval_hybrid_base_weight: float = Field(default=0.35, ge=0.0, le=1.0)
     retrieval_hybrid_sparse_weight: float = Field(default=0.15, ge=0.0, le=1.0)
     retrieval_hybrid_dense_weight: float = Field(default=0.35, ge=0.0, le=1.0)
@@ -74,6 +96,9 @@ class Settings(BaseSettings):
     organ_temporal_experience_mode: str = "off"
     organ_dream_mode: str = "off"
 
+    agent_mode_default: Literal["idle", "interactive", "scouting"] = "idle"
+    agent_mode_routing: Literal["off", "shadow", "active"] = "active"
+
     runtime_timezone: str = "Europe/Rome"
     runtime_language: str = "it"
     runtime_language_label: str = "Italiano"
@@ -84,6 +109,31 @@ class Settings(BaseSettings):
     user_privacy_scope: str = "local_single_user"
 
     gpt_bridge_api_key: str | None = Field(default=None, repr=False)
+
+    @model_validator(mode="after")
+    def validate_context_budget_order(self) -> "Settings":
+        if self.context_operational_input_limit_tokens > self.context_window_tokens:
+            raise ValueError(
+                "context_operational_input_limit_tokens must not exceed "
+                "context_window_tokens"
+            )
+        if (
+            self.context_compaction_trigger_tokens
+            > self.context_operational_input_limit_tokens
+        ):
+            raise ValueError(
+                "context_compaction_trigger_tokens must not exceed "
+                "context_operational_input_limit_tokens"
+            )
+        if (
+            self.history_compaction_target_tokens
+            >= self.context_operational_input_limit_tokens
+        ):
+            raise ValueError(
+                "history_compaction_target_tokens must stay below "
+                "context_operational_input_limit_tokens"
+            )
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

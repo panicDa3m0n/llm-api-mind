@@ -44,12 +44,13 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     turn_id = bootstrap_payload["turn_id"]
     context = bootstrap_payload["context"]
     assert context["profile"] == "gpt-bootstrap-compact-v1"
+    assert "model_context" not in context
     assert "system" not in context
     assert "base_system" not in context
     assert "runtime_payload" not in context
     assert context["runtime_context"]
-    assert context["memory_context"]["operation"] == "memory.context"
-    assert "raw_retrieval_shadow" in context["memory_context"]["omitted_debug"]
+    assert "memory_context" not in context
+    assert "runtime_payload_summary" not in context
     assert context["tools"][0]["name"] == "mind_shell"
     assert context["mind_shell_action_endpoint"] == "POST /gpt/action"
     assert context["finalize_endpoint"] == "POST /gpt/finalize"
@@ -57,6 +58,29 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
         "omitted_from_action_response"
     ]
     assert len(json.dumps(bootstrap_payload)) < 120_000
+    traces = client.get(f"/api/debug/traces/{turn_id}").json()
+    model_context_trace = next(
+        trace for trace in traces if trace["kind"] == "model.context"
+    )
+    serialized_model_context = json.dumps(
+        model_context_trace["payload"]["document"],
+        ensure_ascii=False,
+        indent=2,
+    )
+    assert serialized_model_context in context["runtime_context"]
+    accounting_trace = next(
+        trace for trace in traces if trace["kind"] == "context.accounting.preflight"
+    )
+    assert accounting_trace["payload"]["measurement_boundary"][
+        "is_total_model_input"
+    ] is False
+    request_trace = next(trace for trace in traces if trace["kind"] == "llm.request")
+    assert accounting_trace["id"] in context["full_diagnostics"][
+        "available_in_trace_ids"
+    ]
+    assert request_trace["id"] in context["full_diagnostics"][
+        "available_in_trace_ids"
+    ]
 
     action = client.post(
         "/gpt/action",
@@ -368,10 +392,13 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
     assert "FIRST TOOL: call `start_scarlet_turn_required`" in mcp_prompt
     assert "FINAL TOOL: before showing any final answer" in mcp_prompt
     assert "finish_scarlet_turn_required" in mcp_prompt
-    assert "you are not Scarlet for this turn yet" in prompt
+    assert "Public Progress Notes" in prompt
+    assert "before the first action or coherent cluster" in prompt
+    assert "Only the complete concluding answer" in prompt
+    assert "Never use `:::writing` blocks" in prompt
     assert "final_answer_to_show" in prompt
-    assert "Do not ask permission to bootstrap" in prompt
-    assert "Use only these GPT Actions" in prompt
+    assert "never ask permission to use the bridge" in prompt
+    assert "Use only `bootstrapScarletBeforeEveryAnswer`" in prompt
     assert "X-GPT-Bridge-Key" in json.dumps(action_schema)
     assert sorted(action_schema["paths"]) == [
         "/gpt/action",
@@ -390,6 +417,11 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
         action_schema["paths"]["/gpt/finalize"]["post"]["operationId"]
         == "finalizeScarletBeforeAnswer"
     )
+    for path in action_schema["paths"].values():
+        assert len(path["post"]["description"]) <= 300
+    assert "Progress notes may appear earlier" in action_schema["paths"][
+        "/gpt/finalize"
+    ]["post"]["description"]
     bootstrap_schema = action_schema["components"]["schemas"]["BootstrapResponse"]
     assert "session_id" in bootstrap_schema["required"]
     assert "session_id" in bootstrap_schema["properties"]

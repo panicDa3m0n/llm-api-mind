@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
-from app.mind.memory import MemoryOperationResult, MindAPIContext
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.command_registry import validate_shell_command
 from app.mind.schema import shell_command_catalog
 from app.storage import repositories

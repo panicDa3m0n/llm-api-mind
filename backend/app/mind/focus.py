@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from sqlmodel import Session
 
-from app.mind.memory import MemoryOperationResult, MindAPIContext
+from app.mind.contracts import MindAPIContext, MemoryOperationResult
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
 from app.storage import repositories
 from app.storage.models import FocusRecord, FocusTransition
@@ -300,6 +300,7 @@ def _update_or_hold_focus(
         reason=request.reason or (intent if request.action == "hold" else None),
         intensity=request.intensity,
         duration_policy=request.duration_policy,
+        status="held" if request.action == "hold" else None,
         metadata=request.metadata,
     )
     assert updated is not None
@@ -451,6 +452,13 @@ def _read_focus(
     owner_profile_id: str,
 ) -> MemoryOperationResult:
     focus = _target_focus(db, request=request, owner_profile_id=owner_profile_id)
+    if request.focus_id is not None and focus is None:
+        return _error(
+            code="focus.not_found",
+            message=f"No focus matched id {request.focus_id}.",
+            hint="List focus history before retrying a targeted read.",
+            actions=["Use focus list --limit 10"],
+        )
     if focus is None:
         return MemoryOperationResult(
             ok=True,
@@ -495,14 +503,18 @@ def _list_or_search_focus(
         owner_profile_id=owner_profile_id,
         status=request.status,
         query=request.query if request.action == "search" else None,
-        limit=request.limit,
+        limit=request.limit + 1,
         offset=request.offset,
     )
+    has_more = len(records) > request.limit
+    records = records[: request.limit]
     return MemoryOperationResult(
         ok=True,
         result={
             "operation": f"focus.{request.action}",
             "items": [_focus_payload(item) for item in records],
+            "count": len(records),
+            "has_more": has_more,
             "limit": request.limit,
             "offset": request.offset,
             "query": request.query,
@@ -535,8 +547,11 @@ def _focus_timeline(
         db,
         owner_profile_id=owner_profile_id,
         focus_id=focus_id,
-        limit=request.limit,
+        limit=request.limit + 1,
+        offset=request.offset,
     )
+    has_more = len(transitions) > request.limit
+    transitions = transitions[: request.limit]
     node_ids = {
         item
         for transition in transitions
@@ -557,6 +572,8 @@ def _focus_timeline(
             "operation": "focus.timeline",
             "nodes": [_focus_payload(item) for item in record_by_id.values()],
             "edges": [_transition_payload(item) for item in transitions],
+            "edge_count": len(transitions),
+            "has_more_edges": has_more,
             "focus_id": focus_id,
             "query": request.query,
             "status": request.status,

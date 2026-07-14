@@ -1,7 +1,8 @@
 # Memory Robustness Roadmap
 
 Status: active planning  
-Last updated: 2026-07-09
+Last updated: 2026-07-14
+App baseline: V1.33.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -38,7 +39,9 @@ Implemented today:
   provider-native history used for model-facing multi-turn continuity.
 - Temporal filters on `POST /mind/memory/search` and `GET /mind/sessions`,
   resolved by the backend from runtime time.
-- `confidence`, `salience`, `scope`, `type`, `tags`, metadata, timestamps, and usage count.
+- semantic `scope`/`type`, backend-derived tags/metadata, timestamps, and
+  a separate append-only `memory_activities` recency ledger. Stored
+  confidence/salience are legacy/audit fields, not active ranking authority.
 - Dedicated traces:
   - `mind.memory.write`
   - `mind.memory.search`
@@ -50,11 +53,12 @@ Implemented today:
   - `mind.sessions.summarize`
   - `memory.conflicts`
   - `memory.context`
-- Automatic Memory Context Pipeline v0:
+- Automatic rich retrieval plus V2 projection:
   - every chat turn runs memory retrieval;
   - every turn emits `memory.context`;
-  - selected memories enter backend-generated `<runtime_context>`;
-  - near misses, exclusions, and conflicts remain visible in traces.
+  - eligible selected memories become compact V2 hooks;
+  - recent user/general hooks use cognitive activity;
+  - near misses, exclusions, conflicts, KG, and scoring remain in traces.
 - Provider-native turn history:
   - completed turns persist Anthropic-compatible content blocks;
   - future provider calls use native history plus the current user message;
@@ -68,13 +72,13 @@ changed in persistent state.
 
 Current weakness:
 
-The system is not yet a robust cognitive memory. It can write, retrieve, read,
-deprecate, supersede, inspect active conflicts, and extract initial atomic
-facts, but it cannot yet merge duplicates, validate answers, compact sessions,
-or enforce all memory-derived answer constraints. Episodic summaries are now
-available as a navigation layer, but they still need live behavioral evidence:
-Scarlet must prove she follows `source_session_id` into transcripts when exact
-provenance matters. The current fact extractor is
+The system is not yet a mature cognitive memory. It can write, retrieve, read,
+deprecate, supersede, inspect active fact conflicts, navigate source
+messages/turns/sessions, maintain summaries, and project compact automatic
+hooks, but it cannot safely adjudicate/merge semantic duplicates, enforce
+multi-user ownership, compact memory autonomously, or guarantee that the model
+uses retrieved constraints. Episodic source navigation is live-verified but
+still model-dependent. The current fact extractor is
 deterministic and narrow by design; it covers observed Zero-Luce/SAL-style
 patterns and controlled predicates, not open-ended semantic understanding.
 
@@ -103,12 +107,12 @@ What should advance before embedding/KG:
   with full retrieval/debug evidence preserved in traces instead of repeated in
   Scarlet's runtime context.
 
-What should wait until embedding/KG evidence exists:
+What still waits for stronger embedding/KG evidence:
 
 - automatic merge of similar memories;
 - automatic update versus deprecation decisions for stale facts;
 - semantic duplicate detection beyond current conservative preflight;
-- hybrid sparse + dense + graph reranking;
+- lifecycle mutation driven only by retrieval similarity or relevance output;
 - stale-memory repair that relies on similarity, entity resolution, or temporal
   contradiction scoring.
 - rich cognitive memory parameters such as `applies_when`,
@@ -679,26 +683,29 @@ and cognition routes correctly before retrieval hardening continues.
 
 Next M4 step:
 
-Run active-hybrid OpenRouter retrieval and, later, Milvus Lite or another vector
-backend over `memory_surfaces`; compare sparse/dense/grouped-rerank/hybrid
-candidates in traces and calibrate thresholds before making hybrid retrieval
-the default path.
+Calibrate the active OpenRouter memory-level reranker on frozen and disposable
+full-DB copies. Compare sparse, dense, graph, and lexical candidate coverage
+against final reranker decisions, then evaluate Milvus Lite or another vector
+backend for stronger dense recall. Recall routes must not become competing
+final relevance authorities.
 
 Add in order:
 
 1. Implemented: SQLite FTS5/BM25 candidate retrieval over derived search
    documents.
 2. Implemented: minimal temporal search for memories and sessions.
-3. Next: entity-aware relevance guard.
-4. Next: better `selected` vs `near_miss` vs `excluded` thresholds from live
-   evidence.
-5. Implemented: optional dense/rerank grouping over `memory_surfaces`.
-6. Implemented: configurable hybrid rank fusion in `off|shadow|active` mode.
+3. Next: entity-aware candidate coverage guard before final rerank.
+4. Next: calibrate the reranker acceptance threshold and candidate-pool size
+   from live evidence.
+5. Implemented: optional dense grouping over `memory_surfaces` as a recall
+   route.
+6. Implemented in V1.31.0: configurable final memory-level rerank in
+   `off|shadow|active` mode, with no weighted score fusion.
 7. Implemented: role-aware surface gating. Content/fact surfaces may promote a
    memory; future-use, temporal, and lifecycle guard surfaces only support or
    explain candidates found through stronger routes.
-8. Next: entity-aware relevance guard and threshold tuning from dirty-DB
-   evidence.
+8. Next: entity-aware recall coverage and final-rerank tuning from disposable
+   full-DB evidence.
 
 Acceptance:
 
@@ -801,14 +808,17 @@ Acceptance:
 Recommended next implementation order:
 
 ```txt
-1. Live-verify episodic recall by following memory source_session_id into full transcripts.
-2. Evaluate idle-maintenance missed-memory traces.
-3. Directly evaluate temporal + sparse retrieval in natural Scarlet sessions.
-4. Entity-aware retrieval guard from observed wrong-entity failures.
-5. Proposal inbox and compaction.
-6. CLI/debug memory views.
-7. Broader memory eval suite.
-8. Re-test response-control guardrails after lifecycle/retrieval/episodic evidence is stronger.
+1. Design duplicate-candidate evidence separately from conflict adjudication.
+2. Preserve LLM/human judgment for semantic conflict decisions; similarity is
+   never sufficient by itself.
+3. Add deterministic authenticated user ownership before multi-user use.
+4. Calibrate recall-route coverage and final reranking on frozen and live
+   negative controls.
+5. Add maintenance retry/resume and evaluate pending proposal quality.
+6. Repair historical provenance only where source evidence is defensible.
+7. Add branch-level behavioral acceptance and operator memory-health views.
+8. Design Dream/compaction only after the proposal and conflict evidence is
+   reliable at larger memory counts.
 ```
 
 Reason:
@@ -824,11 +834,10 @@ has stronger conflict-management evidence.
 
 Do not add yet:
 
-- vector database;
-- graph database;
+- a new vector/graph source of truth separate from canonical SQLite state;
 - background autonomous compaction without inspection;
 - direct Markdown-vault source of truth;
-- broad memory UI before lifecycle and validation semantics exist;
+- automatic merge/deprecation from embedding similarity alone;
 - large prompt rewrites as a substitute for backend constraints.
 
 ## 9. Definition Of Robust Enough

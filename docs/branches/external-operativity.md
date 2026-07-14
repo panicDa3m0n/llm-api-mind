@@ -1,7 +1,7 @@
 # Branch: Operativita Su Mondo Esterno
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: planned branch
 
 ## Filosofia del ramo
@@ -34,7 +34,7 @@ Il ramo e quasi interamente futuro. L'infrastruttura di eventi, trace, UI e
 schema potra supportarlo, ma oggi Scarlet non ha operativita esterna ampia
 integrata nella propria API Mind.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -45,6 +45,17 @@ Sistema valutato: V1.25.4.
 - V1.26.0 planning: `docs/runtime-context-packs.md` definisce che azioni
   embodied/attuative future devono essere context pack gated, non semplice
   contesto aggiunto al prompt.
+
+## Verifica V1.29.1
+
+- Implementazione: nessun tool operativo esterno concesso a Scarlet; eventi,
+  trace e shell sono solo substrato.
+- Test deterministici e live: assenti per azioni su file, browser, servizi o
+  corpo.
+- Integrazione runtime: assente.
+- Prossimo gate: capability registry con rischio, permesso, reversibilita,
+  conferma, timeout e receipt; per embodiment percezione e safety devono essere
+  tightly coupled all'attuazione.
 
 ## Evolutive
 

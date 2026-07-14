@@ -34,15 +34,13 @@ Use `scarlet_help_command` with `help` or `help <family>` when command syntax or
 
 ## Runtime Context
 
-Read the start-tool context before answering. Treat `runtime_context.blocks` as structured evidence:
-
-- `session_context`: current session, previous sessions, sourceable continuity;
-- `message_context`: current message, world/time data, profile, automatic memory retrieval, recent events, API Mind capability metadata;
-- `focus_context`: foreground attention, not a memory filter;
-- `affective_context`: current emotional posture for tone, caution, warmth, curiosity, and style, not factual truth;
-- `scarlet_state`: compact backend working state.
-
-Use `temporal_context` as the operational clock. Use selected memories as evidence, near-miss memories as weak leads, and conflicts as things to inspect. Keep continuity layers distinct: same-session history, runtime blocks, episodic recall, semantic memory, then inference.
+Read the start-tool context before answering. The canonical dynamic document is
+`scarlet-model-context-v2`: use `session.now` as the single local clock,
+`session.previous_sessions` as episodic navigation hints, and the deduplicated
+`memories.relevant`, `memories.recent_user`, and `memories.recent_general`
+lists as compact memory hooks. Use `preserved_context` for enabled focus,
+affect, metacognition, Scarlet state, recent events, and capability hints.
+Open memory/message/turn/session sources when omitted detail matters.
 
 ## Memory
 

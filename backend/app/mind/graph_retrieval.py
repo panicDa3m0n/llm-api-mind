@@ -379,7 +379,6 @@ def _score_memory_nodes(
             memory_id = graph.nodes[node_id].get("memory_id")
             if memory_id not in memory_by_id:
                 continue
-            memory = memory_by_id[memory_id]
             path = nx.shortest_path(graph, seed_id, node_id)
             path_weight = _path_weight(graph, path)
             seed_score = float(seed_data.get("seed_score") or 1.0)

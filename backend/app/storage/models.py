@@ -453,6 +453,29 @@ class MemoryRecord(SQLModel, table=True):
     last_used_at: datetime | None = Field(default=None, index=True)
 
 
+class MemoryActivity(SQLModel, table=True):
+    """Append-only evidence that a memory took part in cognitive work."""
+
+    __tablename__ = "memory_activities"
+
+    id: str = Field(default_factory=lambda: new_id("mem_act"), primary_key=True)
+    memory_id: str = Field(foreign_key="memories.id", index=True)
+    activity_kind: str = Field(index=True)
+    occurred_at: datetime = Field(default_factory=utc_now, index=True)
+    profile_id: str | None = Field(default=None, index=True)
+    actor: str = Field(default="scarlet", index=True)
+    source: str = Field(index=True)
+    session_id: str | None = Field(default=None, foreign_key="sessions.id", index=True)
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    message_id: str | None = Field(default=None, foreign_key="messages.id", index=True)
+    trace_id: str | None = Field(default=None, foreign_key="traces.id", index=True)
+    eligible_for_recent: bool = Field(default=True, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
 class MemoryFact(SQLModel, table=True):
     __tablename__ = "memory_facts"
 

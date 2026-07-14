@@ -23,7 +23,6 @@ from app.llm.provider import (
     LLMMessage,
     LLMProvider,
     LLMRequestError,
-    LLMStreamEvent,
     LLMTextResult,
     LLMToolUse,
 )
@@ -48,10 +47,17 @@ from app.runtime.events import (
     record_tool_call_completed,
     record_tool_call_started,
 )
-from app.runtime.maintenance import schedule_session_idle_maintenance
+from app.runtime.maintenance import (
+    schedule_session_idle_maintenance,
+    schedule_summary_repairs,
+)
+from app.runtime.context_accounting import (
+    build_context_accounting_observation,
+    build_context_accounting_preflight,
+)
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import ChatSession, CognitiveEvent, Message, Trace, Turn
+from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
@@ -140,6 +146,12 @@ def build_chat_router(
                 db,
                 title=request.title,
                 metadata=request.metadata,
+            )
+            schedule_summary_repairs(
+                db,
+                settings=settings,
+                limit=1,
+                exclude_session_id=chat_session.id,
             )
             return _session_response(chat_session)
 
@@ -269,6 +281,8 @@ def build_chat_router(
             if memory_context.metacognitive_trace_id is not None:
                 trace_ids.append(memory_context.metacognitive_trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
+            if memory_context.model_context_trace_id is not None:
+                trace_ids.append(memory_context.model_context_trace_id)
             record_event(
                 db,
                 session_id=session_id,
@@ -311,6 +325,19 @@ def build_chat_router(
                 system_prompt.content,
                 memory_context.runtime_context,
             )
+            accounting_trace, accounting_payload = _record_context_accounting_preflight(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                model=active_provider_model(settings),
+                transport="native",
+                base_system=system_prompt.content,
+                runtime_context=memory_context.runtime_context,
+                messages=llm_messages,
+                settings=settings,
+            )
+            accounting_trace_id = accounting_trace.id
+            trace_ids.append(accounting_trace_id)
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -337,6 +364,10 @@ def build_chat_router(
                         memory_context.metacognitive_payload or {}
                     ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
+                    "model_context_profile": memory_context.model_context_profile,
+                    "model_context_trace_id": memory_context.model_context_trace_id,
+                    "context_accounting_trace_id": accounting_trace_id,
+                    "context_accounting": _context_accounting_summary(accounting_payload),
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -366,6 +397,10 @@ def build_chat_router(
                     "max_tokens": max_tokens,
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
+                    "context_accounting_trace_id": accounting_trace_id,
+                    "estimated_input_tokens": accounting_payload["total"][
+                        "estimated_input_tokens"
+                    ],
                     "tool_count": 1,
                 },
                 source="llm",
@@ -387,6 +422,7 @@ def build_chat_router(
                     provider_factory=provider_factory,
                     session_id=session_id,
                     turn_id=turn_id,
+                    source_message_id=user_message_response.id,
                     trace_ids=trace_ids,
                 ),
                 max_tool_calls=None,
@@ -462,6 +498,15 @@ def build_chat_router(
                 },
             )
             trace_ids.append(response_trace.id)
+            observed_trace = _record_context_accounting_observed(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                preflight_trace_id=accounting_trace_id,
+                preflight=accounting_payload,
+                result=result,
+            )
+            trace_ids.append(observed_trace.id)
             record_event(
                 db,
                 session_id=session_id,
@@ -696,6 +741,19 @@ def build_chat_router(
                 system_prompt.content,
                 memory_context.runtime_context,
             )
+            accounting_trace, accounting_payload = _record_context_accounting_preflight(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                model=active_provider_model(settings),
+                transport="native_stream",
+                base_system=system_prompt.content,
+                runtime_context=memory_context.runtime_context,
+                messages=llm_messages,
+                settings=settings,
+            )
+            accounting_trace_id = accounting_trace.id
+            trace_ids.append(accounting_trace_id)
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -722,6 +780,8 @@ def build_chat_router(
                         memory_context.metacognitive_payload or {}
                     ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
+                    "context_accounting_trace_id": accounting_trace_id,
+                    "context_accounting": _context_accounting_summary(accounting_payload),
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -752,6 +812,10 @@ def build_chat_router(
                     "max_tokens": max_tokens,
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
+                    "context_accounting_trace_id": accounting_trace_id,
+                    "estimated_input_tokens": accounting_payload["total"][
+                        "estimated_input_tokens"
+                    ],
                     "tool_count": 1,
                     "stream": True,
                 },
@@ -777,6 +841,8 @@ def build_chat_router(
                 memory_context=memory_context.payload,
                 metacognitive_context=memory_context.metacognitive_payload,
                 runtime_context=memory_context.runtime_payload,
+                accounting_trace_id=accounting_trace_id,
+                accounting_payload=accounting_payload,
             ),
             media_type="application/x-ndjson",
         )
@@ -791,6 +857,7 @@ def _build_mind_tool_runner(
     provider_factory: ProviderFactory,
     session_id: str,
     turn_id: str,
+    source_message_id: str,
     trace_ids: list[str],
     event_sink: list[CognitiveEvent] | None = None,
 ) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
@@ -816,6 +883,7 @@ def _build_mind_tool_runner(
                 engine=engine,
                 session_id=session_id,
                 turn_id=turn_id,
+                source_message_id=source_message_id,
                 settings=settings,
                 provider_factory=provider_factory,
             ),
@@ -904,6 +972,8 @@ def _stream_turn_events(
     memory_context: dict[str, Any],
     metacognitive_context: dict[str, Any] | None,
     runtime_context: dict[str, Any],
+    accounting_trace_id: str,
+    accounting_payload: dict[str, Any],
 ) -> Iterator[str]:
     sequence = 0
     pending_runtime_events: list[CognitiveEvent] = []
@@ -976,6 +1046,7 @@ def _stream_turn_events(
                 provider_factory=provider_factory,
                 session_id=session_id,
                 turn_id=turn_id,
+                source_message_id=user_message_response.id,
                 trace_ids=trace_ids,
                 event_sink=pending_runtime_events,
             ),
@@ -1087,6 +1158,18 @@ def _stream_turn_events(
             },
         )
         trace_ids.append(response_trace.id)
+        accounting_trace = repositories.add_trace(
+            db,
+            session_id=session_id,
+            turn_id=turn_id,
+            kind="context.accounting.observed",
+            payload=build_context_accounting_observation(
+                preflight_trace_id=accounting_trace_id,
+                preflight=accounting_payload,
+                result=result,
+            ),
+        )
+        trace_ids.append(accounting_trace.id)
         final_runtime_events.append(
             _event_stream_payload(
                 record_event(
@@ -1502,6 +1585,74 @@ def _valid_content_blocks(value: Any) -> list[dict[str, Any]]:
         if isinstance(block_type, str) and block_type:
             blocks.append(block)
     return blocks
+
+
+def _record_context_accounting_preflight(
+    db: Session,
+    *,
+    session_id: str,
+    turn_id: str,
+    model: str,
+    transport: str,
+    base_system: str,
+    runtime_context: str,
+    messages: list[LLMMessage],
+    settings: Settings,
+    external_unobserved_context: list[str] | None = None,
+) -> tuple[Trace, dict[str, Any]]:
+    payload = build_context_accounting_preflight(
+        db,
+        session_id=session_id,
+        turn_id=turn_id,
+        model=model,
+        transport=transport,
+        base_system=base_system,
+        runtime_context=runtime_context,
+        messages=messages,
+        tools=[MIND_SHELL_TOOL_SCHEMA],
+        settings=settings,
+        external_unobserved_context=external_unobserved_context,
+    )
+    trace = repositories.add_trace(
+        db,
+        session_id=session_id,
+        turn_id=turn_id,
+        kind="context.accounting.preflight",
+        payload=payload,
+    )
+    return trace, payload
+
+
+def _record_context_accounting_observed(
+    db: Session,
+    *,
+    session_id: str,
+    turn_id: str,
+    preflight_trace_id: str,
+    preflight: dict[str, Any],
+    result: LLMTextResult,
+) -> Trace:
+    return repositories.add_trace(
+        db,
+        session_id=session_id,
+        turn_id=turn_id,
+        kind="context.accounting.observed",
+        payload=build_context_accounting_observation(
+            preflight_trace_id=preflight_trace_id,
+            preflight=preflight,
+            result=result,
+        ),
+    )
+
+
+def _context_accounting_summary(payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "schema_version": payload.get("schema_version"),
+        "transport": payload.get("transport"),
+        "total": payload.get("total"),
+        "policy": payload.get("policy"),
+        "compaction_plan": payload.get("compaction_plan"),
+    }
 
 
 def _provider_message_stats(messages: list[LLMMessage]) -> dict[str, Any]:

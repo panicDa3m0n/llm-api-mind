@@ -2,6 +2,224 @@
 
 Architectural decisions should be recorded here when they affect future implementation choices.
 
+Identifier note: V1.29.1 normalized duplicate ADR headings. Historical
+activity and experiment records may retain the identifier used at the time;
+the current canonical identifiers are the headings in this file. Decision
+content and chronology were not rewritten.
+
+## ADR-0083 - Engineering Quality Gates Start As An Explicit Incremental Baseline
+
+Date: 2026-07-14
+Status: accepted and implemented in V1.33.0
+
+Context:
+
+The runtime had broad pytest and whole-system regression evidence but no
+blocking lint, static typing, statement-coverage floor, documentation-integrity
+check, or repository CI workflow. Turning every possible rule on at once would
+mix hundreds of pre-existing typing findings and mechanical import-order churn
+into unrelated cognitive work; omitting the debt entirely would leave future
+reworks without an objective engineering floor.
+
+Decision:
+
+- block objective Ruff `E4`, `E7`, `E9`, and `F` defects across backend code,
+  tests, and scripts;
+- block mypy regressions first in six clean, high-value configuration,
+  routing, retrieval, accounting, and database-boundary modules;
+- preserve the measured full-application mypy debt as an explicit non-blocking
+  baseline rather than suppressing it globally;
+- measure the complete backend suite, including evaluator entry points, and
+  enforce a 79.9% statement-coverage floor against the 79.998% baseline;
+- validate documentation links, repository references, and canonical
+  ADR/BUG/EXP identifiers deterministically;
+- run the same gates plus the frontend production build in GitHub Actions.
+
+Consequences:
+
+Large reworks now have a reproducible engineering floor in addition to the
+frozen cognitive regression suite. Import sorting, wider mypy coverage, and
+higher per-module test thresholds remain deliberate follow-up slices. Future
+changes should expand the baseline or reduce measured debt, not hide it with
+broad exclusions.
+
+Links:
+
+- `backend/pyproject.toml`
+- `.github/workflows/quality.yml`
+- `scripts/check_documentation.py`
+- `docs/quality-gates.md`
+
+## ADR-0082 - The Shell Registry Is An Executable Organ Contract
+
+Date: 2026-07-13
+Status: accepted and implemented in V1.32.0
+
+Context:
+
+The model-facing shell had grown through several organs. Help, registry
+validation, parser aliases, endpoint handlers, persistence, and model-facing
+suggestions could each be locally correct while disagreeing as a whole. This
+produced false availability, discarded flags, hidden pagination limits, and
+endpoint-shaped next actions that Scarlet could not execute as shell commands.
+
+Decision:
+
+- treat the command registry and help catalog as executable contract;
+- require alias parity and validate every published command in tests;
+- expose truthful pagination and explicit targeted not-found errors;
+- keep internal endpoint payloads available for backend use, but translate
+  model-facing cross-organ suggestions into executable shell commands;
+- verify each organ at parser, handler, storage, negative-path, whole-system,
+  and representative live-model layers.
+
+Consequences:
+
+Shell capability claims now have mechanical evidence instead of documentation
+alone. Internal `/mind/*` endpoints remain deterministic implementation
+surfaces; this decision does not expose them as a second model tool or imply
+autonomous use of every organ.
+
+Links:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/app/mind/shell_presentation.py`
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+
+## ADR-0081 - Reranker Is The Final Memory Relevance Arbiter
+
+Date: 2026-07-13
+Status: accepted and implemented in V1.31.0
+
+Context:
+
+The active memory pipeline combined hand-authored lexical, entity, tag, graph,
+sparse, dense, and rerank coefficients. Those values were useful for finding
+candidates and debugging, but they also decided which memories became
+`selected`. The memory backlog had already established the intended principle:
+embedding finds direct candidates, KG finds nearby context, temporal filters
+constrain the field, and rerank decides what matters now.
+
+Decision:
+
+- sparse FTS, dense surfaces, NetworkX expansion, and lexical/entity matching
+  are recall routes only;
+- candidates are interleaved round-robin and deduplicated by canonical memory
+  id, without weighted rank fusion;
+- the final reranker evaluates memory-level documents containing canonical
+  content and active facts;
+- in `retrieval_hybrid_mode=active`, only reranker-accepted candidates may
+  become selected or be returned by manual search;
+- stored confidence, salience, dense score, graph score, and hand-authored
+  coefficients do not control final ordering;
+- active mode fails closed when reranking is unavailable instead of silently
+  reverting to deterministic relevance;
+- `off` remains an explicit legacy baseline and `shadow` observational;
+- `retrieval_hybrid` remains temporarily as a compatibility trace key, but it
+  now reports `legacy_weighted_fusion=false`.
+- the first live-calibrated acceptance threshold is provisionally `0.01`;
+  threshold calibration uses declared positive/negative reranker evidence and
+  remains distinct from prohibited weighted score fusion.
+
+Consequences:
+
+Recall engines can remain broad and independently testable without becoming
+semantic judges. Active retrieval now depends on the external reranker, so
+availability, latency, candidate coverage, and the calibrated acceptance
+threshold require direct monitoring. Failure produces less automatic relevant
+context rather than unsupported context.
+
+Links:
+
+- `backend/app/mind/relevance_rerank.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `docs/branches/memory.md`
+- `docs/evaluations/v1.31-final-memory-rerank-live.md`
+
+## ADR-0080 - Agent Modes Use One Active Tag And Multi-Tag Capabilities
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+Future embodiment will add sensory and operational surfaces that cannot all
+compete for model attention continuously. Earlier planning described named
+intent packs such as chat or source-sensitive mode, while the owner clarified
+that modes should describe Scarlet's current agent posture. An organ may be
+useful in several postures, and maintenance/Dream are background processes
+rather than states of the main agent.
+
+Decision:
+
+- one agent mode tag is active at a time;
+- initial tags are `idle`, `interactive`, and `scouting`;
+- organs, contexts, and capabilities declare one or more matching tags;
+- a human-facing turn deterministically enforces `interactive`;
+- Scarlet can persist the `idle` or `scouting` posture to resume after the
+  exchange through `mode set ... --reason ...`;
+- persistence changes posture state only and never starts a background or
+  autonomous execution cycle;
+- V1 routing filters automatic context blocks and records its decision;
+- on-demand shell cognition remains available independently;
+- maintenance, summarization, and Dream are never agent modes.
+
+Consequences:
+
+New organs can join modes by registry metadata instead of rewriting mode
+definitions. Current conversation behavior is protected from premature hard
+gating. Scouting is a real registry/resumable state but not an implemented
+sensor runtime or autonomous loop.
+
+Links:
+
+- `backend/app/mind/agent_modes.py`
+- `backend/app/mind/mode.py`
+- `docs/runtime-context-packs.md`
+
+## ADR-0079 - Context Accounting Precedes Non-Destructive Compaction
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+MiniMax supports a one-million-token window, while API Mind intentionally uses
+at most 500k input tokens and should consider compaction around 400k. Theory
+suggested a roughly 100k chronological summary plus the latest eight complete
+turns, but real tool-heavy turns vary greatly and full chronology must remain
+navigable.
+
+Decision:
+
+- measure static policy, dynamic runtime, provider history, current message,
+  tool schema, and request structure separately;
+- distinguish estimated preflight tokens, first-provider-step usage, and
+  aggregate tool-loop usage;
+- configure 1M/500k/400k/100k/8 as validated policy values;
+- keep compaction in `shadow` until long varied direct tests exist;
+- preserve messages, traces, source transcripts, and canonical provider
+  history append-only;
+- treat any future compact history as a derived model-input view with coverage,
+  provenance, rollback, and an explicit degradation rule when eight turns do
+  not fit;
+- label GPT accounting partial because the external provider context is not
+  fully observable.
+
+Consequences:
+
+V1.30.0 can quantify the real problem without silently changing continuity.
+An eight-turn tail remains a desired shape, not a fixed guarantee. Active
+compaction requires a separate evidence-backed decision.
+
+Links:
+
+- `backend/app/runtime/context_accounting.py`
+- `docs/runtime-context-packs.md`
+- `docs/behavioral-validation-framework.md`
+
 ## ADR-0001 - Documentation As Project Memory
 
 Date: 2026-05-08  
@@ -33,7 +251,60 @@ Links:
 - `AGENTS.md`
 - `docs/project-blueprint.md`
 
-## ADR-0034 - Mind Shell As Model-Facing Cognitive Interface
+## ADR-0078 - Assess Cognitive Branches By Evidence And Runtime Integration
+
+Date: 2026-07-13
+Status: accepted
+
+Context:
+
+API Mind now contains memory, episodic recall, metacognition, focus, volition,
+affect, context projection, maintenance, GPT transport, and multiple UI
+surfaces. A single maturity label allowed documentation to blur four different
+claims: code exists, deterministic tests pass, Scarlet uses the capability
+well, and the capability is active in normal turns. Future embodiment would
+make that ambiguity unsafe.
+
+Decision:
+
+Treat API Mind as the developing cognitive architecture of a digital
+individual, with human-like functions as testable research targets and
+digital-specific architecture where appropriate. Assess every agentic branch
+on four separate dimensions:
+
+1. implementation;
+2. deterministic evidence;
+3. direct Scarlet behavioral evidence;
+4. normal runtime integration/default activation.
+
+The canonical current matrix lives in `docs/project-state.md` and
+`docs/branches/README.md`. Registry reservations, prompt policy, storage
+tables, and standalone tools must not be described as mature cognitive organs
+without the corresponding runtime and behavioral evidence.
+
+Alternatives Considered:
+
+- Keep one L0-L5 label without explaining activation or evidence.
+- Treat every implemented endpoint/table as an active cognitive faculty.
+- Describe the long-term digital-being vision only as product language.
+
+Consequences:
+
+- Branch status becomes falsifiable and comparable.
+- Disabled/manual-only organs remain visible without being overstated.
+- Unimplemented temporal/Dream registry entries are classified as
+  reservations, not capabilities.
+- Planning can prioritize validation and coupling before adding more organs.
+- Human-like terminology remains tied to observable behavior rather than
+  ontological claims.
+
+Links:
+
+- `docs/project-state.md`
+- `docs/branches/README.md`
+- `docs/project-blueprint.md`
+
+## ADR-0072 - Mind Shell As Model-Facing Cognitive Interface
 
 Date: 2026-07-06
 Status: accepted
@@ -104,7 +375,7 @@ Related Files:
 - `backend/app/mind/metacognition.py`
 - `backend/app/prompts/scarlet_system.md`
 
-## ADR-0035 - Separate Model-Facing Shell Packets From Debug Diagnostics
+## ADR-0073 - Separate Model-Facing Shell Packets From Debug Diagnostics
 
 Date: 2026-07-08
 Status: accepted
@@ -167,7 +438,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/experiments.md`
 
-## ADR-0036 - External GPT Bridge As Plugin Layer
+## ADR-0074 - External GPT Bridge As Plugin Layer
 
 Date: 2026-07-08
 Status: accepted
@@ -231,7 +502,7 @@ Related Files:
 - `backend/app/main.py`
 - `docs/api-contract.md`
 
-## ADR-0037 - ChatGPT MCP/App Bridge As Alternative GPT Surface
+## ADR-0075 - ChatGPT MCP/App Bridge As Alternative GPT Surface
 
 Date: 2026-07-08
 Status: deprecated for target GPT flow
@@ -302,7 +573,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/experiments.md`
 
-## ADR-0038 - Shell Capabilities As The Only Model-Facing Cognitive Contract
+## ADR-0076 - Shell Capabilities As The Only Model-Facing Cognitive Contract
 
 Date: 2026-07-09
 Status: accepted
@@ -409,6 +680,211 @@ Related Files:
 - `docs/branches/perception-context.md`
 - `docs/digital-individual-organs-notes.md`
 - `docs/experiments.md`
+
+## ADR-0068 - Frozen Preliminary Regression Gate For Major Procedures
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+Scarlet's runtime now combines storage migrations, semantic memory/facts,
+episodic recall, automatic context, the `mind_shell` command runtime, focus,
+volition, affect, metacognition, traces, and the external GPT bridge. A broad
+rework can preserve individual pytest contracts while still breaking the way
+these surfaces compose against real laboratory history.
+
+The owner requires a repeatable comparison before and after any large
+procedure, using real DB references rather than an ungrounded synthetic
+fixture. The test must retain the same starting state across branch changes and
+must make any regression legible without relying on conversational memory.
+
+Decision:
+
+Adopt a frozen preliminary regression gate:
+
+- choose sourceable real records, facts, sessions, and lifecycle states from a
+  published laboratory DB revision;
+- record their IDs, expected state, source hash, and inventory in a versioned
+  suite document;
+- create an ignored immutable local copy and a freshly recreated disposable
+  run DB for every execution;
+- execute assembled integration checks through actual runtime/context/shell/
+  bridge paths; and
+- require the identical suite before and after a major procedure.
+
+The current first suite is `preliminary-regression-v1`, pinned to Git LFS
+SHA-256 `827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`.
+Changing the data source or expected behavior requires a new versioned suite
+and documented decision; the old suite is not rewritten to hide a regression.
+
+Consequences:
+
+- Major rework acceptance now requires both ordinary test coverage and an
+  equal-or-better whole-system result on a known starting DB.
+- Test-created IDs remain dynamic provenance in each report; stable real IDs
+  are the invariant references.
+- Deterministic providers can certify integration paths, but live human
+  Scarlet/MiniMax evaluation remains necessary for free-form model behavior.
+- Future broad work gains a reusable procedure without turning small fixes
+  into heavy release rituals.
+
+Related Files:
+
+- `backend/app/evals/preliminary_regression.py`
+- `docs/preliminary-regression-suite.md`
+- `docs/development-process.md`
+- `docs/experiments.md`
+
+## ADR-0069 - Database Roles And Side-Effect-Free App Factory
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+The repository contains a legacy LFS laboratory snapshot, ignored evaluator
+copies, a frozen preliminary baseline, and a VPS-mounted SQLite database with
+real production data. The former `CODEX_TEST` boolean described a useful copy
+mechanism but not the ownership of the selected database. In addition,
+importing `app.main` eagerly assembled the default FastAPI app, which could
+open and migrate the environment-selected database during an evaluator import.
+
+Decision:
+
+Adopt explicit resolved roles: `production`, `laboratory`, `test`, and
+`preliminary`. Keep `CODEX_TEST` as an isolation mechanism rather than a role.
+Reject ambiguous environment labels and production/test mixtures at app
+assembly. Move the eager ASGI object to `app.asgi`, leaving `app.main` as a
+side-effect-free factory. Require all major procedures and VPS deployments to
+use the canonical database topology, read-only preflight, and transfer
+exclusions documented in `docs/database-topology.md`.
+
+Consequences:
+
+- Evaluator imports and unit tests do not silently initialize the configured
+  local or VPS DB.
+- The preliminary gate and dirty-memory evaluator operate only on explicit,
+  ignored run copies.
+- A future VPS deployment must explicitly set `DATABASE_ROLE=production`,
+  back up the mounted DB, and exclude `backend/data/` plus `.env` from code
+  transfer.
+- The legacy LFS lab snapshot is retained for historical baseline provenance,
+  but normal staged commits reject it unless a data release is explicitly
+  acknowledged.
+
+Related Files:
+
+- `docs/database-topology.md`
+- `backend/app/storage/database_boundary.py`
+- `backend/app/asgi.py`
+- `scripts/check_database_boundary.py`
+
+## ADR-0070 - Storage Repositories Split By Transaction Domain
+
+Date: 2026-07-10
+Status: accepted
+
+Context:
+
+`storage/repositories.py` had grown to 2,073 lines and mixed chat/session
+records, traces/events, runtime settings and maintenance, focus/volition,
+canonical memory/facts/proposals, and derived retrieval cache/graph state.
+The combined module obscured ownership and made future context/runtime work
+riskier to inspect.
+
+Decision:
+
+Keep `app.storage.repositories` as the stable caller-facing facade, but move
+implementation into domain modules: `sessions`, `runtime`, `organs`, `memory`,
+and `retrieval`. Shared session-touch behavior lives in a small private helper.
+Do not change signatures, transaction behavior, schema, or caller imports in
+this organization slice.
+
+Consequences:
+
+- Chat, bridge, shell, maintenance, and evaluators keep one compatible import.
+- Future changes can be scoped to the domain that owns the table and lifecycle.
+- Cross-domain mutations remain explicit through the shared helper rather than
+  disappearing into a generic persistence abstraction.
+- The split must continue to pass the frozen whole-system gate before any
+  behavior change is accepted.
+
+Related Files:
+
+- `backend/app/storage/repositories.py`
+- `backend/app/storage/repository/`
+- `backend/tests/test_repository_facade.py`
+- `docs/preliminary-regression-suite.md`
+
+## ADR-0071 - Shared Compact Dynamic Context Contract
+
+Date: 2026-07-12
+Status: implemented in V1.29.0
+
+Context:
+
+Scarlet currently receives useful dynamic evidence mixed with repeated user
+messages, maintenance timestamps, policy prose, retrieval diagnostics, profile
+metadata, broad session summaries, and provider-specific bridge duplication.
+The same runtime also needs richer evidence for retrieval, maintenance, UI,
+traces, and debugging. Deleting internal detail would weaken observability;
+sending all of it to the model would weaken cognition and future scalability.
+
+Decision:
+
+Keep rich internal evidence and compile a separate versioned model-context
+projection shared by local MiniMax and the external GPT bridge. The approved
+initial projection contains:
+
+- current session id, title, and user-local creation time;
+- user display name, one user-local clock/timezone, and assembled location;
+- up to two compact previous-session hints with id, true last-message time,
+  turn count, and summary or a fixed missing-summary navigation fallback;
+- up to five relevant, five recent user-specific, and five recent general
+  memory hooks, globally deduplicated in that priority order;
+- compact memory id/content/semantic timestamps/source session/source message
+  fields only, with deeper facts, graph, and provenance available on demand.
+
+Memory recency is driven by explicit eligible cognitive activity. Delivering a
+recent-memory packet does not refresh it, and reads do not mutate semantic
+memory timestamps. Historical provenance is audited and sourceably repaired;
+missing source ids are never guessed. Undiscussed dynamic families retain
+their current behavior until their own review.
+
+The GPT bridge is only an alternative model connection and transport. It may
+not define a different API Mind context policy. Duplicate/conflict semantic
+adjudication remains a separate research workstream; deterministic retrieval
+may propose review candidates but does not decide semantic relation.
+
+Consequences:
+
+- Model input can become smaller without sacrificing raw trace/UI evidence.
+- Native and GPT behavior can be compared against one context contract.
+- The compiler can run in shadow mode before changing live provider input.
+- A memory activity ledger and direct source message/turn navigation are
+  required implementation dependencies.
+- Legacy provenance repair is isolated from provider activation and protected
+  by database preflight, dry runs, and regression tests.
+- Missing/stale summaries are repaired through the existing episodic
+  summarizer with bounded reconciliation and retry; the model fallback remains
+  a temporary navigation safeguard rather than the target steady state.
+- Dialogue/events, capabilities, Scarlet state, focus, affect, metacognition,
+  and compatibility mirrors require later packet-by-packet review.
+- The exact model document is now a first-class `model.context` trace; the
+  richer evidence snapshots remain separate and are not deleted.
+- `session message` and `session turn` are the direct provenance routes for
+  compact memory hooks. No automatic KG node id is needed because
+  `memory graph <memory_id>` resolves the root.
+
+Related Files:
+
+- `docs/context-packet-inventory.md`
+- `docs/context-packet-implementation-plan.md`
+- `docs/runtime-context-packs.md`
+- `docs/database-topology.md`
+- `backend/app/mind/context.py`
+- `backend/app/plugins/gpt_bridge/router.py`
 
 ## ADR-0002 - Initial System Shape
 
@@ -3713,7 +4189,7 @@ Links:
 - `docs/experiments.md`
 - `backend/app/prompts/scarlet_system.md`
 
-## ADR-0062 - Focus Is A Separate Foreground-Attention Organ
+## ADR-0077 - Focus Is A Separate Foreground-Attention Organ
 
 Date: 2026-06-25
 Status: accepted

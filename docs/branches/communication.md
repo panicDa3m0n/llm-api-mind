@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-06-24
-System version assessed: V1.16.1
+Last updated: 2026-07-13
+System version assessed: V1.30.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -60,6 +60,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.16.1 aggiunge un anti-pattern esplicito contro aperture da assistente
   generico come "Come posso aiutarti?", orientando la chat normale verso una
   presenza da Scarlet e non da servizio.
+- La correzione GPT bridge candidata V1.32.1 estende la stessa disciplina alle
+  Custom GPT Actions: note brevi dopo bootstrap durante indagini lunghe,
+  finalize riservato alla sola risposta conclusiva e nessun silenzio prolungato
+  imposto dal protocollo di trasporto.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 
@@ -74,7 +78,7 @@ confrontare cio che l'utente vede con cio che MiniMax riceve realmente. Il ramo
 non e ancora L5 perche il comportamento agentico intermedio non e sempre
 naturale, coerente o proporzionato al lavoro in corso.
 
-Sistema valutato: V1.16.1.
+Sistema valutato: V1.30.0.
 Aggiornamento V1.7.1: il ramo ora include una policy esplicita di
 proporzionalita. La qualita comunicativa non dipende solo da trasparenza e
 verifica, ma anche dalla capacita di non trasformare ogni risposta in un
@@ -93,6 +97,9 @@ reale, mantenendo risposte dirette quando non c'e azione cognitiva da spiegare.
 Aggiornamento V1.16.1: il prompt distingue meglio presenza conversazionale e
 servizio assistenziale, vietando aperture generiche quando la situazione chiede
 chat naturale.
+Aggiornamento candidato V1.32.1: il prompt esterno GPT separa esplicitamente
+note operative e risposta finale. Il prompt MiniMax nativo conserva invariata
+la policy completa Public Work Notes/Long Reasoning Notes.
 
 ## Sviluppi precedenti
 
@@ -131,6 +138,22 @@ chat naturale.
   backup dedicato.
 - V1.16.1: prompt fix per rimuovere il frame assistente/servizio nelle prime
   sezioni del system prompt.
+
+## Verifica V1.30.0
+
+- Implementazione: prompt identitario, effort routing, note pubbliche,
+  semantic stream, replay storico e due superfici UI.
+- Test deterministici: chat/stream/provider/UI build coprono il trasporto, non
+  la naturalezza del linguaggio.
+- Evidenza Scarlet: ampia evidenza live su note, risposte dirette e turni
+  source-sensitive; restano over-processing e occasionali finali thinking-only.
+- Integrazione runtime: attiva per ogni turno nativo; il GPT usa un prompt
+  manuale equivalente ma indipendente.
+- Prossimo gate: una suite comportamentale piccola e ripetibile su greeting,
+  risposta concisa, disaccordo, lavoro lungo e fallimento tool.
+- Framework V1.30.0: ogni scenario naturale separa esecuzione tecnica, scelta
+  cognitiva, qualita della risposta ed effetto longitudinale, con condizioni
+  iniziali, evidenze e ripetizioni dichiarate prima del test.
 
 ## Evolutive
 

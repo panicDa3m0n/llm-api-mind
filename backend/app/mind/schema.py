@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-08.memory-conflict-taxonomy-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-08.mind-shell-output-profiles-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -42,7 +42,7 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
     "name": "mind_shell",
     "description": (
         "Scarlet's internal cognitive command shell. Use concise commands to "
-        "navigate memory, sessions, focus, volition, affect, metacognition, "
+        "navigate memory, sessions, focus, volition, affect, agent mode, metacognition, "
         "and capability help without exposing endpoint mechanics to the user."
     ),
     "input_schema": {
@@ -79,6 +79,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "help focus",
             "help volition",
             "help affect",
+            "help mode",
             "help metacognition",
         ],
     },
@@ -102,6 +103,8 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
         "commands": [
             "session list --query \"topic or date\" --limit 5",
             "session open ses_... --limit 200",
+            "session message msg_...",
+            "session turn turn_...",
             "session summarize ses_... --force",
         ],
     },
@@ -129,11 +132,11 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "volition list active --limit 10",
             "volition list due --limit 10",
             "volition search \"query\" --limit 10",
-            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6",
+            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6 --next-review-at \"2026-07-14T10:00:00+02:00\" --review-interval-seconds 86400",
             "volition read int_...",
             "volition update int_... --reason \"...\"",
-            "volition defer int_... --reason \"...\"",
-            "volition review int_... --reason \"...\"",
+            "volition defer int_... --reason \"...\" --next-review-at \"2026-07-14T10:00:00+02:00\"",
+            "volition review int_... --reason \"...\" --review-interval-seconds 86400",
             "volition promote int_... --reason \"...\"",
             "volition resolve int_... --resolution \"...\"",
             "volition impossible int_... --reason \"...\"",
@@ -150,11 +153,22 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
         ],
     },
     {
+        "namespace": "mode",
+        "purpose": "Inspect or select Scarlet's foreground agent operating posture.",
+        "commands": [
+            "mode read",
+            "mode list",
+            "mode set idle --reason \"...\"",
+            "mode set scouting --reason \"...\"",
+        ],
+    },
+    {
         "namespace": "metacognition",
         "purpose": "Run one internal metacognitive step when deeper self-review matters.",
         "commands": [
             "metacognition step --objective \"...\" --mode critic --question \"...\"",
             "metacognition step --objective \"...\" --mode memory_curator --draft \"...\"",
+            "metacognition step --objective \"...\" --mode review_previous_turn --turn-scope previous --detail digest",
         ],
     },
 ]
@@ -1397,6 +1411,50 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "action": "promote_to_focus_candidate",
                     "intention_id": "intent_example",
                     "reason": "This latent direction is now relevant enough to become foreground attention.",
+                },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/mode",
+        "status": "implemented",
+        "purpose": (
+            "Inspect Scarlet's current agent-only operating posture, list the "
+            "mode registry, or persist the posture that resumes outside a "
+            "system-enforced human interaction. Background maintenance and "
+            "Dream are not agent modes."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["read", "list", "set"],
+                },
+                "mode": {
+                    "type": ["string", "null"],
+                    "enum": ["idle", "interactive", "scouting", None],
+                },
+                "reason": {"type": ["string", "null"]},
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/mode",
+                "intent": "Inspect Scarlet's current operating posture.",
+                "body": {"action": "read"},
+            },
+            {
+                "method": "POST",
+                "path": "/mind/mode",
+                "intent": "Keep scouting as the posture to resume after this exchange.",
+                "body": {
+                    "action": "set",
+                    "mode": "scouting",
+                    "reason": "Continue studying the environment after the conversation.",
                 },
             },
         ],

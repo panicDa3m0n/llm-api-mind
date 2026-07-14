@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-07-09
-Current app version: V1.25.4
+Last updated: 2026-07-14
+Current app version: V1.33.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -94,7 +94,50 @@ After a verified implementation:
 Commits should be high-level, mapped to the branch or roadmap area, and should
 not mix unrelated fixes.
 
-## 6. Branch Mapping
+## 6. Major-Procedure Regression Gate
+
+Before a broad reorganization, architectural implementation, major branch
+transition, or shared-runtime change, establish a preliminary regression
+baseline before changing the affected code.
+
+The procedure is:
+
+1. inspect a real, immutable laboratory DB and select sourceable references;
+2. document the source hash, inventory, IDs, expected lifecycle state, and
+   exact acceptance criteria in a versioned suite document;
+3. run the executable suite against a disposable copy of that exact source DB;
+4. record the preliminary report before the rework begins;
+5. make only the declared rework changes;
+6. rerun the identical suite from a freshly copied DB; and
+7. accept the procedure only when results are equal or better, with no hidden
+   regressions.
+
+The current baseline is documented in:
+
+```txt
+docs/preliminary-regression-suite.md
+```
+
+This gate complements pytest and live Scarlet testing. It is a repeatable
+whole-system comparison, not a substitute for either deterministic unit
+contracts or human evaluation of model behavior.
+
+## 7. Database Boundary
+
+Before a major procedure, evaluator run, deployment, or commit that could
+touch persistence, read `docs/database-topology.md`. The database role is part
+of the procedure's starting condition, not an implementation detail.
+
+- Test and preliminary procedures must name an ignored disposable target and
+  never use a production or mutable laboratory path as that target.
+- A new deployment must run the read-only database preflight with expected
+  role `production` before restart, after a remote backup.
+- Code transfer must exclude runtime `data/` and remote `.env` files.
+- Run `python scripts/check_database_boundary.py --staged` before a commit.
+  An intentional LFS laboratory-data release needs separate review and the
+  explicit override documented by that script.
+
+## 8. Branch Mapping
 
 The active agentic branches are documented in `docs/branches/`.
 
@@ -103,9 +146,9 @@ adapters, and UI are not themselves agentic branches. They support one or more
 branches. The branch document should explain why the infrastructure matters to
 Scarlet's actual behavior.
 
-## 7. Current Baseline
+## 9. Current Baseline
 
-V1.0.1 baseline includes:
+The current V1.33.0 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -118,6 +161,17 @@ V1.0.1 baseline includes:
   timezone;
 - Tailwind dashboard with chat, sessions, agent stream, memory, profile, and
   settings.
+- traceable per-channel model-input accounting, shadow-only chronological
+  compaction planning, and an agent-mode registry/router for automatic context;
+- versioned four-layer behavioral scenario/run contracts for direct Scarlet
+  validation;
 - Codex test database isolation through startup-level `CODEX_TEST`, used for
   evaluator experiments that must exercise real endpoints without mutating the
   production/laboratory Scarlet DB.
+- Database-role validation and a side-effect-free `app.main` factory, so tests
+  and evaluation imports do not silently initialize a configured runtime DB.
+- executable shell-organ conformance across registry, help, parser, handlers,
+  persistence, pagination, negative paths, and model-facing presentation.
+- blocking Ruff checks for objective Python defects, an incremental mypy gate,
+  a measured full-suite coverage floor, deterministic documentation integrity,
+  and a GitHub Actions workflow that runs these checks with the frontend build.

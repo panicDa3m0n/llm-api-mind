@@ -1,6 +1,5 @@
 import json
 import time
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response, status
@@ -36,10 +35,14 @@ from app.runtime.events import (
     record_tool_call_completed,
     record_tool_call_started,
 )
-from app.runtime.maintenance import schedule_session_idle_maintenance
+from app.runtime.context_accounting import build_external_context_accounting_preflight
+from app.runtime.maintenance import (
+    schedule_session_idle_maintenance,
+    schedule_summary_repairs,
+)
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import ChatSession, Message, Trace, Turn, new_id
+from app.storage.models import ChatSession, Trace, Turn, new_id
 
 ProviderFactory = Any
 
@@ -177,7 +180,7 @@ def build_gpt_bridge_router(
         trace_ids: list[str] = []
 
         with Session(engine) as db:
-            chat_session = _get_or_create_bridge_session(db, request)
+            chat_session = _get_or_create_bridge_session(db, request, settings=settings)
             session_id = chat_session.id
             turn = repositories.create_turn(
                 db,
@@ -244,6 +247,8 @@ def build_gpt_bridge_router(
             if memory_context.metacognitive_trace_id is not None:
                 trace_ids.append(memory_context.metacognitive_trace_id)
             trace_ids.append(memory_context.runtime_trace_id)
+            if memory_context.model_context_trace_id is not None:
+                trace_ids.append(memory_context.model_context_trace_id)
             record_event(
                 db,
                 session_id=session_id,
@@ -286,6 +291,29 @@ def build_gpt_bridge_router(
                 system_prompt["content"],
                 memory_context.runtime_context,
             )
+            bootstrap_context = _gpt_bootstrap_context_payload(
+                runtime_context=memory_context.runtime_context,
+                metacognitive_payload=memory_context.metacognitive_payload,
+                llm_messages=llm_messages,
+                provider_history_source=provider_history_source,
+                provider_message_stats=provider_message_stats,
+                trace_ids=trace_ids,
+            )
+            accounting_payload = build_external_context_accounting_preflight(
+                session_id=session_id,
+                turn_id=turn_id,
+                transport="gpt_bridge_bootstrap",
+                payload=bootstrap_context,
+                settings=settings,
+            )
+            accounting_trace = repositories.add_trace(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                kind="context.accounting.preflight",
+                payload=accounting_payload,
+            )
+            trace_ids.append(accounting_trace.id)
             request_trace = repositories.add_trace(
                 db,
                 session_id=session_id,
@@ -313,6 +341,16 @@ def build_gpt_bridge_router(
                         memory_context.metacognitive_payload or {}
                     ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
+                    "model_context_profile": memory_context.model_context_profile,
+                    "model_context_trace_id": memory_context.model_context_trace_id,
+                    "context_accounting_trace_id": accounting_trace.id,
+                    "context_accounting": {
+                        "schema_version": accounting_payload["schema_version"],
+                        "measurement_boundary": accounting_payload[
+                            "measurement_boundary"
+                        ],
+                        "total": accounting_payload["total"],
+                    },
                     "tool_loop_policy": "external_gpt_required_action_finalize",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -334,6 +372,9 @@ def build_gpt_bridge_router(
                 },
             )
             trace_ids.append(request_trace.id)
+            bootstrap_context["full_diagnostics"]["available_in_trace_ids"] = list(
+                trace_ids
+            )
             record_event(
                 db,
                 session_id=session_id,
@@ -361,16 +402,7 @@ def build_gpt_bridge_router(
                 user_message=_message_response(user_message),
                 trace_ids=trace_ids,
                 model="external-gpt",
-                context=_gpt_bootstrap_context_payload(
-                    runtime_context=memory_context.runtime_context,
-                    runtime_payload=memory_context.runtime_payload,
-                    memory_payload=memory_context.payload,
-                    metacognitive_payload=memory_context.metacognitive_payload,
-                    llm_messages=llm_messages,
-                    provider_history_source=provider_history_source,
-                    provider_message_stats=provider_message_stats,
-                    trace_ids=trace_ids,
-                ),
+                context=bootstrap_context,
                 required_next_steps=[
                     "Use this returned context as Scarlet's active turn context.",
                     "Call POST /gpt/action for every mind_shell command you need.",
@@ -409,8 +441,15 @@ def build_gpt_bridge_router(
             query_key=key,
         )
         started = time.perf_counter()
+        source_message_id: str | None = None
         with Session(engine) as db:
             _require_active_turn(db, request.session_id, request.turn_id)
+            source_message = repositories.latest_message_for_turn(
+                db,
+                turn_id=request.turn_id,
+                role="user",
+            )
+            source_message_id = source_message.id if source_message is not None else None
             started_event = record_tool_call_started(
                 db,
                 session_id=request.session_id,
@@ -431,6 +470,7 @@ def build_gpt_bridge_router(
                 engine=engine,
                 session_id=request.session_id,
                 turn_id=request.turn_id,
+                source_message_id=source_message_id,
                 settings=settings,
                 provider_factory=provider_factory,
             ),
@@ -1449,8 +1489,6 @@ def _mcp_tool_result(
 def _gpt_bootstrap_context_payload(
     *,
     runtime_context: str,
-    runtime_payload: dict[str, Any],
-    memory_payload: dict[str, Any],
     metacognitive_payload: dict[str, Any] | None,
     llm_messages: list[Any],
     provider_history_source: str,
@@ -1464,11 +1502,9 @@ def _gpt_bootstrap_context_payload(
     memory query plan, system prompt copy, or provider-history dump.
     """
 
-    return {
+    payload = {
         "profile": "gpt-bootstrap-compact-v1",
         "runtime_context": runtime_context,
-        "runtime_payload_summary": _compact_runtime_payload(runtime_payload),
-        "memory_context": _compact_memory_payload(memory_payload),
         "metacognitive_context": _compact_metacognitive_payload(
             metacognitive_payload
         ),
@@ -1498,6 +1534,7 @@ def _gpt_bootstrap_context_payload(
             "reason": "ChatGPT Actions has a practical response-size limit; full diagnostics remain in backend traces.",
         },
     }
+    return payload
 
 
 def _compact_runtime_payload(runtime_payload: dict[str, Any]) -> dict[str, Any]:
@@ -1728,6 +1765,8 @@ def _require_bridge_auth(
 def _get_or_create_bridge_session(
     db: Session,
     request: GPTBridgeBootstrapRequest,
+    *,
+    settings: Settings,
 ) -> ChatSession:
     if request.session_id is not None:
         return _require_session(db, request.session_id)
@@ -1736,11 +1775,18 @@ def _get_or_create_bridge_session(
         "bridge": "chatgpt_gpt_actions",
         **request.metadata,
     }
-    return repositories.create_chat_session(
+    chat_session = repositories.create_chat_session(
         db,
         title=request.title or "GPT Bridge Chat",
         metadata=metadata,
     )
+    schedule_summary_repairs(
+        db,
+        settings=settings,
+        limit=1,
+        exclude_session_id=chat_session.id,
+    )
+    return chat_session
 
 
 def _require_session(db: Session, session_id: str) -> ChatSession:

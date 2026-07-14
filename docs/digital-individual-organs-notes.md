@@ -3,6 +3,7 @@
 Status: active working notes
 
 Started: 2026-06-24
+Current implementation review: 2026-07-13, V1.30.0
 
 Reference baseline:
 
@@ -63,21 +64,25 @@ For each organ, capture:
 
 ## Current Discussion Pointer
 
-Next organ to implement: Continuous temporal experience.
+Next organ discussion candidate: Continuous temporal experience. It is not
+approved as the next implementation.
 
-Attention, volition, affective integration, and temporal experience have
-working conceptual summaries. Focus, volition, and affect now have standalone
-implementation surfaces closed as V1.21.0. A full implementation roadmap for
-the two remaining organs is not accepted yet.
+Focus, volition, and affect have standalone V1.21.0 surfaces, but are disabled
+or manual-only by default and still need longitudinal behavioral validation.
+Temporal experience and Dream exist only as registry/config reservations and
+theory. V1.30.0 adds agent-mode context routing and measurement, but Dream
+remains a background-process concept rather than an agent mode. The current
+priority is long-session accounting and validation of existing organs before
+another organ is built.
 
 V1.26.0 planning note:
 
 The organ roadmap now has an additional architectural constraint. New organs
 must not automatically expand the live prompt/runtime context. Each organ needs
-a context classification before broader injection: always-on spine, conditional
-mode pack, on-demand shell operation, background-only maintenance, or future
-embodied stream. `docs/runtime-context-packs.md` is the planning baseline for
-that classification.
+a context classification before broader injection: always-on spine,
+conditional agent-mode tag, on-demand shell operation, background-only
+maintenance, or future embodied stream. `docs/runtime-context-packs.md` is the
+active contract for that classification.
 
 ## 1. Attention As Lived Focus
 

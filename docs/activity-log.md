@@ -4,6 +4,763 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - GitHub Publication Recovery And P0 Closure
+
+Goal:
+
+Restore authenticated publication after the stale remote/403 condition and
+align the verified feature history, `main`, release tags, CI, Linear, and the
+known V1.32.0 production boundary.
+
+Changes:
+
+- Installed and authenticated GitHub CLI as repository owner `panicDa3m0n`
+  with repository and workflow scopes, then configured HTTPS Git operations.
+- Published `feature/agent-modes-history-compaction` without its unrelated
+  local database modification and opened catch-up PR #1 toward `main`.
+- Published annotated tag `v1.32.0` at `298d668`, the exact runtime code commit
+  deployed on HoneyLabs. V1.33.0 intentionally remains untagged until its own
+  protected deployment.
+- Chose a normal PR merge into `main`; the feature branch remains a readable
+  checkpoint instead of force-updating or rewriting stale remote history.
+
+Verification:
+
+- GitHub Actions ran the complete V1.33.0 quality workflow for both push and
+  pull-request events; both runs passed in 1m36s.
+- PR #1 is mergeable with clean merge state and successful required checks.
+- The staged DB boundary passed before both release commits; only
+  `backend/data/app.db` remains locally modified and uncommitted.
+
+Release State:
+
+- GitHub `main` is aligned through PR #1 with the V1.33.0 verified history.
+- HoneyLabs remains truthfully documented as V1.32.0 until a separate backup,
+  production preflight, transfer, restart, and smoke procedure is executed.
+
+## 2026-07-14 - V1.33.0 Engineering Quality Baseline
+
+Goal:
+
+Close the P0 engineering-observability gap before broad code rework, while
+keeping all existing typing debt visible and preserving the production and
+laboratory database boundaries.
+
+Changes:
+
+- Added Ruff `E4/E7/E9/F` checks across backend code, tests, and scripts and
+  removed eight objective unused-import/dead-assignment findings without
+  applying mass import sorting.
+- Added an incremental mypy gate over six clean, high-value modules. A separate
+  full-app measurement records 216 existing errors across 23 files.
+- Added full-suite coverage enforcement at 79.9% against the measured 79.998%
+  baseline, with evaluator entry points retained in the denominator.
+- Added deterministic documentation validation for local links, repository
+  references, and canonical ADR/BUG/EXP identifiers. The check also exposed
+  and corrected the canonical shell-conformance bug id collision as BUG-0081.
+- Added `.github/workflows/quality.yml`, documented the local/CI commands, and
+  advanced package and canonical documentation metadata to V1.33.0.
+- Corrected the first clean-run CI finding: generated environment paths such
+  as `backend/.venv/bin/python` are executable instructions, not versioned
+  repository references, and are now ignored independently of local presence.
+- Recorded the owner's real GPT Builder validation of BUG-0080: progress notes
+  now remain visible during a multi-action turn.
+
+Boundary:
+
+- No cognitive runtime contract, production configuration, secret, or runtime
+  database was changed for the quality-gate implementation.
+- `backend/data/app.db` remained an unrelated mutable laboratory artifact and
+  is excluded from the release commit.
+
+Verification:
+
+- Ruff: passed across `backend/app`, `backend/tests`, and `scripts`.
+- Incremental mypy: 6 source files passed.
+- Documentation integrity: 48 files, 1,119 repository references, and 223
+  canonical identifiers passed.
+- Backend: `161 passed`; exact coverage 8,195/10,244 statements (`79.998%`).
+- Frozen preliminary regression: `9/9` at
+  `backend/app/evals/runs/20260714_090856_preliminary-regression-v1`.
+- Frontend V1.33.0 production build: passed.
+
+## 2026-07-13 - V1.32.1 GPT Progress-Note Fix
+
+Goal:
+
+Remove long silent periods from non-trivial Custom GPT turns without weakening
+the mandatory bootstrap/action/finalize lifecycle.
+
+Changes:
+
+- Replaced the GPT bridge prompt with an explicit turn state machine that
+  permits and requires short public progress notes after bootstrap and during
+  long cognitive work, while finalizing only the concluding answer.
+- Added note waypoints before the first action cluster, slow metacognition,
+  strategy changes, continued multi-action work, and long final synthesis.
+- Aligned GPT Action descriptions with that distinction, corrected bootstrap
+  field placement/context V2 language, added `mode`, and kept every operation
+  description below the GPT Builder 300-character limit.
+- Added a plain-Markdown final-draft rule excluding `:::writing` and other
+  private ChatGPT UI directives.
+
+Boundary:
+
+- The native MiniMax prompt was inspected and not changed. Its established
+  Public Work Notes and Long Reasoning Notes policy already has the intended
+  behavior.
+- No backend endpoint, production database, or VPS runtime was changed.
+
+Follow-up validation:
+
+- On 2026-07-14 the owner tested the revised prompt and Action schema in the
+  real GPT Builder flow and confirmed that progress notes work throughout the
+  multi-action turn. The fix is included in V1.33.0.
+
+Verification:
+
+- `backend/tests/test_gpt_bridge.py`: `7 passed`; coverage includes prompt
+  markers, lifecycle assets, operation description length, and
+  progress-note/finalize wording.
+- Prompt size is 7,223 characters; Action descriptions are 263, 276, and 266
+  characters. JSON parsing, `git diff --check`, and the staged database
+  boundary check pass.
+
+## 2026-07-13 - V1.32.0 Production Deployment
+
+Goal:
+
+Deploy the verified local V1.32 runtime to the HoneyLabs VPS with the same
+active cognitive functions while preserving production-only database and
+maintenance boundaries.
+
+Deployment:
+
+- Created release commit `298d668` on
+  `feature/agent-modes-history-compaction`; `backend/data/app.db` remained
+  unstaged and the staged DB boundary passed.
+- GitHub publication was attempted but rejected by the configured HTTPS
+  credentials. The VPS deployment therefore used the verified local commit
+  directly; no secret was changed or exposed during the failed push.
+- Created production backup
+  `/var/backups/scarlet-mobile-test/v1320-20260713T211855Z` containing an
+  online SQLite backup, previous code, previous runtime configuration, and
+  frontend bundle. Backup integrity was `ok`.
+- Transferred backend and frontend with runtime data, `.env`, virtualenv,
+  caches, evaluator runs, and SQLite files excluded.
+- Added the existing local OpenRouter credential to the protected remote
+  runtime and aligned V2/retrieval/mode configuration: OpenRouter shadow and
+  rerank enabled, active final arbitration, threshold `0.01`, active mode
+  routing, and optional organs off.
+- Preserved production-only settings: `DATABASE_ROLE=production`,
+  `CODEX_TEST=false`, and `SUMMARY_RECONCILE_ENABLED=false`.
+
+Verification:
+
+- The new image passed read-only production preflight before restart:
+  integrity `ok`, 28 tables, 294 memories, 197 sessions, and direct isolation.
+- Running package and OpenAPI report `1.32.0`; `/health` reports MiniMax M3 and
+  production/direct DB ownership.
+- Public GPT Actions smoke completed bootstrap, eight read-only shell families
+  (`help`, session, memory, focus, volition, affect, mode, metacognition), and
+  exact finalize on session `ses_c6931ae93736472e985b05c55714d696`.
+- Native MiniMax smoke completed on session
+  `ses_4d178526036148f58b03b8532570b7f2`.
+- Production traces report final rerank `ok=true`, `status=completed`; the
+  manual memory search accepted 10 candidates using the configured Nemotron
+  reranker.
+- Post-smoke DB preflight remained `integrity=ok`, with 294 memories unchanged;
+  the two expected smoke sessions brought totals to 199 sessions and 811
+  messages. Container logs contained no error, exception, or traceback.
+
+Residual Risk:
+
+GitHub still lacks valid HTTPS credentials for this environment. The release
+exists as local commit plus deployed VPS code until the branch can be
+published.
+
+## 2026-07-13 - V1.32.0 Cognitive Shell Organ Conformance
+
+Goal:
+
+Audit every current cognitive-shell organ after the memory work, repair proven
+registry/parser/handler/storage drift, and verify representative behavior with
+real Scarlet without touching production data.
+
+Changes:
+
+- Removed the hidden 500-session ceiling and separated transcript return
+  windows from complete fallback-summary evidence.
+- Corrected focus hold state, focus/affect targeted misses, list pagination,
+  affect filters, resumable mode ownership, volition scheduling, executable
+  focus promotion, metacognition retrospective flags, and help/alias parity.
+- Added conformance tests proving all 23 family/namespace aliases agree and all
+  help-published commands validate as executable.
+- Ran five natural MiniMax M3 scenarios on a disposable DB copy covering
+  episodic recall, affect, focus, volition, and metacognition.
+
+Verification:
+
+- Full backend suite: `161 passed`.
+- Frozen preliminary regression: `9/9` at
+  `backend/app/evals/runs/20260713_211233_preliminary-regression-v1`.
+- Live report: ignored runtime artifact
+  `backend/app/evals/runs/20260713_v132-shell-live.json`; the disposable DB was
+  deleted after extraction.
+- Frontend production build and `git diff --check` passed.
+- The Mind API test factory now pins retrieval mode `off` unless a case
+  explicitly overrides it, so developer `.env` production settings cannot
+  silently change deterministic test semantics.
+
+Residual Risk:
+
+Technical shell conformance does not prove autonomous command choice. Focus
+maintenance, affect calibration, volition cycles, and metacognitive follow-up
+still need longitudinal behavioral experiments.
+
+## 2026-07-13 - V1.31.0 Final Memory Rerank Arbitration
+
+Goal:
+
+Apply the established memory principle that deterministic retrieval signals
+find candidates while an advanced contextual reranker alone decides what is
+relevant to Scarlet's current turn.
+
+Changes:
+
+- Replaced active weighted hybrid fusion with a deduplicated round-robin pool
+  over sparse, dense, NetworkX graph, and lexical recall routes.
+- Added one final memory-level rerank over canonical content and active facts.
+- Made automatic context and manual memory search accept/order results only
+  from rerank in active mode; unavailable rerank now fails closed.
+- Removed the obsolete hybrid ranker, retained a compatibility trace key, and
+  stopped duplicate current-message text from biasing retrieval queries.
+- Preserved rich route scores for traces without allowing them to become final
+  relevance judgments.
+
+Verification:
+
+- Focused final-arbiter contracts: `7 passed`.
+- Chat/Mind/V2/GPT bridge slice: `67 passed`.
+- Final-arbiter/V2 provider-delivery contracts: `3 passed` after adding the
+  sourceable-hook assertion.
+- Full backend suite on the final state: `149 passed`.
+- Frontend production build passed.
+- Python compilation and `git diff --check` passed.
+- Direct MiniMax M3 positive/negative controls:
+  `docs/evaluations/v1.31-final-memory-rerank-live.md`.
+
+Live Evidence:
+
+- The initial `0.55` threshold rejected the predicted top-ranked mint-tea
+  memory at `0.465327`; an intermediate `0.40` passed that case but failed the
+  frozen exact Zero-Luce positive at `0.089455`. The provisional default is
+  now `0.01`; the observed negative remains below `0.0004`.
+- A second run was rejected as evidence because rich selection did not reach
+  the provider while historical message provenance was incomplete.
+- After applying the existing deterministic provenance repair to a fresh
+  disposable full copy, the expected memory appeared in both V2
+  `memories.relevant` and `llm.request`; Scarlet answered from it explicitly.
+- An independent jazz/cooking session selected zero relevant memories, with a
+  maximum near-miss score of `0.000391`.
+- Frozen preliminary regression: initial `8/9` at `0.40`, then accepted `9/9`
+  at `0.01` in `20260713_202744_preliminary-regression-v1`.
+- Final sourceable live repetition at `0.01`: expected mint preference rank 1,
+  compatible caffeine constraint rank 2, provider delivery verified, and
+  independent negative still selected zero relevant memories.
+
+Residual Risk:
+
+Reranker availability is now an active dependency. The candidate pool remains
+bounded, the `0.01` threshold is only initially calibrated, and historical
+memories without complete source provenance remain ineligible for automatic V2
+delivery until a sourceable repair is applied.
+
+## 2026-07-13 - V1.30.0 Context Accounting, Agent Modes, And Behavioral Gate
+
+Goal:
+
+Measure every model-input family before designing history compaction, introduce
+main-agent operating modes without confusing them with background jobs, and
+make behavioral acceptance depend on declared real evidence rather than tool
+availability alone.
+
+Changes:
+
+- Added native per-channel accounting and provider-authoritative first-step
+  observations. Aggregate tool-loop usage remains a separate metric.
+- Configured the MiniMax 1M window, API Mind 500k operating boundary, 400k
+  compaction trigger, provisional 100k chronological summary, and desired
+  eight complete turns. Compaction remains shadow-only and never mutates the
+  canonical chronology.
+- Added `idle`, `interactive`, and `scouting`, one active tag, multi-tag organ
+  eligibility, persistent resumable posture, automatic block routing, and
+  `mode read/list/set` with traces/events.
+- Made mode state explicit that `scouting` has no autonomous sensor runtime and
+  that `mode set` persists posture without starting a background cycle.
+- Added the evidence-first `behavioral-scenario-v1` contract and its four
+  result layers.
+- Removed the duplicate GPT `context.model_context` payload and added partial
+  bridge accounting that never claims visibility into ChatGPT-native tokens.
+- Fixed the shell mismatch where bare `volition list` was advertised but
+  reached the handler as an invalid action.
+
+Real Evidence:
+
+- Read-only laboratory inspection found first-step calibration around
+  3.75-4.83 characters/token. Eight-turn proxies ranged from about 63k to
+  159k tokens; a five-turn tool-heavy tail reached about 323k. Eight turns are
+  therefore a desired tail, not a guaranteed fixed window.
+- Four same-prompt MiniMax M3 probes ran on independent disposable copies of
+  the frozen preliminary DB. The first exposed a malformed `volition list`,
+  the second replaced mode change with memory, and the third set mode but
+  overclaimed automatic execution. After targeted fixes, the fourth called
+  `mode set scouting`, wrote the optional durable preference, persisted
+  `resume_tag=scouting`, kept `interactive` active, and explicitly stated that
+  no autonomous loop or sensor runtime exists.
+- The accepted direct turn was
+  `turn_771df91d1e574f268726442d581af777` in disposable session
+  `ses_0c19e70c61774bde9837d19ff69685a2`; the disposable DB was deleted after
+  inspection and no production/laboratory data was changed.
+
+Verification:
+
+- Backend suite: `146 passed`.
+- Frozen preliminary regression: `9/9` in
+  `20260713_163648_preliminary-regression-v1`.
+- Frontend production build passed.
+- GPT prompt length: `7809` bytes, below the protected 8,000-character limit.
+
+Residual Risk:
+
+Active compaction is not yet justified. The accepted mode probe validates one
+natural scenario after correction, not broad longitudinal behavior. Scouting
+is state/registry only until an independently designed runtime exists.
+
+Next Suggested Step:
+
+Accumulate post-V1.30 accounting in a genuinely long varied session, then build
+and compare a source-labelled derived chronology without activating it. Expand
+the behavioral scenario set before adding sensors, autonomous cycles, or more
+agent modes.
+
+## 2026-07-13 - V1.29.1 Integrated System And Documentation Audit
+
+Goal:
+
+Verify the implemented system after the canonical context rework, realign the
+project documentation to current code and deployed evidence, and assess every
+cognitive branch without equating code presence with active cognitive
+behavior.
+
+Changes:
+
+- Rebuilt `project-state.md` and the branch matrix around four independent
+  dimensions: implementation, deterministic tests, direct Scarlet evidence,
+  and normal runtime activation.
+- Reviewed all 14 branch records and aligned their current evidence, limits,
+  defaults, and next technical work to V1.29.1.
+- Reconciled context packet, block registry, API contract, database topology,
+  memory/cognitive roadmaps, GPT knowledge, blueprint, and theory documents
+  with the shared `scarlet-model-context-v2` runtime.
+- Preserved chronological documents as historical evidence while clearly
+  marking implemented plans and normalized duplicate ADR/EXP/BUG identifiers.
+- Recorded unbudgeted provider-native history as BUG-0076 and documented the
+  largest maintainability concentrations without changing runtime code.
+
+Verified State:
+
+- `mind_shell(command, intent)` is the single model-facing cognitive surface;
+  internal `/mind/*` endpoints remain deterministic backend boundaries.
+- Memory, episodic recall, V2 context, tracing, maintenance, GPT transport,
+  focus, volition, affect, and metacognition exist, but organ activation and
+  behavioral evidence vary by branch.
+- Temporal experience and Dream remain registry/config reservations, not
+  implemented organs. External operativity and broad autonomy remain early.
+- The long-term target is an inspectable cognitive architecture for a digital
+  individual with human-like functional research goals and explicit digital
+  differences, not an unsupported equivalence claim.
+
+Scope Boundary:
+
+This was a documentation/version audit. It did not mutate production or local
+databases, alter runtime behavior, change provider prompts, deploy services, or
+activate cognitive organs. The pre-existing mutable `backend/data/app.db`
+remained excluded.
+
+Verification:
+
+- Backend suite: `138 passed`.
+- Frozen preliminary regression: `9/9` in
+  `20260713_130851_preliminary-regression-v1`.
+- Frontend production build passed.
+- Database boundary guard passed.
+- Documentation identifier, terminology, local-link, and diff checks passed.
+
+Next Suggested Step:
+
+Measure the complete model-input budget by channel and design provider-history
+degradation in shadow mode. In parallel, specify the memory duplicate/conflict
+review protocol and prepare behavior-first activation experiments for focus,
+volition, affect, and metacognition before adding new organs.
+
+## 2026-07-12 - V1.29.0 Context Packet Rework Completed
+
+Goal:
+
+Implement the owner-reviewed compact dynamic context contract end to end while
+preserving rich backend evidence and protecting every production/laboratory DB.
+
+Changes:
+
+- Added the canonical `scarlet-model-context-v2` projection shared by MiniMax
+  and GPT Actions, with one local clock, compact session/user/world state, two
+  previous-session hints, and three globally deduplicated memory blocks.
+- Added append-only cognitive memory activity, complete live source-message
+  provenance, strict automatic-hook resolvability, and direct
+  `session message` / `session turn` navigation.
+- Added summary audit/reconciliation and provenance audit/repair operations;
+  fixed retry idempotency and detached scheduled-job results.
+- Activated V2 behind reversible settings while retaining full legacy runtime
+  evidence in traces and adding exact `model.context` UI visibility.
+- Updated native/GPT prompts and runtime contract knowledge for V2.
+
+Pre-Deploy Data And Live Evidence:
+
+- Only `/tmp/llm-api-mind-v129-lab.db`, copied from the local laboratory DB,
+  received migrations, repairs, summaries, or live-test sessions during
+  implementation and evaluation before the production deployment.
+- Provenance dry-run found 36 unambiguous records; repair completed 36/36.
+- Summary reconciliation completed 34/34 real provider jobs in two bounded
+  batches; final audit: 146 current, 6 blocked active turns, 11 empty.
+- Live Scarlet correctly handled local time/location, automatic Zero-Luce
+  recall, exact source inspection, previous-session continuity, personal
+  preference persistence, and later no-tool automatic recall.
+- One thinking-only MiniMax turn returned an empty public answer; recorded as
+  BUG-0067 and successfully isolated from the context/memory implementation by
+  a fresh-session write/recall retry.
+
+Production Deployment (2026-07-13):
+
+- Created commit `9472f60` on `checkpoint/rework-baseline`; the mutable local
+  `backend/data/app.db` was excluded and the staged database boundary passed.
+- Created and verified the production backup under
+  `/var/backups/scarlet-mobile-test/v1290-20260713T104324Z`; its online SQLite
+  copy retained 193 sessions, 785 messages, 288 memories, and integrity `ok`,
+  alongside an archive of the previous code and configuration.
+- Transferred backend code with runtime data, `.env`, virtualenv, caches,
+  evaluator runs, and SQLite files excluded. The V1.29.0 image passed a
+  read-only production-role preflight against the existing mount before
+  `scarlet-mobile-api` was recreated.
+- Added the explicit remote `DATABASE_ROLE=production`; `/health` reports
+  direct production isolation and package/OpenAPI version `1.29.0`.
+- Applied the additive `memory_activities` table and repaired 46/46
+  unambiguous source-message links. The remaining 242 historical memories
+  lack sufficient session/turn evidence and were intentionally left
+  unresolved.
+- Generated 67/67 eligible historical session summaries with MiniMax M3,
+  without failures. The stable post-smoke audit reports 170 current summaries,
+  12 empty sessions, and 14 sessions blocked by an active turn. An independently
+  created `Email Monitor` turn appeared as `started` during deployment, then
+  completed normally and received its summary once it became eligible.
+- Enabled the normal 900-second idle maintenance path. Production sets
+  `SUMMARY_RECONCILE_ENABLED=false` after the one-time historical repair so
+  future summaries are produced by the established idle job after 15 minutes,
+  not immediately by the broad repair scanner.
+- Published the V1.29.0 frontend bundle under `/var/www/scarlet` after a
+  timestamped backup.
+- Public GPT bridge smoke passed
+  `bootstrap -> help action -> finalize`; bootstrap returned the shared
+  `scarlet-model-context-v2`, and finalize returned the exact answer.
+- Native MiniMax smoke consumed V2 without a tool call and correctly answered
+  from `Europe/Rome`, `CEST`, and `Italia`. A follow-up GPT finalize scheduled
+  an idle maintenance job at 899 seconds, confirming the production timing.
+- GitHub publication remains pending: the macOS credential helper selected
+  unauthorized account `DavDit94` and GitHub returned HTTP 403. No credential
+  was changed or exposed during recovery attempts.
+
+Verification:
+
+- Backend: `138 passed`.
+- Frozen preliminary regression: `9/9`.
+- Frontend: `npm run build`.
+- Disposable summary reconciliation: `34/34 completed`.
+- Production DB preflight and post-migration integrity: `ok`.
+- Production historical summaries: `67/67 completed`.
+- Production source-message repair: `46/46 repaired`.
+- Public GPT Actions and native MiniMax V2 smokes passed.
+
+Next Suggested Step:
+
+Run the first human GPT Builder conversation against V1.29.0 and inspect the
+resulting `model.context` trace. Resolve the GitHub credential ownership before
+publishing the checkpoint, then review the still-preserved
+dialogue/runtime-event/capability/Scarlet-state families. Treat BUG-0067
+separately from context routing.
+
+## 2026-07-12 - V1.29.0 Context Packet Implementation Plan
+
+Goal:
+
+Convert the owner-reviewed context-packet discussion into an implementable,
+testable, and reversible plan without changing current runtime behavior.
+
+Changes:
+
+- Added `docs/context-packet-implementation-plan.md` with the accepted compact
+  session and memory contracts, one-user-time rule, cross-block memory
+  deduplication, cognitive-recency semantics, direct source navigation, phased
+  shadow rollout, provider parity, verification matrix, and commit slices.
+- Kept rich backend evidence distinct from the exact model-facing projection,
+  so trace/UI/debug data is preserved while Scarlet receives only approved
+  dynamic context.
+- Added mandatory decision gates for dynamic packets not yet reviewed by the
+  owner rather than assigning them an inferred contract.
+- Closed the reviewed-family gates for current-session fields, missing-summary
+  fallback, immediate memory-recency state, legacy provenance repair, and
+  MiniMax/GPT context parity.
+- Recorded that the existing 900-second idle summary job remains the primary
+  automatic path; the reviewed plan now adds bounded asynchronous
+  reconciliation during maintenance cycles and new-session creation.
+- Clarified that duplicate/conflict candidate discovery and semantic judgment
+  require a separate design workstream; they are not part of the V1.29.0
+  packet compiler.
+- Corrected the planned legacy-recency bootstrap: current `updated_at` and
+  `last_used_at` cannot be trusted blindly because automatic reads may have
+  changed them. A sourceable audit and creation-time fallback replace inferred
+  historical access.
+- Recorded ADR-0071 so the shared MiniMax/GPT compact dynamic-context contract
+  is architectural project memory rather than only a working-note decision.
+- Explicitly deferred memory-conflict semantics, historical activity backfill,
+  multi-user migration, embodiment routing, and legacy-field removal.
+- Linked the plan from the documentation index and the working inventory.
+
+Verification:
+
+- Cross-checked the plan against the owner notes in
+  `docs/context-packet-inventory.md`, current `app.mind.context` composition,
+  GPT bridge rendering, memory activity fields, and Mind shell session
+  commands.
+- Documentation-only change; no runtime, prompt, schema, database, deployment,
+  or test behavior changed.
+
+Next Suggested Step:
+
+Keep undiscussed context families unchanged. Run the frozen preliminary
+baseline and provenance report, then implement complete live source-message
+capture before activity tracking, historical repair, or the V2 shadow compiler.
+
+Implementation-readiness review:
+
+- Verified the current chat, storage, maintenance, Mind shell, context builder,
+  GPT bridge, SQLite schema, and laboratory state before implementation.
+- Found that all 36 laboratory memories lack `source_message_id`, although all
+  have a valid source turn with exactly one user and one assistant message.
+- Found that direct write omits message provenance and maintenance
+  normalization discards message ids already present in its source prompt.
+- Found that automatic and manual memory reads mutate semantic `updated_at`;
+  32 of 33 used laboratory memories have `updated_at == last_used_at`.
+- Reordered the plan so live provenance and activity semantics precede legacy
+  repair and the V2 shadow compiler.
+- Added BUG-0064 and BUG-0065 and corrected the plan's profile-isolation claim:
+  current memory visibility is single-user/scope-based, not profile-owned.
+- Verified the current relevant backend contracts with 45 passing tests across
+  storage, maintenance, GPT bridge, Mind shell, and chat API.
+- Full backend regression suite also passed: `131 passed`.
+- Classified summary coverage in the read-only laboratory DB: 34 completed
+  non-empty sessions are backfillable, 6 are blocked by `started` turns, and 4
+  are empty. Thirty-nine non-empty missing-summary sessions had no maintenance
+  job; one had a provider-failed job.
+- Added BUG-0066 and a summary-reconciliation phase with dry-run/batching,
+  summary-only historical repair, retry/backoff, stale-turn isolation, and
+  periodic/new-session repair checks.
+
+## 2026-07-11 - Context Packet Inventory Review
+
+Goal:
+
+Make automatic data delivery to Scarlet inspectable before changing the
+runtime-context architecture or introducing context-pack routing.
+
+Changes:
+
+- Added `docs/context-packet-inventory.md`, separating automatic local model
+  input, automatic GPT bootstrap data, conditional organ blocks, manual shell
+  results, and trace/UI-only diagnostics.
+- Recorded packet functions, source modules, current selection limits,
+  compatibility mirrors, and explicit exclusions such as raw retrieval/graph
+  diagnostics and external sensory feeds.
+- Linked the inventory from the documentation index and refreshed the block
+  registry's reviewed baseline metadata.
+
+Evidence:
+
+- Current context builder, chat request assembly, shell presentation, episodic
+  recall, bridge renderer, runtime events, and laboratory request traces were
+  inspected read-only.
+- Selected automatic memory is compacted for model input while raw retrieval
+  diagnostics stay trace-only. Previous sessions and user-profile memories are
+  currently recency-selected.
+
+Open Review:
+
+No context selection policy changed. Owner review of the inventory precedes any
+decision about future always-on, conditional, on-demand, or trace/UI-only
+context packs.
+
+## 2026-07-10 - V1.28.0 Storage Repository Domain Split
+
+Goal:
+
+Reduce the storage monolith without changing Scarlet's persistence contract or
+the model-facing cognitive runtime.
+
+Area:
+
+Storage organization / maintainability / regression safety.
+
+Changes:
+
+- Replaced the 2,073-line implementation behind
+  `app.storage.repositories` with a compatibility facade and five domain
+  modules: sessions, runtime support, cognitive organs, canonical memory, and
+  derived retrieval state.
+- Moved the shared session-touch helper into a small private module so
+  cross-domain timestamp updates stay visible.
+- Kept every existing public repository name and signature stable; added a
+  regression test that asserts the facade re-exports the domain operations.
+
+Verification:
+
+- Targeted repository/storage/organ/maintenance tests: `25 passed`.
+- Full backend suite: `131 passed`.
+- Unchanged preliminary regression: `9/9` in
+  `20260710_152411_preliminary-regression-v1`.
+- V1.28.1 removes the four trailing-whitespace findings from the published
+  split; no runtime behavior changed.
+
+Next Suggested Step:
+
+Use the now-separated storage domains to review `memory.py` and `chat.py` in
+their own focused slices. Keep the database boundary and preliminary gate
+unchanged for each subsequent rework.
+
+## 2026-07-10 - V1.27.0 Database Ownership Boundary
+
+Goal:
+
+Make it impossible for normal tests, evaluator imports, code commits, or a
+file-copy deployment to confuse the VPS production database with laboratory
+state or disposable evaluation copies.
+
+Area:
+
+Storage ownership / evaluation isolation / deploy safety.
+
+Changes:
+
+- Audited all local SQLite files and the VPS container in read-only mode.
+  The VPS has one writable bind mount,
+  `/opt/scarlet-mobile-test/backend/data -> /app/data`, containing the real
+  211,148,800-byte `app.db`; `CODEX_TEST=false`.
+- Added the canonical `docs/database-topology.md` inventory and made database
+  role (`production`, `laboratory`, `test`, `preliminary`) explicit in runtime
+  configuration, health/dashboard metadata, and evaluator setup.
+- Moved the eager ASGI object from `app.main` to `app.asgi`; `app.main` is now
+  an import-safe application factory, closing a path that could initialize the
+  environment-selected DB during test/evaluator import.
+- Added read-only `app.ops.database_preflight`, a staged Git guard for the
+  mutable LFS laboratory snapshot, and a VPS deployment procedure that excludes
+  runtime `data/` and `.env` from any code transfer.
+- Retained all existing DB files. The historical ignored `codex_test.db` is no
+  longer selected or reset by the dirty-memory evaluator; the updated harness
+  creates a marked disposable run DB from the frozen baseline.
+
+Verification:
+
+- Targeted database/health/chat tests passed: `25 passed`.
+- Unchanged preliminary regression gate passed: `9/9` in
+  `20260710_151853_preliminary-regression-v1`.
+- Full backend suite passed: `130 passed`; frontend production build passed.
+- The historical dirty-memory evaluator wrote all 240 controlled records to
+  `codex-memory-eval-v2-run.db` with `role=test`; it did not touch either
+  source DB. Its context score was `0/5` because the harness still reads a
+  retired metadata shape (`BUG-0063`), not because the database boundary
+  failed.
+- The local preflight reported `laboratory`, direct isolation, SQLite integrity
+  `ok`, and the expected sourceable state counts without mutation.
+- ASGI smoke under an explicit temporary test DB passed.
+
+Next Suggested Step:
+
+Run the preliminary whole-system regression and full backend suite, then use
+the V1.27.0 boundary as the prerequisite for the next repository
+organization slice. Do not deploy this version until the VPS `.env` contains
+`DATABASE_ROLE=production` and the preflight procedure is followed.
+
+## 2026-07-10 - V1.26.0 Preliminary Regression Gate And Rework Checkpoint
+
+Goal:
+
+Create a reliable pre/post whole-system comparison before the planned runtime
+and code-organization rework, while publishing the completed shell/bridge
+checkpoint to `main`.
+
+Area:
+
+Repository checkpoint / regression methodology / evaluator infrastructure.
+
+Changes:
+
+- Published `0329792 feat(mind): add shell runtime and external GPT bridge`.
+  The commit was pushed to `feature/mind-command-runtime`, fast-forwarded into
+  `main`, and the rework branch `checkpoint/rework-baseline` was created and
+  pushed from that exact checkpoint.
+- Intentionally excluded the locally modified `backend/data/app.db` LFS object
+  from the code checkpoint. It is mutable laboratory state, not an implicit
+  code/data release.
+- Added `backend/app/evals/preliminary_regression.py` and
+  `docs/preliminary-regression-suite.md`.
+- Froze an ignored source copy of the published LFS object
+  `827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5` and
+  chose real active/deprecated memory, fact, and source-session references.
+- Recorded ADR-0068 and EXP-0050 so the pre/post comparison is now an accepted
+  engineering procedure rather than a one-off evaluator exercise.
+- Completed the first code-organization slice on the active cognitive surface:
+  - extracted `MindAPIContext` and `MemoryOperationResult` from `memory.py`
+    into `mind/contracts.py`, so non-memory organs no longer import their
+    common runtime contracts from the memory implementation;
+  - extracted pure command parsing, flags, and temporal-filter grammar into
+    `mind/shell_parsing.py`;
+  - extracted shell envelope construction, help/errors, sanitization, and
+    model-facing compact result profiles into `mind/shell_presentation.py`;
+  - reduced `mind/shell.py` from 1,260 to 718 lines while preserving its public
+    `MindShellRequest` and `dispatch_mind_shell` contract.
+- Audited larger remaining modules. `memory.py`, `repositories.py`, `chat.py`,
+  and the GPT bridge router still have substantial size, but their next splits
+  require domain-specific boundary decisions. The deprecated MCP portion of
+  the bridge is intentionally left isolated by policy and should be removed or
+  extracted in a dedicated deprecation slice rather than mixed into this
+  active-shell refactor.
+
+Verification:
+
+- Pre-checkpoint full backend suite: `120 passed`.
+- `git diff --check` and compilation of the new regression runner passed.
+- Preliminary integration baseline:
+  `20260710_141950_preliminary-regression-v1` passed `9/9` on a fresh
+  disposable DB copied from the frozen source.
+- Post-rework comparison:
+  `20260710_143138_preliminary-regression-v1` passed `9/9` on the same fresh
+  source copy, with no case regression.
+- Full backend suite after the rework: `124 passed`.
+
+Next Suggested Step:
+
+Use the accepted V1.26.0 checkpoint as the base for the shadow runtime
+context-pack router. Keep the preliminary regression gate unchanged and rerun
+it before accepting that future architectural slice.
+
 ## 2026-07-09 - V1.26.0 Runtime Context Pack Planning
 
 Goal:

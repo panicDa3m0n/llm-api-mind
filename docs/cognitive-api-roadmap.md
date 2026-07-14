@@ -1,7 +1,8 @@
 # Cognitive API Roadmap
 
 Status: active experiment
-Last updated: 2026-07-09
+Last updated: 2026-07-13
+App baseline: V1.30.0
 
 This document tracks the non-memory cognitive API work: schema discipline and
 Scarlet's internal metacognition.
@@ -50,10 +51,12 @@ Implemented:
 - Invalid top-level `mind_shell` commands return structured shell guidance.
 - Unknown routes return schema metadata and implemented route summaries.
 
-Current schema version:
+Current registry/schema versions:
 
 ```txt
-2026-05-24.schema-catalog-v1
+2026-07-13.agent-modes-v1
+2026-07-13.agent-modes-v1
+2026-07-08.mind-shell-command-registry-v1
 ```
 
 This version also exposes the memory-side episodic recall routes. The
@@ -61,6 +64,9 @@ cognitive roadmap still keeps one metacognition route; session recall belongs
 to memory architecture, not to a second metacognition path.
 Runtime events are now backend-owned and therefore are not exposed as a
 model-facing `/mind/events/emit` route.
+
+V1.30.0 adds `mode` to the shell/route contract. It is an agent posture
+surface, not another metacognitive route and not a background-process control.
 
 ## 3. Single Metacognition Route
 
@@ -128,6 +134,9 @@ Next required evidence:
 - comparison between similar turns with and without metacognition;
 - analysis of whether the metacognitive review changes the final answer;
 - latency/cost tracking.
+- explicit check that recommended available shell actions were either executed
+  or the final evidence level was degraded;
+- branch-level comparison against direct reasoning without metacognition.
 
 ## 5. Extension Rule
 
@@ -141,6 +150,7 @@ Allowed next improvements inside the same route:
 - mode-specific output validation;
 - richer trace summaries;
 - optional second metacognitive step when `should_continue=true`.
+- trace-only integration with future context-mode selection.
 
 Not allowed without a new decision:
 

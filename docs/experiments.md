@@ -4,7 +4,201 @@ This file tracks hypotheses, baselines, variants, scenarios, metrics, and result
 
 The project should not accept a cognitive module only because it feels intelligent. Each meaningful module should have a measurable experiment.
 
-## EXP-0036 - ChatGPT MCP/App Bridge Usability
+Identifier note: V1.29.1 removed legacy duplicate headings. Historical activity
+entries may still mention the original reused identifiers; current canonical
+ids are the headings in this file. Experiment results and dates were not
+rewritten.
+
+## EXP-0062 - Cross-Organ Shell Conformance And Natural Use
+
+Status: completed for V1.32.0; longitudinal behavioral validation remains open
+
+Hypothesis:
+
+A shell that is coherent across registry, parser, handlers, persistence, and
+presentation will support natural Scarlet use without organ-specific transport
+workarounds, while still exposing errors instead of hiding them.
+
+Method:
+
+- exercise every family/namespace alias and every help-published command;
+- run stateful lifecycle and negative-path checks on disposable databases;
+- rerun the unchanged frozen whole-system suite;
+- give MiniMax M3 five natural, non-command-like prompts in separate sessions
+  for episodic recall, affect, focus, volition, and metacognition;
+- inspect exact tool calls, responses, traces, persisted state, and cleanup.
+
+Results:
+
+- 23 aliases produced zero registry/execution mismatches;
+- backend `161/161` and frozen regression `9/9` passed;
+- all five MiniMax turns completed, with 20 successful shell calls;
+- Scarlet recovered from one malformed memory-write command using returned
+  guidance;
+- episodic navigation opened exact sources, affect stayed evidence-bound,
+  focus persisted, volition scheduling reached storage, and metacognition
+  explicitly rejected overgeneralization;
+- the disposable DB was deleted and production data was not used.
+
+Decision:
+
+Accept V1.32.0 as the shell-organ conformance baseline. Evaluate autonomous
+tool choice and longitudinal organ behavior separately rather than treating
+transport correctness as cognitive maturity.
+
+Related Files:
+
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+- `backend/app/evals/runs/20260713_v132-shell-live.json` (ignored run artifact)
+
+## EXP-0061 - Final Rerank Memory Arbitration
+
+Status: deterministic implementation and first direct Scarlet controls accepted;
+broader calibration pending
+
+Hypothesis:
+
+Separating broad multi-route recall from final memory-level reranking will
+reduce irrelevant automatic memories without losing candidates found through
+exact sparse search, semantic surfaces, or KG associations.
+
+Baseline:
+
+V1.30 active hybrid retrieval fused manual base/sparse/dense/rerank/support
+weights. Strong deterministic evidence could select a memory without final
+reranker approval.
+
+Variant:
+
+V1.31 interleaves sparse, dense, graph, and lexical candidate ids without
+weighted fusion. One memory-level rerank over canonical content/facts is the
+only active acceptance and ordering step. Active backend/configuration failure
+returns no relevant memories and explicit trace evidence.
+
+Acceptance Method:
+
+1. Deterministic contracts cover rejection, cross-route candidate coverage,
+   fail-closed behavior, and shared automatic/manual semantics.
+2. Before a live call, inspect an immutable full database, choose one existing
+   memory and a natural query, and record the predicted memory id.
+3. Run a real Scarlet turn on a disposable complete copy and inspect both the
+   rich `memory.context` trace and delivered V2 `memories.relevant` hooks.
+4. Record competing candidates, rerank score/rank, final answer use, latency,
+   and any retrieval backend failure. One success is initial evidence only.
+
+Initial Result:
+
+- The first full-DB positive run put the predicted mint-tea memory first but
+  scored it `0.465327`; the uncalibrated `0.55` threshold rejected it.
+- At the intermediate `0.40` threshold, rich retrieval selected it. A trace
+  inspection then correctly invalidated that run because historical missing
+  message provenance kept it outside the V2 provider payload.
+- On a fresh complete copy, the existing deterministic provenance audit found
+  all 36 rows repairable from exactly one persisted user message and repaired
+  them without guessing.
+- The valid positive turn delivered the predicted memory in
+  `memories.relevant` and `llm.request`; MiniMax M3 explicitly used the mint-tea
+  preference.
+- An independent jazz/cooking negative control selected no relevant memories;
+  its highest rerank score was `0.000391`.
+- The frozen preliminary gate then exposed a weaker but exact positive:
+  Zero-Luce scored `0.089455` at rank 1 while the second candidate scored
+  `0.001561`. At the final provisional `0.01` threshold, the unchanged gate
+  passed 9/9 and the live positive/negative pair remained correct.
+
+Evidence:
+
+`docs/evaluations/v1.31-final-memory-rerank-live.md`
+
+## EXP-0060 - Agent Mode Routing Behavioral Validation
+
+Status: deterministic foundation implemented; first direct scenario accepted,
+broader repetitions pending
+
+Hypothesis:
+
+A single active agent tag with multi-tag organ/context eligibility can reduce
+irrelevant automatic context without reducing Scarlet's ability to retrieve
+needed evidence on demand.
+
+Variant:
+
+V1.30.0 adds `idle`, `interactive`, and `scouting`, persistent resumable mode,
+automatic block routing, registry traces, and `mode` shell commands. Human
+turns enforce `interactive`; shell commands remain callable in every mode.
+
+Current Result:
+
+Deterministic tests verify registry membership, background-process exclusion,
+manual persistence, system override/resume behavior, and automatic block
+filtering.
+
+One natural prompt was repeated on four independent disposable copies of the
+same frozen DB. It asked Scarlet to remain in dialogue now and return to calm
+exploration afterward without naming a shell command. Iteration 1 exposed a
+real `volition list` parser/catalog mismatch. Iteration 2 wrote a preference but
+did not set mode. Iteration 3 set `scouting` but described execution as
+automatic. After fixing those three boundaries, iteration 4:
+
+- called `mode set scouting` and wrote the optional durable user preference;
+- produced one `agent.mode` trace and persisted `resume_tag=scouting`;
+- left the active human turn in `interactive`;
+- stated that `scouting` is posture only and that no autonomous loop or sensor
+  runtime exists.
+
+Accepted evidence: disposable session
+`ses_0c19e70c61774bde9837d19ff69685a2`, turn
+`turn_771df91d1e574f268726442d581af777`. The DB was deleted after inspection.
+The exact four-run report is in
+`docs/evaluations/v1.30-agent-mode-live.md`. This is initial behavioral
+evidence, not broad longitudinal validation.
+
+Acceptance Method:
+
+Use `behavioral-scenario-v1` with natural prompts, explicit starting state,
+trace/state checks, answer rubric, longitudinal checks, and independent
+repetitions. Next compare mode coherence across multiple turns/sessions and
+negative controls. Do not implement scouting sensors merely to exercise the
+tag.
+
+## EXP-0059 - Long-Session Accounting And Compaction Calibration
+
+Status: shadow measurement active; compaction not active
+
+Hypothesis:
+
+Per-channel accounting and first-step provider usage can identify when a
+derived chronological summary plus recent complete turns would fit safely
+below API Mind's 500k input policy without damaging canonical continuity.
+
+Baseline:
+
+V1.29.1 preserved full provider history with no independent budget. Historical
+`llm.response.usage.input_tokens` could include multiple tool-loop requests and
+therefore was not a reliable measure of one context window.
+
+Variant:
+
+V1.30.0 adds preflight/observed accounting and a 400k shadow trigger. The
+provisional derived shape targets about 100k summary tokens plus eight complete
+turns, but produces only a plan and never mutates history.
+
+Read-Only Laboratory Evidence:
+
+Three real sessions showed first-step ratios around 3.75-4.83 chars/token.
+Eight-turn proxies varied from about 63k to 159k estimated tokens; one
+tool-heavy five-turn session reached about 323k. This falsifies the assumption
+that a fixed recent-turn count has a stable cost.
+
+Next Test:
+
+Collect exact V1.30 traces during a long varied direct Scarlet session. Compare
+full history with a source-labelled derived compaction for semantic continuity,
+tool provenance, exact-source navigation, answer quality, latency, and failed
+or thinking-only completions. Activation requires an approved insufficient-
+headroom degradation rule.
+
+## EXP-0057 - ChatGPT MCP/App Bridge Usability
 
 Status: deprecated after V1.25.2 platform evaluation
 
@@ -73,7 +267,7 @@ the active tool surface; the GPT editor exposed only Actions. The endpoint is
 therefore deprecated and retained temporarily only for traceability. Actions
 remain the active path even though each turn requires user approval.
 
-## EXP-0035 - Mind Shell Output And Memory Relevance Calibration
+## EXP-0056 - Mind Shell Output And Memory Relevance Calibration
 
 Status: accepted for V1.23.0 technical stabilization
 
@@ -146,7 +340,7 @@ model-facing runtime capabilities from the shell registry. Endpoint-only
 maintenance such as `memory.facts.backfill` is now explicitly
 `internal_maintenance_only`.
 
-## EXP-0034 - Mind Shell Model-Facing Cognition
+## EXP-0055 - Mind Shell Model-Facing Cognition
 
 Status: accepted for V1.22.0 after technical and live e2e validation
 
@@ -218,7 +412,7 @@ selected it, while trace inspection showed the decisive evidence came from the
 explicit shell search. This is not a CLI conversion bug, but it remains a
 behavioral evaluation target for future source-discipline work.
 
-## EXP-0033 - First Three Digital Organs Standalone Verification
+## EXP-0054 - First Three Digital Organs Standalone Verification
 
 Status: technical verification complete; live behavior evaluation pending
 
@@ -248,7 +442,7 @@ Live evaluation still needed:
 - verify `/mind/affect` helps introspection without letting Scarlet invent or
   mutate emotions.
 
-## EXP-0032 - Affective Context Model-Only Integration
+## EXP-0053 - Affective Context Model-Only Integration
 
 Status: planned
 
@@ -308,7 +502,7 @@ Decision:
 
 Pending direct Scarlet probes.
 
-## EXP-0030 - Focus Organ Foreground Continuity
+## EXP-0052 - Focus Organ Foreground Continuity
 
 Status: planned
 
@@ -3879,7 +4073,7 @@ Links:
 - `docs/branches/metacognition.md`
 - `backend/app/mind/metacognition.py`
 
-## EXP-0031 - Metacognitive Context Shadow
+## EXP-0058 - Metacognitive Context Shadow
 
 Status: active
 
@@ -4813,3 +5007,130 @@ Accept the probe as valid live evidence for planning, not as a reason to patch
 individual behaviors immediately. The next architectural step is a shadow
 runtime-context-pack router that traces which pack would have applied without
 changing live model input.
+
+## EXP-0050 - Preliminary Whole-System Regression Baseline
+
+Date: 2026-07-10
+
+Status: completed; retained as the required pre/post gate for major procedures.
+
+Question:
+
+Can the current assembled Scarlet runtime be verified reproducibly against a
+real frozen laboratory DB, across automatic retrieval, manual shell cognition,
+memory lifecycle, episodic provenance, organs, metacognition, maintenance
+boundaries, traces, and GPT bridge lifecycle?
+
+Baseline:
+
+Git LFS object
+`827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`,
+with 34 memories, 25 facts, 155 sessions, 567 messages, and no existing focus,
+volition, or affect state. The suite validates three sourceable real records:
+the active and deprecated Zero-Luce protocol pair plus the semantic-to-episodic
+provenance decision.
+
+Method:
+
+- freeze the exact LFS database as an ignored local source copy;
+- create a fresh disposable test DB for each run;
+- use FastAPI `TestClient`, current storage/migrations, `mind_shell`, runtime
+  context construction, and `/gpt/*` endpoints;
+- use a deterministic provider only where controlled output is needed to test
+  integration and metacognition JSON shape;
+- persist a JSON/Markdown report with selected real memory IDs and dynamic
+  IDs for test-created state.
+
+Result:
+
+The first valid run, `20260710_141950_preliminary-regression-v1`, passed `9/9`:
+
+1. frozen source inventory and real IDs/facts/provenance matched;
+2. automatic runtime retrieval selected active Zero-Luce and excluded its
+   deprecated predecessor;
+3. shell help, memory search/facts/open/graph, and source-session open worked
+   on real IDs;
+4. temporary memory write/search/deprecate lifecycle worked;
+5. focus and volition lifecycle worked;
+6. a natural frustration message produced model-facing affect and shell read
+   matched it;
+7. shell metacognition produced a traced, command-validated recommendation;
+8. `memory.facts.backfill` remained internal-only; and
+9. GPT bridge bootstrap/action/finalize completed one coherent turn.
+
+Post-Rework Comparison:
+
+After V1.26.0 extracted common cognitive contracts plus shell parsing and
+model-facing presentation from the monolithic shell module, the unchanged suite
+ran again as `20260710_143138_preliminary-regression-v1` and passed `9/9`.
+This is the first accepted proof that the gate can detect a structural slice
+without requiring a behavior change to be trusted by prose alone.
+
+Database Boundary Update:
+
+V1.27.0 makes the gate declare `database_role=preliminary` and pass through
+the same database-role validation as a normal app. The source remains frozen,
+the run target remains freshly recreated, and importing `app.main` no longer
+opens a configured developer database before the runner applies its explicit
+settings.
+
+V1.28.0 split the storage repository monolith behind the unchanged public
+facade. The same source and nine integration cases again passed, so the
+structural reorganization did not change assembled runtime behavior.
+
+Limits:
+
+This establishes repeatable integration behavior, not a score for MiniMax M3
+free-form reasoning or tool-choice quality. Natural live Scarlet probes remain
+necessary when a change is supposed to improve agent behavior.
+
+Decision Gate:
+
+Use the identical suite and source hash after the current rework and after
+future major procedures. A lower result blocks acceptance unless the owner
+approves a documented new suite version and behavior contract.
+
+Related Files:
+
+- `backend/app/evals/preliminary_regression.py`
+- `docs/preliminary-regression-suite.md`
+- `docs/decisions.md#adr-0068---frozen-preliminary-regression-gate-for-major-procedures`
+
+## EXP-0051 - Canonical Context V2 Acceptance
+
+Date: 2026-07-12
+Status: completed for V1.29.0
+
+Hypothesis:
+
+A compact, navigable session/memory projection can preserve or improve
+Scarlet's real continuity while removing automatic diagnostic detail and
+keeping full evidence in backend traces.
+
+Method:
+
+- Run focused contract tests and the frozen preliminary suite.
+- Repair provenance and missing summaries only on a disposable laboratory
+  copy.
+- Send natural Italian prompts across related and new sessions with real
+  MiniMax M3, then inspect exact model-context, tool, memory, and source traces.
+
+Results:
+
+- Backend `138/138`; unchanged preliminary suite `9/9`; frontend build passed.
+- `36/36` source hooks repaired and `34/34` summary jobs completed on the copy.
+- Local time/location required no tool; relevant Zero-Luce memories arrived as
+  compact hooks; a source-sensitive follow-up triggered memory/session reads
+  and exact message/turn reporting.
+- A new session reconstructed the immediately preceding work from episodic
+  hints and source navigation.
+- Fresh-session preference write produced a fully sourced memory and the next
+  session recalled it automatically without a tool call.
+- One MiniMax result ended with thinking only and no public/tool block; this is
+  BUG-0067, not evidence of a V2 retrieval or provenance failure.
+
+Decision:
+
+Accept `model_context_profile=v2` as the current model-facing contract. Retain
+`legacy` and `v2_shadow` for controlled rollback/comparison. Review preserved
+context families and provider history separately before further reduction.

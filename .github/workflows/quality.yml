@@ -1,0 +1,49 @@
+name: Quality
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+
+      - name: Install backend and quality tools
+        run: python -m pip install -e './backend[dev]'
+
+      - name: Ruff
+        run: python -m ruff check backend/app backend/tests scripts
+
+      - name: Mypy incremental gate
+        working-directory: backend
+        run: python -m mypy
+
+      - name: Documentation integrity
+        run: python scripts/check_documentation.py
+
+      - name: Backend tests and coverage
+        working-directory: backend
+        run: python -m pytest -q --cov=app --cov-report=term
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm ci && npm run build

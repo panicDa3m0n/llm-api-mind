@@ -1,8 +1,8 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-06-26
-System version assessed: V1.21.0
-Status: first volition register standalone surface closed
+Last updated: 2026-07-13
+System version assessed: V1.32.0
+Status: volition shell lifecycle and scheduling contract verified
 
 ## Filosofia del ramo
 
@@ -24,6 +24,12 @@ deragliare.
 - V1.19.0/V1.21.0 introduce il registro volitivo: Scarlet puo creare,
   ispezionare, rivedere e chiudere intenzioni latenti senza iniettarle
   automaticamente nella chat attiva.
+- V1.30.0 consente a Scarlet di scegliere la postura resumable con `mode set`,
+  mentre il sistema mantiene `interactive` durante il turno umano.
+- V1.32.0 espone alla shell pianificazione review e intervallo, rende
+  `promote_to_focus_candidate` un comando shell eseguibile con provenienza
+  dell'intenzione e vieta di persistere manualmente `interactive` come resume
+  mode.
 
 ## Stato attuale
 
@@ -35,7 +41,7 @@ volitivo aggiunge una prima forma di direzione interna tracciabile:
 `list_due` per future code di cicli autonomi. Non esiste ancora esecuzione
 autonoma dei cicli.
 
-Sistema valutato: V1.21.0.
+Sistema valutato: V1.32.0.
 
 ## Sviluppi precedenti
 
@@ -45,6 +51,26 @@ Sistema valutato: V1.21.0.
 - Endpoint-local error guides.
 - V1.19.0 `intention_records`, `intention_links`, `/mind/volition`.
 - V1.21.0 `volition.list_due` per review queue senza chat injection.
+
+## Verifica V1.32.0
+
+- Implementazione: tool loop model-controlled e registro volitivo con
+  lifecycle, link, coda due e promozione non mutante a focus candidate.
+- Test deterministici: coprono creazione, update, defer, review, ricerca,
+  coda due, promozione eseguibile a focus con linkage, risoluzione,
+  impossibilita, deprecazione e input invalidi.
+- Evidenza Scarlet: in un DB isolato MiniMax M3 ha verificato le code, letto
+  l'help e creato spontaneamente un'intenzione propria con review futura e
+  intervallo settimanale senza trasformarla in task utente. L'autonomia
+  complessiva resta discontinua per write, verifiche e recommended actions.
+- Integrazione runtime: volizione manual-only, nessun ciclo autonomo.
+- Modalita: la scelta manuale e persistente e tracciata; nessun organo viene
+  eseguito autonomamente solo perche condivide il tag.
+- Prova diretta V1.30: Scarlet ha impostato `resume_tag=scouting` durante un
+  turno ancora `interactive` e, dopo correzione, ha distinto la postura
+  persistita da un ciclo autonomo inesistente.
+- Prossimo gate: policy machine-readable per rischio, autorizzazione,
+  reversibilita e receipt prima di qualsiasi autonomia esterna.
 
 ## Evolutive
 

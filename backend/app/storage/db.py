@@ -1,30 +1,29 @@
 from collections.abc import Generator
 import shutil
-from pathlib import Path
 from typing import Any
 
 from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 from sqlmodel import Session, SQLModel, create_engine
 
-
-def active_database_url(settings: Any) -> str:
-    """Return the database URL selected for this backend process."""
-
-    if bool(getattr(settings, "codex_test", False)):
-        return str(getattr(settings, "codex_test_database_url"))
-    return str(getattr(settings, "database_url"))
+from app.storage.database_boundary import (
+    safe_database_url,
+    sqlite_file_path,
+    validate_database_configuration,
+)
 
 
 def database_runtime_info(settings: Any) -> dict[str, Any]:
     """Expose safe database-selection metadata for health/debug surfaces."""
 
-    database_url = active_database_url(settings)
+    selection = validate_database_configuration(settings)
     return {
-        "profile": "codex_test" if bool(getattr(settings, "codex_test", False)) else "prod",
-        "codex_test": bool(getattr(settings, "codex_test", False)),
-        "database_url": _safe_database_url(database_url),
-        "seed_database_url": _safe_database_url(_codex_seed_database_url(settings)),
+        "profile": selection.role,
+        "role": selection.role,
+        "codex_test": selection.codex_test,
+        "database_url": safe_database_url(selection.database_url),
+        "seed_database_url": safe_database_url(selection.seed_database_url),
+        "isolation": "seed_copy" if selection.codex_test else "direct",
     }
 
 
@@ -35,32 +34,28 @@ def prepare_runtime_database(settings: Any) -> str:
     seed database. Later writes stay isolated in the test database.
     """
 
-    database_url = active_database_url(settings)
-    if not bool(getattr(settings, "codex_test", False)):
-        return database_url
+    selection = validate_database_configuration(settings)
+    if not selection.codex_test:
+        return selection.database_url
 
-    target_path = _sqlite_file_path(database_url)
-    seed_path = _sqlite_file_path(_codex_seed_database_url(settings))
+    target_path = sqlite_file_path(selection.database_url)
+    seed_path = sqlite_file_path(selection.seed_database_url)
     if target_path is None or seed_path is None:
-        return database_url
-    if target_path.resolve() == seed_path.resolve():
-        raise ValueError(
-            "Codex test database must be different from the seed database."
-        )
+        return selection.database_url
     if target_path.exists():
-        return database_url
+        return selection.database_url
     target_path.parent.mkdir(parents=True, exist_ok=True)
     if not seed_path.exists():
         raise FileNotFoundError(f"Codex test seed database not found: {seed_path}")
     shutil.copy2(seed_path, target_path)
-    return database_url
+    return selection.database_url
 
 
 def create_db_engine(database_url: str) -> Engine:
     if database_url.startswith("sqlite:///"):
         sqlite_path = database_url.removeprefix("sqlite:///")
         if sqlite_path and sqlite_path != ":memory:":
-            Path(sqlite_path).parent.mkdir(parents=True, exist_ok=True)
+            sqlite_file_path(database_url).parent.mkdir(parents=True, exist_ok=True)
         return create_engine(
             database_url,
             connect_args={"check_same_thread": False},
@@ -76,32 +71,6 @@ def init_db(engine: Engine) -> None:
 def session_scope(engine: Engine) -> Generator[Session, None, None]:
     with Session(engine) as session:
         yield session
-
-
-def _codex_seed_database_url(settings: Any) -> str:
-    return str(
-        getattr(settings, "codex_test_seed_database_url", None)
-        or getattr(settings, "database_url")
-    )
-
-
-def _sqlite_file_path(database_url: str) -> Path | None:
-    if not database_url.startswith("sqlite:///"):
-        return None
-    sqlite_path = database_url.removeprefix("sqlite:///")
-    if not sqlite_path or sqlite_path == ":memory:":
-        return None
-    return Path(sqlite_path)
-
-
-def _safe_database_url(database_url: str) -> str:
-    sqlite_path = _sqlite_file_path(database_url)
-    if sqlite_path is not None:
-        return database_url
-    if "://" not in database_url:
-        return database_url
-    scheme, _separator, _rest = database_url.partition("://")
-    return f"{scheme}://<redacted>"
 
 
 def _migrate_sqlite_schema(engine: Engine) -> None:

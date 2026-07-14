@@ -2,11 +2,13 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.11.0.
+App baseline: V1.33.0.
 
 Current scope:
 
 - typed environment configuration;
+- explicit database roles and read-only preflight for production, laboratory,
+  test, and preliminary state;
 - `/health` endpoint;
 - switchable MiniMax/Qwen LLM provider smoke test;
 - configurable Scarlet agent system prompt;
@@ -20,28 +22,40 @@ Current scope:
 - optional retrieval shadow adapter over `memory_surfaces` for local
   deterministic plumbing tests, Milvus Lite trace-only comparison, or
   OpenRouter cloud embedding/rerank shadow evaluation;
-- optional active hybrid memory retrieval that groups dense/rerank evidence by
-  memory and can rank `memory.context` / `memory.search` when explicitly
-  enabled;
+- active memory-level rerank arbitration over a deduplicated sparse/dense/KG/
+  lexical recall pool; deterministic signals find candidates but never accept
+  or order final relevant memories;
 - metacognitive context shadow traces for evaluator-visible candidate lessons,
   with controlled injection mode for A/B tests;
 - backend-owned memory surface taxonomy for derived cognitive retrieval
   facets; Scarlet writes canonical memory fields, not surface internals;
-- model-controlled, unbounded API Mind cognitive loop through the single `mind_api` interface;
+- model-controlled, unbounded API Mind cognitive loop through the single
+  `mind_shell(command, intent)` interface;
+- executable command-registry/help conformance, truthful collection
+  pagination, explicit targeted misses, and lifecycle-tested session, focus,
+  volition, affect, mode, and metacognition families;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
-- Memory v0 write/search/read/conflicts/deprecate/supersede/facts/backfill through `mind_api`;
+- semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede
+  through `mind_shell`; facts backfill remains internal maintenance;
 - maintenance API access for overview, job inspection/manual lab run, pending
   memory proposal review, and archival;
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
-- automatic Memory Context Pipeline v0 traces before model requests;
+- automatic rich retrieval/runtime traces plus the compact
+  `scarlet-model-context-v2` document shared by native MiniMax and GPT Actions;
+- exact character/byte context accounting, provider token observations, and
+  shadow-only history compaction planning;
+- agent-mode registry, automatic block routing, persistent resumable posture,
+  and `mode` shell family;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - per-session idle maintenance that schedules summary refresh, missed-memory
   review, pending memory proposal creation, cautious resolution, and auditable
   proposal ledger updates after completed turns;
 - scripted and interactive evaluation runner for traceable experiments;
-- pytest coverage for health, LLM smoke wiring, storage, chat, Mind API, and memory.
+- pytest contracts for health, provider wiring, storage, chat, shell/API parity,
+  context V2/accounting, GPT bridge, agent modes, behavioral contracts,
+  maintenance, memory, focus, volition, and affect.
 
 ## Setup
 
@@ -61,6 +75,24 @@ Add your MiniMax key to `backend/.env` for the default provider:
 LLM_PROVIDER=minimax
 MINIMAX_API_KEY=...
 MINIMAX_MAX_TOKENS=131072
+```
+
+Database ownership defaults to the local laboratory role:
+
+```txt
+ENVIRONMENT=local
+DATABASE_ROLE=auto
+CODEX_TEST=false
+DATABASE_URL=sqlite:///./data/app.db
+```
+
+Use `CODEX_TEST=true` only with a distinct disposable target/seed. The full
+production/laboratory/test/preliminary boundary, including the VPS procedure,
+is in `../docs/database-topology.md`. Before a deploy or a persistence-heavy
+evaluation, run the read-only check:
+
+```bash
+python -m app.ops.database_preflight --require-existing
 ```
 
 Idle maintenance defaults to a 15-minute per-session timer:
@@ -111,22 +143,23 @@ RETRIEVAL_SHADOW_RERANK_ENABLED=false
 RETRIEVAL_SHADOW_RERANK_MODEL=nvidia/llama-nemotron-rerank-vl-1b-v2:free
 ```
 
-The OpenRouter path writes diagnostic `retrieval_shadow` payloads only while
-hybrid mode is off. Surface embeddings are cached in SQLite by content hash;
-query embeddings are generated per search. Rerank is an optional second-stage
-comparison over dense candidates, not a replacement for embedding retrieval.
+The OpenRouter path writes diagnostic `retrieval_shadow` payloads. Surface
+embeddings are cached in SQLite by content hash; query embeddings are generated
+per search. Dense results provide one recall route and do not decide final
+relevance.
 
-To test real hybrid ranking over grouped dense/rerank evidence, enable it
-explicitly:
+To make one memory-level reranker the sole final relevance authority, enable
+active mode explicitly:
 
 ```txt
 RETRIEVAL_HYBRID_MODE=active
 RETRIEVAL_HYBRID_MIN_DENSE_SCORE=0.38
-RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.55
+RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.01
 ```
 
-Use `RETRIEVAL_HYBRID_MODE=shadow` when you want hybrid scores in traces
-without changing selected memories.
+Use `RETRIEVAL_HYBRID_MODE=shadow` to record final-rerank decisions without
+changing selected memories. The setting name is retained for compatibility;
+V1.31.0 does not perform weighted hybrid score fusion.
 
 If the same session receives another user turn before the timer expires, the
 older pending job is superseded. Jobs for other sessions continue independently.
@@ -158,7 +191,7 @@ AGENT_SYSTEM_PROMPT_PATH=path/to/system_prompt.md
 ## Run
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.asgi:app --reload
 ```
 
 Then open:

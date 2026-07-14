@@ -2,10 +2,182 @@
 
 This file records bugs, fixes, root causes, and regression tests so the project does not rediscover the same problems across sessions.
 
+Identifier note: V1.29.1 normalized legacy duplicate headings. Historical
+activity/experiment text may retain the identifier used at the time; current
+canonical bug ids are the headings in this file. Bug evidence and resolution
+history were not rewritten.
+
+## BUG-0080 - GPT Bridge Finalize Wording Created Long Silent Turns
+
+Date Found: 2026-07-13
+Status: fixed and behaviorally validated in GPT Builder for V1.33.0
+
+Symptoms:
+
+A source-sensitive external GPT evaluation completed bootstrap, seven
+successful cognitive Actions, and finalize in about 108 seconds, but exposed
+no public progress note. The user reasonably interpreted the long silence as a
+stalled turn and closed it.
+
+Root Cause:
+
+The compact GPT prompt mentioned work notes weakly while stricter lifecycle
+wording could be read as prohibiting all visible prose before finalize. The
+Builder schema also described finalize as preceding the visible answer rather
+than specifically the final answer.
+
+Fix:
+
+The GPT prompt now explicitly permits and requires concise progress notes after
+bootstrap during non-trivial work, defines useful long-turn waypoints, and
+reserves finalize for the concluding answer. Action descriptions use the same
+distinction. The native MiniMax prompt was already correct and remains
+unchanged.
+
+Regression Test:
+
+The GPT Builder asset test checks the progress-note policy, final-answer
+boundary, special UI directive prohibition, and the 300-character operation
+description limit. On 2026-07-14 the owner also repeated a real multi-action
+Custom GPT turn and confirmed that progress notes remained visible throughout
+the work instead of leaving a long silent interval.
+
+Related Files:
+
+- `backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md`
+- `backend/app/plugins/gpt_bridge/openapi_gpt_action.json`
+- `backend/tests/test_gpt_bridge.py`
+
+## BUG-0081 - Cognitive Shell Families Drifted Across Contract Layers
+
+Date Found: 2026-07-13
+Status: fixed in V1.32.0
+
+Symptoms:
+
+- session navigation silently stopped seeing rows beyond an internal 500-row
+  candidate page;
+- `focus hold` emitted a held transition but persisted active status;
+- volition review flags were discarded and focus promotion returned endpoint
+  instructions instead of an executable shell command;
+- affect read ignored filters and targeted focus/affect misses looked
+  successful;
+- `mode set interactive` persisted a system-owned transient mode;
+- retrospective metacognition flags were dropped; and
+- help/registry aliases could claim availability that execution rejected.
+
+Root Cause:
+
+Each shell layer had focused tests, but no shared conformance invariant linked
+registry, help, parser, dispatcher, handler, persistence, pagination, and
+model-facing presentation across all organ families.
+
+Fix:
+
+V1.32.0 aligns each affected layer, adds truthful continuation metadata and
+targeted errors, and introduces exhaustive alias/help conformance plus focused
+lifecycle and negative-path tests.
+
+Regression Test:
+
+The full backend suite passes `161/161`; the frozen preliminary suite passes
+`9/9`; 23 registry aliases show zero execution mismatches; five natural
+MiniMax M3 scenarios complete on a disposable DB.
+
+Related Files:
+
+- `backend/app/mind/{episodic,focus,volition,affect,mode,shell}.py`
+- `backend/app/mind/{command_registry,shell_presentation}.py`
+- `backend/tests/test_mind_shell.py`
+- `docs/evaluations/v1.32-shell-organ-audit.md`
+
+## BUG-0078 - Deterministic Weighted Fusion Decided Memory Relevance
+
+Date Found: 2026-07-13
+Status: fixed in V1.31.0
+
+Symptoms:
+
+Automatic and manual retrieval could classify or order memories from
+hand-authored overlap, entity, tag, graph, sparse, dense, and fusion weights.
+The reranker could promote candidates but was not the sole final relevance
+judge. The automatic query also duplicated the current user message when
+recent dialogue existed.
+
+Root Cause:
+
+The incremental lexical baseline and later dense/KG experiments were composed
+through a weighted hybrid ranker instead of being separated into candidate
+recall and semantic adjudication.
+
+Fix:
+
+V1.31.0 builds a deduplicated round-robin recall pool, sends canonical
+memory-level documents to the reranker, and accepts/orders active results only
+from that rerank. Active failure is fail-closed. The current message appears
+once in the operational query, and the obsolete weighted ranker was removed.
+
+Regression Test:
+
+Tests prove that a strong deterministic match rejected by rerank is excluded,
+a sparse candidate outside the dense sample still reaches rerank, rerank
+unavailability fails closed, and manual/automatic active paths share policy.
+
+Related Files:
+
+- `backend/app/mind/relevance_rerank.py`
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/tests/test_chat_api.py`
+- `backend/tests/test_mind_api.py`
+
+## BUG-0079 - Initial Final-Rerank Threshold Rejected Exact Positive Control
+
+Date Found: 2026-07-13
+Status: fixed provisionally in V1.31.0; monitoring calibration
+
+Symptoms:
+
+In a direct MiniMax M3 test against a disposable full laboratory copy, the
+predeclared mint-tea memory reached final rerank at rank 1 but scored
+`0.465327`. The initial `0.55` threshold rejected it. An intermediate `0.40`
+then failed the frozen suite's exact Zero-Luce positive at rank 1/`0.089455`.
+
+Root Cause:
+
+The high thresholds were inherited before representative direct and frozen
+Italian positives had been run with the configured OpenRouter reranker. Scores
+are query-distribution dependent and substantially lower than assumed even for
+correct rank-1 candidates.
+
+Fix:
+
+Set the default acceptance threshold provisionally to `0.01`. This changes
+only interpretation of the reranker's own score; no deterministic relevance
+weights or fallback authority were introduced.
+
+Regression And Live Evidence:
+
+- Full deterministic suite remains green.
+- The repeated positive selected the expected memory at `0.465327` plus the
+  compatible caffeine constraint at `0.016403`, and delivered both through V2
+  to MiniMax.
+- An independent jazz/cooking negative selected none; its highest score was
+  `0.000391`.
+- The unchanged frozen preliminary gate passed 9/9 after failing 8/9 at the
+  intermediate threshold.
+- Broader calibration remains required before the threshold is stable.
+
+Related Files:
+
+- `backend/app/config.py`
+- `backend/app/mind/relevance_rerank.py`
+- `docs/evaluations/v1.31-final-memory-rerank-live.md`
+
 ## Template
 
 ```md
-## BUG-0001 - Short Title
+## BUG-NNNN - Short Title
 
 Date Found:
 Status: open | fixed | monitoring
@@ -18,6 +190,314 @@ Notes:
 ```
 
 ## Known Environment Notes
+
+## BUG-0077 - Bare Volition List Reached Handler With Invalid Action
+
+Date Found: 2026-07-13
+Status: fixed in V1.30.0
+
+Symptoms:
+
+During a disposable live MiniMax mode probe, Scarlet called `volition list`.
+The command registry classified it as implemented, but the shell forwarded
+`action=list`; the volition handler accepts `list_active` or `list_due` and
+returned a recoverable validation error.
+
+Root Cause:
+
+The command registry treated `list` as an implemented volition action while
+the parser translated only `volition list active|due`, not the bare form.
+
+Fix:
+
+Bare `volition list` now canonicalizes to `list_active`. The registry maps
+`list`/`list-active` to `list_active` and `list-due` to `list_due`.
+
+Regression Test:
+
+`test_mind_shell_focus_volition_and_affect_commands` verifies both
+`volition list active --limit 5` and bare `volition list` resolve to
+`volition.list_active`.
+
+Related Files:
+
+- `backend/app/mind/command_registry.py`
+- `backend/app/mind/shell.py`
+- `backend/tests/test_mind_shell.py`
+
+## BUG-0076 - Provider-Native History Has No Independent Context Budget
+
+Date Found: 2026-07-13
+Status: monitoring / measured but not actively compacted
+
+Symptoms:
+
+The V2 dynamic packet is compact, but native MiniMax turns still append the
+complete persisted provider-native history. Tool-heavy sessions can therefore
+grow far beyond the compact packet. Read-only V1.30 analysis found one local
+laboratory provider history at 1,228,332 JSON characters and recent-tail proxy
+costs ranging from about 63k tokens for eight turns to 323k for five tool-heavy
+turns. No causal link to thinking-only responses is proven.
+
+Root Cause:
+
+Provider continuity and dynamic context are assembled through separate paths.
+The provider-history path currently has no token/byte budget, rolling window,
+summary degradation, or trace-only eviction policy.
+
+Fix:
+
+V1.30.0 adds per-channel `context.accounting.preflight`, provider-authoritative
+`context.accounting.observed`, validated 1M/500k/400k/100k/8-turn policy
+settings, and a non-destructive compaction plan. The full canonical chronology
+is unchanged. Active summary/window degradation remains intentionally pending
+long-session behavioral evidence and an approved rule for tails that do not fit.
+
+Regression Test:
+
+Deterministic tests verify channel accounting, first-step versus tool-loop
+usage, retained-turn measurement, trigger planning, external-GPT uncertainty,
+and zero canonical mutation. Still pending: long post-V1.30 same-session direct
+Scarlet comparison before/after an active derived-history strategy.
+
+Related Files:
+
+- `backend/app/api/chat.py`
+- `backend/app/providers/minimax.py`
+- `backend/app/storage/repository/runtime.py`
+- `backend/app/runtime/context_accounting.py`
+- `docs/runtime-context-packs.md`
+- `docs/project-state.md`
+
+## BUG-0067 - MiniMax Can End A Turn With Thinking Only
+
+Date Found: 2026-07-12
+Status: open / parked after V1.29.0 live evaluation
+
+Symptoms:
+
+A natural personal-preference turn returned HTTP 200 with an empty assistant
+message and no tool call. MiniMax emitted 647 output tokens of visible thinking,
+correctly identified the required memory write, then returned `stop_reason=end_turn`
+without text or `tool_use`. The following session therefore could not recall
+the preference. A fresh-session retry produced a corrected memory write and
+successful later automatic recall.
+
+Root Cause:
+
+The immediate failure is provider/model output: a thinking-only final message.
+The backend compounds it by accepting an empty public result as a completed
+turn. The failing turn also followed a tool-heavy session whose provider-native
+history was 54,826 JSON characters; that may increase probability but is not
+established as the cause.
+
+Fix:
+
+Parked outside the context-packet scope. Evaluate a bounded continuation or
+explicit failed-turn policy for thinking-only final results. Do not fabricate a
+memory write from thinking text.
+
+Regression Test:
+
+Pending: provider fixture returning thinking-only `end_turn`, plus a live retry
+probe that distinguishes provider failure from memory/context failure.
+
+Related Evidence:
+
+- disposable turn `turn_1515d897c1654e1abfa93a6eadea348a`
+- successful retry `turn_5d1e7dbf48ad47d3907e3d28a208dd36`
+- successful recall `turn_0334a4d4349f4f9c9211ae4c1ef38e1d`
+
+## BUG-0066 - Missing Session Summaries Are Not Reconciled Or Retried
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+The laboratory DB has 44 sessions without summaries: 34 completed non-empty
+sessions eligible for repair, 6 non-empty sessions blocked by turns still
+marked `started`, and 4 empty sessions. Of the 40 non-empty sessions, 39 never
+had a maintenance job and one had a provider-failed job.
+
+Root Cause:
+
+Idle summary scheduling occurs only after `turn.completed`; historical sessions
+and abandoned/unfinalized bridge turns can miss that trigger. Failed jobs are
+terminal, while the unique `kind + session + turn` idempotency key causes a
+later scheduling attempt to return the same failed record instead of retrying.
+There is no periodic missing/stale-summary reconciler.
+
+Fix:
+
+Added a read-only summary audit, bounded summary-only repair jobs using the
+existing episodic summarizer, attempt-specific idempotency and retry/backoff,
+plus periodic and new-session reconciliation. Empty sessions are excluded and
+started turns remain blocked for separate recovery. A disposable laboratory
+run completed all 34 eligible repairs; final audit: 146 current, 6 blocked, 11
+empty.
+
+Regression Test:
+
+`tests/test_maintenance.py`, `tests/test_maintenance_api.py`, and
+`tests/test_model_context_v2.py` cover scheduling, retry boundaries, current,
+missing/stale fallback, empty, and active-turn isolation.
+
+Related Files:
+
+- `backend/app/runtime/maintenance.py`
+- `backend/app/storage/repository/runtime.py`
+- `backend/app/mind/episodic.py`
+- `backend/app/api/chat.py`
+- `backend/app/plugins/gpt_bridge/router.py`
+
+## BUG-0064 - Memory Writes Omit Source Message Provenance
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+The compact context contract requires every automatic memory hint to expose a
+source session and source message. A read-only laboratory audit found that all
+36 memories have source session/turn ids but none has `source_message_id`.
+
+Root Cause:
+
+Direct `memory write` passes session and turn to `add_memory()` but omits the
+current persisted user message. Idle-maintenance prompts contain message ids,
+but their output contract and normalizer discard those ids before creating a
+proposal and memory. `MindAPIContext` currently has no message-id field.
+
+Fix:
+
+Captured the persisted user-message id in native and bridge Mind contexts,
+validated maintenance evidence ids, preserved the primary source through
+proposal application, and excluded unresolved hooks from automatic V2 packets.
+The dry-run-first repair aligned all 36 unambiguous records on a disposable
+laboratory copy without touching the source DB.
+
+Regression Test:
+
+Covered by chat, GPT bridge, maintenance, and V2 context contract tests. Live
+write `mem_5da04b6c03c54f44af53ecc4c7f8636e` resolved to its exact source
+session, turn, and user message on the disposable DB.
+
+Related Files:
+
+- `backend/app/mind/contracts.py`
+- `backend/app/mind/memory.py`
+- `backend/app/runtime/maintenance.py`
+- `backend/app/api/chat.py`
+- `backend/app/plugins/gpt_bridge/router.py`
+
+## BUG-0065 - Memory Reads Mutate Semantic Update Time
+
+Date Found: 2026-07-12
+Status: fixed in V1.29.0
+
+Symptoms:
+
+Automatic context retrieval and manual memory search call
+`mark_memory_used()`. The operation increments usage, sets `last_used_at`, and
+also overwrites `updated_at`. In the laboratory DB, 32 of 33 used memories have
+`updated_at == last_used_at`, so semantic modification time cannot be used as
+historical cognitive recency.
+
+Root Cause:
+
+The original usage counter overloaded canonical memory state instead of
+recording access as a separate append-only activity.
+
+Fix:
+
+Added append-only `memory_activities`, explicit call-site activity kinds, and
+activity-ordered recent queries with creation-time fallback. Automatic simple
+selection and recent-packet delivery no longer mutate canonical memories;
+manual reads/searches and writes create traceable activity events.
+
+Regression Test:
+
+`tests/test_model_context_v2.py` verifies stable timestamps, explicit activity,
+ordering, refill, compact shape, provenance, and cross-block deduplication.
+
+Related Files:
+
+- `backend/app/mind/context.py`
+- `backend/app/mind/memory.py`
+- `backend/app/storage/repository/memory.py`
+- `backend/app/storage/models.py`
+
+## BUG-0062 - Importing The App Factory Could Open The Configured Runtime DB
+
+Date Found: 2026-07-10
+Status: fixed in V1.27.0
+
+Symptoms:
+
+`app.main` instantiated `app = create_app()` at import time. Evaluators and
+pytest modules import the factory, so that import could open and migrate the
+database selected by the developer environment before an isolated engine was
+injected.
+
+Root Cause:
+
+The production ASGI entrypoint and the reusable application factory lived in
+the same eagerly executed module.
+
+Fix:
+
+Moved the eager ASGI object to `app.asgi:app`, made `app.main` factory-only,
+and added explicit database-role validation plus an import regression test.
+
+Regression Test:
+
+`backend/tests/test_database_boundary.py::test_importing_app_factory_does_not_open_the_runtime_database`
+
+Related Files:
+
+- `backend/app/main.py`
+- `backend/app/asgi.py`
+- `backend/app/storage/database_boundary.py`
+
+## BUG-0063 - Historical Dirty-Memory Harness Reads A Retired Metadata Shape
+
+Date Found: 2026-07-10
+Status: open / parked
+
+Symptoms:
+
+The V1.27.0 isolated run of `codex_test_memory_harness.py` created all 240
+controlled records, but its five context-evaluation probes reported `0/5`.
+The selected results included controlled record content, yet their diagnostic
+key was `null`.
+
+Root Cause:
+
+The current memory write policy nests agent-supplied metadata below
+`agent_supplied_fields_ignored_for_ranking`. The historical evaluator still
+looks only for `codex_test_key` at the old top-level metadata location. This
+is a measurement/harness compatibility gap, not evidence that the DB boundary
+or the current retrieval path failed to persist the controlled records.
+
+Fix:
+
+Parked outside the V1.27.0 database-boundary scope. A dedicated evaluator
+slice should make key extraction understand the backend-owned wrapper and
+revalidate the historical retrieval expectations against a versioned source
+dataset.
+
+Regression Test:
+
+Pending: run the harness against a fresh marked copy and assert that selected
+records can be mapped to controlled keys without relying on retired metadata
+shape.
+
+Related Files:
+
+- `backend/app/evals/codex_test_memory_harness.py`
+- `backend/app/mind/memory.py`
+- `docs/experiments.md`
 
 ## BUG-0057 - Temporal Recall Can Answer From Non-Exhaustive Session Context
 
@@ -193,7 +673,7 @@ Related Files:
 - `docs/experiments.md`
 - `docs/runtime-context-packs.md`
 
-## BUG-0026 - Mind Shell Registry Allowed Incomplete Commands
+## BUG-0068 - Mind Shell Registry Allowed Incomplete Commands
 
 Date Found: 2026-07-09
 Status: fixed
@@ -243,7 +723,7 @@ Related Files:
 - `docs/api-contract.md`
 - `docs/decisions.md`
 
-## BUG-0024 - GPT Bridge Bootstrap ResponseTooLargeError
+## BUG-0069 - GPT Bridge Bootstrap ResponseTooLargeError
 
 Date Found: 2026-07-08
 Status: fixed
@@ -291,7 +771,7 @@ capture. It only separates model-facing GPT Action output from backend debug
 diagnostics. V1.24.2 was deployed to the VPS and public bootstrap/action/
 finalize smoke tests passed against `https://honeylabs.cloud`.
 
-## BUG-0025 - Preview Docker Build Lost Remote-Only Dockerfile And Packaged Data
+## BUG-0070 - Preview Docker Build Lost Remote-Only Dockerfile And Packaged Data
 
 Date Found: 2026-07-08
 Status: fixed
@@ -557,7 +1037,7 @@ SQLite is a binary file. If multiple machines write state independently, Git may
 
 ## Implementation Bugs
 
-## BUG-0052 - Tag/Token Overlap Reported As Active Memory Conflict
+## BUG-0071 - Tag/Token Overlap Reported As Active Memory Conflict
 
 Date Found: 2026-07-08
 Status: fixed in V1.23.0
@@ -664,7 +1144,7 @@ Related Files:
 - `backend/tests/test_mind_shell.py`
 - `backend/tests/test_mind_api.py`
 
-## BUG-0048 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
+## BUG-0073 - Associative Personal Memories Lost To Narrow Surface Pool And Project Noise
 
 Date Found: 2026-06-18
 Status: fixed in V1.11.1
@@ -720,7 +1200,7 @@ This is retrieval-time evidence only. It must not drive automatic memory
 lifecycle operations until mature embedding/KG matching and staleness evidence
 exist.
 
-## BUG-0049 - Embedded Surfaces Remained Pending After OpenRouter Retrieval
+## BUG-0074 - Embedded Surfaces Remained Pending After OpenRouter Retrieval
 
 Date Found: 2026-06-19
 Status: fixed in V1.11.3
@@ -760,7 +1240,7 @@ Notes:
 This does not change ranking. It stabilizes surface/vector state so future
 debugging and maintenance can trust the derived retrieval substrate.
 
-## BUG-0050 - Facts Endpoint Treated Operational Intent As Data Query
+## BUG-0075 - Facts Endpoint Treated Operational Intent As Data Query
 
 Date Found: 2026-06-19
 Status: fixed in V1.11.3
@@ -793,7 +1273,7 @@ Related Files:
 - `backend/app/mind/memory.py`
 - `backend/tests/test_mind_api.py`
 
-## BUG-0052 - Chat Prompt Regression Test Still Expects Pre-Golden Identity Phrase
+## BUG-0072 - Chat Prompt Regression Test Still Expects Pre-Golden Identity Phrase
 
 Date Found: 2026-06-25
 Status: open

@@ -1,6 +1,7 @@
 # GPT / MCP Bridge Plugin
 
-Status: V1.25.2 GPT Actions bridge active. MCP/App bridge deprecated after
+Status: V1.30.0 GPT Actions bridge active with shared
+`scarlet-model-context-v2`. MCP/App bridge deprecated after
 platform testing showed it cannot currently be attached to the target custom
 GPT flow.
 
@@ -14,6 +15,11 @@ ChatGPT-hosted model receive compact bootstrap context, execute the same
 controlled Mind shell commands, and persist the final answer back into
 Scarlet's session history. Full raw bootstrap diagnostics stay in backend
 traces instead of being returned through ChatGPT.
+
+V1.30.0 returns the canonical V2 runtime serialization once rather than also
+duplicating it as `context.model_context`. Bootstrap accounting measures only
+the backend packet and explicitly marks ChatGPT-owned prompt/history/token data
+as unobservable.
 
 ## Endpoints
 
@@ -80,7 +86,7 @@ not optional tools for the user to request.
    questions.
 2. `POST /gpt/action` is mandatory whenever the GPT needs API Mind information
    or state work: memory, session recall, source checks, command help, focus,
-   volition, affect, metacognition, or memory writes.
+   volition, affect, agent mode, metacognition, or memory writes.
 3. `POST /gpt/finalize` is mandatory before the GPT shows the final answer to
    the user, even when no middle `/gpt/action` was needed.
 

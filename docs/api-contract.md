@@ -2,6 +2,9 @@
 
 This file documents stable API contracts once they are implemented.
 
+Last reviewed: 2026-07-14
+App baseline: V1.33.0
+
 ## Response Philosophy
 
 Mind API responses should be useful to both code and the LLM agent.
@@ -82,7 +85,7 @@ backend-owned fields if the model sends them inside free-form metadata.
 ## Model-Facing API Mind Tool
 
 Status: implemented in V1.22.0, stabilized in V1.23.0, capability boundary
-aligned in V1.25.4
+aligned in V1.25.4, organ conformance verified in V1.32.0
 
 Scarlet's active model-facing API Mind surface is now:
 
@@ -96,6 +99,11 @@ Legacy `/mind/*` HTTP endpoints remain available for backend/debug
 compatibility, tests, and rollback, but they are no longer the active model
 tool contract.
 
+Native `mind_shell` requires `command`; `intent` is optional in the tool
+schema and receives a backend default when omitted. GPT
+`runScarletMindAction` requires both fields because every external bridge
+action must carry an explicit audit reason.
+
 Implemented command families:
 
 ```txt
@@ -105,6 +113,7 @@ session
 focus
 volition
 affect
+mode
 metacognition
 ```
 
@@ -121,6 +130,8 @@ session open ses_... --limit 200
 focus read
 volition list active --limit 10
 affect prototypes
+mode read
+mode set scouting --reason "Continue environmental study after the exchange"
 metacognition step --objective "check source-sensitive claim" --mode critic
 ```
 
@@ -153,8 +164,8 @@ Examples:
 - `memory search` model-facing results keep memory ids, content, provenance,
   compact facts, query-time scores, concise graph/hybrid/rerank signals,
   trace ids, and a list of omitted debug sections. Full
-  `retrieval_shadow`, `retrieval_graph`, and `retrieval_hybrid` payloads stay
-  in `mind.memory.search` traces.
+  `retrieval_shadow`, `retrieval_graph`, `retrieval_rerank`, and legacy
+  `retrieval_hybrid` payloads stay in `mind.memory.search` traces.
 - `memory conflicts` model-facing results return true atomic conflicts plus a
   compact sample of `related_overlaps`. Related overlaps are maintenance
   signals, not contradictions.
@@ -198,6 +209,101 @@ Recoverable errors return shell usage guidance:
   }
 }
 ```
+
+### V1.32 Shell Organ Conformance
+
+The command registry is executable contract, not descriptive metadata:
+
+- all 23 family/namespace aliases must agree between validation and execution;
+- every command published by `help` must validate as available;
+- `help <alias>` resolves to canonical family help and unknown families return
+  `shell.help_unknown_namespace`;
+- `memory show/get` are accepted aliases of `memory open`;
+- `focus search` and `volition search` reject empty queries before dispatch;
+- targeted `focus read --id ...` and `affect read --id ...` return explicit
+  not-found errors instead of a successful empty result;
+- session, focus, volition, and affect collections return `count` plus truthful
+  `has_more` continuation state;
+- `focus hold` persists `status=held` while retaining the held item as current
+  foreground focus;
+- `volition create/update` accepts `--next-review-at` and
+  `--review-interval-seconds`; invalid intervals fail before mutation;
+- `volition promote` returns an executable `focus set ...` command carrying
+  source-intention metadata, while the internal endpoint may retain its
+  structured dispatcher candidate;
+- `metacognition step` forwards `--turn-scope` and `--detail` to the reviewer;
+- `session list` query/time filtering is exhaustive over the stored session
+  index, and ordinary pagination no longer has a hidden 500-session ceiling;
+- `session open --limit N` limits only the returned message window. Fallback
+  summary generation still uses the complete transcript.
+
+These rules are covered by lifecycle and negative-path tests and by the frozen
+whole-system regression gate. They do not imply that Scarlet will choose every
+available command in natural conversation.
+
+### Agent Mode
+
+Status: implemented in V1.30.0, resumable boundary corrected in V1.32.0
+
+Shell commands:
+
+```txt
+mode read
+mode list
+mode set idle --reason "..."
+mode set scouting --reason "..."
+```
+
+Internal dispatcher route:
+
+```txt
+POST /mind/mode
+```
+
+Body actions are `read`, `list`, and `set`. `set` requires a supported,
+manually resumable mode and a reason. The persistent setting belongs to the
+active profile. During a human-facing turn the system condition `interactive`
+remains active; a manual selection is returned as `resume_tag` and is the
+posture to resume afterward.
+The response also returns `execution_started=false` and
+`runtime_effect=persistent_posture_only_no_autonomous_cycle`. Persisting a mode
+does not launch work; `scouting` has no autonomous sensor runtime in V1.30.0.
+
+The current registry contains `idle`, `interactive`, and `scouting`, while only
+`idle` and `scouting` are manually resumable. `interactive` is system-owned
+during human turns and `mode set interactive` returns
+`mode.set_not_resumable`. The registry tags automatic context/organ
+capabilities with one or more modes. Maintenance, summarization, and Dream are
+explicitly not agent modes. Routing can filter automatic context blocks but
+does not disable on-demand shell commands.
+
+State changes write an `agent.mode` trace and `agent.mode.changed` event.
+
+### Context Accounting
+
+Status: implemented preflight/observation and shadow planning in V1.30.0
+
+Native chat writes:
+
+```txt
+context.accounting.preflight
+context.accounting.observed
+```
+
+The preflight trace reports exact local JSON characters and bytes plus clearly
+labelled token estimates for static policy, dynamic runtime, provider history,
+current message, tool schema, and request structure. The observed trace records
+provider first-step input separately from aggregate tool-loop usage and can
+calibrate future estimates for that model/session.
+
+GPT bootstrap writes only the preflight measure of the backend response packet.
+It explicitly lists manual GPT policy, native ChatGPT history, Actions
+serialization, request structure, and provider token usage as unobserved. It
+must not be interpreted as total ChatGPT model input.
+
+Compaction remains `shadow`: traces can say the 400k trigger would fire and
+project a 100k summary plus the desired eight complete turns, but no canonical
+message, transcript, trace, or provider-history record is mutated.
 
 ## Planned Chat And Debug API
 
@@ -248,11 +354,12 @@ not both in the same GPT configuration.
 Bootstrap response profile:
 
 `POST /gpt/bootstrap` returns `context.profile=gpt-bootstrap-compact-v1`. The
-action response includes the model-facing `<runtime_context>`, compact memory
-packet, runtime summary, recent provider-message summary, action endpoints, and
-trace ids. Full effective prompt, base prompt, raw runtime payload, raw memory
-query plan, full provider messages, and retrieval debug diagnostics are
-trace-only to avoid ChatGPT Actions response-size failures.
+transport envelope version remains V1 for compatibility. When
+`model_context_profile=v2`, the response includes one canonical
+`context.runtime_context` serialization, plus recent provider-message hints,
+action endpoints, and trace ids. V1.30.0 removes the redundant structured
+`context.model_context` copy. Full effective prompt, rich runtime/retrieval
+snapshots, full provider messages, and retrieval diagnostics remain trace-only.
 
 Authentication:
 
@@ -271,6 +378,13 @@ Turn protocol:
 2. POST /gpt/action     -> execute any needed mind_shell command.
 3. POST /gpt/finalize   -> required before the GPT shows the final answer.
 ```
+
+After bootstrap succeeds, the external GPT may and should emit concise public
+progress notes during non-trivial Action sequences. These notes are UX
+orientation, not final answers and not private chain-of-thought. Only the
+complete concluding answer is sent to `/gpt/finalize`; direct turns need no
+intermediate note. The current bridge persists Actions and the final assistant
+message, while ChatGPT owns display of pre-final progress text.
 
 GPT Actions operation ids:
 
@@ -336,11 +450,7 @@ Output includes:
   "model": "external-gpt",
   "context": {
     "profile": "gpt-bootstrap-compact-v1",
-    "runtime_context": "<runtime_context>...",
-    "runtime_payload_summary": {},
-    "memory_context": {
-      "profile": "memory-packet-v1"
-    },
+    "runtime_context": "<runtime_context>...scarlet-model-context-v2...",
     "metacognitive_context": {},
     "provider_messages_recent": [],
     "tools": [],
@@ -355,6 +465,23 @@ Output includes:
   "required_next_steps": []
 }
 ```
+
+### Model Context V2
+
+Status: implemented and active by default in V1.29.0
+
+`model_context_profile` accepts `legacy`, `v2_shadow`, or `v2`. V2 is compiled
+from the same rich evidence already collected for retrieval/runtime traces; it
+does not run a second retrieval pipeline. Every delivered document is stored
+verbatim in a `model.context` trace with source trace ids and serialized byte
+count. Native MiniMax and GPT bootstrap receive the same serialized document
+inside `context.runtime_context`; GPT does not receive a duplicate object.
+
+Automatic memory hooks contain only `id`, `content`, user-local `created_at`
+and `updated_at`, `source_session_id`, and `source_message_id`. Hooks whose
+source message cannot be resolved inside the stated source session are excluded
+from automatic V2 context and remain available to internal diagnostics/manual
+inspection.
 
 `POST /gpt/action`
 
@@ -472,6 +599,13 @@ Status: implemented
 Purpose:
 
 Build backend-owned operational context before each LLM call. This is not a public user-facing endpoint. It is an internal chat-runtime phase that makes memory evidence perceptual and traceable instead of depending only on optional model tool calls.
+
+V1.29.0 boundary: the rich `runtime-context-v1` and `memory.context`
+payloads described below are collection/trace sources. With
+`model_context_profile=v2`, Scarlet receives their compact
+`scarlet-model-context-v2` projection, not the full block/mirror document.
+The legacy detail remains documented because it is still implemented for
+rollback, diagnostics, maintenance, and UI.
 
 Target turn flow:
 
@@ -704,9 +838,11 @@ Selected memories inside the model-facing runtime context use
 }
 ```
 
-Full `signals`, raw shadow/rerank payloads, thresholds, weights, metadata, and
-long diagnostic traces remain available in the associated `memory.context`
-trace. They are intentionally not repeated in the model-facing packet.
+Full `signals`, raw recall-route/rerank payloads, thresholds, metadata, and long
+diagnostic traces remain available in the associated `memory.context` trace.
+They are intentionally not repeated in the model-facing packet. Legacy weight
+settings may still appear in configuration snapshots for compatibility but do
+not participate in V1.31.0 active relevance.
 
 ### Metacognitive Context Shadow
 
@@ -897,27 +1033,24 @@ Required behavior:
 
 Current retrieval plan:
 
-1. Implemented: SQLite FTS5/BM25 sparse retrieval over backend-built search
-   documents for memory context and manual memory/session search.
-2. Implemented: relevance guard that separates `selected`, `near_miss`, and `excluded`.
-3. Implemented: simple conflict grouping over selected active memories that appear to describe the same subject.
-4. Implemented: temporal filters for manual memory/session search, resolved by
+1. Implemented: SQLite FTS5/BM25 sparse recall over backend-built documents.
+2. Implemented: dense recall over role-aware memory surfaces.
+3. Implemented: NetworkX associative graph recall over backend-owned concepts.
+4. Implemented: deduplicated round-robin candidate pooling across sparse,
+   dense, graph, and lexical routes, without weighted score fusion.
+5. Implemented in V1.31.0: final memory-level rerank over canonical content
+   and active facts. In active mode it alone accepts and orders results.
+6. Implemented: `selected`, `near_miss`, and `excluded` reflect final rerank
+   acceptance/evaluation when active.
+7. Implemented: temporal filters for manual memory/session search, resolved by
    the backend from runtime time rather than by model-side date arithmetic.
-5. Implemented as V1.10.0 shadow: OpenRouter cloud embedding comparison over
-   stable `memory_surfaces`, with SQLite cache keyed by surface content hash.
-6. Implemented as V1.10.0 shadow: optional OpenRouter rerank comparison over
-   dense candidates.
-7. Implemented as V1.11.0: memory-level grouped dense/rerank candidates and
-   configurable `retrieval_hybrid_mode=off|shadow|active`.
-8. Implemented as V1.11.1: NetworkX associative graph expansion over
-   backend-owned memory domains, surfaced as `retrieval_graph` in
-   `memory.context` and `/mind/memory/search`.
+8. Implemented: conflict diagnostics over selected active facts; semantic
+   conflict adjudication remains a separate workstream.
 
 Deferred retrieval plan:
 
-- Default promotion of active hybrid ranking after live Scarlet calibration.
-- Hybrid sparse+dense rank fusion.
-- Promotion of cross-encoder reranking from shadow evidence to active ranking.
+- Larger realistic candidate-coverage and threshold calibration.
+- Global scalable vector indexing beyond the bounded cloud surface sample.
 - Mature KG entity resolution and graph traversal beyond lightweight
   field-of-discourse domains.
 - Post-response validator for unverifiable memory claims.
@@ -946,10 +1079,12 @@ Response:
   "provider": "minimax",
   "model": "MiniMax-M3",
   "database": {
-    "profile": "prod",
+    "profile": "laboratory",
+    "role": "laboratory",
     "codex_test": false,
     "database_url": "sqlite:///./data/app.db",
-    "seed_database_url": "sqlite:///./data/app.db"
+    "seed_database_url": "sqlite:///./data/app.db",
+    "isolation": "direct"
   }
 }
 ```
@@ -962,14 +1097,21 @@ Trace Behavior:
 
 No persistent trace yet. This endpoint is a process health check, not an agent turn.
 
-Codex test isolation:
+Database roles and Codex test isolation:
 
-- `CODEX_TEST=false` keeps the normal `DATABASE_URL` runtime.
+- `DATABASE_ROLE=auto` maps local/development to `laboratory`, test to `test`,
+  and production to `production`. Nonstandard environments must set an
+  explicit role before the app starts.
+- `CODEX_TEST=false` opens the normal `DATABASE_URL` directly.
 - `CODEX_TEST=true` opens `CODEX_TEST_DATABASE_URL`.
 - If the Codex test database is a missing SQLite file, it is copied once from
   `CODEX_TEST_SEED_DATABASE_URL` when configured, otherwise from `DATABASE_URL`.
 - Existing Codex test databases are reused and never overwritten by startup.
 - Startup fails if the Codex test SQLite path is the same file as the seed path.
+- Production role rejects `CODEX_TEST=true`; preliminary role requires that
+  isolation and an explicitly marked preliminary target.
+- `database.profile` and `database.role` expose the resolved ownership role;
+  `database.isolation` is `direct` or `seed_copy`.
 
 Example:
 
@@ -1223,10 +1365,12 @@ Response:
   "source": "environment_defaults",
   "codex_test": false,
   "database": {
-    "profile": "prod",
+    "profile": "laboratory",
+    "role": "laboratory",
     "codex_test": false,
     "database_url": "sqlite:///./data/app.db",
-    "seed_database_url": "sqlite:///./data/app.db"
+    "seed_database_url": "sqlite:///./data/app.db",
+    "isolation": "direct"
   },
   "options": {
     "languages": [{ "code": "it", "label": "Italiano" }],
@@ -2105,6 +2249,25 @@ Trace Behavior:
 The read-only operation is represented by the surrounding `mind.tool_call`
 trace. It does not mutate cognitive state.
 
+### `session message <message_id>` through Mind shell
+
+Status: implemented in V1.29.0
+
+Reads one exact persisted public message by id and returns its session/turn
+hooks, role, content, timestamp, and metadata. The shell maps this command to
+the internal `GET /mind/sessions/messages/{message_id}` handler and records a
+traceable cognitive operation.
+
+### `session turn <turn_id>` through Mind shell
+
+Status: implemented in V1.29.0
+
+Returns the public evidence bundle for one turn: user/assistant messages,
+public runtime notes/events, tool arguments/results, turn status/timing, and
+trace id/kind references. Trace payloads and hidden provider reasoning are not
+returned. This is the direct source route from a compact memory hook when the
+whole session would be excessive.
+
 ### POST /mind/sessions/{session_id}/summarize through mind_api
 
 Status: implemented
@@ -2615,7 +2778,7 @@ Purpose:
 
 Search active Memory v0 records and return sourceable context with provenance,
 usage metadata, temporal filter metadata, sparse/dense/KG retrieval evidence,
-and query-time relevance scores.
+and final query-time rerank evidence.
 
 Model-facing call shape:
 
@@ -2665,13 +2828,14 @@ Temporal behavior:
 
 Retrieval behavior:
 
-Memory search builds derived SQLite FTS5/BM25 sparse documents, deterministic
-content/fact surfaces, optional dense/rerank shadow results, and NetworkX
-associative graph evidence. Static stored confidence/salience are legacy audit
-columns and are not active ranking features. Query-time relevance is computed
-from the current request, selected retrieval stages, and rerank/hybrid signals.
-The canonical memory rows remain the source of truth; indexes are derived and
-rebuildable.
+Memory search builds SQLite FTS5/BM25 sparse evidence, deterministic
+content/fact surfaces, dense surface evidence, and NetworkX associative graph
+evidence. These are recall routes only. Their scores may order candidates
+inside each route but cannot accept or order final active results. Candidates
+are deduplicated by memory id and interleaved round-robin; one memory-level
+reranker over canonical content and active facts decides acceptance and final
+order. Static confidence/salience remain legacy audit columns. Canonical memory
+rows remain the source of truth; indexes are derived and rebuildable.
 
 V1.3.0 also synchronizes retrieval-readiness artifacts whenever memory
 documents are synced or memory/fact lifecycle operations run. These artifacts
@@ -2696,10 +2860,10 @@ V1.3.1 adds optional retrieval shadow mode over `memory_surfaces`:
   dependency is installed;
 - shadow results are trace-only and never change the returned memory ranking.
 
-`POST /mind/memory/search` still exposes the same model-facing route and keeps
-FTS5/lexical ranking as the active retrieval behavior. The readiness manifest
-is included in traces/results so evaluator tooling can see which derived
-indexes and optional shadow comparisons are available.
+`POST /mind/memory/search` keeps the same model-facing route. In
+`RETRIEVAL_HYBRID_MODE=active`, reranker availability is mandatory and failure
+returns no memories rather than falling back to deterministic relevance. The
+readiness manifest remains available for evaluator tooling.
 
 Response result:
 
@@ -2715,7 +2879,13 @@ Response result:
       "to": "2026-05-24T12:00:00+00:00"
     }
   },
-  "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
+  "retrieval_stages": [
+    "fts5_sparse_v1",
+    "dense_memory_surfaces_v1",
+    "networkx_graph_recall_v1",
+    "round_robin_recall_pool_v1",
+    "memory_level_rerank_final_arbiter_v1"
+  ],
   "retrieval_readiness": {
     "active_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
     "readiness_stages": [
@@ -2727,7 +2897,7 @@ Response result:
       "openrouter_embedding_shadow_v1",
       "openrouter_rerank_shadow_v1",
       "memory_grouped_dense_v1",
-      "hybrid_retrieval_v1"
+      "memory_level_rerank_final_arbiter_v1"
     ],
     "surface_taxonomy": {
       "taxonomy_version": "memory-surface-taxonomy-v1",
@@ -2802,53 +2972,34 @@ Response result:
       "grouped_results": []
     }
   },
-  "retrieval_hybrid": {
-    "enabled": true,
+  "retrieval_rerank": {
     "ok": true,
     "mode": "active",
     "active": true,
-    "ranking_policy": "sparse_dense_memory_group_hybrid_v1",
     "status": "completed",
-    "dense_group_count": 8,
-    "rerank_group_count": 8,
-    "thresholds": {
-      "min_dense_score": 0.38,
-      "min_rerank_score": 0.55
-    },
-    "weights": {
-      "base": 0.35,
-      "sparse": 0.15,
-      "dense": 0.35,
-      "rerank": 0.2,
-      "support": 0.05,
-      "salience": 0.0,
-      "confidence": 0.0
-    },
-    "deprecated_weights": {
-      "stored_salience": 0.05,
-      "stored_confidence": 0.05,
-      "policy": "stored confidence/salience are retained for legacy audit only and do not affect active ranking"
-    },
+    "ranking_policy": "memory_level_rerank_final_arbiter_v1",
+    "recall_pool_policy": "round_robin_sparse_dense_graph_lexical_v1",
+    "legacy_weighted_fusion": false,
+    "fail_closed": true,
+    "candidate_count": 8,
+    "evaluated_count": 8,
+    "accepted_count": 1,
+    "acceptance_threshold": 0.01,
     "entries": [
       {
         "memory_id": "mem_...",
-        "score": 0.918,
-        "strong_signal": true,
-        "why_relevant": "dense memory-level match score=0.822 support=0.910 surface=memory_text signal=true",
-        "signals": {
-          "dense_score": 0.822,
-          "rerank_score": 0.91,
-          "support_score": 0.91,
-          "dense_signal": true,
-          "rerank_signal": true,
-          "base_signal": false,
-          "surface_roles": ["primary_content", "supporting_context"],
-          "promotable_surface_kinds": ["memory_text"],
-          "support_surface_kinds": ["future_use_text"],
-          "active_rank_eligible": true
-        }
+        "rank": 1,
+        "score": 0.91,
+        "accepted": true,
+        "evaluated": true,
+        "recall_routes": ["sparse", "dense"],
+        "route_ranks": {"sparse": 1, "dense": 2}
       }
     ]
+  },
+  "retrieval_hybrid": {
+    "compatibility_alias_of": "retrieval_rerank",
+    "legacy_weighted_fusion": false
   },
   "count": 1,
   "memories": [
@@ -2859,10 +3010,15 @@ Response result:
       "source_session_id": "ses_...",
       "source_turn_id": "turn_...",
       "usage_count": 1,
-      "score": 2.375,
-      "why_relevant": "FTS5/BM25 sparse match; token overlap: formato, sal",
+      "score": 0.91,
+      "why_relevant": "Final memory-level reranker accepted this candidate.",
       "retrieval_signals": {
-        "hybrid": null
+        "hybrid": {
+          "final_arbiter": true,
+          "rerank_score": 0.91,
+          "rerank_signal": true,
+          "recall_routes": ["sparse", "dense"]
+        }
       },
       "facts": []
     }
@@ -2885,23 +3041,21 @@ Search scoring includes fact text when facts exist, so aliases such as
 when the narrative memory used another language. This is still sparse lexical
 retrieval, not dense semantic embedding.
 
-`retrieval_shadow.results` is raw surface-level evidence. It is useful for
-debugging but can contain several surfaces from the same memory.
-`retrieval_shadow.grouped_results` deduplicates those surfaces by
-`target_id`, keeps the best surface score, and preserves contributing surfaces
-for inspection. When `RETRIEVAL_SHADOW_RERANK_ENABLED=true`,
-`retrieval_shadow.rerank.results` reports raw surface rerank while
-`retrieval_shadow.rerank.grouped_results` reports rerank over memory-level
-grouped candidates.
+`retrieval_shadow.results` remains raw surface-level evidence and may contain
+several surfaces from one memory. `retrieval_shadow.grouped_results`
+deduplicates those surfaces by `target_id` for the dense recall route. In
+active V1.31 operation the old surface/grouped rerank is skipped to avoid
+multiple semantic judgments and duplicate provider calls.
 
-`retrieval_hybrid` is the active promotion layer. With
-`RETRIEVAL_HYBRID_MODE=off`, dense/rerank evidence is only diagnostic. With
-`shadow`, the backend computes hybrid entries but does not change selected
-memories. With `active`, memory context and memory search can use grouped
-dense/rerank evidence plus sparse/base scores and graph signals to rank
-returned memories. Stored confidence/salience are intentionally neutral in the
-active ranker. Thresholds are explicit because vector search always has
-nearest neighbors, including for unrelated negative-control queries.
+`retrieval_rerank` is the final active arbitration record. It exposes which
+recall routes proposed each memory, whether the reranker evaluated and accepted
+it, and the query-time rank/score. `retrieval_hybrid` temporarily mirrors this
+payload for old evaluator clients; no weighted hybrid fusion occurs. With
+`RETRIEVAL_HYBRID_MODE=off`, the deterministic legacy baseline remains
+explicit. With `shadow`, final rerank evidence is observed without changing
+results. With `active`, only accepted rerank entries are returned. The
+acceptance threshold is calibrated model output handling, not a fusion of
+backend-authored semantic weights.
 
 ### POST /mind/memory/graph through mind_api
 
@@ -3207,6 +3361,35 @@ Response result:
 Trace Behavior:
 
 Creates `memory.conflicts` and the model-facing `mind.tool_call`.
+
+### GET /api/maintenance/summary/audit
+
+Status: implemented in V1.29.0
+
+Read-only classification of every session summary as current, missing, stale,
+empty, blocked by an active turn, or associated only with failed repair jobs.
+It uses the actual last visible user/assistant message, never
+`sessions.updated_at`.
+
+### POST /api/maintenance/summary/reconcile
+
+Status: implemented in V1.29.0
+
+Dry-run by default. With `dry_run=false`, schedules a bounded batch of
+`session.summary_repair` jobs for completed non-empty missing/stale sessions.
+Jobs are idempotent by session plus actual last message plus attempt, support
+bounded exponential retry, and invoke the normal episodic summarizer without
+running historical memory review.
+
+### GET /api/maintenance/memory/provenance
+
+Status: implemented in V1.29.0
+
+Dry-run by default (`apply=false`). Classifies memory source hooks by scope and
+proposes a source message only when the recorded source turn contains exactly
+one matching persisted user message. `apply=true` writes only those
+unambiguous hooks and does not alter semantic memory timestamps. Ambiguous or
+invalid sources remain unresolved and are excluded from automatic V2 hints.
 
 ### GET /api/maintenance/overview
 
@@ -3745,7 +3928,10 @@ POST /mind/memory/propose
 POST /mind/memory/compact
 GET  /api/maintenance/memory/proposals                         implemented
 POST /api/maintenance/memory/proposals/{proposal_id}/archive    implemented
+GET  /api/maintenance/memory/provenance                         implemented
 GET  /api/maintenance/overview                                  implemented
+GET  /api/maintenance/summary/audit                             implemented
+POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```

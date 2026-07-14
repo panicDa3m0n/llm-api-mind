@@ -1,7 +1,7 @@
 # Branch: Operazioni E Funzioni Avanzate
 
-Last updated: 2026-07-09
-System version assessed: V1.25.4
+Last updated: 2026-07-13
+System version assessed: V1.29.1
 Status: planned branch
 
 ## Filosofia del ramo
@@ -32,7 +32,7 @@ Le operazioni avanzate sono per lo piu un ramo futuro. L'infrastruttura
 necessaria sta emergendo, ma non esiste ancora una suite di funzioni avanzate
 esterne o specialistiche per Scarlet.
 
-Sistema valutato: V1.25.4.
+Sistema valutato: V1.29.1.
 
 ## Sviluppi precedenti
 
@@ -42,6 +42,18 @@ Sistema valutato: V1.25.4.
 - Runtime events e dashboard per osservare azioni.
 - Context-pack planning per evitare che funzioni avanzate, diagnostica e
   futuri sensori finiscano tutti nello stesso contesto live.
+
+## Verifica V1.29.1
+
+- Implementazione: nessuna suite specialistica; esistono solo operazioni
+  cognitive interne nella shell.
+- Test deterministici: coprono shell e organi, non coding, artefatti o
+  automazioni avanzate.
+- Evidenza Scarlet: nessuna validazione di questo ramo come capacita distinta.
+- Integrazione runtime: assente.
+- Prossimo gate: definire prima permessi, rischio, ricevute e routing del ramo
+  external-operativity; aggiungere tool avanzati ora confonderebbe cognizione
+  interna e azione esterna.
 
 ## Evolutive
 

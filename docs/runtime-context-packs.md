@@ -1,334 +1,219 @@
-# Runtime Context Packs
+# Runtime Context And Agent Modes
 
-Last updated: 2026-07-09
-Status: planning baseline
-App baseline: V1.25.4
+Last updated: 2026-07-13
+Status: V1.30.0 implemented foundation; active compaction still gated
+App baseline: V1.30.0
 
-This document defines the planning baseline for keeping Scarlet coherent as
-her organs, runtime context, and future embodied inputs grow beyond what one
-flat prompt/context packet can safely carry.
+This document defines how API Mind keeps Scarlet's live model context bounded
+and how agent modes route automatic cognitive surfaces. It prepares the system
+for future embodiment without implementing sensors, webhooks, or actuators now.
 
-The immediate goal is not to implement embodiment. The goal is to prevent the
-current architecture from drifting toward "send everything to the model" as
-memory, focus, volition, affect, metacognition, sessions, traces, and future
-eyes/audio/voice/motion channels accumulate.
+## Boundaries
 
-## Problem
+Three technical inputs are always managed through dedicated paths and are not
+dynamic context packs:
 
-Scarlet already has multiple cognitive organs and evidence sources:
+- static Scarlet policy;
+- active-session provider history;
+- model tool or GPT Actions schema.
 
-- semantic memory and atomic facts;
-- episodic session recall;
-- runtime context blocks;
-- Mind shell command help and capability state;
-- focus, volition, and affect;
-- metacognition;
-- traces and runtime events;
-- maintenance and derived memory surfaces.
+Dynamic context is the backend-built V2 document: session/world/user hints,
+automatic memory hooks, and conditionally preserved organ state. Traces, raw
+retrieval diagnostics, maintenance jobs, and database internals remain outside
+normal model input.
 
-Future robotic embodiment will add high-frequency sensory and action domains:
-vision, audio, speech, turn-taking, motor plans, actuator safety, environment
-state, and real-time interaction loops.
+The provider-history path is nevertheless included in total input accounting
+because its size competes with dynamic context inside the same model window.
 
-A single always-growing model context would eventually cause:
+## Context Budget
 
-- lost attention from excessive context mass;
-- stale or weak evidence being treated like active perception;
-- unnecessary latency and cost;
-- coupled organs being separated accidentally;
-- background maintenance data leaking into live cognition;
-- embodied safety surfaces competing with old project details;
-- hard-to-debug behavior because every turn receives too much undifferentiated
-  state.
+The MiniMax model supports a context window up to 1,000,000 tokens. API Mind
+uses these configurable policy values:
 
-## Principle
+| Setting | V1 value | Meaning |
+|---|---:|---|
+| `context_window_tokens` | 1,000,000 | Provider model window. |
+| `context_operational_input_limit_tokens` | 500,000 | Maximum input budget API Mind intends to use. |
+| `context_compaction_trigger_tokens` | 400,000 | 80% trigger inside the API Mind budget. |
+| `history_compaction_target_tokens` | 100,000 | Target size for a future chronological compaction. |
+| `history_compaction_recent_turns` | 8 | Desired complete-turn tail retained after compaction. |
+| `history_compaction_mode` | `shadow` | Measure and plan; never mutate active history. |
 
-Context is not a dump. Context is a routed cognitive surface.
+The 500k value is an input-context policy, not the provider's output
+`max_tokens`. These limits are validated in configuration so trigger, target,
+operational budget, and model window cannot be ordered inconsistently.
 
-Every context item should have:
+## Accounting
 
-- an owner;
-- a source;
-- a freshness policy;
-- an authority level;
-- a budget cost;
-- a degradation rule;
-- a coupling rule;
-- a reason for being present in this turn.
+Every native turn writes:
 
-The backend should assemble context packs deterministically first. Scarlet can
-request a mode shift through shell/state in the future, but the backend keeps
-the safety, privacy, budget, and coupling rules.
+```txt
+context.accounting.preflight
+context.accounting.observed
+```
+
+Preflight keeps exact JSON character and UTF-8 byte counts separate from token
+estimates for:
+
+- static system policy;
+- dynamic runtime context;
+- provider history;
+- current user message;
+- tool schema;
+- request structure.
+
+Provider token usage is authoritative only after the call. The observed trace
+therefore records first-model-step input tokens separately from aggregate
+tool-loop usage. Using total tool-loop input as if it were one request would
+greatly overstate context size.
+
+The estimator starts at a conservative configurable 3.5 characters/token and
+calibrates from the median of valid first-step observations for the same model
+and session.
+
+GPT bootstrap writes a partial preflight measure of the backend packet only.
+The backend cannot observe the manually configured GPT system prompt, native
+ChatGPT history, Actions serialization, provider request structure, or actual
+token usage. Its trace explicitly sets `is_total_model_input=false` and must
+never be presented as complete ChatGPT context accounting.
+
+## Non-Destructive Compaction Contract
+
+The full canonical chronology is append-only and must remain navigable through
+session/message/turn commands. A future active compact history is a derived
+model-input view, never a rewrite of messages, traces, provider history, or
+source transcripts.
+
+The intended derived view is:
+
+```txt
+chronological compaction around 100k tokens
++ desired last 8 complete provider turns
++ current user turn
++ current static/dynamic/tool context
+```
+
+Eight turns are an objective, not an unconditional count. Tool-heavy turns can
+be very large. Before active compaction, the planner must verify that the
+summary target, actual recent-turn tail, and all fixed channels fit below 500k
+with useful headroom. If not, activation requires an explicitly tested
+degradation strategy, such as compacting part of the nominal tail. V1.30.0 does
+not choose that strategy automatically.
+
+The shadow plan reports:
+
+- whether the estimated trigger would fire;
+- retained turn ids and estimated tail cost;
+- projected active input and free headroom;
+- `would_compact_insufficient_headroom` when the proposal does not fit;
+- `canonical_history_mutation=none`.
+
+## Real Laboratory Measurement
+
+On 2026-07-13 the mutable local laboratory DB was opened read-only. It was not
+the VPS production DB and no records were changed.
+
+Observed first-step ratios on three real sessions ranged approximately from
+3.75 to 4.83 JSON characters per provider input token. Tool-loop aggregate
+usage was sometimes several times larger than the first request, confirming
+the need for separate metrics.
+
+Measured recent-turn proxy costs varied materially:
+
+| Laboratory session | Complete turns measured | Recent-tail JSON chars | Estimate at 3.5 chars/token |
+|---|---:|---:|---:|
+| `ses_474f6033e6284006ad4899c21abb4766` | 8 | 220,482 | 62,995 |
+| `ses_4d87888f5e264bc0947ddb5a963aa3ae` | 8 | 555,333 | 158,667 |
+| `ses_5c2096e50e8c492fb85d8658bd0dc4de` | 5 | 1,128,891 | 322,540 |
+
+The last case is tool-heavy and demonstrates why a fixed eight-turn tail
+cannot be activated from theory alone. Exact V1.30 accounting did not yet exist
+when these historical turns ran; the table is a read-only reconstruction and
+is not a post-deploy provider trace.
 
 ## Always-On Spine
 
-The always-on spine is the minimum context Scarlet must receive to remain
-oriented. It should stay compact and stable.
+The accepted V2 spine remains:
 
-Always-on:
+- current session identity;
+- user display name;
+- one user-local `now`, timezone packet, and assembled location;
+- two previous-session summary hooks;
+- relevant, recent-user, and recent-general memory hooks with source ids;
+- current agent-mode tag.
 
-- current user message;
-- session id, turn id, and recent same-session continuity summary;
-- operational clock, locale, platform language, active profile, and privacy
-  boundary;
-- model-facing Mind shell contract or digest;
-- current capability state for available cognitive commands;
-- compact runtime/source hierarchy rules;
-- selected automatic memory packet when retrieval has already run;
-- active conflicts or warnings that materially affect the current turn;
-- minimal active focus/open-loop surface once present;
-- safety/actuation boundary when external action is possible.
+The current user message and provider history remain technical inputs. Privacy
+ids, raw retrieval state, maintenance clocks, KG internals, and debug payloads
+remain systemic unless fetched deliberately.
 
-Never replace the always-on spine with a mode pack. Mode packs extend it.
+## Agent Modes
 
-## Classification Axes
+Modes belong only to Scarlet as the main agent. Maintenance, summarization,
+Dream, and other background jobs are not modes.
 
-Use these axes for every organ, source, and capability.
+One mode tag is active at a time:
 
-### Necessity
+| Tag | Meaning | V1 runtime |
+|---|---|---|
+| `idle` | Scarlet is active and ready but not engaged in a task or human exchange. | persistent default/resumable posture |
+| `interactive` | Scarlet is communicating with one or more humans and prioritizes the exchange. | system-enforced during every human-facing turn |
+| `scouting` | Scarlet studies an environment or information field. | registry and manual resumable state; no sensor runtime yet |
 
-- `always_on`: required for coherent operation on every turn.
-- `conditional`: loaded by mode, intent, risk, or active state.
-- `on_demand`: fetched through `mind_shell` only when needed.
-- `background_only`: used by maintenance/offline jobs, not injected into live
-  model context.
-- `future`: planned but not implemented.
+The system can enforce a mode from an observable condition. Scarlet can use:
 
-### Coupling
-
-- `independent`: can be used alone.
-- `paired`: usually works with another surface but can degrade alone.
-- `tightly_coupled`: should be loaded with its partner or not loaded.
-- `gated`: requires policy/safety approval before use.
-
-### Freshness
-
-- `realtime`: must reflect the current moment.
-- `turn_local`: valid for the current turn.
-- `session`: valid within the active session.
-- `durable`: semantic/factual state that persists across sessions.
-- `archival`: source transcripts, traces, and old records.
-
-### Authority
-
-- runtime fact;
-- sensory fact;
-- direct API Mind result;
-- exact session transcript;
-- semantic memory or canonical fact;
-- user claim;
-- inference.
-
-### Cost
-
-- `tiny`: always affordable.
-- `compact`: safe in normal turns.
-- `expensive`: only load when evidence value is high.
-- `burst`: real-time or high-volume; summarize before model context.
-
-## Organ And Capability Classification
-
-| Organ / source | Necessity | Coupling | Model-facing shape |
-|---|---|---|---|
-| Temporal context | always_on | independent | Compact operational clock and locale. |
-| User/profile/privacy | always_on | independent | Active profile, scope, and privacy boundary. |
-| Mind shell capability digest | always_on | independent | Current command families and help hint. |
-| Semantic memory packet | conditional/always-on compact | paired with facts/conflicts | Automatic selected/near-miss/conflict packet; deeper search on demand. |
-| Atomic facts | conditional | tightly coupled with semantic memory | Canonical fact state when memory claims or conflicts matter. |
-| Episodic session summaries | conditional | paired with session open | Navigation hints only; exact claims require transcript open. |
-| Exact session transcripts | on_demand | paired with source-sensitive answers | Retrieved through `session open`. |
-| Memory graph | on_demand | paired with semantic memory | Associative expansion when a memory is a doorway. |
-| Focus | always-on compact once active | paired with volition/tasks | Current foreground state, not a retrieval filter. |
-| Volition | conditional | paired with focus/autonomous cycles | Active/due intentions only in relevant modes. |
-| Affect | conditional/compact | paired with response style and safety | Tone/posture influence, not factual truth. |
-| Metacognition | on_demand | paired with source-sensitive/high-impact work | `metacognition step` result, not raw reasoning. |
-| Runtime events | conditional | paired with current session recovery | Compact recent events; full logs remain trace/debug. |
-| Maintenance/backfill | background_only | internal services | Never normal live model context; expose status only when relevant. |
-| Future vision | conditional realtime | tightly coupled with embodiment safety | Scene/object/event summaries, not raw frames. |
-| Future audio/voice | conditional realtime | paired with turn-taking and affect | Transcript/prosody summary, not raw audio. |
-| Future motor/actuation | gated | tightly coupled with perception/safety | Plan, constraints, confirmations, and execution result. |
-
-## Mode Packs
-
-Mode packs are named bundles assembled on top of the always-on spine.
-
-### `chat_default`
-
-Normal conversation.
-
-Includes:
-
-- always-on spine;
-- recent dialogue;
-- compact selected memory packet;
-- active affect/focus if already present.
-
-### `source_sensitive`
-
-For questions about prior decisions, reliability, measurements, exact wording,
-source sessions, traces, or project state.
-
-Includes:
-
-- always-on spine;
-- memory provenance and source ids;
-- session search/open guidance;
-- metacognition validator recommendation;
-- explicit evidence-strength labels.
-
-### `temporal_recall`
-
-For "today", "yesterday", "last time", "when did we", or "what thread should
-we resume" questions.
-
-Includes:
-
-- always-on spine;
-- temporal search policy;
-- session list/open capability emphasis;
-- warning against exhaustive claims from non-exhaustive pages.
-
-### `project_engineering`
-
-For repository, implementation, branch, docs, tests, and deploy work.
-
-Includes:
-
-- always-on spine;
-- project/repo state packet;
-- relevant decisions/bugs/experiments;
-- test and trace summaries when available.
-
-### `emotional_continuity`
-
-For personal, emotionally delicate, relational, or identity-related turns.
-
-Includes:
-
-- always-on spine;
-- affective posture;
-- user communication preferences and boundaries;
-- safety notes where needed;
-- minimal project state unless explicitly requested.
-
-### `embodied_idle` (future)
-
-For a robot body that is present but not actively interacting.
-
-Includes:
-
-- always-on spine;
-- low-rate sensory/world summary;
-- focus, affect, and active safety state;
-- no raw sensory stream.
-
-### `embodied_interaction` (future)
-
-For live user interaction through body, voice, and environment.
-
-Includes:
-
-- always-on spine;
-- current transcript/audio turn state;
-- visual scene summary;
-- user-facing turn-taking state;
-- current hazards or safety constraints.
-
-### `embodied_actuation` (future)
-
-For physical movement or environment action.
-
-Includes:
-
-- always-on spine;
-- current perception summary;
-- motor plan;
-- actuator constraints;
-- safety gate;
-- confirmation/execution result.
-
-This pack must be gated. It must not be silently activated by ordinary chat.
-
-## Router Shape
-
-The future router should choose packs from:
-
-- user message intent and language;
-- current session mode;
-- active focus/open loop;
-- source-sensitivity and verification risk;
-- memory retrieval result and conflicts;
-- safety/actuation state;
-- current sensory load;
-- context budget;
-- user profile/privacy boundary.
-
-The router should emit a traceable decision:
-
-```json
-{
-  "pack_id": "source_sensitive",
-  "spine_version": "runtime-spine-v1",
-  "included_blocks": ["message_context", "memory_context", "session_context"],
-  "omitted_blocks": ["raw_retrieval_shadow"],
-  "reason": "User asked whether a prior evaluation is reliable.",
-  "budget": {"estimated_tokens": 4200, "limit": 12000},
-  "freshness": {"temporal_context": "turn_local"},
-  "degradation": []
-}
+```txt
+mode read
+mode list
+mode set idle --reason "..."
+mode set scouting --reason "..."
 ```
 
-## Degradation Rules
+During a human turn, `interactive` remains active. A manual selection is stored
+as `resume_tag` and becomes the posture state to resume outside that exchange.
+The command does not start a background/autonomous cycle. In V1.30 `scouting`
+is therefore a routable, persistent posture only; it does not itself perceive,
+inspect, or act.
 
-If context budget is tight:
+## Multi-Tag Capability Registry
 
-1. preserve the always-on spine;
-2. preserve active safety/actuation constraints;
-3. preserve the evidence source needed for the user's current claim;
-4. summarize recent dialogue before dropping source ids;
-5. drop raw diagnostics before model-facing summaries;
-6. move expensive source reads to on-demand `mind_shell` calls.
+Organs, context sources, and capabilities can carry multiple mode tags. A
+mode makes every matching automatic surface eligible without rewriting the
+mode definition whenever a new organ is added.
 
-Never drop:
+V1 registry examples:
 
-- current user message;
-- turn/session identity;
-- operational clock/profile/privacy;
-- the active cognitive tool contract;
-- actuator safety constraints in embodied modes;
-- explicit source conflicts that affect the current answer.
+| Capability | Tags | Current effect |
+|---|---|---|
+| session spine | idle, interactive, scouting | automatic context |
+| current turn perception | interactive, scouting | automatic context |
+| focus | idle, interactive, scouting | config-gated context |
+| affect | interactive, scouting | config-gated context |
+| volition | idle, scouting | classification/manual organ; no automatic block |
+| metacognition | interactive, scouting | inject only under its own config/trigger |
+| provider continuity | interactive | native active-session history |
+| future environment scouting | scouting | future; no sensors implemented |
 
-## Implementation Path
+V1.30 routing actively filters automatic runtime blocks only. It does not make
+on-demand shell commands unavailable. Hard-gating cognitive commands would be
+a separate behavioral and safety decision; applying it now would regress
+source checks and introspection during conversation.
 
-1. Keep this document as the planning baseline.
-2. Add a backend context-pack registry in shadow mode.
-3. Trace pack selection without changing model input.
-4. Compare selected packs against actual Scarlet behavior in live sessions.
-5. Add compact pack ids and budget metrics to `runtime.context`.
-6. Promote router-selected packs into model input only after shadow evidence.
-7. Add embodiment-specific packs only after real sensory/actuation surfaces
-   exist.
+Every runtime context records `agent_mode` and a `mode_routing` decision with
+eligible capabilities, included block types, ineligible block types, registry
+version, and explicit background-process exclusion.
 
-## Current Known Test Pressure
+## Activation Gates
 
-The 2026-07-09 default-token live Scarlet probe showed why this matters:
+Active history compaction requires:
 
-- temporal/session-sensitive questions can be answered from non-exhaustive
-  context if no temporal recall pack forces session search;
-- metacognition can recommend further evidence actions that Scarlet does not
-  always follow;
-- self-architecture claims can be overconfident when the relevant runtime
-  organs are not brought into the turn;
-- memory write syntax drift can create avoidable retry cost.
+1. exact accounting traces from long and varied post-V1.30 sessions;
+2. a versioned summary artifact with coverage/source boundaries;
+3. tests proving the canonical chronology remains unchanged and navigable;
+4. natural direct Scarlet comparisons for continuity, source use, tool loops,
+   and response completion;
+5. an approved degradation rule when 100k plus eight turns does not fit;
+6. rollback to full history or an earlier derived view.
 
-These are not embodiment bugs yet. They are early signs that Scarlet needs
-context modes and evidence routing before future real-time body context makes
-the problem larger.
-
-Tracked as:
-
-- `BUG-0057`
-- `BUG-0058`
-- `BUG-0059`
-- `BUG-0060`
-- `BUG-0061`
+New agent modes or mode-tag enforcement require branch-specific behavioral
+scenarios. Webhooks, sensors, scouting perception, motor actions, Dream, and
+maintenance-mode concepts remain out of V1.30 scope.
