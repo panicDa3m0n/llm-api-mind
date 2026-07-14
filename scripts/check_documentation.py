@@ -60,6 +60,8 @@ def repository_reference(raw_path: str) -> Path | None:
     candidate = candidate.split("#", 1)[0]
     if not candidate or any(token in candidate for token in SKIPPED_PATH_TOKENS):
         return None
+    if any(part in SKIPPED_PARTS for part in Path(candidate).parts):
+        return None
     if candidate.startswith(HISTORICAL_REFERENCE_PREFIXES):
         return None
     if candidate.endswith((".env", ".db", ".sqlite", ".sqlite3")):

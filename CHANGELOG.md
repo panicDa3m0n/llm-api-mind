@@ -20,6 +20,9 @@ release is published and deployed through the protected database boundary.
 - Added a GitHub Actions quality workflow that runs backend lint, typing,
   documentation, full tests with coverage, and the frontend production build
   without loading production secrets or runtime databases.
+- Made documentation validation independent of locally generated `.venv`,
+  `node_modules`, `dist`, and build directories so clean CI and developer
+  worktrees apply the same repository-reference contract.
 - Added V1.32.0 executable shell-conformance coverage across all 23 registered
   family/namespace aliases, every help-published command, lifecycle paths,
   pagination, targeted not-found errors, and retrospective metacognition

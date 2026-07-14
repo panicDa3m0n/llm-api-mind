@@ -26,6 +26,9 @@ Changes:
   and corrected the canonical shell-conformance bug id collision as BUG-0081.
 - Added `.github/workflows/quality.yml`, documented the local/CI commands, and
   advanced package and canonical documentation metadata to V1.33.0.
+- Corrected the first clean-run CI finding: generated environment paths such
+  as `backend/.venv/bin/python` are executable instructions, not versioned
+  repository references, and are now ignored independently of local presence.
 - Recorded the owner's real GPT Builder validation of BUG-0080: progress notes
   now remain visible during a multi-action turn.
 
