@@ -1,7 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from app.evals.behavioral_contracts import BehavioralRunRecord, BehavioralScenario
+from app.evals.behavioral_contracts import (
+    BehavioralJudgment,
+    BehavioralRunRecord,
+    BehavioralScenario,
+    BehavioralSuite,
+)
 
 
 def _scenario() -> dict:
@@ -13,7 +18,7 @@ def _scenario() -> dict:
         "natural_user_prompt": "Che cosa mi consiglieresti da bere questa sera?",
         "starting_condition": {
             "database_role": "preliminary",
-            "database_fingerprint": "sha256:fixture",
+            "database_fingerprint": "a" * 64,
             "mutation_policy": "disposable_copy",
             "session_arrangement": "new_session",
             "references": [
@@ -80,3 +85,68 @@ def test_behavioral_run_acceptance_requires_all_four_layers() -> None:
         }
     )
     assert failed.accepted is False
+
+
+def test_behavioral_suite_requires_complete_ordered_groups() -> None:
+    scenario = _scenario()
+    suite = BehavioralSuite.model_validate(
+        {
+            "id": "fixture-suite",
+            "title": "Fixture suite",
+            "baseline_database": "data/fixture.db",
+            "database_fingerprint": "a" * 64,
+            "comparison_policy": "Objective facts are automatic; language is reviewed.",
+            "groups": [
+                {
+                    "id": "memory",
+                    "purpose": "fixture",
+                    "scenario_ids": ["BEH-0001"],
+                    "repetitions": 3,
+                    "independence_rule": "fresh copy",
+                }
+            ],
+            "scenarios": [scenario],
+        }
+    )
+
+    assert suite.groups[0].scenario_ids == ["BEH-0001"]
+
+    invalid = suite.model_dump(mode="json")
+    invalid["groups"][0]["scenario_ids"] = []
+    with pytest.raises(ValidationError):
+        BehavioralSuite.model_validate(invalid)
+
+
+def test_qualitative_judgment_requires_reasoned_human_style_review() -> None:
+    payload = {
+        "run_id": "run_fixture",
+        "scenario_id": "BEH-0001",
+        "evaluator_identity": "Codex project evaluator",
+        "criteria_source": "behavioral-scenario-v1 response rubric",
+        "reviewed_at": "2026-07-14T10:00:00Z",
+        "cognitive_choice": {
+            "status": "pass",
+            "evidence": ["trace_fixture"],
+            "notes": "The selected action was proportionate to the request.",
+            "evaluator": "llm_as_human",
+        },
+        "answer_outcome": {
+            "status": "pass",
+            "evidence": ["answer_fixture"],
+            "notes": "The answer used the evidence naturally.",
+            "evaluator": "llm_as_human",
+        },
+        "longitudinal_effect": {
+            "status": "pass",
+            "evidence": ["state_fixture"],
+            "notes": "The intended state remained coherent.",
+            "evaluator": "llm_as_human",
+        },
+    }
+
+    judgment = BehavioralJudgment.model_validate(payload)
+    assert judgment.answer_outcome.evaluator == "llm_as_human"
+
+    payload["answer_outcome"]["notes"] = None
+    with pytest.raises(ValidationError):
+        BehavioralJudgment.model_validate(payload)

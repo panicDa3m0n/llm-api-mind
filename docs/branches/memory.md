@@ -1,8 +1,8 @@
 # Branch: Memoria
 
-Last updated: 2026-07-13
-System version assessed: V1.32.0
-Status: active branch
+Last updated: 2026-07-14
+System version assessed: V1.34.0
+Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
 
@@ -130,6 +130,24 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   per un solo retry materialmente corretto e fermare loop identici senza
   dichiarare persistenza.
 - Limite aperto: salvataggio autonomo non e garantito in ogni caso.
+
+## Verifica V1.34.0
+
+- Positive automatic retrieval: 3/3 selected the active Zero-Luce memory and
+  excluded its deprecated predecessor.
+- Negative control: 3/3 ordinary music requests selected no Zero-Luce memory
+  and caused no cognitive-state mutation.
+- Answer proportionality: 2/3 positive answers exposed memory/fact IDs and
+  diagnostics beyond the user's need even though retrieval was correct.
+- Episodic provenance: two runs produced complete, source-aware
+  reconstructions. A third performed extensive navigation but persisted only a
+  closing note plus a broad lesson, showing that successful source access does
+  not guarantee a complete final answer.
+- Memory consolidation interfered with focus and mode scenarios by duplicating
+  temporary directives into durable records. This remains a behavioral policy
+  and organ-boundary issue rather than a storage failure.
+
+Evidence: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
 
 ## Stato attuale
 

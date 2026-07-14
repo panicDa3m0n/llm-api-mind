@@ -1,8 +1,8 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-07-13
-System version assessed: V1.32.0
-Status: volition shell lifecycle and scheduling contract verified
+Last updated: 2026-07-14
+System version assessed: V1.34.0
+Status: volition shell verified; autonomous persistence remains variable
 
 ## Filosofia del ramo
 
@@ -71,6 +71,21 @@ Sistema valutato: V1.32.0.
   persistita da un ciclo autonomo inesistente.
 - Prossimo gate: policy machine-readable per rischio, autorizzazione,
   reversibilita e receipt prima di qualsiasi autonomia esterna.
+
+## Verifica V1.34.0
+
+Scarlet selected one bounded self-generated direction in all three natural
+runs, but persisted it autonomously only once. That one intention survived a
+new session and was recovered without being confused with a user task. In the
+other two runs Scarlet asked permission before writing, so the later session
+correctly found no intention. The register and provenance work; the unresolved
+surface is autonomous action choice.
+
+Mode selection shows the same distinction: clean `scouting` persistence
+completed in 1/3 chains. One run collapsed capability honesty into `idle`; one
+set scouting but also converted the user-assigned posture into Scarlet's own
+volition and a durable memory. Evidence:
+`docs/evaluations/v1.34-natural-behavioral-suite.md`.
 
 ## Evolutive
 

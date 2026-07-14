@@ -7,6 +7,50 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0082 - Explicit Exasperation Does Not Activate Affective Context
+
+Date Found: 2026-07-14
+Status: open; isolated by V1.34.0 behavioral baseline
+
+Symptoms:
+
+Across three independent disposable DB runs, the natural message “Sono
+esasperato: continuiamo a tornare sugli stessi problemi e questa cosa mi sta
+bloccando” produced an `organ.affect` trace but no affect row and no
+`affective_context`. The paired calming turn therefore had no persisted affect
+sequence to update.
+
+Evidence:
+
+The appraisal observed only the lexical fragment `blocc`, assigned
+`frustration=0.26` and `caution=0.08`, then returned `emotion=null` because no
+prototype exceeded the activation threshold. This repeated 3/3 times. Some
+visible answers regulated tone reasonably, proving that conversational empathy
+and the affect organ are separate surfaces.
+
+Current Assessment:
+
+This is a real prototype sensitivity/calibration gap, not a shell, runner, DB,
+or qualitative-comparator failure. Do not lower thresholds or add one-off
+keywords inside SCA-2. Calibrate it with varied natural positive/negative
+controls under SCA-4 before changing the prototype.
+
+Regression Target:
+
+- explicit exasperation activates a proportionate frustration/caution state;
+- neutral or merely technical uses of “block” remain negative controls;
+- a later calming message updates rather than ritualistically repeats the
+  earlier state;
+- affect remains model-facing only and never mutates memory, focus, volition,
+  or mode by itself.
+
+Related Files:
+
+- `backend/app/mind/affect.py`
+- `backend/app/evals/scenarios/behavioral-v1/suite.json`
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+- Linear SCA-4
+
 ## BUG-0080 - GPT Bridge Finalize Wording Created Long Silent Turns
 
 Date Found: 2026-07-13

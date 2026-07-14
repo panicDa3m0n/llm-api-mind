@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0084 - Behavioral Regressions Separate Objective Facts From Semantic Judgment
+
+Date: 2026-07-14
+Status: accepted and implemented in V1.34.0
+
+Context:
+
+API Mind behavior combines exact technical contracts with stochastic natural
+language. Exact-string or aggregate numeric comparators can misclassify a
+valid answer, while an eloquent answer can hide a missing state transition,
+wrong source, or accidental memory write. The project owner also established
+that Codex may act as the project-informed human judge when the rubric and
+evidence are explicit.
+
+Decision:
+
+- freeze DB identity, source references, session arrangement, and natural user
+  prompt before execution;
+- evaluate technical execution, cognitive choice, answer outcome, and
+  longitudinal effect as separate layers;
+- automate only objective DB, command, trace, event, and state invariants;
+- require reasoned human or project-informed LLM-as-human review for semantic
+  quality and natural-language differences;
+- never require a redundant tool call when current runtime context already
+  contains complete evidence;
+- rerun scenarios independently because one convincing output is not evidence
+  of behavioral reliability;
+- preserve evaluator corrections explicitly instead of silently rewriting an
+  oracle after observing a failure.
+
+Consequences:
+
+Large reworks can now use the same natural suite before and after without
+pretending that language quality is reducible to a number. Qualitative review
+cost remains real, but every judgment carries a rationale and raw evidence.
+
+Links:
+
+- `backend/app/evals/behavioral_suite.py`
+- `backend/app/evals/scenarios/behavioral-v1/suite.json`
+- `docs/behavioral-validation-framework.md`
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+
 ## ADR-0083 - Engineering Quality Gates Start As An Explicit Incremental Baseline
 
 Date: 2026-07-14

@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-14
-Current app version: V1.33.0
+Current app version: V1.34.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -66,6 +66,22 @@ This rule is especially important for LLM behavior bugs, natural-language
 retrieval issues, and prompt changes. Avoid quick hardcoded patches unless the
 root cause and blast radius are understood.
 
+### 3.1 Linear Issue Workflow
+
+When work is tracked in Linear, complete one issue before starting the next:
+
+1. inspect the issue, code, current evidence, and relevant documentation;
+2. present the intended code surface, scope, exclusions, and verification to
+   the owner;
+3. wait for explicit owner approval or resolve the resulting design discussion;
+4. move the issue to active work and implement only the approved slice;
+5. verify code, behavior, documentation, and database boundaries;
+6. record evidence and residual findings in Linear, then close the issue only
+   when its acceptance criteria are genuinely satisfied.
+
+Discoveries may be added to future issues while the current one is active, but
+they do not become implementation scope silently.
+
 ## 4. Testing Policy
 
 Verification must match the change:
@@ -76,6 +92,9 @@ Verification must match the change:
   visual/browser smoke;
 - prompt/cognitive behavior: run at least one direct Scarlet test when the
   change should affect the agent's behavior;
+- broad agentic behavior: use the versioned natural suite on fresh copies of
+  its frozen DB, with technical facts checked mechanically and semantic quality
+  reviewed by a human or project-informed LLM-as-human judge;
 - documentation-only changes: run `git diff --check` and inspect the created
   docs.
 
@@ -122,6 +141,12 @@ This gate complements pytest and live Scarlet testing. It is a repeatable
 whole-system comparison, not a substitute for either deterministic unit
 contracts or human evaluation of model behavior.
 
+The natural cross-branch suite complements the deterministic gate. It may
+automatically compare exact commands, traces, events, and persisted state, but
+must never classify natural-language quality through exact strings or a single
+numeric score. Different answers require reasoned review against the declared
+scenario rubric.
+
 ## 7. Database Boundary
 
 Before a major procedure, evaluator run, deployment, or commit that could
@@ -148,7 +173,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.33.0 baseline includes:
+The current V1.34.0 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -165,6 +190,10 @@ The current V1.33.0 baseline includes:
   compaction planning, and an agent-mode registry/router for automatic context;
 - versioned four-layer behavioral scenario/run contracts for direct Scarlet
   validation;
+- a repeatable 12-scenario, 8-group natural MiniMax suite with frozen starting
+  references, independent repetitions, persisted evidence, project-informed
+  LLM-as-human judgments, and a comparator that auto-fails only objective
+  technical regressions;
 - Codex test database isolation through startup-level `CODEX_TEST`, used for
   evaluator experiments that must exercise real endpoints without mutating the
   production/laboratory Scarlet DB.
