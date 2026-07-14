@@ -4,7 +4,10 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from app.config import Settings
-from app.mind.context_projection import compile_model_context_v2
+from app.mind.context_projection import (
+    compile_model_context_v2,
+    compile_model_context_v2_with_audit,
+)
 from app.mind.context_sessions import MISSING_SUMMARY, STALE_SUMMARY
 from app.mind.contracts import MindAPIContext
 from app.mind.memory import handle_memory_read
@@ -83,9 +86,9 @@ def test_v2_session_packet_uses_last_message_time_and_summary_fallbacks() -> Non
             db,
             session_id=older_session.id,
             summary="Current summary",
-            last_message_id=repositories.list_messages(
-                db, session_id=older_session.id
-            )[-1].id,
+            last_message_id=repositories.list_messages(db, session_id=older_session.id)[
+                -1
+            ].id,
         )
         missing_memory, missing_session, _, _ = _source_memory(
             db, scope="project", content="missing"
@@ -194,7 +197,217 @@ def test_v2_memory_blocks_are_compact_deduplicated_and_activity_ordered() -> Non
     )
 
 
-def test_manual_memory_read_records_activity_without_mutating_memory_timestamps() -> None:
+def test_v2_preserved_families_use_explicit_field_allowlists_and_audit() -> None:
+    engine = _engine()
+    init_db(engine)
+    with Session(engine) as db:
+        current = repositories.create_chat_session(db, title="Current")
+        document, audit = compile_model_context_v2_with_audit(
+            db,
+            chat_session=current,
+            rich_memory_context={"selected": []},
+            legacy_runtime_payload={"blocks": _preserved_source_blocks()},
+            now=datetime(2026, 7, 12, 12, 0, tzinfo=timezone.utc),
+            preferences=_preferences(),
+            settings=_settings(),
+        )
+
+    assert [block["type"] for block in document["preserved_context"]] == [
+        "focus_context",
+        "affective_context",
+        "metacognitive_context",
+    ]
+    by_type = {block["type"]: block for block in document["preserved_context"]}
+    assert set(by_type["focus_context"]) == {
+        "id",
+        "type",
+        "scope",
+        "lifetime",
+        "source",
+        "content",
+    }
+    focus = by_type["focus_context"]["content"]["current_focus"]
+    assert set(focus) == {
+        "id",
+        "object",
+        "type",
+        "status",
+        "intensity",
+        "duration_policy",
+        "reason",
+        "source_session_id",
+        "source_turn_id",
+        "source_message_id",
+        "created_at",
+        "updated_at",
+    }
+    assert focus["created_at"].endswith("+02:00")
+    assert "recent_transitions" not in by_type["focus_context"]["content"]
+
+    affect = by_type["affective_context"]["content"]
+    assert set(affect) == {
+        "state_id",
+        "current_emotion",
+        "intensity",
+        "felt_quality",
+        "activation",
+        "valence",
+        "persistence",
+        "attention_tendency",
+        "action_tendency",
+        "relational_posture",
+        "causes",
+    }
+    assert "intensity_score" not in affect
+    assert "debug_summary" not in affect
+
+    metacognition = by_type["metacognitive_context"]["content"]
+    assert metacognition["triggers"] == [{"id": "source_sensitive"}]
+    assert set(metacognition["lessons"][0]) == {
+        "id",
+        "title",
+        "lesson",
+        "recommended_action",
+        "risk_if_overused",
+    }
+
+    decisions = {item["family"]: item for item in audit["families"]}
+    assert audit["schema_version"] == "preserved-context-projection-v1"
+    assert audit["included_block_types"] == [
+        "focus_context",
+        "affective_context",
+        "metacognitive_context",
+    ]
+    assert decisions["scarlet_state"]["disposition"] == "trace_ui_only"
+    assert decisions["scarlet_state"]["included_in_model"] is False
+    assert decisions["recent_dialogue"]["source_present"] is True
+    assert decisions["recent_runtime_events"]["included_in_model"] is False
+    assert decisions["api_mind"]["disposition"] == "on_demand"
+    assert decisions["api_mind"]["on_demand_commands"] == [
+        "help",
+        "help <family>",
+    ]
+    assert (
+        "content.recent_transitions"
+        in decisions["focus_context"]["excluded_source_fields"]
+    )
+    assert (
+        "content.debug_summary.dominant_variables"
+        in decisions["affective_context"]["excluded_source_fields"]
+    )
+
+
+def _preserved_source_blocks() -> list[dict]:
+    envelope = {
+        "scope": "profile",
+        "lifetime": "dynamic",
+        "source": "fixture",
+        "visibility": "model",
+    }
+    return [
+        {
+            **envelope,
+            "id": "scarlet.focus_context",
+            "type": "focus_context",
+            "content": {
+                "organ": "focus",
+                "registry_version": "fixture",
+                "policy": "debug policy",
+                "current_focus": {
+                    "id": "focus_fixture",
+                    "object": "Review context",
+                    "type": "topic",
+                    "status": "active",
+                    "intensity": 0.8,
+                    "duration_policy": "until_resolved",
+                    "reason": "Keep the review bounded.",
+                    "source_session_id": "ses_source",
+                    "source_turn_id": "turn_source",
+                    "source_message_id": "msg_source",
+                    "created_at": "2026-07-12T10:00:00+00:00",
+                    "updated_at": "2026-07-12T11:00:00+00:00",
+                },
+                "recent_transitions": [{"id": "transition_fixture"}],
+                "usage": {"not_a_memory": True},
+            },
+        },
+        {
+            **envelope,
+            "id": "scarlet.affective_context",
+            "type": "affective_context",
+            "content": {
+                "organ": "affect",
+                "registry_version": "fixture",
+                "policy": "debug policy",
+                "state_id": "affect_fixture",
+                "current_emotion": "curiosity",
+                "intensity": "medium",
+                "intensity_score": 0.55,
+                "felt_quality": "Open attention",
+                "activation": "medium",
+                "valence": "positive",
+                "persistence": "turn",
+                "attention_tendency": "inspect",
+                "action_tendency": "ask carefully",
+                "relational_posture": "warm",
+                "causes": ["message: reasoning cue"],
+                "usage": {"do_not_over_narrate": True},
+                "debug_summary": {"dominant_variables": ["novelty"]},
+            },
+        },
+        {
+            "id": "turn.metacognitive_context",
+            "type": "metacognitive_context",
+            "scope": "turn",
+            "lifetime": "turn",
+            "source": "fixture",
+            "content": {
+                "policy": {"purpose": "debug policy"},
+                "selection": {"selected_count": 1},
+                "triggers": [{"id": "source_sensitive", "confidence": 0.84}],
+                "lessons": [
+                    {
+                        "id": "source_guard",
+                        "title": "Verify",
+                        "lesson": "Check the source.",
+                        "recommended_action": "Inspect evidence.",
+                        "risk_if_overused": "Redundant checks.",
+                        "trigger_conditions": ["verification"],
+                        "confidence": 0.84,
+                    }
+                ],
+            },
+        },
+        {
+            "id": "scarlet.dynamic_state",
+            "type": "scarlet_state",
+            "scope": "session",
+            "lifetime": "dynamic",
+            "source": "fixture",
+            "content": {
+                "focus": "duplicated user message",
+                "mood_expression": "curious_focused",
+                "active_goal": "answer",
+            },
+        },
+        {
+            "id": "turn.perception",
+            "type": "message_context",
+            "scope": "turn",
+            "lifetime": "turn",
+            "source": "fixture",
+            "content": {
+                "recent_dialogue": [{"role": "user", "content": "duplicate"}],
+                "recent_runtime_events": [{"type": "tool.completed"}],
+                "api_mind": {"interface": "mind_shell", "capabilities": {}},
+            },
+        },
+    ]
+
+
+def test_manual_memory_read_records_activity_without_mutating_memory_timestamps() -> (
+    None
+):
     engine = _engine()
     init_db(engine)
     with Session(engine) as db:

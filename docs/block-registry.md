@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-13
-System version assessed: V1.30.0
+Last updated: 2026-07-14
+System version assessed: V1.35.0
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -101,20 +101,25 @@ excluded candidates, and raw provenance are not opened automatically.
 
 ### 2.3 Preserved Context
 
-`preserved_context` is a compatibility area for dynamic families not yet
-accepted or rejected individually:
+`preserved_context` is an explicit allowlist for optional dynamic organs:
 
 | Type | Source condition | Current model use |
 |---|---|---|
-| `focus_context` | focus mode `model` and active focus | optional foreground state |
-| `affective_context` | affect mode `model` and non-neutral appraisal | optional model posture |
-| `metacognitive_context` | metacognitive mode `inject` | controlled A/B lessons |
-| `scarlet_state` | legacy runtime builder | transitional state/policy |
-| `undiscussed_context` | legacy message block | recent dialogue, events, capability hints |
+| `focus_context` | focus mode `model` and active focus | compact current focus plus source navigation |
+| `affective_context` | affect mode `model` and non-neutral appraisal | compact response posture without debug scoring |
+| `metacognitive_context` | metacognitive mode `inject` and selected lessons | trigger ids plus compact operating lessons |
 
 The default config disables focus and affect model injection and keeps
-metacognitive lessons in shadow mode. Scarlet state and undiscussed context
-remain the principal V2 review targets.
+metacognitive lessons in shadow mode, so `preserved_context` is normally empty.
+`scarlet_state`, duplicated recent dialogue, generic runtime events, and API
+Mind capability catalogs remain in rich traces or on-demand surfaces and are
+never projected automatically.
+
+Every `model.context` trace includes `projection_audit`, with one decision per
+reviewed family. The audit records source presence, final disposition,
+included/excluded field paths, cognitive function, reason, and relevant shell
+commands. It is visible to diagnostics and evaluation but is not embedded in
+the model document.
 
 Volition is never injected automatically.
 
@@ -190,18 +195,16 @@ automatic context packets.
 
 1. Provider-native history is now measured and shadow-planned but still has no
    active compaction/degradation policy.
-2. `undiscussed_context` can reintroduce data that V2 removed from the
-   reviewed session/memory spine.
-3. GPT total model input remains partly unobservable because ChatGPT owns its
+2. GPT total model input remains partly unobservable because ChatGPT owns its
    manual prompt, native history, Actions serialization, and token accounting.
-4. Future organ registry entries can look implemented unless code/tests/default
+3. Future organ registry entries can look implemented unless code/tests/default
    activation are checked separately.
-5. Frontend renderers still contain compatibility support for old runtime
+4. Frontend renderers still contain compatibility support for old runtime
    blocks and must not be used as proof that those blocks reach the model.
 
 ## 7. Next Registry Work
 
-- decide every preserved family with the owner;
+- keep new optional organ families behind explicit field allowlists and audit;
 - accumulate long-session provider observations and validate the 100k plus
   desired eight-turn compaction shape;
 - populate natural behavioral scenarios for mode routing and continuity;

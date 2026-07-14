@@ -4,6 +4,30 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - V1.35.0 Preserved Context Review (SCA-18)
+
+Goal:
+
+Complete the field-level review of every family that could bypass the compact
+V2 session/memory contract through `preserved_context`.
+
+Changes:
+
+- Added an allowlist projector for focus, affect, and metacognitive blocks.
+- Excluded legacy Scarlet state, duplicate dialogue, generic runtime events,
+  and capability catalogs from automatic model input while retaining their
+  rich runtime source data.
+- Added a field-level projection audit to `model.context` traces.
+- Kept native MiniMax and GPT bootstrap on the same canonical V2 document.
+- Updated native/GPT prompts and context/API/registry documentation to match
+  the implemented contract.
+
+Verification:
+
+- Focused context, native chat, GPT bridge, and mode tests.
+- Direct deterministic inspection of the compiled V2 document and audit.
+- No live Scarlet campaign and no production/VPS database operation.
+
 ## 2026-07-14 - Proportionate Test Cadence
 
 Decision:

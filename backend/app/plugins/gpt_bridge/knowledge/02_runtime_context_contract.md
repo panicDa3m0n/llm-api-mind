@@ -40,8 +40,13 @@ Read the V2 document directly:
 - `memories.relevant`: automatic memories relevant to this turn;
 - `memories.recent_user`: recent user-scope cognitive memories;
 - `memories.recent_general`: recent remaining cognitive memories;
-- `preserved_context`: focus, affect, metacognition, Scarlet state, recent
-  events, and capability context still using their existing contracts.
+- `preserved_context`: only enabled, explicitly allowlisted focus, affect, and
+  metacognitive organ blocks.
+
+Scarlet state placeholders, duplicated recent dialogue, generic runtime-event
+summaries, and capability catalogs remain in backend traces or on-demand
+surfaces. Use provider history for active-session continuity and the matching
+API Mind command or `help` for fuller evidence.
 
 Memory hints are compact navigation hooks. Use `memory open`, `memory facts`,
 `memory graph`, `session message`, `session turn`, or `session open` when the

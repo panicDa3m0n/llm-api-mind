@@ -54,14 +54,29 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     assert context["tools"][0]["name"] == "mind_shell"
     assert context["mind_shell_action_endpoint"] == "POST /gpt/action"
     assert context["finalize_endpoint"] == "POST /gpt/finalize"
-    assert "full_effective_system_prompt" in context["full_diagnostics"][
-        "omitted_from_action_response"
-    ]
+    assert (
+        "full_effective_system_prompt"
+        in context["full_diagnostics"]["omitted_from_action_response"]
+    )
     assert len(json.dumps(bootstrap_payload)) < 120_000
     traces = client.get(f"/api/debug/traces/{turn_id}").json()
     model_context_trace = next(
         trace for trace in traces if trace["kind"] == "model.context"
     )
+    projection_audit = model_context_trace["payload"]["projection_audit"]
+    assert projection_audit["schema_version"] == "preserved-context-projection-v1"
+    assert projection_audit["included_block_types"] == []
+    assert {
+        item["family"]: item["disposition"] for item in projection_audit["families"]
+    } == {
+        "focus_context": "automatic_model_conditional",
+        "affective_context": "automatic_model_conditional",
+        "metacognitive_context": "automatic_model_conditional",
+        "scarlet_state": "trace_ui_only",
+        "recent_dialogue": "trace_ui_only",
+        "recent_runtime_events": "trace_ui_only",
+        "api_mind": "on_demand",
+    }
     serialized_model_context = json.dumps(
         model_context_trace["payload"]["document"],
         ensure_ascii=False,
@@ -71,16 +86,15 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     accounting_trace = next(
         trace for trace in traces if trace["kind"] == "context.accounting.preflight"
     )
-    assert accounting_trace["payload"]["measurement_boundary"][
-        "is_total_model_input"
-    ] is False
+    assert (
+        accounting_trace["payload"]["measurement_boundary"]["is_total_model_input"]
+        is False
+    )
     request_trace = next(trace for trace in traces if trace["kind"] == "llm.request")
-    assert accounting_trace["id"] in context["full_diagnostics"][
-        "available_in_trace_ids"
-    ]
-    assert request_trace["id"] in context["full_diagnostics"][
-        "available_in_trace_ids"
-    ]
+    assert (
+        accounting_trace["id"] in context["full_diagnostics"]["available_in_trace_ids"]
+    )
+    assert request_trace["id"] in context["full_diagnostics"]["available_in_trace_ids"]
 
     action = client.post(
         "/gpt/action",
@@ -171,8 +185,7 @@ def test_gpt_bridge_routes_are_exposed_in_openapi(db_engine: Engine) -> None:
         == "bootstrapScarletBeforeEveryAnswer"
     )
     assert (
-        schema["paths"]["/gpt/action"]["post"]["operationId"]
-        == "runScarletMindAction"
+        schema["paths"]["/gpt/action"]["post"]["operationId"] == "runScarletMindAction"
     )
     assert (
         schema["paths"]["/gpt/finalize"]["post"]["operationId"]
@@ -184,9 +197,7 @@ def test_gpt_bridge_routes_are_exposed_in_openapi(db_engine: Engine) -> None:
     )
     assert (
         "final_answer_to_show"
-        in schema["components"]["schemas"]["GPTBridgeFinalizeResponse"][
-            "properties"
-        ]
+        in schema["components"]["schemas"]["GPTBridgeFinalizeResponse"]["properties"]
     )
     bootstrap_response_schema = schema["components"]["schemas"][
         "GPTBridgeBootstrapResponse"
@@ -229,9 +240,7 @@ def test_gpt_bridge_mcp_tool_descriptors_include_required_lifecycle_phrases(
     )
 
     assert tools.status_code == 200
-    tool_by_name = {
-        tool["name"]: tool for tool in tools.json()["result"]["tools"]
-    }
+    tool_by_name = {tool["name"]: tool for tool in tools.json()["result"]["tools"]}
     assert "start_scarlet_turn_required" in tool_by_name
     assert "finish_scarlet_turn_required" in tool_by_name
     assert (
@@ -245,19 +254,19 @@ def test_gpt_bridge_mcp_tool_descriptors_include_required_lifecycle_phrases(
     assert tool_by_name["scarlet_memory_command"]["inputSchema"]["required"] == [
         "command"
     ]
-    assert tool_by_name["start_scarlet_turn_required"]["outputSchema"][
-        "required"
-    ] == ["ok", "summary"]
-    assert tool_by_name["finish_scarlet_turn_required"]["outputSchema"][
-        "required"
-    ] == ["ok", "summary"]
+    assert tool_by_name["start_scarlet_turn_required"]["outputSchema"]["required"] == [
+        "ok",
+        "summary",
+    ]
+    assert tool_by_name["finish_scarlet_turn_required"]["outputSchema"]["required"] == [
+        "ok",
+        "summary",
+    ]
     assert tool_by_name["scarlet_memory_command"]["outputSchema"]["required"] == [
         "ok",
         "summary",
     ]
-    assert (
-        tool_by_name["scarlet_help_command"]["annotations"]["readOnlyHint"] is True
-    )
+    assert tool_by_name["scarlet_help_command"]["annotations"]["readOnlyHint"] is True
     assert (
         tool_by_name["scarlet_memory_command"]["annotations"]["readOnlyHint"] is False
     )
@@ -419,22 +428,24 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
     )
     for path in action_schema["paths"].values():
         assert len(path["post"]["description"]) <= 300
-    assert "Progress notes may appear earlier" in action_schema["paths"][
-        "/gpt/finalize"
-    ]["post"]["description"]
+    assert (
+        "Progress notes may appear earlier"
+        in action_schema["paths"]["/gpt/finalize"]["post"]["description"]
+    )
     bootstrap_schema = action_schema["components"]["schemas"]["BootstrapResponse"]
     assert "session_id" in bootstrap_schema["required"]
     assert "session_id" in bootstrap_schema["properties"]
     assert "action_policy" in bootstrap_schema["properties"]
     assert "required_actions" in bootstrap_schema["properties"]
     assert "recommended_actions" in bootstrap_schema["properties"]
-    assert "intent" in action_schema["components"]["schemas"]["ActionRequest"][
-        "required"
-    ]
+    assert (
+        "intent" in action_schema["components"]["schemas"]["ActionRequest"]["required"]
+    )
     finalize_props = action_schema["components"]["schemas"]["FinalizeResponse"][
         "properties"
     ]
     assert "final_answer_to_show" in finalize_props
-    assert "final_answer_to_show" in action_schema["components"]["schemas"][
-        "FinalizeResponse"
-    ]["required"]
+    assert (
+        "final_answer_to_show"
+        in action_schema["components"]["schemas"]["FinalizeResponse"]["required"]
+    )

@@ -39,7 +39,9 @@ Read `session_id`, `turn_id`, `action_policy`, `required_actions`, `recommended_
 
 `context.runtime_context` is a string containing a `<runtime_context>` wrapper and the canonical `scarlet-model-context-v2` JSON. Read that JSON as the active model-facing runtime document. Do not expect a duplicate `context.model_context`.
 
-Use `runtime_context.session.now` as the only clock, `session.previous_sessions` as episodic hints, the three `memories.*` lists as compact deduplicated hooks, and `preserved_context` for enabled dynamic organs and capabilities.
+Use `runtime_context.session.now` as the only clock, `session.previous_sessions` as episodic hints, the three `memories.*` lists as compact deduplicated hooks, and `preserved_context` only for enabled focus, affect, or metacognitive organ blocks.
+
+Duplicated dialogue, generic runtime events, Scarlet state placeholders, and capability catalogs are not automatic model context. Use ChatGPT history for same-session continuity and the relevant API Mind command or `help` when those details matter.
 
 Automatic hints omit facts, KG detail, lifecycle, conflicts, ranking diagnostics, and full transcripts. Empty hints do not prove persistent-data absence.
 

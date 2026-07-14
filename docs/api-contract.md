@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-14
-App baseline: V1.34.0
+App baseline: V1.35.0
 
 ## Response Philosophy
 
@@ -468,20 +468,47 @@ Output includes:
 
 ### Model Context V2
 
-Status: implemented and active by default in V1.29.0
+Status: implemented and active by default; preserved-family review completed in V1.35.0
 
 `model_context_profile` accepts `legacy`, `v2_shadow`, or `v2`. V2 is compiled
 from the same rich evidence already collected for retrieval/runtime traces; it
 does not run a second retrieval pipeline. Every delivered document is stored
-verbatim in a `model.context` trace with source trace ids and serialized byte
-count. Native MiniMax and GPT bootstrap receive the same serialized document
-inside `context.runtime_context`; GPT does not receive a duplicate object.
+verbatim in a `model.context` trace with source trace ids, serialized byte
+count, and a non-model-facing `projection_audit`. Native MiniMax and GPT
+bootstrap receive the same serialized document inside
+`context.runtime_context`; GPT does not receive a duplicate object.
 
 Automatic memory hooks contain only `id`, `content`, user-local `created_at`
 and `updated_at`, `source_session_id`, and `source_message_id`. Hooks whose
 source message cannot be resolved inside the stated source session are excluded
 from automatic V2 context and remain available to internal diagnostics/manual
 inspection.
+
+`preserved_context` is an explicit field allowlist, not a compatibility copy.
+It may contain only:
+
+- `focus_context`, when model injection is enabled and a current focus exists;
+- `affective_context`, when model injection is enabled and an appraisal exists;
+- `metacognitive_context`, when mode is `inject` and lessons were selected.
+
+Focus exposes the current focus identity/object/type/status/intensity,
+duration/reason, source session/turn/message ids, and user-local creation/update
+times. Affect exposes state identity, emotion/intensity/felt quality,
+activation/valence/persistence, attention/action tendencies, relational
+posture, and compact causes. Metacognition exposes trigger ids and each
+lesson's id/title/text/recommended action/overuse risk.
+
+`scarlet_state`, duplicated recent dialogue, generic recent runtime events, and
+API Mind capability catalogs are never copied into V2. They remain available
+through rich `runtime.context`, traces/UI, provider history, or dedicated shell
+commands (`focus`, `affect`, `session`, and `help`) as appropriate.
+
+`model.context.projection_audit` uses
+`schema_version=preserved-context-projection-v1`. For each reviewed family it
+records source block/id/presence, disposition, `included_in_model`, cognitive
+function, on-demand commands, exact model field paths, excluded rich-source
+field paths, and the reason. The audit is diagnostics and is not serialized
+inside `<runtime_context>`.
 
 `POST /gpt/action`
 

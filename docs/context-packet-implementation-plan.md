@@ -434,6 +434,8 @@ graph root.
 
 ### Phase 0 - Preserve Undiscussed Context Families
 
+Status: completed in V1.35.0.
+
 The following dynamic families will be reviewed separately:
 
 - recent dialogue and recent runtime events;
@@ -444,12 +446,13 @@ The following dynamic families will be reviewed separately:
 - bridge-only summaries and duplicated compact fields that do not belong to
   the shared model-context contract.
 
-They do not block shadow work on the already approved session, user, world, and
-memory entities. Until each family is decided, V1.29.0 preserves its current
-behavior and keeps it outside the approved V2 projection changes. It must not
-silently remove or reshape it. The same general test applies during later
-review: send evidence that improves reasoning or navigation, and retain
-duplicated, technical, or non-actionable data only for system/UI/trace use.
+The review retained only allowlisted focus, affect, and metacognitive fields as
+conditional model input. It moved `scarlet_state`, duplicated recent dialogue,
+and generic runtime events to trace/UI-only, and capability detail to on-demand
+`help`. The rich runtime snapshot and compatibility mirrors remain intact for
+system diagnostics. `model.context.projection_audit` records every family and
+field decision, while native MiniMax and GPT bootstrap consume the same
+canonical V2 document.
 
 ### Phase 1 - Freeze Baseline Evidence
 

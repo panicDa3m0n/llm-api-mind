@@ -34,7 +34,7 @@ from app.mind.organs import (
 from app.runtime.events import compact_event_for_context
 from app.runtime.preferences import RuntimePreferences
 from app.mind.command_registry import COMMAND_FAMILIES
-from app.mind.context_projection import compile_model_context_v2
+from app.mind.context_projection import compile_model_context_v2_with_audit
 from app.mind.schema import build_mind_shell_catalog, shell_metadata
 from app.mind.search import (
     entity_token_groups,
@@ -55,6 +55,7 @@ MODEL_SELECTED_LIMIT = 5
 NEAR_MISS_MIN_SCORE = 1.5
 MODEL_MEMORY_PACKET_VERSION = "memory-packet-v1"
 MODEL_RUNTIME_CONTEXT_PROFILE = "compact-model-facing-v1"
+
 
 @dataclass(frozen=True)
 class MemoryCandidateScore:
@@ -84,6 +85,7 @@ class MemoryContextBuild:
     metacognitive_payload: dict[str, Any] | None = None
     model_context_trace_id: str | None = None
     model_context_payload: dict[str, Any] | None = None
+    model_context_projection_audit: dict[str, Any] | None = None
     model_context_profile: str = "legacy"
 
 
@@ -172,10 +174,9 @@ def build_memory_context(
     rerank_candidate_limit = int(
         getattr(settings, "retrieval_shadow_rerank_candidate_limit", 20) or 20
     )
-    final_rerank_enabled = (
-        str(getattr(settings, "retrieval_hybrid_mode", "off") or "off").lower()
-        in {"shadow", "active"}
-    )
+    final_rerank_enabled = str(
+        getattr(settings, "retrieval_hybrid_mode", "off") or "off"
+    ).lower() in {"shadow", "active"}
     retrieval_shadow = run_memory_surface_shadow_search(
         db,
         query=sparse_query,
@@ -236,12 +237,20 @@ def build_memory_context(
 
     near_miss = [
         _candidate_payload(item, classification="near_miss")
-        | {"facts": [fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])]}
+        | {
+            "facts": [
+                fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])
+            ]
+        }
         for item in near_miss_ranked
     ]
     excluded = [
         _candidate_payload(item, classification="excluded")
-        | {"facts": [fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])]}
+        | {
+            "facts": [
+                fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])
+            ]
+        }
         for item in excluded_ranked
     ]
 
@@ -361,9 +370,13 @@ def build_memory_context(
     runtime_payload["trace_id"] = runtime_trace.id
     model_context_profile = str(getattr(settings, "model_context_profile", "legacy"))
     model_context_payload: dict[str, Any] | None = None
+    model_context_projection_audit: dict[str, Any] | None = None
     model_context_trace_id: str | None = None
     if model_context_profile in {"v2_shadow", "v2"}:
-        model_context_payload = compile_model_context_v2(
+        (
+            model_context_payload,
+            model_context_projection_audit,
+        ) = compile_model_context_v2_with_audit(
             db,
             chat_session=chat_session,
             rich_memory_context=payload,
@@ -383,6 +396,7 @@ def build_memory_context(
                 "source_trace_ids": [trace.id, runtime_trace.id],
                 "agent_mode": agent_mode,
                 "mode_routing": runtime_payload.get("mode_routing"),
+                "projection_audit": model_context_projection_audit,
                 "serialized_bytes": len(
                     json.dumps(model_context_payload, ensure_ascii=True).encode("utf-8")
                 ),
@@ -393,7 +407,9 @@ def build_memory_context(
     if model_context_profile == "v2" and model_context_payload is not None:
         runtime_context = render_model_context(model_context_payload)
     else:
-        runtime_context = render_runtime_context(runtime_payload, capabilities=capabilities)
+        runtime_context = render_runtime_context(
+            runtime_payload, capabilities=capabilities
+        )
     return MemoryContextBuild(
         trace_id=trace.id,
         payload=payload,
@@ -404,6 +420,7 @@ def build_memory_context(
         metacognitive_payload=metacognitive_payload,
         model_context_trace_id=model_context_trace_id,
         model_context_payload=model_context_payload,
+        model_context_projection_audit=model_context_projection_audit,
         model_context_profile=model_context_profile,
     )
 
@@ -624,18 +641,9 @@ def _model_memory_context(memory_context: dict[str, Any]) -> dict[str, Any]:
                 "do_not_infer_absence_from_excluded_summaries": True,
             },
         },
-        "selected": [
-            _model_memory_packet(item)
-            for item in memory_context["selected"]
-        ],
-        "near_miss": [
-            _candidate_summary(item)
-            for item in memory_context["near_miss"]
-        ],
-        "excluded": [
-            _candidate_summary(item)
-            for item in memory_context["excluded"]
-        ],
+        "selected": [_model_memory_packet(item) for item in memory_context["selected"]],
+        "near_miss": [_candidate_summary(item) for item in memory_context["near_miss"]],
+        "excluded": [_candidate_summary(item) for item in memory_context["excluded"]],
         "conflicts": memory_context["conflicts"],
         "negative_evidence": memory_context["negative_evidence"],
     }
@@ -851,8 +859,7 @@ def _session_context_block(
             ),
             "previous_sessions": previous_session_payloads,
             "previous_session_memories": [
-                _compact_memory_payload(memory)
-                for memory in previous_memories
+                _compact_memory_payload(memory) for memory in previous_memories
             ],
         },
     }
@@ -948,8 +955,7 @@ def _message_context_block(
                     "timezone": runtime_preferences.timezone,
                 },
                 "memories": [
-                    _compact_memory_payload(memory)
-                    for memory in user_memories
+                    _compact_memory_payload(memory) for memory in user_memories
                 ],
             },
             "memory_retrieval": _model_memory_context(memory_context),
@@ -1013,7 +1019,9 @@ def _scarlet_state_block(
                 "Preserve criteria when historical recall is ambiguous.",
                 "Verify stale project memories against current runtime evidence.",
             ],
-            "updated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
+            "updated_at": _aware_datetime(timestamp)
+            .astimezone(timezone.utc)
+            .isoformat(),
         },
     }
 
@@ -1149,11 +1157,7 @@ def _session_summary_for_context(
         "memory_ids": [memory.id for memory in memories[:10]],
         "message_count": len(messages),
         "source_turn_count": len(
-            {
-                message.turn_id
-                for message in messages
-                if message.turn_id is not None
-            }
+            {message.turn_id for message in messages if message.turn_id is not None}
         ),
         "last_message_id": messages[-1].id if messages else None,
         "status": "fallback",
@@ -1178,9 +1182,7 @@ def _fallback_session_summary(
     messages: list[Message],
 ) -> str:
     visible_messages = [
-        message
-        for message in messages
-        if message.role in {"user", "assistant"}
+        message for message in messages if message.role in {"user", "assistant"}
     ]
     first_user = next(
         (message.content for message in visible_messages if message.role == "user"),
@@ -1212,11 +1214,9 @@ def _compact_memory_payload(memory: MemoryRecord) -> dict[str, Any]:
 
 
 def _recent_dialogue(history: list[Message]) -> list[dict[str, Any]]:
-    visible = [
-        message
-        for message in history
-        if message.role in {"user", "assistant"}
-    ][-RECENT_DIALOGUE_LIMIT:]
+    visible = [message for message in history if message.role in {"user", "assistant"}][
+        -RECENT_DIALOGUE_LIMIT:
+    ]
     return [
         {
             "id": message.id,
@@ -1306,9 +1306,13 @@ def _rank_candidates(
         haystack_tokens = set(_tokens(haystack))
         current_overlap = sorted(signal_tokens & haystack_tokens)
         context_overlap = sorted(
-            (context_tokens & haystack_tokens) - set(current_overlap) - low_signal_tokens
+            (context_tokens & haystack_tokens)
+            - set(current_overlap)
+            - low_signal_tokens
         )
-        generic_overlap = sorted((current_tokens & haystack_tokens) - set(current_overlap))
+        generic_overlap = sorted(
+            (current_tokens & haystack_tokens) - set(current_overlap)
+        )
         entity_supported = _supports_entity_group(
             haystack_tokens,
             memory.tags_json,
@@ -1408,8 +1412,7 @@ def _classify_candidates(
     near_miss: list[MemoryCandidateScore] = []
     excluded: list[MemoryCandidateScore] = []
     has_user_associative_context = any(
-        item.memory.scope == "user" and item.graph_score >= 2.0
-        for item in ranked
+        item.memory.scope == "user" and item.graph_score >= 2.0 for item in ranked
     )
 
     for item in ranked:
@@ -1585,7 +1588,9 @@ def _candidate_summary(item: dict[str, Any]) -> dict[str, Any]:
 
 def _detect_conflicts(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
     conflicts: list[dict[str, Any]] = []
-    facts_by_key: dict[tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]] = {}
+    facts_by_key: dict[
+        tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]
+    ] = {}
     for memory in selected:
         facts = memory.get("facts") if isinstance(memory.get("facts"), list) else []
         for fact in facts:
@@ -1678,11 +1683,7 @@ def _low_signal_query_tokens(
             if token in tokens:
                 document_frequency[token] += 1
     threshold = max(3, int(len(memories) * 0.35))
-    return {
-        token
-        for token, count in document_frequency.items()
-        if count >= threshold
-    }
+    return {token for token, count in document_frequency.items() if count >= threshold}
 
 
 def _supports_entity_group(
@@ -1694,8 +1695,7 @@ def _supports_entity_group(
     if not entity_groups:
         return False
     tag_token_sets = [
-        set(query_tokens(tag.replace("-", " ").replace("_", " ")))
-        for tag in tags
+        set(query_tokens(tag.replace("-", " ").replace("_", " "))) for tag in tags
     ]
     for group in entity_groups:
         if group <= haystack_tokens:
@@ -1720,11 +1720,7 @@ def _tag_has_signal(
 
 
 def _subject_tokens(value: str) -> set[str]:
-    return {
-        token
-        for token in _tokens(value)
-        if len(token) > 2
-    }
+    return {token for token in _tokens(value) if len(token) > 2}
 
 
 def _tag_matches(tag: str, current_text: str) -> bool:

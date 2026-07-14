@@ -7,6 +7,46 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0086 - Preserved Context Is A Field-Allowlisted Organ Surface
+
+Date: 2026-07-14
+Status: accepted and implemented in V1.35.0
+
+Context:
+
+The compact V2 session and memory areas were reviewed, but
+`preserved_context` could still copy whole legacy blocks for focus, affect,
+metacognition, Scarlet state, recent dialogue/events, and capability hints.
+That path could reintroduce duplicate, technical, or non-actionable data into
+Scarlet's context and obscure MiniMax/GPT parity.
+
+Decision:
+
+- allow automatic projection only for active focus, active affect, and
+  injected metacognitive lessons;
+- copy only fields with immediate cognitive or source-navigation value;
+- keep `scarlet_state`, duplicate dialogue, and generic events trace/UI-only;
+- make capability detail on-demand through authoritative `help` commands;
+- preserve the rich runtime source unchanged for system work and diagnostics;
+- persist a field-level inclusion/exclusion audit beside, never inside, the
+  canonical model document;
+- use the same V2 compiler for native MiniMax and GPT bootstrap.
+
+Consequences:
+
+Default `preserved_context` is empty under shadow/off organ modes. Optional
+organs remain available without exposing their registry, usage policy,
+scoring, selection, or debug internals. Future organ families require an
+explicit projector and audit entry before they can reach the model.
+
+Links:
+
+- `backend/app/mind/context_preserved.py`
+- `backend/app/mind/context_projection.py`
+- `docs/context-packet-inventory.md`
+- `docs/block-registry.md`
+- Linear SCA-18
+
 ## ADR-0085 - Routine Verification Is Focused; Complete Live Evaluation Is Owner-Triggered
 
 Date: 2026-07-14
