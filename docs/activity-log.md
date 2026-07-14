@@ -23,12 +23,17 @@ Changes:
   protected deployment.
 - Chose a normal PR merge into `main`; the feature branch remains a readable
   checkpoint instead of force-updating or rewriting stale remote history.
+- After the merged `main` workflow passed, its only annotation identified the
+  official Node 20 Action runtimes as deprecated. Updated checkout,
+  setup-python, and setup-node to their official Node 24 major versions.
 
 Verification:
 
 - GitHub Actions ran the complete V1.33.0 quality workflow for both push and
   pull-request events; both runs passed in 1m36s.
 - PR #1 is mergeable with clean merge state and successful required checks.
+- Merged `main` passed the complete quality job in 1m23s before the Action
+  runtime update; the follow-up run verifies the Node 24 cleanup.
 - The staged DB boundary passed before both release commits; only
   `backend/data/app.db` remains locally modified and uncommitted.
 
