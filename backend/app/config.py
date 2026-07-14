@@ -50,8 +50,13 @@ class Settings(BaseSettings):
 
     context_window_tokens: int = Field(default=1_000_000, ge=1)
     context_operational_input_limit_tokens: int = Field(default=500_000, ge=1)
+    # Compatibility warning threshold. The V1.36 shadow planner derives its
+    # real trigger from the C/H/A partition and measured external context.
     context_compaction_trigger_tokens: int = Field(default=400_000, ge=1)
     history_compaction_target_tokens: int = Field(default=100_000, ge=1)
+    history_compaction_verbatim_tokens: int = Field(default=100_000, ge=1)
+    history_compaction_safety_tokens: int = Field(default=25_000, ge=0)
+    # Retained for environment compatibility; selection is token-based in V1.36.
     history_compaction_recent_turns: int = Field(default=8, ge=1, le=100)
     history_compaction_mode: Literal["off", "shadow"] = "shadow"
     context_estimated_chars_per_token: float = Field(default=3.5, ge=1.0, le=12.0)
@@ -132,6 +137,16 @@ class Settings(BaseSettings):
             raise ValueError(
                 "history_compaction_target_tokens must stay below "
                 "context_operational_input_limit_tokens"
+            )
+        reserved_history = (
+            self.history_compaction_target_tokens
+            + self.history_compaction_verbatim_tokens
+            + self.history_compaction_safety_tokens
+        )
+        if reserved_history >= self.context_operational_input_limit_tokens:
+            raise ValueError(
+                "history summary, verbatim chronology, and safety reservations "
+                "must leave active growth space below the operational input limit"
             )
         return self
 

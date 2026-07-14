@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-14
-App baseline: V1.35.0
+App baseline: V1.36.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -74,6 +74,9 @@ discussed before a new fix is attempted.
   conditions, 12 natural scenarios, 36 authoritative live turns, evaluator
   shakedown history, project-informed qualitative judgments, and cross-branch
   findings.
+- `docs/evaluations/v1.36-history-compaction-calibration.md`: exact real-session
+  token accounting, full/derived MiniMax comparison, and the accepted
+  whole-turn exception while active compaction remains gated.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

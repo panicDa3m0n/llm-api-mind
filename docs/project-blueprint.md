@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.35.0
+Version: 1.36.0
 Status: active experimental runtime
 Last updated: 2026-07-14
 Primary human: project owner, evaluator, direction, validation  

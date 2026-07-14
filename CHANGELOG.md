@@ -6,12 +6,20 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.35.0 completes the field-level `preserved_context` review on top of the
-V1.34.0 natural behavioral baseline. V1.32.0 remains the currently deployed
+V1.36.0 replaces fixed-turn chronological planning with source-labelled token
+partitions and a bounded full-vs-derived calibration. V1.32.0 remains the currently deployed
 HoneyLabs production runtime until later versions pass the protected database
 deployment boundary.
 
 ### Added
+
+- Added exact canonical chronology maps linking complete provider slices to
+  turn, message, tool-call, request-trace, and response-trace ids.
+- Added the shadow-only `O + C + H + A + M <= 500k` planner with 100k summary
+  and verbatim maxima, 25k safety, dynamic active growth, whole-turn 1M
+  exception, and fail-closed physical-window handling.
+- Added a repeatable bounded MiniMax calibration runner and V1.36 evaluation
+  report over three read-only real sessions and two full/derived comparisons.
 
 - Added an explicit field-level projector for conditional focus, affect, and
   metacognitive blocks, with user-local focus timestamps and compact source
@@ -78,6 +86,15 @@ deployment boundary.
 
 ### Changed
 
+- Upgraded model-input accounting to v2: policy, model-context packet,
+  provider history, current message, Mind shell schema, bridge boundary, and
+  request structure are explicit surfaces. Provider observations now include
+  uncached, cache-read, and cache-created input for every tool-loop step.
+- Replaced the compatibility eight-turn compaction assumption with dynamic
+  newest-complete-turn selection by incremental estimated token cost.
+- Advanced backend, frontend, GPT Action schema, and canonical project
+  metadata to V1.36.0. Active compaction remains disabled.
+
 - Removed `scarlet_state`, duplicated recent dialogue, generic runtime-event
   summaries, and API Mind capability catalogs from automatic V2 model context.
   Rich runtime data remains intact for trace/UI/system use; capability detail
@@ -137,6 +154,9 @@ deployment boundary.
   summarization, and Dream remain background processes.
 
 ### Fixed
+
+- Prevented accounting v2 calibration from learning ratios produced by the
+  incompatible cache-under-counting v1 observation contract.
 
 - Made behavioral evaluator support tests independent of the ignored frozen
   baseline database. CI now builds a canonical temporary SQLite fixture while

@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-14
-System version assessed: V1.35.0
+System version assessed: V1.36.0
 Status: active branch
 
 ## Filosofia del ramo
@@ -74,7 +74,7 @@ percezione non e ancora completa perche mancano ambiente esterno reale,
 device/app state avanzato, profilo multiutente e stato Scarlet modificabile
 tramite API.
 
-Sistema valutato: V1.35.0.
+Sistema valutato: V1.36.0.
 Aggiornamento V1.7.1: la percezione viene ora usata anche per calibrare lo
 sforzo. Se il runtime context, la memoria selezionata o la history visibile
 contengono gia l'evidenza sufficiente, il prompt istruisce Scarlet a non
@@ -120,6 +120,13 @@ generici e capability automatiche sono esclusi; provider history e comandi
 dedicati restano le fonti corrette. MiniMax e GPT ricevono lo stesso documento
 V2 canonico.
 
+Aggiornamento V1.36.0: la cronologia provider resta canonica e append-only, ma
+ogni turno completo puo ora essere mappato alla sua slice esatta con ids di
+messaggi, tool e trace. Il piano shadow usa aree token `O/C/H/A/M`, non otto
+turni fissi. `C` e `H` hanno massimali normali da 100k, la sicurezza riserva
+25k e `A` assorbe il resto sotto 500k. Un turno singolo oltre `H` resta intero
+se entra nella finestra fisica da 1M; oltre 1M il piano fallisce chiuso.
+
 ## Sviluppi precedenti
 
 - Memory Context Pipeline v0.
@@ -139,7 +146,7 @@ V2 canonico.
 - V1.26.0 planning: baseline documentale per context pack, classificazione
   organi/fonti/capacita, degradazione sotto budget e shadow router futuro.
 
-## Verifica V1.35.0
+## Verifica V1.36.0
 
 - Implementazione: compilatore V2 condiviso, proiettore preservato con
   allowlist, exact `model.context`, audit field-level, tempo utente unico,
@@ -150,8 +157,11 @@ V2 canonico.
   correttamente.
 - Integrazione runtime: V2 e router automatico `interactive` attivi;
   accounting attivo, compattazione solo shadow.
-- Prossimo gate: sessione lunga post-V1.30, confronto comportamentale e regola
-  esplicita quando 100k + 8 turni non entra sotto 500k.
+- Calibrazione cronologica: tre sessioni reali lette senza mutazione e confronto
+  bounded full/derived su due; il caso normale ha ridotto input e latenza, il
+  caso da 340k ha validato l'eccezione whole-turn.
+- Prossimo gate: persistenza summary ricorsiva, router derivato multi-ciclo e
+  approvazione esplicita prima dell'attivazione.
 
 ## Evolutive
 

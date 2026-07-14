@@ -7,6 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0087 - Chronology Uses Token Areas And Complete-Turn Source Maps
+
+Date: 2026-07-14
+Status: accepted in shadow mode for V1.36.0
+
+Context:
+
+The first chronological plan proposed a 100k summary plus eight recent turns.
+Read-only real sessions showed that a turn can cost hundreds or hundreds of
+thousands of tokens depending on tool activity, so a turn count cannot define
+a stable context reservation. Provider usage was also undercounted when cache
+read and creation tokens were omitted.
+
+Decision:
+
+- preserve canonical provider history as append-only evidence;
+- map exact provider slices to complete turn, message, tool-call, and trace ids;
+- partition the 500k operational policy as `O + C + H + A + M`;
+- keep `C` and normal `H` at configurable 100k maxima and `M` at 25k;
+- derive `A` from actual measured overhead instead of assigning a turn count;
+- select newest complete turns backward by incremental estimated token cost;
+- measure every provider step using uncached plus cache-read plus cache-created
+  input, and calibrate only from accounting-v2 observations;
+- retain a whole turn that exceeds `H` when it fits the physical 1M window,
+  explicitly reducing `A` rather than splitting the turn;
+- fail closed when one turn exceeds the physical model window;
+- keep the entire strategy shadow-only until recursive summaries and a
+  multi-cycle derived router pass a separately approved gate.
+
+Consequences:
+
+The normal observed partition leaves about 250k active-growth tokens when
+external overhead is around 25k. Tool-heavy exceptional turns can consume most
+of that area, but the planner reports the condition truthfully. The bounded
+full-vs-derived comparison supports the architecture while also showing that
+summary/source reasoning still needs behavioral scrutiny before activation.
+
+Links:
+
+- `backend/app/runtime/context_accounting.py`
+- `backend/app/runtime/history_compaction.py`
+- `docs/evaluations/v1.36-history-compaction-calibration.md`
+- Linear SCA-5
+
 ## ADR-0086 - Preserved Context Is A Field-Allowlisted Organ Surface
 
 Date: 2026-07-14

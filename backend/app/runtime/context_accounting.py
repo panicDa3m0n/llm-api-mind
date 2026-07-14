@@ -16,11 +16,14 @@ from typing import Any
 from sqlmodel import Session
 
 from app.llm.provider import LLMMessage, LLMTextResult
+from app.runtime.history_compaction import (
+    build_chronology_source_map,
+    build_history_partition_plan,
+)
 from app.storage import repositories
 
 
-CONTEXT_ACCOUNTING_VERSION = "context-accounting-v1"
-HISTORY_COMPACTION_PLAN_VERSION = "history-compaction-shadow-v1"
+CONTEXT_ACCOUNTING_VERSION = "context-accounting-v2"
 
 
 def build_context_accounting_preflight(
@@ -55,11 +58,11 @@ def build_context_accounting_preflight(
     }
     total_json = _json(wire_payload)
     raw_channels = {
-        "static_system": base_system,
-        "dynamic_runtime_context": runtime_context,
+        "static_system_policy": base_system,
+        "model_context_packet": runtime_context,
         "provider_history": history_payloads,
         "current_user_message": current_payloads,
-        "tool_schema": tools,
+        "mind_shell_tool_schema": tools,
     }
     channels = {
         name: _measurement(value, chars_per_token=ratio)
@@ -71,18 +74,29 @@ def build_context_accounting_preflight(
         chars_per_token=ratio,
     )
     total_estimated_tokens = _estimate_tokens(len(total_json), ratio)
-    recent_window = _recent_turn_window(
+    chronology_source_map = build_chronology_source_map(
         db,
         session_id=session_id,
-        limit=int(settings.history_compaction_recent_turns),
         chars_per_token=ratio,
     )
     policy = _policy(settings)
-    compaction_plan = _compaction_plan(
-        channels=channels,
-        total_estimated_tokens=total_estimated_tokens,
-        recent_window=recent_window,
-        policy=policy,
+    provider_history_tokens = int(channels["provider_history"]["estimated_tokens"])
+    external_context_tokens = max(
+        0,
+        total_estimated_tokens - provider_history_tokens,
+    )
+    compaction_plan = build_history_partition_plan(
+        source_map=chronology_source_map,
+        external_context_tokens=external_context_tokens,
+        provider_history_tokens=provider_history_tokens,
+        operational_limit_tokens=int(
+            settings.context_operational_input_limit_tokens
+        ),
+        model_window_tokens=int(settings.context_window_tokens),
+        summary_max_tokens=int(settings.history_compaction_target_tokens),
+        verbatim_max_tokens=int(settings.history_compaction_verbatim_tokens),
+        safety_tokens=int(settings.history_compaction_safety_tokens),
+        mode=str(settings.history_compaction_mode),
     )
     return {
         "schema_version": CONTEXT_ACCOUNTING_VERSION,
@@ -91,10 +105,15 @@ def build_context_accounting_preflight(
         "turn_id": turn_id,
         "model": model,
         "transport": transport,
+        "accounting_surface": "native_model_request",
         "measurement_boundary": {
             "exact": ["json_chars", "utf8_bytes", "message_count", "turn_count"],
             "estimated": ["tokens_by_channel", "preflight_input_tokens"],
-            "provider_reported_after_call": ["first_step_input_tokens", "tool_loop_totals"],
+            "provider_reported_after_call": [
+                "per_step_effective_input_tokens",
+                "maximum_step_effective_input_tokens",
+                "tool_loop_cumulative_usage",
+            ],
             "external_unobserved_context": external_unobserved_context or [],
         },
         "calibration": calibration | {"chars_per_token_used": ratio},
@@ -105,7 +124,7 @@ def build_context_accounting_preflight(
             "estimated_input_tokens": total_estimated_tokens,
         },
         "policy": policy,
-        "recent_turn_window": recent_window,
+        "chronology_source_map": chronology_source_map,
         "compaction_plan": compaction_plan,
     }
 
@@ -116,14 +135,18 @@ def build_context_accounting_observation(
     preflight: dict[str, Any],
     result: LLMTextResult,
 ) -> dict[str, Any]:
-    first_step_usage: dict[str, Any] = {}
-    if result.raw_provider_messages:
-        candidate = result.raw_provider_messages[0].get("usage")
-        if isinstance(candidate, dict):
-            first_step_usage = candidate
-    first_step_input = _int_or_none(first_step_usage.get("input_tokens"))
-    if first_step_input is None and len(result.raw_provider_messages) <= 1:
-        first_step_input = _int_or_none(result.usage.get("input_tokens"))
+    step_observations = _step_usage_observations(result)
+    first_step = step_observations[0] if step_observations else {}
+    first_step_usage = first_step.get("usage") or {}
+    first_step_input = _int_or_none(first_step.get("effective_input_tokens"))
+    maximum_step_input = max(
+        (
+            int(step["effective_input_tokens"])
+            for step in step_observations
+            if _int_or_none(step.get("effective_input_tokens")) is not None
+        ),
+        default=None,
+    )
     request_chars = int((preflight.get("total") or {}).get("json_chars") or 0)
     observed_ratio = (
         round(request_chars / first_step_input, 6)
@@ -138,10 +161,16 @@ def build_context_accounting_observation(
         "turn_id": preflight.get("turn_id"),
         "model": result.model,
         "provider_reported": {
+            # Compatibility alias: from v2 this is the effective provider input,
+            # including cache-read and cache-creation tokens when reported.
             "first_step_input_tokens": first_step_input,
+            "first_step_effective_input_tokens": first_step_input,
             "first_step_usage": first_step_usage,
+            "steps": step_observations,
+            "maximum_step_effective_input_tokens": maximum_step_input,
             "tool_loop_totals": result.usage,
-            "model_step_count": max(1, len(result.raw_provider_messages)),
+            "tool_loop_cumulative_usage": result.usage,
+            "model_step_count": len(step_observations),
         },
         "calibration_observation": {
             "request_json_chars": request_chars,
@@ -188,6 +217,7 @@ def build_external_context_accounting_preflight(
         "turn_id": turn_id,
         "model": "external-gpt-unobserved",
         "transport": transport,
+        "accounting_surface": "gpt_bridge_backend_packet_only",
         "measurement_boundary": {
             "exact": [
                 "backend_bootstrap_json_chars_excluding_assigned_trace_ids",
@@ -239,97 +269,56 @@ def _policy(settings: Any) -> dict[str, Any]:
         "operational_input_limit_tokens": int(
             settings.context_operational_input_limit_tokens
         ),
-        "compaction_trigger_tokens": int(settings.context_compaction_trigger_tokens),
-        "summary_target_tokens": int(settings.history_compaction_target_tokens),
-        "recent_complete_turns": int(settings.history_compaction_recent_turns),
+        "compatibility_warning_threshold_tokens": int(
+            settings.context_compaction_trigger_tokens
+        ),
+        "compacted_summary_max_tokens": int(
+            settings.history_compaction_target_tokens
+        ),
+        "verbatim_chronology_max_tokens": int(
+            settings.history_compaction_verbatim_tokens
+        ),
+        "technical_safety_tokens": int(settings.history_compaction_safety_tokens),
+        "verbatim_selection": "newest_complete_turns_by_incremental_token_cost",
         "compaction_mode": str(settings.history_compaction_mode),
         "canonical_history_policy": "append_only_never_overwrite",
     }
 
 
-def _compaction_plan(
-    *,
-    channels: dict[str, dict[str, Any]],
-    total_estimated_tokens: int,
-    recent_window: dict[str, Any],
-    policy: dict[str, Any],
-) -> dict[str, Any]:
-    trigger = int(policy["compaction_trigger_tokens"])
-    limit = int(policy["operational_input_limit_tokens"])
-    summary_target = int(policy["summary_target_tokens"])
-    mode = str(policy["compaction_mode"])
-    would_trigger = total_estimated_tokens >= trigger
-    fixed_tokens = total_estimated_tokens - int(
-        channels["provider_history"]["estimated_tokens"]
-    )
-    projected = fixed_tokens + summary_target + int(recent_window["estimated_tokens"])
-    status = "disabled" if mode == "off" else "below_trigger"
-    if mode == "shadow" and would_trigger:
-        status = "would_compact"
-        if projected >= limit:
-            status = "would_compact_insufficient_headroom"
-    return {
-        "schema_version": HISTORY_COMPACTION_PLAN_VERSION,
-        "status": status,
-        "shadow_only": mode == "shadow",
-        "would_trigger": would_trigger,
-        "trigger_basis": "estimated_preflight_input_tokens",
-        "summary_target_tokens": summary_target,
-        "retained_recent_turn_count": recent_window["turn_count"],
-        "retained_recent_turn_ids": recent_window["turn_ids"],
-        "retained_recent_turns_estimated_tokens": recent_window["estimated_tokens"],
-        "projected_active_input_tokens": projected,
-        "projected_free_tokens_below_operational_limit": limit - projected,
-        "canonical_history_mutation": "none",
-        "activation_gate": (
-            "Calibrate on a long varied real session, validate summary quality and "
-            "recent-turn sizing, then approve an active strategy separately."
-        ),
-    }
-
-
-def _recent_turn_window(
-    db: Session,
-    *,
-    session_id: str,
-    limit: int,
-    chars_per_token: float,
-) -> dict[str, Any]:
-    turns = repositories.list_turns_for_session(
-        db,
-        session_id=session_id,
-        status="completed",
-    )[-limit:]
-    payloads: list[dict[str, Any]] = []
-    for turn in turns:
-        messages = repositories.list_messages_for_turn(db, turn_id=turn.id)
-        traces = repositories.list_traces_for_turn(db, turn_id=turn.id)
-        response = next((trace for trace in traces if trace.kind == "llm.response"), None)
-        response_payload = response.payload_json if response is not None else {}
-        payloads.append(
+def _step_usage_observations(result: LLMTextResult) -> list[dict[str, Any]]:
+    observations: list[dict[str, Any]] = []
+    for index, provider_message in enumerate(result.raw_provider_messages, start=1):
+        candidate = provider_message.get("usage")
+        usage = candidate if isinstance(candidate, dict) else {}
+        observations.append(
             {
-                "turn_id": turn.id,
-                "messages": [
-                    {"role": message.role, "content": message.content}
-                    for message in messages
-                    if message.role in {"user", "assistant"}
-                ],
-                "provider_response_blocks": response_payload.get(
-                    "raw_provider_messages",
-                    response_payload.get("raw_content", []),
-                ),
-                "tool_calls": response_payload.get("tool_calls", []),
+                "step": index,
+                "provider_message_id": provider_message.get("id"),
+                "usage": usage,
+                "effective_input_tokens": _effective_input_tokens(usage),
             }
         )
-    serialized = _json(payloads)
-    return {
-        "basis": "completed_turn_public_messages_provider_blocks_and_tool_receipts",
-        "turn_count": len(turns),
-        "turn_ids": [turn.id for turn in turns],
-        "json_chars": len(serialized),
-        "utf8_bytes": len(serialized.encode("utf-8")),
-        "estimated_tokens": _estimate_tokens(len(serialized), chars_per_token),
-    }
+    if not observations and result.usage:
+        observations.append(
+            {
+                "step": 1,
+                "provider_message_id": result.provider_message_id,
+                "usage": result.usage,
+                "effective_input_tokens": _effective_input_tokens(result.usage),
+                "source": "aggregate_single_step_fallback",
+            }
+        )
+    return observations
+
+
+def _effective_input_tokens(usage: dict[str, Any]) -> int | None:
+    components = [
+        _int_or_none(usage.get("input_tokens")),
+        _int_or_none(usage.get("cache_read_input_tokens")),
+        _int_or_none(usage.get("cache_creation_input_tokens")),
+    ]
+    present = [value for value in components if value is not None]
+    return sum(present) if present else None
 
 
 def _calibrated_chars_per_token(
@@ -348,7 +337,10 @@ def _calibrated_chars_per_token(
     values: list[float] = []
     for trace in traces:
         payload = trace.payload_json
-        if payload.get("model") != model:
+        if (
+            payload.get("schema_version") != CONTEXT_ACCOUNTING_VERSION
+            or payload.get("model") != model
+        ):
             continue
         value = (payload.get("calibration_observation") or {}).get(
             "chars_per_first_step_input_token"
