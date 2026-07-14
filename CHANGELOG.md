@@ -6,12 +6,22 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.34.0 establishes the first executable natural behavioral baseline on top of
-the V1.33.0 engineering-quality gates. V1.32.0 remains the currently deployed
+V1.35.0 completes the field-level `preserved_context` review on top of the
+V1.34.0 natural behavioral baseline. V1.32.0 remains the currently deployed
 HoneyLabs production runtime until later versions pass the protected database
 deployment boundary.
 
 ### Added
+
+- Added an explicit field-level projector for conditional focus, affect, and
+  metacognitive blocks, with user-local focus timestamps and compact source
+  navigation.
+- Added `model.context.projection_audit`, which records source presence,
+  dispositions, exact included/excluded field paths, cognitive purpose,
+  rationale, and on-demand commands without entering model input.
+- Added focused native/GPT parity and projection-contract coverage.
+- Expanded the blocking mypy slice to the preserved-context projector and
+  canonical V2 compiler.
 
 - Added `scarlet-natural-core-v1`: 8 groups and 12 natural scenarios with
   frozen DB references, three independent repetitions, real MiniMax M3 turns,
@@ -67,6 +77,13 @@ deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Removed `scarlet_state`, duplicated recent dialogue, generic runtime-event
+  summaries, and API Mind capability catalogs from automatic V2 model context.
+  Rich runtime data remains intact for trace/UI/system use; capability detail
+  remains available through `help`.
+- Advanced backend, frontend, GPT Action schema, prompts, and canonical
+  documentation metadata to V1.35.0.
 
 - Made focused deterministic checks and direct Codex tool use the default task
   verification. Complete repeated or cross-branch live Scarlet evaluations now

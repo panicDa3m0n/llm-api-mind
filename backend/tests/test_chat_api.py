@@ -219,7 +219,7 @@ class FakeToolCallingProvider(FakeChatProvider):
                             "text": "I inspected the Mind API schema.",
                         }
                     ],
-                }
+                },
             ],
         )
 
@@ -327,16 +327,16 @@ class FakeToolCallingProvider(FakeChatProvider):
                             "content": [
                                 {
                                     "type": "thinking",
-                            "thinking": "I should inspect the schema.",
-                            "signature": "test-signature",
-                        },
-                        {
-                            "type": "text",
-                            "text": "I will inspect the schema before answering.",
-                        },
-                        {
-                            "type": "tool_use",
-                            "id": "toolu_schema",
+                                    "thinking": "I should inspect the schema.",
+                                    "signature": "test-signature",
+                                },
+                                {
+                                    "type": "text",
+                                    "text": "I will inspect the schema before answering.",
+                                },
+                                {
+                                    "type": "tool_use",
+                                    "id": "toolu_schema",
                                     "name": "mind_shell",
                                     "input": {
                                         "command": "help",
@@ -349,7 +349,7 @@ class FakeToolCallingProvider(FakeChatProvider):
                             "id": "provider_msg_stream",
                             "stop_reason": "end_turn",
                             "content": [{"type": "text", "text": "Schema inspected."}],
-                        }
+                        },
                     ],
                 ).model_dump(mode="json")
             },
@@ -375,7 +375,7 @@ class FakeMemoryProvider(FakeChatProvider):
                 name="mind_shell",
                 input={
                     "command": (
-                        'memory write --type user_preference --scope project '
+                        "memory write --type user_preference --scope project "
                         '--content "The owner prefers SAL updates with risks and next steps." '
                         '--reason "Stable communication preference for future status updates." '
                         '--future-use "Shape future SAL answers."'
@@ -391,7 +391,7 @@ class FakeMemoryProvider(FakeChatProvider):
                 input={
                     "command": (
                         'memory search "SAL risks next steps" '
-                        '--type user_preference --scope project --top 3'
+                        "--type user_preference --scope project --top 3"
                     ),
                     "intent": "Retrieve the stored project communication preference.",
                 },
@@ -439,12 +439,14 @@ class FakeMemoryProvider(FakeChatProvider):
                     "content": [
                         {"type": "text", "text": "Memory stored and retrieved."}
                     ],
-                }
+                },
             ],
         )
 
 
-def make_client(db_engine: Engine, settings_overrides: dict | None = None) -> TestClient:
+def make_client(
+    db_engine: Engine, settings_overrides: dict | None = None
+) -> TestClient:
     FakeChatProvider.seen_chat_systems = []
     FakeChatProvider.seen_max_tool_calls = []
     FakeChatProvider.seen_chat_messages = []
@@ -667,6 +669,15 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
         "scarlet_state",
     ]
     model_context_trace = traces[3]["payload"]
+    projection_audit = model_context_trace["projection_audit"]
+    projection_by_family = {
+        item["family"]: item for item in projection_audit["families"]
+    }
+    assert projection_audit["included_block_types"] == []
+    assert projection_by_family["scarlet_state"]["source_present"] is True
+    assert projection_by_family["scarlet_state"]["included_in_model"] is False
+    assert projection_by_family["recent_dialogue"]["source_present"] is True
+    assert projection_by_family["api_mind"]["disposition"] == "on_demand"
     request_trace = next(
         trace["payload"] for trace in traces if trace["kind"] == "llm.request"
     )
@@ -696,6 +707,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     )
     assert runtime_payload["schema_version"] == "scarlet-model-context-v2"
     assert runtime_payload == model_context_trace["document"]
+    assert runtime_payload["preserved_context"] == []
     assert runtime_payload["session"]["user"] == {"name": "Utente locale"}
     assert runtime_payload["session"]["location"] == "Italia"
     assert runtime_payload["session"]["timezone"]["id"] == "Europe/Rome"
@@ -709,9 +721,10 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert "digital individual in development" in request_trace["base_system"]
     assert "sono pronta" in request_trace["base_system"]
     assert "mind_shell" in request_trace["base_system"]
-    assert "API Mind is your internal cognitive environment" in request_trace[
-        "base_system"
-    ]
+    assert (
+        "API Mind is your internal cognitive environment"
+        in request_trace["base_system"]
+    )
     assert "use your digital brain" in request_trace["base_system"]
     assert "Perception And Source Of Truth" in request_trace["base_system"]
     assert "runtime_context.session.now" in request_trace["base_system"]
@@ -724,9 +737,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert FakeChatProvider.seen_chat_systems[-1] == request_trace["system"]
     assert FakeChatProvider.seen_max_tool_calls[-1] is None
     assert request_trace["messages"][0]["content"] == "hello"
-    response_trace = next(
-        trace for trace in traces if trace["kind"] == "llm.response"
-    )
+    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
     assert response_trace["payload"]["provider_message_id"] == "provider_msg_1"
     events_response = client.get(f"/api/debug/events?turn_id={turn['turn_id']}")
     assert events_response.status_code == 200
@@ -746,9 +757,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     ]
     assert [event["seq"] for event in events] == list(range(1, len(events) + 1))
     assert events[2]["payload"]["negative_evidence"] == "no_relevant_memory_selected"
-    assert events[3]["payload"]["schema_version"] == (
-        "metacognitive-context-shadow-v1"
-    )
+    assert events[3]["payload"]["schema_version"] == ("metacognitive-context-shadow-v1")
     assert events[4]["payload"]["schema_version"] == "runtime-context-v1"
     assert events[8]["payload"]["text"] == "assistant:hello:history=1"
     assert events[10]["payload"]["kind"] == "session.idle_maintenance"
@@ -1125,7 +1134,9 @@ def test_chat_turn_final_reranker_rejects_strong_deterministic_match(
     memory_context = traces[0]["payload"]
     assert memory_context["selected"] == []
     rerank = memory_context["query_plan"]["retrieval_rerank"]
-    rejected = next(item for item in rerank["entries"] if item["memory_id"] == memory_id)
+    rejected = next(
+        item for item in rerank["entries"] if item["memory_id"] == memory_id
+    )
     assert rejected["evaluated"] is True
     assert rejected["accepted"] is False
     assert "sparse" in rejected["recall_routes"]
@@ -1258,11 +1269,7 @@ def test_chat_turn_graph_expansion_selects_dynamic_personal_food_constraint(
 
     response = client.post(
         f"/api/chat/sessions/{session['id']}/turn",
-        json={
-            "message": (
-                "Mi ricordi il mio limite salutare sul cioccolato?"
-            )
-        },
+        json={"message": ("Mi ricordi il mio limite salutare sul cioccolato?")},
     )
 
     assert response.status_code == 200
@@ -1298,11 +1305,7 @@ def test_chat_turn_graph_expansion_does_not_treat_cooking_music_as_food_constrai
 
     response = client.post(
         f"/api/chat/sessions/{session['id']}/turn",
-        json={
-            "message": (
-                "Che playlist jazz notturna potrei mettere mentre cucino?"
-            )
-        },
+        json={"message": ("Che playlist jazz notturna potrei mettere mentre cucino?")},
     )
 
     assert response.status_code == 200
@@ -1390,10 +1393,7 @@ def test_chat_turn_dispatches_and_traces_mind_shell_tool_call(
     assert tool_trace["payload"]["result"]["ok"] is True
     response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
     assert response_trace["payload"]["tool_calls"][0]["tool_name"] == "mind_shell"
-    assert (
-        response_trace["payload"]["tool_calls"][0]["trace_id"]
-        == tool_trace["id"]
-    )
+    assert response_trace["payload"]["tool_calls"][0]["trace_id"] == tool_trace["id"]
     events = client.get(f"/api/debug/events?turn_id={body['turn_id']}").json()
     event_types = [event["type"] for event in events]
     assert "mind.tool_call.started" in event_types
@@ -1413,7 +1413,9 @@ def test_chat_turn_dispatches_and_traces_mind_shell_tool_call(
     note_event = next(
         event for event in events if event["type"] == "assistant.note.emitted"
     )
-    assert note_event["payload"]["text"] == "I will inspect the schema before answering."
+    assert (
+        note_event["payload"]["text"] == "I will inspect the schema before answering."
+    )
     assert note_event["payload"]["model_step"] == 1
     assert note_event["payload"]["index"] == 1
     answer_event = next(
@@ -1473,7 +1475,9 @@ def test_chat_turn_dispatches_traceable_memory_write_and_search(
         "llm.response",
         "context.accounting.observed",
     ]
-    write_trace = next(trace for trace in traces if trace["kind"] == "mind.memory.write")
+    write_trace = next(
+        trace for trace in traces if trace["kind"] == "mind.memory.write"
+    )
     assert write_trace["payload"]["stored"] is True
     memory_id = write_trace["payload"]["memory_id"]
     assert memory_id.startswith("mem_")
@@ -1488,7 +1492,9 @@ def test_chat_turn_dispatches_traceable_memory_write_and_search(
         ]
         == body["user_message"]["id"]
     )
-    search_trace = next(trace for trace in traces if trace["kind"] == "mind.memory.search")
+    search_trace = next(
+        trace for trace in traces if trace["kind"] == "mind.memory.search"
+    )
     assert search_trace["payload"]["returned_memory_ids"] == [memory_id]
     assert tool_traces[1]["payload"]["arguments"]["command"].startswith("memory search")
     response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
@@ -1584,7 +1590,9 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
         "llm.response",
         "context.accounting.observed",
     ]
-    memory_event = next(event for event in decoded_events if event["type"] == "memory_context")
+    memory_event = next(
+        event for event in decoded_events if event["type"] == "memory_context"
+    )
     assert memory_event["data"]["searched"] is True
     assert memory_event["data"]["selected_count"] == 0
     metacognitive_event = next(
@@ -1592,7 +1600,9 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
     )
     assert metacognitive_event["data"]["mode"] == "shadow"
     assert metacognitive_event["data"]["model_facing"] is False
-    runtime_event = next(event for event in decoded_events if event["type"] == "runtime_context")
+    runtime_event = next(
+        event for event in decoded_events if event["type"] == "runtime_context"
+    )
     assert runtime_event["data"]["schema_version"] == "runtime-context-v1"
     assert len(runtime_event["data"]["blocks"]) == 4
     request_trace = next(trace for trace in traces if trace["kind"] == "llm.request")

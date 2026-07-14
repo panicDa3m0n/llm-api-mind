@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-14
-App baseline: V1.34.0
+App baseline: V1.35.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -128,16 +128,19 @@ bootstrap. It contains:
 - up to five relevant, five recent user, and five recent general memory hooks;
 - deduplication priority `relevant -> recent_user -> recent_general`;
 - source session and source message ids for every automatic memory hook;
-- preserved dynamic families whose final disposition has not yet been reviewed.
+- optional, field-allowlisted focus, affect, and metacognitive organ blocks.
 
 The rich retrieval/runtime snapshot remains internal evidence for traces, UI,
 maintenance, and evaluation. It is not the active V2 model packet.
 
+V1.35.0 completed the preserved-family review. `scarlet_state`, duplicated
+recent dialogue, generic runtime-event summaries, and capability catalogs stay
+outside automatic model input. Every `model.context` trace records the exact
+projection audit, and native MiniMax plus GPT bootstrap consume the same
+canonical V2 document.
+
 Still open:
 
-- `preserved_context` contains focus, affect, Scarlet state,
-  metacognitive context, recent dialogue, recent runtime events, and capability
-  hints when their legacy conditions apply;
 - provider-native history is not budgeted or compacted and can outweigh V2 in
   tool-heavy sessions;
 - the first mode router is active for automatic runtime blocks; on-demand
@@ -221,7 +224,7 @@ the canonical integrated read.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
-| Perception and context | L4 | Shared V2 packet, exact model trace, time/provenance rules, accounting and automatic mode router | preserved-family review and measured active compaction design |
+| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting and automatic mode router | measured active compaction design |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
@@ -270,7 +273,7 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in six high-value typed modules while the measured
+- mypy blocks regressions in eight high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
 - the full V1.34 backend suite passes 182 tests at 80.19% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
@@ -296,11 +299,10 @@ Current engineering baseline:
 
 ### P1 - Validate And Activate Context Control
 
-1. Continue field-by-field review of preserved families.
-2. Accumulate exact accounting from long varied post-V1.30 sessions.
-3. Design and test the derived 100k chronology plus desired eight-turn tail.
-4. Define degradation when the measured tail cannot fit below 500k.
-5. Promote active compaction only after direct continuity/source tests.
+1. Accumulate exact accounting from long varied post-V1.30 sessions.
+2. Design and test the derived 100k chronology plus desired eight-turn tail.
+3. Define degradation when the measured tail cannot fit below 500k.
+4. Promote active compaction only after direct continuity/source tests.
 
 ### P2 - Memory Integrity
 

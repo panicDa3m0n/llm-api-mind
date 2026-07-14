@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-14
-Code baseline reviewed: V1.34.0
+Code baseline reviewed: V1.35.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -15,8 +15,9 @@ automatic packet or change any packet.
 V1.29.0 implemented the approved session/memory disposition recorded later in
 this file. Sections describing `runtime-context-v1` remain as the audit of the
 rich internal/legacy source snapshot. Active model delivery now uses
-`scarlet-model-context-v2`; undiscussed families are carried under
-`preserved_context` until their own review.
+`scarlet-model-context-v2`. V1.35.0 completes the field-level review of
+`preserved_context`: only compact focus, affect, and metacognitive blocks may
+be projected automatically, and only when their organ mode enables them.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
@@ -91,7 +92,7 @@ The active `model_context_profile=v2` sends one dynamic document:
 |---|---|---|
 | session | current session id/title/created time, user name, active/resumable agent mode, one user-local clock/timezone/location, two previous-session hints | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
 | memories | deduplicated relevant/recent-user/recent-general hooks with id/content/times/source session+message | facts, scores, KG, lifecycle, near misses, exclusions, query plans, maintenance |
-| preserved context | only legacy families copied by explicit type | full rich runtime snapshot and compatibility mirrors |
+| preserved context | compact allowlisted focus, affect, or metacognitive fields when enabled | Scarlet state, duplicate dialogue, generic events, capability catalogs, organ diagnostics, and full rich runtime |
 
 The exact JSON is stored in `model.context`. Native MiniMax receives its
 rendered form; GPT bootstrap receives that same rendered form once, without a
@@ -100,8 +101,9 @@ second `context.model_context` copy.
 ## Rich Internal Source Packets
 
 P-04 through P-11 describe the rich `runtime-context-v1` source snapshot.
-They are no longer direct model packets under V2. Some subfamilies are copied
-into `preserved_context`; the rest stay trace/UI/backend-only.
+They are no longer direct model packets under V2. Only allowlisted organ
+subfields are copied into `preserved_context`; the rest stay
+trace/UI/backend-only or are available through API Mind on demand.
 
 ### P-04 Runtime Context Envelope
 
@@ -109,7 +111,7 @@ into `preserved_context`; the rest stay trace/UI/backend-only.
 | --- | --- |
 | Delivery | `trace_ui_only` rich source; projected into V2 |
 | Source | `render_runtime_context()` over `runtime-context-v1`. |
-| Recipients | Local Scarlet; the same rendered string is included in external GPT bootstrap as P-12. |
+| Recipients | Backend projection compiler, traces, UI, diagnostics, maintenance, and evaluation. Scarlet receives only the V2 projection. |
 | Function | Preserve full backend evidence and compile the smaller V2 document. |
 | Excluded from | Raw retrieval internals, arbitrary database tables, and trace payloads not represented by blocks. |
 
@@ -186,38 +188,128 @@ Automatic exclusions:
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model_conditional` through V2 `undiscussed_context` |
+| Delivery | `trace_ui_only` in V2 |
 | Source | Current-session messages and `CognitiveEvent` records, excluding the current turn. |
-| Function | Compact orientation to recent dialogue and completed/failed cognitive activity. |
+| Function | Preserve conversation/event diagnostics for UI, trace, replay, and future targeted recovery. |
 
 | Field | Current selection | Why it is sent |
 | --- | --- | --- |
-| `recent_dialogue` | last 8 visible user/assistant messages, each up to 1,200 chars | Compact conversational recency; the same conversation also exists in P-02. |
-| `recent_runtime_events` | up to 16 compact event summaries | Recovery/orientation without raw event payloads. |
+| `recent_dialogue` | last 8 visible user/assistant messages, each up to 1,200 chars | Excluded from model input because P-02 is the authoritative same-session continuity. |
+| `recent_runtime_events` | up to 16 compact event summaries | Excluded from automatic input because generic summaries are not a targeted, navigable recovery packet. |
 
-Compact events retain identity plus selected operational fields such as operation, method/path, result summary, retrieval counts, negative evidence, and errors. Full event payloads are trace/UI-only.
+Compact events retain identity plus selected operational fields such as
+operation, method/path, result summary, retrieval counts, negative evidence,
+and errors. Full event payloads are trace/UI-only. Existing `session message`,
+`session turn`, and `session open` commands provide targeted navigation; a
+future dedicated event-recovery packet requires its own design and tests.
 
 ### P-09 API Mind Capability Hints
 
 | Property | Current behavior |
 | --- | --- |
-| Delivery | `automatic_model_conditional` through V2 `undiscussed_context` |
+| Delivery | `on_demand` through `help` or `help <family>` |
 | Source | shell metadata, command catalog, capability state. |
 | Location | `message_context.api_mind`. |
-| Function | State that `mind_shell` is the model-facing interface, expose family purposes, and distinguish available/internal capability status. |
-| Excluded from | Full `help` response and detailed per-command examples, which require manual `help`. |
+| Function | Give authoritative current commands, syntax, examples, and availability when Scarlet needs them. |
+| Excluded from | Automatic model context; the static tool schema already identifies `mind_shell`, while help is fresher and more precise than a repeated catalog. |
 
 ### P-10 Dynamic Organ Blocks
 
 | Packet | Delivery | Current condition | Function | Automatic exclusion |
 | --- | --- | --- | --- | --- |
-| `focus_context` | `automatic_model_conditional` | `organ_focus_mode=model` plus active focus | Foreground attention and recent transitions; not semantic memory. | Full focus history remains manual/trace. |
-| `affective_context` | `automatic_model_conditional` | `organ_affect_mode=model` plus a model block | Tone/caution/warmth posture, never factual truth. | Full appraisal diagnostics/history remain manual/trace. |
-| `metacognitive_context` | `automatic_model_conditional` | `metacognitive_context_mode=inject` | Controlled A/B injection of few trigger-matched operating lessons. | Default `shadow` payload is trace/UI-only and non-influential. |
-| `scarlet_state` | `automatic_model` | always built | Transitional backend-seeded focus/posture/goal/open-loop surface. | No arbitrary hidden backend state is rendered. |
+| `focus_context` | `automatic_model_conditional` | `organ_focus_mode=model` plus active focus | Foreground attention and direct source navigation; not semantic memory. | Transitions, usage policy, registry metadata, and full focus history remain manual/trace. |
+| `affective_context` | `automatic_model_conditional` | `organ_affect_mode=model` plus a model block | Tone/caution/warmth posture, never factual truth. | Numeric/debug appraisal internals, usage policy, and history remain manual/trace. |
+| `metacognitive_context` | `automatic_model_conditional` | `metacognitive_context_mode=inject` plus at least one lesson | Few trigger-matched operating lessons. | Selection diagnostics, confidence, trigger conditions, near misses, and default shadow payload remain trace/UI-only. |
+| `scarlet_state` | `trace_ui_only` | always built in rich runtime | Legacy seeded placeholders preserved for diagnostics. | Entire block is excluded because it duplicates current input, policy, focus, affect, and mode. |
 | `agent_mode_context` | `automatic_model` in rich runtime; compacted into V2 session | every turn | Current/resumable tags plus whether each has implemented runtime. | Registry diagnostics stay trace/system-side; mode persistence never implies that autonomous execution started. |
 
 `volition` has no automatic runtime block today; it is shell-only.
+
+#### Exact V1.35.0 Preserved Projection
+
+When all three optional families are enabled, the model receives this shape:
+
+```json
+{
+  "preserved_context": [
+    {
+      "id": "scarlet.focus_context",
+      "type": "focus_context",
+      "scope": "profile",
+      "lifetime": "dynamic",
+      "source": "focus",
+      "content": {
+        "current_focus": {
+          "id": "focus_...",
+          "object": "...",
+          "type": "topic",
+          "status": "active",
+          "intensity": 0.8,
+          "duration_policy": "until_resolved",
+          "reason": "...",
+          "source_session_id": "ses_...",
+          "source_turn_id": "turn_...",
+          "source_message_id": "msg_...",
+          "created_at": "2026-07-14T16:00:00+02:00",
+          "updated_at": "2026-07-14T16:05:00+02:00"
+        }
+      }
+    },
+    {
+      "id": "scarlet.affective_context",
+      "type": "affective_context",
+      "scope": "profile",
+      "lifetime": "dynamic",
+      "source": "affect",
+      "content": {
+        "state_id": "affect_...",
+        "current_emotion": "curiosity",
+        "intensity": "medium",
+        "felt_quality": "...",
+        "activation": "medium",
+        "valence": "positive",
+        "persistence": "turn",
+        "attention_tendency": "inspect",
+        "action_tendency": "ask carefully",
+        "relational_posture": "warm",
+        "causes": ["message: reasoning cue"]
+      }
+    },
+    {
+      "id": "turn.metacognitive_context",
+      "type": "metacognitive_context",
+      "scope": "turn",
+      "lifetime": "turn",
+      "source": "metacognition",
+      "content": {
+        "triggers": [{"id": "source_sensitive"}],
+        "lessons": [
+          {
+            "id": "lesson_...",
+            "title": "...",
+            "lesson": "...",
+            "recommended_action": "...",
+            "risk_if_overused": "..."
+          }
+        ]
+      }
+    }
+  ]
+}
+```
+
+Envelope fields identify and classify the block. Focus fields define the live
+attention object and make its source directly navigable; timestamps are
+rendered in the user's timezone. Affect fields describe the appraised posture
+that may shape the answer without exposing backend scoring internals.
+Metacognitive trigger ids explain why a small lesson set was selected, while
+the lesson fields provide the usable guidance and its overuse boundary.
+
+The exact inclusion decision is persisted in `model.context.projection_audit`.
+For each reviewed family it records source presence, disposition, whether it
+reached the model, model field paths, excluded rich-source field paths,
+cognitive function, reason, and on-demand commands. This audit is diagnostics,
+not part of the model-facing V2 document.
 
 ### P-11 Top-Level Compatibility Mirrors
 

@@ -9,6 +9,10 @@ from sqlmodel import Session
 
 from app.mind.context_contracts import ModelContextV2
 from app.mind.context_memories import project_memory_context
+from app.mind.context_preserved import (
+    PreservedContextProjection,
+    project_preserved_context,
+)
 from app.mind.context_sessions import project_session_context
 from app.runtime.preferences import RuntimePreferences
 from app.storage.models import ChatSession
@@ -25,51 +29,39 @@ def compile_model_context_v2(
     settings: Any,
     agent_mode: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    document, _ = compile_model_context_v2_with_audit(
+        db,
+        chat_session=chat_session,
+        rich_memory_context=rich_memory_context,
+        legacy_runtime_payload=legacy_runtime_payload,
+        now=now,
+        preferences=preferences,
+        settings=settings,
+        agent_mode=agent_mode,
+    )
+    return document
+
+
+def compile_model_context_v2_with_audit(
+    db: Session,
+    *,
+    chat_session: ChatSession,
+    rich_memory_context: dict[str, Any],
+    legacy_runtime_payload: dict[str, Any],
+    now: datetime,
+    preferences: RuntimePreferences,
+    settings: Any,
+    agent_mode: dict[str, Any] | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved_agent_mode = agent_mode or {
         "active_tag": "idle",
         "source": "projection_default",
         "resume_tag": None,
     }
-    preserved_types = {
-        "focus_context",
-        "affective_context",
-        "scarlet_state",
-        "metacognitive_context",
-    }
-    preserved = [
-        block
-        for block in legacy_runtime_payload.get("blocks", [])
-        if block.get("type") in preserved_types
-    ]
-    message_block = next(
-        (
-            block
-            for block in legacy_runtime_payload.get("blocks", [])
-            if block.get("type") == "message_context"
-        ),
-        None,
+    preserved: PreservedContextProjection = project_preserved_context(
+        legacy_runtime_payload,
+        timezone_id=preferences.timezone,
     )
-    if isinstance(message_block, dict):
-        content = message_block.get("content")
-        if isinstance(content, dict):
-            preserved.append(
-                {
-                    "id": "turn.undiscussed_context",
-                    "type": "undiscussed_context",
-                    "scope": "turn",
-                    "lifetime": "turn",
-                    "source": "legacy_runtime_projection",
-                    "content": {
-                        key: content[key]
-                        for key in (
-                            "recent_dialogue",
-                            "recent_runtime_events",
-                            "api_mind",
-                        )
-                        if key in content
-                    },
-                }
-            )
     document = ModelContextV2(
         session=project_session_context(
             db,
@@ -87,6 +79,6 @@ def compile_model_context_v2(
             recent_user_limit=settings.model_context_recent_user_memories_limit,
             recent_general_limit=settings.model_context_recent_general_memories_limit,
         ),
-        preserved_context=preserved,
+        preserved_context=preserved.blocks,
     )
-    return document.model_dump(mode="json")
+    return document.model_dump(mode="json"), preserved.audit

@@ -2,7 +2,7 @@
 
 Status: active planning  
 Last updated: 2026-07-14
-App baseline: V1.34.0
+App baseline: V1.35.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,

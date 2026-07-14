@@ -1,14 +1,15 @@
 # Branch: Percezione E Contesto
 
-Last updated: 2026-07-13
-System version assessed: V1.30.0
+Last updated: 2026-07-14
+System version assessed: V1.35.0
 Status: active branch
 
 ## Filosofia del ramo
 
 Questo ramo definisce cosa Scarlet percepisce prima di rispondere: tempo,
 lingua, profilo, luogo operativo, sessione, messaggio corrente, memoria
-automatica, eventi recenti, capability API Mind e stato dinamico.
+automatica e organi dinamici esplicitamente abilitati. Eventi, capability e
+stato tecnico restano superfici trace/on-demand quando non migliorano il turno.
 
 L'effetto desiderato e trasformare il contesto backend in percezione operativa:
 Scarlet non deve indovinare il mondo, deve ricevere blocchi affidabili e
@@ -55,6 +56,12 @@ stratificati.
   primo step provider e produce un piano di compattazione soltanto shadow.
 - V1.30.0 introduce modalita agentiche a tag singolo e registry multi-tag per
   blocchi/organi, con `interactive` imposto durante i turni umani.
+- V1.35.0 completa la review campo per campo del contesto preservato: solo
+  focus, affect e lezioni metacognitive possono entrare condizionalmente nel
+  modello attraverso allowlist esplicite.
+- Ogni trace `model.context` registra ora un audit di inclusione/esclusione;
+  Scarlet state legacy, dialogo duplicato, eventi generici e catalogo
+  capability restano fuori dal documento V2.
 
 ## Stato attuale
 
@@ -67,7 +74,7 @@ percezione non e ancora completa perche mancano ambiente esterno reale,
 device/app state avanzato, profilo multiutente e stato Scarlet modificabile
 tramite API.
 
-Sistema valutato: V1.30.0.
+Sistema valutato: V1.35.0.
 Aggiornamento V1.7.1: la percezione viene ora usata anche per calibrare lo
 sforzo. Se il runtime context, la memoria selezionata o la history visibile
 contengono gia l'evidenza sufficiente, il prompt istruisce Scarlet a non
@@ -105,6 +112,14 @@ modalita e attivo solo sui blocchi automatici; la shell resta disponibile on
 demand. La compattazione 100k + coda desiderata di 8 turni resta non mutante
 finche sessioni reali lunghe non definiscono una degradazione sicura.
 
+Aggiornamento V1.35.0: `preserved_context` non e piu una zona di compatibilita.
+Il proiettore copia solo campi cognitivamente utilizzabili di focus, affect e
+metacognizione quando i relativi modi li rendono model-facing. Il rich runtime
+resta completo per sistema/UI/trace. `scarlet_state`, `recent_dialogue`, eventi
+generici e capability automatiche sono esclusi; provider history e comandi
+dedicati restano le fonti corrette. MiniMax e GPT ricevono lo stesso documento
+V2 canonico.
+
 ## Sviluppi precedenti
 
 - Memory Context Pipeline v0.
@@ -124,12 +139,13 @@ finche sessioni reali lunghe non definiscono una degradazione sicura.
 - V1.26.0 planning: baseline documentale per context pack, classificazione
   organi/fonti/capacita, degradazione sotto budget e shadow router futuro.
 
-## Verifica V1.30.0
+## Verifica V1.35.0
 
-- Implementazione: compilatore V2 condiviso, exact `model.context`, tempo
-  utente unico, session/memory hook compatti e provenienza navigabile.
-- Test deterministici: contratti V2, deduplica, timezone, summary fallback,
-  GPT parity e regressione preliminare.
+- Implementazione: compilatore V2 condiviso, proiettore preservato con
+  allowlist, exact `model.context`, audit field-level, tempo utente unico,
+  session/memory hook compatti e provenienza navigabile.
+- Test deterministici: contratti V2, allowlist ed esclusioni, deduplica,
+  timezone, summary fallback, GPT parity e mode routing.
 - Evidenza Scarlet: probe nativo e GPT riusciti; memoria e tempo V2 usati
   correttamente.
 - Integrazione runtime: V2 e router automatico `interactive` attivi;
@@ -139,10 +155,12 @@ finche sessioni reali lunghe non definiscono una degradazione sicura.
 
 ## Evolutive
 
-- Rivedere le famiglie preservate e calibrare i tag del registry gia attivo.
+- Calibrare i tag del registry gia attivo senza ampliare implicitamente le
+  allowlist model-facing.
 - Progettare e validare la vista cronologica derivata senza perdere continuita
   semantica, tool evidence o cronologia canonica.
-- Rendere `scarlet_state` aggiornabile da API dedicate.
+- Sostituire eventuali responsabilita residue di `scarlet_state` con organi o
+  comandi dedicati, senza reiniettare il blocco legacy.
 - Separare dati sessione, dati messaggio, dati utente e dati ambiente con
   policy ancora piu esplicite.
 - Aggiungere contesto ambiente reale quando esisteranno operativita esterne.

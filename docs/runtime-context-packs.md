@@ -1,8 +1,8 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-13
-Status: V1.30.0 implemented foundation; active compaction still gated
-App baseline: V1.30.0
+Last updated: 2026-07-14
+Status: V1.35.0 context projection active; history compaction still gated
+App baseline: V1.35.0
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -18,9 +18,10 @@ dynamic context packs:
 - model tool or GPT Actions schema.
 
 Dynamic context is the backend-built V2 document: session/world/user hints,
-automatic memory hooks, and conditionally preserved organ state. Traces, raw
-retrieval diagnostics, maintenance jobs, and database internals remain outside
-normal model input.
+automatic memory hooks, and explicitly allowlisted conditional organ state.
+Scarlet state placeholders, duplicate dialogue, generic event summaries,
+capability catalogs, traces, raw retrieval diagnostics, maintenance jobs, and
+database internals remain outside normal model input.
 
 The provider-history path is nevertheless included in total input accounting
 because its size competes with dynamic context inside the same model window.
@@ -142,6 +143,16 @@ The accepted V2 spine remains:
 - relevant, recent-user, and recent-general memory hooks with source ids;
 - current agent-mode tag.
 
+Optional model-facing organs are a separate audited layer:
+
+- current focus only when focus injection is enabled and a focus exists;
+- current affect only when affect injection is enabled and an appraisal exists;
+- trigger-matched metacognitive lessons only in `inject` mode.
+
+Each family is projected field by field. Full organ diagnostics remain in the
+rich runtime trace, and `model.context.projection_audit` explains every
+inclusion and exclusion without adding that audit to Scarlet's context.
+
 The current user message and provider history remain technical inputs. Privacy
 ids, raw retrieval state, maintenance clocks, KG internals, and debug payloads
 remain systemic unless fetched deliberately.
@@ -193,7 +204,7 @@ V1 registry examples:
 | provider continuity | interactive | native active-session history |
 | future environment scouting | scouting | future; no sensors implemented |
 
-V1.30 routing actively filters automatic runtime blocks only. It does not make
+Mode routing actively filters automatic runtime blocks only. It does not make
 on-demand shell commands unavailable. Hard-gating cognitive commands would be
 a separate behavioral and safety decision; applying it now would regress
 source checks and introspection during conversation.
