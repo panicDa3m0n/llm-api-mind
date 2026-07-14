@@ -7,6 +7,45 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0085 - Routine Verification Is Focused; Complete Live Evaluation Is Owner-Triggered
+
+Date: 2026-07-14
+Status: accepted
+
+Context:
+
+The V1.34 behavioral baseline makes a 36-turn, evidence-rich MiniMax campaign
+repeatable, but building or rerunning that campaign for ordinary tasks consumes
+substantial time and provider resources. Most changes can be checked more
+proportionately through focused deterministic tests and direct use of the
+affected API Mind tool or surface.
+
+Decision:
+
+- default every task to the smallest relevant deterministic test plus direct
+  Codex tool/surface verification when applicable;
+- do not launch repeated natural suites, cross-branch batteries, long live
+  sessions, or broad pre/post model campaigns without an explicit owner request
+  for the current task;
+- keep deterministic repository CI independent: it may still run its complete
+  local test gates because it does not consume live Scarlet calls;
+- when the owner authorizes an advanced evaluation period, retain the frozen
+  starting state, natural prompts, evidence capture, and project-informed
+  LLM-as-human judgment established by ADR-0084.
+
+Consequences:
+
+Routine development remains fast and observable, while expensive stochastic
+evidence is gathered deliberately at milestones or when the owner decides it
+is worth the cost. The existence of a suite is not permission to run it.
+
+Links:
+
+- `AGENTS.md`
+- `docs/development-process.md`
+- `docs/behavioral-validation-framework.md`
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+
 ## ADR-0084 - Behavioral Regressions Separate Objective Facts From Semantic Judgment
 
 Date: 2026-07-14

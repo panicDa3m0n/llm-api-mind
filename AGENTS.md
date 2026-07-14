@@ -46,6 +46,10 @@ Before closing a task:
   `mind_shell(command, intent)` tool. Legacy `/mind/*` dispatch remains an
   internal/debug/maintenance implementation boundary, not a second model tool.
 - Prefer small, testable, observable changes.
+- Default task verification to focused deterministic tests plus direct Codex
+  use of the affected tool or surface when applicable. Do not launch complete,
+  repeated, or cross-branch live Scarlet evaluations unless the owner
+  explicitly requests them for the current task.
 - Do not add large abstractions without an experiment or a current need.
 - Work only inside the declared scope. Fix only issues directly caused by the
   current implementation; report unrelated or pre-existing problems before

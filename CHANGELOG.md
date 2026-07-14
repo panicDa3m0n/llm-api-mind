@@ -68,6 +68,10 @@ deployment boundary.
 
 ### Changed
 
+- Made focused deterministic checks and direct Codex tool use the default task
+  verification. Complete repeated or cross-branch live Scarlet evaluations now
+  require an explicit owner instruction for the current task; deterministic CI
+  remains automatic.
 - Advanced backend, frontend, GPT Action schema, and canonical documentation
   metadata to V1.34.0.
 - Formalized the one-Linear-issue-at-a-time workflow: assess, present scope,

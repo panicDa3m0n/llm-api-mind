@@ -4,6 +4,28 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - Proportionate Test Cadence
+
+Decision:
+
+- Ordinary tasks use focused deterministic tests and direct Codex operation of
+  the affected tool or surface.
+- Complete repeated Scarlet suites, cross-branch batteries, long live sessions,
+  and broad pre/post behavioral campaigns require an explicit owner request for
+  the current task.
+- Existing deterministic CI remains automatic because it does not consume live
+  model calls.
+
+Reason:
+
+The V1.34 baseline is now available for deliberate evaluation periods; it must
+not turn a small task into hours of unnecessary live-model testing.
+
+Verification:
+
+- Documentation integrity and Git boundary checks only; no runtime behavior or
+  database was changed.
+
 ## 2026-07-14 - V1.34.0 Natural Behavioral Baseline (SCA-2)
 
 Goal:

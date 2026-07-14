@@ -84,6 +84,11 @@ evidence.
 ## Admission Gate
 
 - Deterministic contract tests must pass first.
+- Routine tasks use focused tests and direct Codex tool/surface verification;
+  they do not automatically run this complete framework.
+- Repeated natural suites, cross-branch batteries, and long live-model
+  evaluation periods run only when the owner explicitly requests them for the
+  current task.
 - Natural direct tests run only against a disposable copy or approved
   laboratory DB boundary.
 - The same scenario definition is rerun before and after broad changes.

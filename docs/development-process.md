@@ -84,19 +84,31 @@ they do not become implementation scope silently.
 
 ## 4. Testing Policy
 
-Verification must match the change:
+Ordinary task verification must stay proportionate. By default, Codex runs the
+smallest relevant deterministic test or smoke check and directly exercises the
+affected tool or surface when that can confirm real operation. A task does not
+automatically trigger a complete live evaluation period merely because a
+versioned suite exists.
 
-- backend behavior: run relevant pytest targets, then full suite when risk is
-  broad;
+Default verification:
+
+- backend behavior: run relevant focused pytest targets or a direct smoke;
 - frontend behavior: run production build and, when tools are available, a
   visual/browser smoke;
-- prompt/cognitive behavior: run at least one direct Scarlet test when the
-  change should affect the agent's behavior;
-- broad agentic behavior: use the versioned natural suite on fresh copies of
-  its frozen DB, with technical facts checked mechanically and semantic quality
-  reviewed by a human or project-informed LLM-as-human judge;
+- shell, API Mind, or cognitive tools: Codex directly invokes the affected
+  command/tool on an isolated or approved boundary and inspects its structured
+  result;
+- prompt or agent behavior: use a small, task-specific direct probe only when
+  it is useful and inexpensive;
 - documentation-only changes: run `git diff --check` and inspect the created
   docs.
+
+Complete or advanced live evaluation requires an explicit owner instruction
+for the current task. This includes the repeated natural cross-branch suite,
+large multi-scenario Scarlet batteries, long behavioral sessions, and broad
+pre/post live-model campaigns. When explicitly authorized, use the frozen DB,
+four-layer judgment, and evidence rules defined below. Existing deterministic
+CI gates may still run automatically because they do not call the live model.
 
 If a test cannot be run, record why in the final answer and in the activity log
 when the work is meaningful.
@@ -141,7 +153,8 @@ This gate complements pytest and live Scarlet testing. It is a repeatable
 whole-system comparison, not a substitute for either deterministic unit
 contracts or human evaluation of model behavior.
 
-The natural cross-branch suite complements the deterministic gate. It may
+The natural cross-branch suite complements the deterministic gate and is run
+only during an owner-authorized evaluation period. It may
 automatically compare exact commands, traces, events, and persisted state, but
 must never classify natural-language quality through exact strings or a single
 numeric score. Different answers require reasoned review against the declared
