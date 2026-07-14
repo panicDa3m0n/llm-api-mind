@@ -161,11 +161,12 @@ Current environment notes:
 
 ```txt
 The GitHub connector can access installed repositories, but does not expose repository creation.
-GitHub CLI 2.74.2 is installed at ~/.local/bin/gh; authentication is required before local pushes.
+GitHub CLI 2.74.2 is installed at ~/.local/bin/gh and authenticated as panicDa3m0n.
+HTTPS Git operations use the CLI credential helper with repo and workflow scopes.
 Initial push was completed by the human owner.
 Non-interactive HTTPS push from this environment succeeded on 2026-05-08.
 SSH push is not currently available because GitHub rejects the local key.
-The credential available on 2026-07-13 authenticated the wrong account and GitHub rejected publication with 403.
+The incorrect 2026-07-13 HTTPS credential was replaced on 2026-07-14.
 ```
 
 Remote setup options:
@@ -177,17 +178,21 @@ git remote add origin https://github.com/panicDa3m0n/llm-api-mind.git
 git push -u origin main
 ```
 
-2. Authenticate the installed GitHub CLI, then publish from this folder:
+2. If GitHub CLI authentication expires, restore it from this folder:
 
 ```txt
 ~/.local/bin/gh auth login --hostname github.com --git-protocol https --web
 ~/.local/bin/gh auth setup-git
 ```
 
-For the current catch-up release, publish the verified feature branch first
-and merge it through a pull request. Do not force-update stale `main`:
+The V1.33.0 catch-up used a verified feature branch and PR #1 instead of
+force-updating stale `main`:
 
 ```txt
 git push -u origin feature/agent-modes-history-compaction
-gh pr create --base main --head feature/agent-modes-history-compaction
+gh pr create --base main --head feature/agent-modes-history-compaction --draft
 ```
+
+Release tags follow deployed truth. Annotated `v1.32.0` points to `298d668`,
+the code deployed on HoneyLabs. Do not create `v1.33.0` until that version has
+passed the protected VPS backup, preflight, restart, and smoke procedure.

@@ -54,6 +54,9 @@ release is published and deployed through the protected database boundary.
 
 ### Changed
 
+- Restored authenticated GitHub publication, published the catch-up feature
+  branch and PR #1, and tagged the exact deployed V1.32.0 runtime commit.
+  V1.33.0 remains untagged until its protected VPS rollout.
 - Advanced backend, frontend, GPT Action schema, and canonical project
   metadata to V1.33.0. The broader mypy baseline remains explicitly measured
   at 216 errors across 23 files rather than hidden behind global exclusions.

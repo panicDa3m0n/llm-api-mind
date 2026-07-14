@@ -4,6 +4,40 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - GitHub Publication Recovery And P0 Closure
+
+Goal:
+
+Restore authenticated publication after the stale remote/403 condition and
+align the verified feature history, `main`, release tags, CI, Linear, and the
+known V1.32.0 production boundary.
+
+Changes:
+
+- Installed and authenticated GitHub CLI as repository owner `panicDa3m0n`
+  with repository and workflow scopes, then configured HTTPS Git operations.
+- Published `feature/agent-modes-history-compaction` without its unrelated
+  local database modification and opened catch-up PR #1 toward `main`.
+- Published annotated tag `v1.32.0` at `298d668`, the exact runtime code commit
+  deployed on HoneyLabs. V1.33.0 intentionally remains untagged until its own
+  protected deployment.
+- Chose a normal PR merge into `main`; the feature branch remains a readable
+  checkpoint instead of force-updating or rewriting stale remote history.
+
+Verification:
+
+- GitHub Actions ran the complete V1.33.0 quality workflow for both push and
+  pull-request events; both runs passed in 1m36s.
+- PR #1 is mergeable with clean merge state and successful required checks.
+- The staged DB boundary passed before both release commits; only
+  `backend/data/app.db` remains locally modified and uncommitted.
+
+Release State:
+
+- GitHub `main` is aligned through PR #1 with the V1.33.0 verified history.
+- HoneyLabs remains truthfully documented as V1.32.0 until a separate backup,
+  production preflight, transfer, restart, and smoke procedure is executed.
+
 ## 2026-07-14 - V1.33.0 Engineering Quality Baseline
 
 Goal:

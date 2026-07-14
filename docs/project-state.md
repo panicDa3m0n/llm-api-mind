@@ -83,7 +83,7 @@ Implemented and verified:
 - deprecated MCP experiment retained temporarily but not part of the target
   Custom GPT flow.
 
-Verification baseline on 2026-07-13:
+Current verification baseline:
 
 - backend: 161 tests passed;
 - frozen whole-system preliminary regression: 9/9;
@@ -103,6 +103,9 @@ Verification baseline on 2026-07-13:
   episodic recall, affect, focus, volition, and metacognition. Scarlet used 20
   shell calls, recovered from the one malformed memory-write command, and did
   not mutate production data.
+- V1.33.0 GitHub catch-up: feature history published through PR #1; push and
+  pull-request quality workflows both passed, while production remains tagged
+  and deployed at the exact V1.32.0 runtime commit.
 
 ### 3.2 Dynamic Context
 
