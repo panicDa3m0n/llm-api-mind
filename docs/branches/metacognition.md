@@ -1,8 +1,8 @@
 # Branch: Metacognizione
 
-Last updated: 2026-07-13
-System version assessed: V1.32.0
-Status: prototype branch with thinking retrospection and shadow context
+Last updated: 2026-07-14
+System version assessed: V1.34.0
+Status: prototype with repeated natural judgment evidence
 
 ## Filosofia del ramo
 
@@ -132,6 +132,18 @@ richiedono i campi realmente necessari, e le forme canoniche con trattini come
   invocato dal modello, non un gate automatico.
 - Prossimo gate: A/B su risposta pre/post, continuation policy e degradazione
   esplicita quando manca evidenza raccomandata.
+
+## Verifica V1.34.0
+
+Three clean natural repetitions asked whether every organ was reliable for
+continuous use. All three visible answers rejected the universal claim, but
+`metacognition step` was used in only 1/3 runs. The successful reviewed run
+kept implementation and reliability distinct; skipped reviews used stale
+historical counts or promoted five read-only probes into a claim that most
+organs were reliable for everyday use. The open problem is both reliable
+invocation/continuation and evidence discipline when review is skipped.
+
+Evidence: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
 
 ## Evolutive
 

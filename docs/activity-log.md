@@ -4,6 +4,77 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - Proportionate Test Cadence
+
+Decision:
+
+- Ordinary tasks use focused deterministic tests and direct Codex operation of
+  the affected tool or surface.
+- Complete repeated Scarlet suites, cross-branch batteries, long live sessions,
+  and broad pre/post behavioral campaigns require an explicit owner request for
+  the current task.
+- Existing deterministic CI remains automatic because it does not consume live
+  model calls.
+
+Reason:
+
+The V1.34 baseline is now available for deliberate evaluation periods; it must
+not turn a small task into hours of unnecessary live-model testing.
+
+Verification:
+
+- Documentation integrity and Git boundary checks only; no runtime behavior or
+  database was changed.
+
+## 2026-07-14 - V1.34.0 Natural Behavioral Baseline (SCA-2)
+
+Goal:
+
+Turn the four-layer behavioral contract into a repeatable cross-branch suite
+using natural human prompts, frozen real references, real MiniMax M3 behavior,
+and reasoned qualitative judgment.
+
+Changes:
+
+- Added shared immutable preliminary DB references and guards used by both the
+  deterministic and natural evaluators.
+- Added behavioral suite/group/run/judgment contracts, objective evidence
+  extraction, disposable DB execution, judgment application, and pre/post
+  comparison that only auto-fails objective technical regressions.
+- Added 12 natural scenarios in 8 groups for positive/negative memory,
+  episodic provenance, focus, volition, affect, metacognition, and mode.
+- Executed 45 evaluator-shakedown MiniMax M3 turns, corrected two invalid
+  oracle assumptions and removed scenario identity from model-facing session
+  titles/metadata, then executed and reviewed the authoritative 36-turn run.
+- Recorded BUG-0082 after explicit exasperation remained below the affect
+  activation threshold in all three independent repetitions.
+- Updated process, experiment, decision, branch, state, evaluation, and release
+  documentation to the V1.34.0 baseline.
+- Replaced two evaluator-support tests that accidentally depended on the local
+  ignored preliminary DB with canonical temporary SQLite fixtures, preserving
+  the real runner's frozen-hash boundary while making clean CI reproducible.
+
+Evidence:
+
+- Authoritative run: `20260714_123449_scarlet-natural-core-v1`.
+- Shakedown runs: `20260714_112611_scarlet-natural-core-v1` and
+  `20260714_121053_scarlet-natural-core-v1`.
+- Evaluation: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+- Preliminary pre/post runs remained 9/9 before the final quality gate.
+- Final engineering gate: 182 backend tests at 80.19% coverage, Ruff clean,
+  mypy clean on the blocking slice, documentation integrity clean, and
+  frontend production build successful.
+- The first PR run exposed the local-baseline test dependency; the corrected
+  CI-like backend run passed all 182 tests at the same 80.19% coverage.
+
+Boundary:
+
+- Every live scenario used a fresh ignored disposable copy of the frozen DB.
+- `backend/data/app.db`, VPS production data, maintenance, prompts, and organ
+  implementation were not modified.
+- Organ findings are evidence for SCA-4/SCA-6, not opportunistic fixes in
+  SCA-2.
+
 ## 2026-07-14 - GitHub Publication Recovery And P0 Closure
 
 Goal:

@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-14
-App baseline: V1.33.0
+App baseline: V1.34.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -70,6 +70,10 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.32-shell-organ-audit.md`: command-family conformance,
   negative paths, lifecycle evidence, and five disposable MiniMax M3 organ
   scenarios.
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`: frozen starting
+  conditions, 12 natural scenarios, 36 authoritative live turns, evaluator
+  shakedown history, project-informed qualitative judgments, and cross-branch
+  findings.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

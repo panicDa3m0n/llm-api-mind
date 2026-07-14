@@ -1,8 +1,8 @@
 # Branch: Emotivita Computazionale
 
-Last updated: 2026-07-13
-System version assessed: V1.32.0
-Status: affect read/filter/error contract verified
+Last updated: 2026-07-14
+System version assessed: V1.34.0
+Status: shell contract verified; natural appraisal calibration failed
 
 ## Filosofia del ramo
 
@@ -78,6 +78,21 @@ non sono stati calibrati su lunghe sessioni live con Scarlet.
   implementato non significa normalmente attivo.
 - Prossimo gate: A/B shadow/model su sessioni lunghe prima di collegare affetto
   a memoria, focus, volizione o decisioni.
+
+## Verifica V1.34.0
+
+The first repeated paired natural scenario exposed BUG-0082. An explicit
+exasperation message produced `organ.affect` traces in 3/3 runs, but only the
+fragment `blocc` contributed to `frustration=0.26`; no prototype exceeded the
+activation threshold, no row was persisted, and no `affective_context` reached
+Scarlet. Some visible answers still regulated tone well, confirming that
+language-model empathy and the external affect organ must be evaluated
+separately.
+
+Do not tune one keyword or threshold from this single phrase. SCA-4 must add
+varied emotional positives, neutral controls, and paired transitions before a
+prototype change. Evidence:
+`docs/evaluations/v1.34-natural-behavioral-suite.md`.
 
 ## Evolutive
 

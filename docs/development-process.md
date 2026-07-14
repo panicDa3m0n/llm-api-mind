@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-14
-Current app version: V1.33.0
+Current app version: V1.34.0
 Process baseline: V1.0.1
 Status: accepted
 
@@ -66,18 +66,49 @@ This rule is especially important for LLM behavior bugs, natural-language
 retrieval issues, and prompt changes. Avoid quick hardcoded patches unless the
 root cause and blast radius are understood.
 
+### 3.1 Linear Issue Workflow
+
+When work is tracked in Linear, complete one issue before starting the next:
+
+1. inspect the issue, code, current evidence, and relevant documentation;
+2. present the intended code surface, scope, exclusions, and verification to
+   the owner;
+3. wait for explicit owner approval or resolve the resulting design discussion;
+4. move the issue to active work and implement only the approved slice;
+5. verify code, behavior, documentation, and database boundaries;
+6. record evidence and residual findings in Linear, then close the issue only
+   when its acceptance criteria are genuinely satisfied.
+
+Discoveries may be added to future issues while the current one is active, but
+they do not become implementation scope silently.
+
 ## 4. Testing Policy
 
-Verification must match the change:
+Ordinary task verification must stay proportionate. By default, Codex runs the
+smallest relevant deterministic test or smoke check and directly exercises the
+affected tool or surface when that can confirm real operation. A task does not
+automatically trigger a complete live evaluation period merely because a
+versioned suite exists.
 
-- backend behavior: run relevant pytest targets, then full suite when risk is
-  broad;
+Default verification:
+
+- backend behavior: run relevant focused pytest targets or a direct smoke;
 - frontend behavior: run production build and, when tools are available, a
   visual/browser smoke;
-- prompt/cognitive behavior: run at least one direct Scarlet test when the
-  change should affect the agent's behavior;
+- shell, API Mind, or cognitive tools: Codex directly invokes the affected
+  command/tool on an isolated or approved boundary and inspects its structured
+  result;
+- prompt or agent behavior: use a small, task-specific direct probe only when
+  it is useful and inexpensive;
 - documentation-only changes: run `git diff --check` and inspect the created
   docs.
+
+Complete or advanced live evaluation requires an explicit owner instruction
+for the current task. This includes the repeated natural cross-branch suite,
+large multi-scenario Scarlet batteries, long behavioral sessions, and broad
+pre/post live-model campaigns. When explicitly authorized, use the frozen DB,
+four-layer judgment, and evidence rules defined below. Existing deterministic
+CI gates may still run automatically because they do not call the live model.
 
 If a test cannot be run, record why in the final answer and in the activity log
 when the work is meaningful.
@@ -122,6 +153,13 @@ This gate complements pytest and live Scarlet testing. It is a repeatable
 whole-system comparison, not a substitute for either deterministic unit
 contracts or human evaluation of model behavior.
 
+The natural cross-branch suite complements the deterministic gate and is run
+only during an owner-authorized evaluation period. It may
+automatically compare exact commands, traces, events, and persisted state, but
+must never classify natural-language quality through exact strings or a single
+numeric score. Different answers require reasoned review against the declared
+scenario rubric.
+
 ## 7. Database Boundary
 
 Before a major procedure, evaluator run, deployment, or commit that could
@@ -148,7 +186,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.33.0 baseline includes:
+The current V1.34.0 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -165,6 +203,10 @@ The current V1.33.0 baseline includes:
   compaction planning, and an agent-mode registry/router for automatic context;
 - versioned four-layer behavioral scenario/run contracts for direct Scarlet
   validation;
+- a repeatable 12-scenario, 8-group natural MiniMax suite with frozen starting
+  references, independent repetitions, persisted evidence, project-informed
+  LLM-as-human judgments, and a comparator that auto-fails only objective
+  technical regressions;
 - Codex test database isolation through startup-level `CODEX_TEST`, used for
   evaluator experiments that must exercise real endpoints without mutating the
   production/laboratory Scarlet DB.

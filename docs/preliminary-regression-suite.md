@@ -118,6 +118,19 @@ metacognition JSON. This makes the expected contract repeatable; it does not
 claim to certify Scarlet's free-form reasoning, relationship, or model-tool
 choice. Those remain separate live human evaluations with MiniMax M3.
 
+## Relation To The Natural Behavioral Suite
+
+The 9-case preliminary suite verifies assembled deterministic contracts with a
+controlled provider. V1.34.0 adds a second, non-substitutable gate:
+`app.evals.behavioral_suite` runs natural human prompts with real MiniMax M3 on
+fresh copies of the same frozen source.
+
+The behavioral runner checks objective runtime evidence automatically, then
+requires reasoned judgment for cognitive choice, answer quality, and
+longitudinal effect. Natural wording is never accepted or rejected through
+string comparison alone. See
+`docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
 ## Comparison Rule
 
 The initial result was recorded on 2026-07-10 as `9/9` in

@@ -1,8 +1,8 @@
 # Branch: Gestione Operativa
 
-Last updated: 2026-07-13
-System version assessed: V1.32.0
-Status: focus shell lifecycle and error contract verified
+Last updated: 2026-07-14
+System version assessed: V1.34.0
+Status: focus shell verified; natural lifecycle remains variable
 
 ## Filosofia del ramo
 
@@ -68,6 +68,21 @@ Sistema valutato: V1.32.0.
 - Prossimo gate: approvare teoria goal-focus-task, definire ownership e
   lifecycle minimi, poi collegare il focus senza trasformarlo in filtro
   memoria.
+
+## Verifica V1.34.0
+
+Three independent two-turn focus chains show that storage is not the limiting
+surface: focus creation used the dedicated organ only 1/3, and explicit
+resolution passed 0/3. In two chains Scarlet substituted semantic memory for
+foreground state; in the third she read the active focus but interpreted
+“consideralo concluso” as setup completion and left it active. Natural focus
+lifecycle must be calibrated before goal/task expansion.
+
+The separate mode chain preserved a clean `scouting` posture across a new
+session in 1/3 repetitions while keeping active human turns `interactive`.
+Another run reached scouting but duplicated the user directive into memory and
+volition, so its organ boundaries failed even though mode persistence worked.
+Evidence: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
 
 ## Evolutive
 

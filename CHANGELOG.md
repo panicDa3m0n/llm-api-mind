@@ -6,12 +6,26 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.33.0 establishes the first automated engineering-quality baseline and
-includes the owner-validated GPT progress-note correction. V1.32.0 remains the
-currently deployed HoneyLabs production runtime until the verified V1.33.0
-release is published and deployed through the protected database boundary.
+V1.34.0 establishes the first executable natural behavioral baseline on top of
+the V1.33.0 engineering-quality gates. V1.32.0 remains the currently deployed
+HoneyLabs production runtime until later versions pass the protected database
+deployment boundary.
 
 ### Added
+
+- Added `scarlet-natural-core-v1`: 8 groups and 12 natural scenarios with
+  frozen DB references, three independent repetitions, real MiniMax M3 turns,
+  raw trace/state evidence, and four separate evaluation layers.
+- Added a project-informed LLM-as-human judgment contract and objective-only
+  pre/post comparator; semantic answer differences always require a written
+  rationale rather than string or aggregate numeric scoring.
+- Added shared frozen-baseline guards and source references for both the
+  deterministic 9-case suite and the natural behavioral runner.
+- Added direct evaluator-support coverage for event/trace extraction,
+  cognitive-state snapshots, rule operators, frozen DB inventory/copy guards,
+  chained-session handling, response fallback, and CLI validation.
+- Added V1.34 evaluation evidence covering memory controls, episodic source
+  navigation, focus, volition, affect, metacognition, and mode continuity.
 
 - Added V1.33.0 blocking Ruff checks for objective Python defects, incremental
   mypy coverage over six high-value modules, a measured 79.9% backend
@@ -54,6 +68,24 @@ release is published and deployed through the protected database boundary.
 
 ### Changed
 
+- Made focused deterministic checks and direct Codex tool use the default task
+  verification. Complete repeated or cross-branch live Scarlet evaluations now
+  require an explicit owner instruction for the current task; deterministic CI
+  remains automatic.
+- Advanced backend, frontend, GPT Action schema, and canonical documentation
+  metadata to V1.34.0.
+- Formalized the one-Linear-issue-at-a-time workflow: assess, present scope,
+  receive owner approval, implement, verify, record evidence, then close.
+- Corrected two over-prescriptive behavioral oracles: runtime mode context can
+  replace redundant `mode read`, and policy-valid metacognitive memory
+  consolidation is not an automatic regression.
+- Removed evaluator scenario IDs and repetition metadata from model-facing
+  session identity, then established the authoritative 36-turn run with
+  neutral titles. Earlier 45 turns remain evaluator shakedown evidence only.
+- Recorded clean cross-branch findings: focus resolution 0/3, autonomous
+  volition persistence 1/3, affect activation 0/3, explicit metacognitive
+  review 1/3, and clean scouting continuity 1/3.
+
 - Restored authenticated GitHub publication, published the catch-up feature
   branch and PR #1, and tagged the exact deployed V1.32.0 runtime commit.
   V1.33.0 remains untagged until its protected VPS rollout.
@@ -89,6 +121,9 @@ release is published and deployed through the protected database boundary.
 
 ### Fixed
 
+- Made behavioral evaluator support tests independent of the ignored frozen
+  baseline database. CI now builds a canonical temporary SQLite fixture while
+  production-like runner validation still requires the real baseline hash.
 - Fixed the GPT bridge prompt so external Scarlet emits concise
   progress notes during long Action sequences while reserving mandatory
   finalize for the concluding answer. The Builder schema uses the same

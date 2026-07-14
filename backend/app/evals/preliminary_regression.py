@@ -10,7 +10,6 @@ is required to test integration contracts; it does not assess model quality.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import shutil
 import sys
@@ -23,6 +22,15 @@ from fastapi.testclient import TestClient
 from sqlmodel import Session, select
 
 from app.config import Settings
+from app.evals.frozen_baseline import (
+    BASELINE_COUNTS,
+    BASELINE_LFS_OID,
+    FROZEN_REFERENCES,
+    assert_frozen_baseline,
+    prepare_disposable_copy,
+    sha256_file,
+    verify_frozen_references,
+)
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
 from app.mind.context import build_memory_context
@@ -31,64 +39,11 @@ from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.db import create_db_engine, init_db, prepare_runtime_database
-from app.storage.models import (
-    AffectState,
-    ChatSession,
-    MemoryFact,
-    MemoryRecord,
-    Turn,
-)
+from app.storage.models import ChatSession, Turn
 
 
 SUITE_ID = "preliminary-regression-v1"
-BASELINE_LFS_OID = "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5"
-BASELINE_COUNTS = {
-    "memories": 34,
-    "memory_facts": 25,
-    "sessions": 155,
-    "messages": 567,
-    "focus_records": 0,
-    "intention_records": 0,
-    "affect_states": 0,
-}
-
-
-@dataclass(frozen=True)
-class Reference:
-    name: str
-    memory_id: str
-    source_session_id: str
-    fact_id: str | None
-    status: str
-    required_terms: tuple[str, ...]
-
-
-REFERENCES = {
-    "zero_luce_active": Reference(
-        name="active Zero-Luce protocol",
-        memory_id="mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3",
-        source_session_id="ses_24fbc3a0722d4010b7bde8f74496ef69",
-        fact_id="fact_75db0c43231047c0bf4e66d6c5ba2c3a",
-        status="active",
-        required_terms=("Protocollo Zero-Luce", "Rischio", "Prossima azione"),
-    ),
-    "zero_luce_deprecated": Reference(
-        name="deprecated Zero-Luce predecessor",
-        memory_id="mem_abed5590f91b4eb8aa93d1103db024de",
-        source_session_id="ses_421dd143a25840adb317ef2afd2c2e9c",
-        fact_id="fact_f35cda893b584765a25cffdfc2ae30d8",
-        status="deprecated",
-        required_terms=("Protocollo Zero-Luce", "tre blocchi"),
-    ),
-    "episodic_bridge": Reference(
-        name="semantic-to-episodic bridge decision",
-        memory_id="mem_06ef7093f3e74f099c77d6f356f67d26",
-        source_session_id="ses_8f9145b9ca5a4aa78534936dac03a8d5",
-        fact_id="fact_0f96f4c04c654d178e64195b5a81e239",
-        status="active",
-        required_terms=("semantic", "source_session_id", "episodic"),
-    ),
-}
+REFERENCES = FROZEN_REFERENCES
 
 
 @dataclass
@@ -346,25 +301,15 @@ def _prepare_baseline(*, source_db: Path, baseline_db: Path, replace: bool) -> N
 
 
 def _assert_baseline(path: Path) -> None:
-    if not path.exists():
-        raise RuntimeError(
-            f"Frozen baseline missing: {path}. Run once with --prepare-baseline "
-            "and the published Git-LFS database as --source-db."
-        )
-    actual_hash = _sha256(path)
-    if actual_hash != BASELINE_LFS_OID:
-        raise RuntimeError(
-            f"Frozen baseline hash mismatch: expected {BASELINE_LFS_OID}, got {actual_hash}."
-        )
+    assert_frozen_baseline(path)
 
 
 def _prepare_run_database(*, baseline_db: Path, run_db: Path) -> None:
-    if run_db.exists():
-        if "preliminary-rework" not in run_db.name:
-            raise RuntimeError(f"Refusing to remove non-suite database: {run_db}")
-        run_db.unlink()
-    run_db.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(baseline_db, run_db)
+    prepare_disposable_copy(
+        baseline_db=baseline_db,
+        run_db=run_db,
+        marker="preliminary-rework",
+    )
 
 
 def _run_case(
@@ -410,36 +355,7 @@ def _run_case(
 
 def _check_source_references(engine: Any) -> dict[str, Any]:
     with Session(engine) as db:
-        counts = {
-            "memories": len(db.exec(select(MemoryRecord)).all()),
-            "memory_facts": len(db.exec(select(MemoryFact)).all()),
-            "sessions": len(db.exec(select(ChatSession)).all()),
-            "messages": _table_count(db, "messages"),
-            "focus_records": _table_count(db, "focus_records"),
-            "intention_records": _table_count(db, "intention_records"),
-            "affect_states": len(db.exec(select(AffectState)).all()),
-        }
-        assert counts == BASELINE_COUNTS, f"baseline inventory changed: {counts}"
-        resolved: dict[str, Any] = {}
-        for key, reference in REFERENCES.items():
-            memory = db.get(MemoryRecord, reference.memory_id)
-            assert memory is not None, f"missing memory reference {reference.memory_id}"
-            assert memory.status == reference.status, (
-                f"{reference.memory_id} status {memory.status!r} != {reference.status!r}"
-            )
-            assert memory.source_session_id == reference.source_session_id
-            for term in reference.required_terms:
-                assert term.casefold() in memory.content.casefold(), (
-                    f"{reference.memory_id} missing expected term {term!r}"
-                )
-            assert db.get(ChatSession, reference.source_session_id) is not None
-            if reference.fact_id is not None:
-                fact = db.get(MemoryFact, reference.fact_id)
-                assert fact is not None, f"missing fact reference {reference.fact_id}"
-                assert fact.memory_id == reference.memory_id
-                assert fact.status == reference.status
-            resolved[key] = asdict(reference)
-    return {"counts": counts, "references": resolved}
+        return verify_frozen_references(db)
 
 
 def _check_automatic_retrieval(client: TestClient) -> dict[str, Any]:
@@ -852,11 +768,7 @@ def _write_report(root: Path, report: dict[str, Any]) -> Path:
 
 
 def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return sha256_file(path)
 
 
 if __name__ == "__main__":

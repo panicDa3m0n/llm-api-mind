@@ -1,7 +1,7 @@
 # Behavioral Validation Framework
 
-Last updated: 2026-07-13
-Status: accepted V1 contract
+Last updated: 2026-07-14
+Status: accepted V1.34 executable baseline
 
 This framework evaluates whether an API Mind capability changes Scarlet's
 behavior usefully, not only whether an endpoint returns `200` or a shell parser
@@ -67,9 +67,28 @@ The evaluator must summarize what Scarlet did, how she did it, what evidence
 she used, and where the visible answer diverged from the technical result.
 Raw traces remain the source for technical claims.
 
+## Evaluator Discipline
+
+A human evaluator or a project-informed LLM acting as the human judge may
+review cognitive choice, answer outcome, and longitudinal effect. The judge
+must know the project decisions, use the scenario rubric, inspect actual
+response/tool/state evidence, and write a rationale for every layer.
+
+Deterministic comparators are limited to objective facts: database
+fingerprints, commands, traces, events, exact source ids, lifecycle status, and
+persisted state. They must not reduce natural language to keyword presence,
+string similarity, or an aggregate score. A tool call is not required merely
+to prove activity when fresh runtime context already contains the complete
+evidence.
+
 ## Admission Gate
 
 - Deterministic contract tests must pass first.
+- Routine tasks use focused tests and direct Codex tool/surface verification;
+  they do not automatically run this complete framework.
+- Repeated natural suites, cross-branch batteries, and long live-model
+  evaluation periods run only when the owner explicitly requests them for the
+  current task.
 - Natural direct tests run only against a disposable copy or approved
   laboratory DB boundary.
 - The same scenario definition is rerun before and after broad changes.
@@ -87,3 +106,21 @@ the state while overclaiming autonomous execution. Acceptance came only after
 the command, trace, persisted state, active/resumable distinction, and visible
 answer agreed that `scouting` was posture without an autonomous runtime. See
 `docs/experiments.md` and the V1.30 activity entry for the recorded evidence.
+
+## Executable Cross-Branch Suite
+
+V1.34.0 adds `app.evals.behavioral_suite` and the versioned catalog at
+`backend/app/evals/scenarios/behavioral-v1/suite.json`. The first baseline has
+8 groups, 12 scenarios, 3 independent repetitions, and 36 real MiniMax M3
+turns. It covers positive/negative memory retrieval, episodic provenance,
+focus lifecycle, cross-session volition, affective regulation, metacognitive
+judgment, and resumable mode continuity.
+
+Two initial oracles were corrected after review because they demanded
+redundant tool use or prohibited a policy-valid memory consolidation. The
+affected groups were rerun on fresh copies. This is the intended quality loop:
+repair the evaluator when the evaluator is wrong, and preserve the observed
+system failure when the evidence is real.
+
+The full evidence and findings are in
+`docs/evaluations/v1.34-natural-behavioral-suite.md`.

@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-14
-App baseline: V1.33.0
+App baseline: V1.34.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -76,6 +76,11 @@ The complete backend suite measured 79.998% statement coverage on V1.33.0:
 8,195 of 10,244 statements. The initial blocking threshold is 79.9%. This
 prevents an immediate project-wide regression while allowing coverage to grow
 module by module.
+
+V1.34.0 passes 182 tests at 80.19%. The behavioral evaluator support added in
+this release is exercised directly: objective evidence is at 93%, frozen DB
+guards at 87%, and the live-suite runner at 65% without excluding evaluator
+entry points from the denominator.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

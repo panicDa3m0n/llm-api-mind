@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-14
-App baseline: V1.33.0
+App baseline: V1.34.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -106,6 +106,11 @@ Current verification baseline:
 - V1.33.0 GitHub catch-up: feature history published through PR #1; push and
   pull-request quality workflows both passed, while production remains tagged
   and deployed at the exact V1.32.0 runtime commit.
+- V1.34.0 natural behavioral baseline: 12 scenarios across 8 groups and 36
+  authoritative live MiniMax M3 turns after 45 shakedown turns exposed two
+  evaluator-oracle errors and session-identity leakage. Every authoritative
+  turn has separate technical, cognitive-choice, answer-quality, and
+  longitudinal judgments.
 
 ### 3.2 Dynamic Context
 
@@ -197,10 +202,10 @@ Current limits:
 
 | Organ | Code state | Default/runtime state | Evidence | Current limit |
 |---|---|---|---|---|
-| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus direct V1.32 set/read/recovery use | not connected to goal/task lifecycle; autonomous upkeep unvalidated |
-| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle test plus direct scheduled V1.32 creation | register only; no autonomous cycle or execution |
-| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | config default `off`; shadow/model modes available | filter/not-found/pagination tests plus direct V1.32 read | primitive lexical/event prototypes; long-run behavioral calibration missing |
-| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding tests and direct V1.32 critic use | recommendations can be ignored; no guaranteed continuation or final gate |
+| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus V1.34 natural creation/resolution chains | focus creation used the organ 1/3 and explicit resolution 0/3; semantic memory is often substituted for foreground state |
+| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle test plus V1.34 separate-session continuity | persistence occurred in 1/3 natural runs; no autonomous cycle or execution |
+| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | config default `off`; shadow/model modes available | deterministic contracts plus V1.34 natural paired turns | explicit exasperation stayed below threshold 3/3; BUG-0082 requires calibration |
+| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding tests plus V1.34 broad-claim repetitions | explicit step was used 1/3; skipped reviews sometimes overgeneralized historical or isolated probe evidence |
 | Temporal experience | Registry/config reservation only | `off` | manifest tests only | no computation, persistence, shell, or behavioral experiment |
 | Dream/consolidation | Registry/config reservation plus maintenance terminology | `off` | no organ test beyond manifest | no dream cycle, continuity delta, or autonomous review organ |
 
@@ -214,19 +219,19 @@ the canonical integrated read.
 
 | Branch | Level | Effective technical state | Principal need |
 |---|---:|---|---|
-| Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | stable behavioral suite for natural notes, greetings, concise answers, and long work |
+| Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
 | Perception and context | L4 | Shared V2 packet, exact model trace, time/provenance rules, accounting and automatic mode router | preserved-family review and measured active compaction design |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
-| Metacognition | L3 | One tested route, retrospective modes, command validation, shadow lessons | prove answer improvement and enforce/degrade when recommended evidence is skipped |
-| Operational management | L2/L3 | Focus is real; events and maintenance exist | approved goal/task/open-loop model and focus maintenance rules |
-| Decision autonomy | L2/L3 | Model-controlled shell use and volition register | explicit risk/permission policy, autonomous cycle design, receipts |
+| Metacognition | L3 | One tested route, retrospective modes, command validation, shadow lessons; V1.34 repeated broad-claim evidence | prove answer improvement and enforce/degrade when required review is skipped |
+| Operational management | L2/L3 | Focus and mode stores are real; clean natural focus resolution passed 0/3 and clean scouting continuity 1/3 | calibrate organ choice/boundaries before goal/task expansion |
+| Decision autonomy | L2/L3 | Model-controlled shell use and volition register; persistence passes 1/3 natural chains | clarify autonomous persistence rules and validate before cycle design |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |
-| Computational affect | L3 | Standalone organ implemented and tested, disabled by default | long-session shadow/model calibration and memory/relationship integration research |
+| Computational affect | L3 | Standalone organ implemented and tested, disabled by default; V1.34 found an explicit-threshold miss | calibrate BUG-0082 with varied shadow/model controls before integration research |
 | Multi-agent/subprocesses | L1/L2 | Maintenance is deterministic/LLM-assisted background work, not multi-agent | avoid agents until one-agent limits are measured; design bounded contracts first |
 
 ## 5. Code Health
@@ -267,14 +272,15 @@ Current engineering baseline:
   tests, and repository scripts;
 - mypy blocks regressions in six high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full backend suite has a measured 79.998% statement-coverage baseline
-  and a blocking 79.9% floor;
+- the full V1.34 backend suite passes 182 tests at 80.19% statement coverage;
+  the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
 - GitHub Actions executes these gates and the frontend production build on
   pushes and pull requests;
-- behavioral scenarios now have a versioned four-layer contract, but the first
-  small continuously repeated cross-branch suite still needs populated cases;
+- behavioral scenarios now have an executable 12-case cross-branch catalog,
+  frozen references, real-provider runs, reasoned judgments, and objective-only
+  automatic comparison;
 - provider-history growth is measured and shadow-planned but has no active
   compaction/degradation policy.
 
@@ -284,7 +290,7 @@ Current engineering baseline:
 
 - keep V2, rich traces, shell registry, API contract, UI inspector, and docs in
   lockstep;
-- preserve and progressively expand the V1.33.0 lint, type, coverage,
+- preserve and progressively expand the V1.34.0 lint, type, coverage,
   documentation, and CI baseline instead of weakening it during broad rework;
 - keep database role/preflight and frozen 9-case gate mandatory.
 
@@ -343,10 +349,12 @@ behavior:
 
 ## 7. Current Best Next Step
 
-The next implementation should collect post-V1.30 accounting from long varied
-sessions and populate the behavioral contract with natural branch-level cases.
-That evidence should decide the active compaction/degradation algorithm.
-Duplicate/conflict adjudication remains a separate later discussion.
+The next approved issues should consume the new baseline rather than add
+another organ: complete context accounting/review work, then use SCA-4 to
+calibrate focus, volition, affect, and metacognition against the observed
+failures. Long varied sessions should still decide active
+compaction/degradation. Duplicate/conflict adjudication remains a separate
+later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

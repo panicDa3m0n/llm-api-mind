@@ -9,6 +9,63 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0063 - Natural Cross-Branch Behavioral Baseline
+
+Status: completed for V1.34.0; repeated pre/post use is now the gate
+
+Hypothesis:
+
+A frozen, natural-language suite with independent repetitions and four-layer
+review can distinguish shell/storage correctness, model tool choice, answer
+quality, and longitudinal continuity without reducing Scarlet to string or
+numeric scoring.
+
+Method:
+
+- use the immutable preliminary DB fingerprint and real memory/session
+  references;
+- define 8 independent groups and 12 human-like scenarios across memory,
+  episodic provenance, focus, volition, affect, metacognition, and mode;
+- run 3 repetitions per group with real MiniMax M3 and production-like rerank;
+- persist responses, stream events, traces, commands, and before/after state;
+- automate only objective invariants;
+- review every qualitative layer as a project-informed LLM-as-human judge with
+  an explicit rationale;
+- correct and rerun any evaluator oracle shown to be over-prescriptive.
+
+Results:
+
+- 45 shakedown turns exposed two oracle errors and evaluator identity leakage
+  through session titles; they are retained as evaluator evidence, not as the
+  behavioral baseline;
+- 36 authoritative live turns then completed with neutral session identity and
+  no production/laboratory DB mutation;
+- memory positive/negative controls were technically 6/6;
+- episodic navigation produced two complete, grounded reconstructions; one
+  run navigated extensively but persisted only a closing note plus a lesson;
+- focus and volition storage worked when invoked, while autonomous use remained
+  inconsistent;
+- affect failed 6/6 technical turns because explicit frustration remained
+  below activation threshold and produced no affective context;
+- explicit metacognitive review occurred 1/3, and clean scouting mode
+  continuity completed 1/3;
+- semantic review exposed over-verbose memory answers and inappropriate
+  durable writes that technical success alone would have missed.
+
+Decision:
+
+Accept the suite as the first V1.34 behavioral baseline. Use it before and
+after broad reworks, keep the frozen preliminary gate separate, and route organ
+findings into SCA-4/SCA-6 rather than patching behavior inside SCA-2.
+
+Evidence:
+
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+- `backend/app/evals/scenarios/behavioral-v1/suite.json`
+- authoritative ignored run `20260714_123449_scarlet-natural-core-v1`
+- evaluator shakedown runs `20260714_112611_scarlet-natural-core-v1` and
+  `20260714_121053_scarlet-natural-core-v1`
+
 ## EXP-0062 - Cross-Organ Shell Conformance And Natural Use
 
 Status: completed for V1.32.0; longitudinal behavioral validation remains open
