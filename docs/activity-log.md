@@ -28,6 +28,9 @@ Changes:
   activation threshold in all three independent repetitions.
 - Updated process, experiment, decision, branch, state, evaluation, and release
   documentation to the V1.34.0 baseline.
+- Replaced two evaluator-support tests that accidentally depended on the local
+  ignored preliminary DB with canonical temporary SQLite fixtures, preserving
+  the real runner's frozen-hash boundary while making clean CI reproducible.
 
 Evidence:
 
@@ -39,6 +42,8 @@ Evidence:
 - Final engineering gate: 182 backend tests at 80.19% coverage, Ruff clean,
   mypy clean on the blocking slice, documentation integrity clean, and
   frontend production build successful.
+- The first PR run exposed the local-baseline test dependency; the corrected
+  CI-like backend run passed all 182 tests at the same 80.19% coverage.
 
 Boundary:
 

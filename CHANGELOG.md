@@ -117,6 +117,9 @@ deployment boundary.
 
 ### Fixed
 
+- Made behavioral evaluator support tests independent of the ignored frozen
+  baseline database. CI now builds a canonical temporary SQLite fixture while
+  production-like runner validation still requires the real baseline hash.
 - Fixed the GPT bridge prompt so external Scarlet emits concise
   progress notes during long Action sequences while reserving mandatory
   finalize for the concluding answer. The Builder schema uses the same
