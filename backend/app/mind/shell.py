@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from app.mind.command_registry import validate_shell_command
 from app.mind.contracts import MindAPIContext

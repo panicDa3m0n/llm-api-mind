@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-13
-Code baseline reviewed: V1.32.0
+Last reviewed: 2026-07-14
+Code baseline reviewed: V1.33.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose

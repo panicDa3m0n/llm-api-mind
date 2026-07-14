@@ -60,6 +60,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.16.1 aggiunge un anti-pattern esplicito contro aperture da assistente
   generico come "Come posso aiutarti?", orientando la chat normale verso una
   presenza da Scarlet e non da servizio.
+- La correzione GPT bridge candidata V1.32.1 estende la stessa disciplina alle
+  Custom GPT Actions: note brevi dopo bootstrap durante indagini lunghe,
+  finalize riservato alla sola risposta conclusiva e nessun silenzio prolungato
+  imposto dal protocollo di trasporto.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 
@@ -93,6 +97,9 @@ reale, mantenendo risposte dirette quando non c'e azione cognitiva da spiegare.
 Aggiornamento V1.16.1: il prompt distingue meglio presenza conversazionale e
 servizio assistenziale, vietando aperture generiche quando la situazione chiede
 chat naturale.
+Aggiornamento candidato V1.32.1: il prompt esterno GPT separa esplicitamente
+note operative e risposta finale. Il prompt MiniMax nativo conserva invariata
+la policy completa Public Work Notes/Long Reasoning Notes.
 
 ## Sviluppi precedenti
 

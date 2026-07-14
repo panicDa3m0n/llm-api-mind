@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-13
-App baseline: V1.32.0
+Last reviewed: 2026-07-14
+App baseline: V1.33.0
 
 ## Response Philosophy
 
@@ -378,6 +378,13 @@ Turn protocol:
 2. POST /gpt/action     -> execute any needed mind_shell command.
 3. POST /gpt/finalize   -> required before the GPT shows the final answer.
 ```
+
+After bootstrap succeeds, the external GPT may and should emit concise public
+progress notes during non-trivial Action sequences. These notes are UX
+orientation, not final answers and not private chain-of-thought. Only the
+complete concluding answer is sent to `/gpt/finalize`; direct turns need no
+intermediate note. The current bridge persists Actions and the final assistant
+message, while ChatGPT owns display of pre-final progress text.
 
 GPT Actions operation ids:
 

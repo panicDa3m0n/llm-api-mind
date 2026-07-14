@@ -6,12 +6,20 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.32.0 is deployed on the HoneyLabs VPS. Production preserves its real DB and
-maintenance policy while matching the verified local V2, rerank, shell, and
-agent-mode feature configuration.
+V1.33.0 establishes the first automated engineering-quality baseline and
+includes the owner-validated GPT progress-note correction. V1.32.0 remains the
+currently deployed HoneyLabs production runtime until the verified V1.33.0
+release is published and deployed through the protected database boundary.
 
 ### Added
 
+- Added V1.33.0 blocking Ruff checks for objective Python defects, incremental
+  mypy coverage over six high-value modules, a measured 79.9% backend
+  statement-coverage floor, and deterministic documentation link/reference/
+  identifier validation.
+- Added a GitHub Actions quality workflow that runs backend lint, typing,
+  documentation, full tests with coverage, and the frontend production build
+  without loading production secrets or runtime databases.
 - Added V1.32.0 executable shell-conformance coverage across all 23 registered
   family/namespace aliases, every help-published command, lifecycle paths,
   pagination, targeted not-found errors, and retrospective metacognition
@@ -43,6 +51,9 @@ agent-mode feature configuration.
 
 ### Changed
 
+- Advanced backend, frontend, GPT Action schema, and canonical project
+  metadata to V1.33.0. The broader mypy baseline remains explicitly measured
+  at 216 errors across 23 files rather than hidden behind global exclusions.
 - Advanced session list/search beyond the old hidden 500-row boundary and made
   fallback summaries use the complete transcript even when the returned
   message window is limited.
@@ -70,6 +81,13 @@ agent-mode feature configuration.
 
 ### Fixed
 
+- Fixed the GPT bridge prompt so external Scarlet emits concise
+  progress notes during long Action sequences while reserving mandatory
+  finalize for the concluding answer. The Builder schema uses the same
+  distinction, all operation descriptions stay below 300 characters, and the
+  owner confirmed the behavior in a real multi-action GPT turn.
+- Prohibited GPT final drafts from using `:::writing` or other private ChatGPT
+  UI directives that cannot be treated as portable finalized Markdown.
 - Fixed `focus hold` persisting an active status, affect read ignoring filters,
   targeted focus/affect misses returning successful empty payloads,
   metacognition dropping retrospective flags, help alias drift, and advertised

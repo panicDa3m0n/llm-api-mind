@@ -23,7 +23,6 @@ from app.llm.provider import (
     LLMMessage,
     LLMProvider,
     LLMRequestError,
-    LLMStreamEvent,
     LLMTextResult,
     LLMToolUse,
 )
@@ -58,7 +57,7 @@ from app.runtime.context_accounting import (
 )
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import ChatSession, CognitiveEvent, Message, Trace, Turn
+from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]

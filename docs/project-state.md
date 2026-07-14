@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-13
-App baseline: V1.32.0
+Last updated: 2026-07-14
+App baseline: V1.33.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -258,11 +258,18 @@ responsibilities and raise regression cost. The same concentration appears in
 contract and lifecycle while preserving facades and running the frozen 9-case
 gate before and after.
 
-Missing engineering surfaces:
+Current engineering baseline:
 
-- no backend lint/static-type configuration beyond pytest;
-- no measured code-coverage baseline;
-- no automated documentation link/identifier check;
+- Ruff blocks objective Python syntax/name/import defects across backend code,
+  tests, and repository scripts;
+- mypy blocks regressions in six high-value typed modules while the measured
+  full-application debt remains 216 errors across 23 files;
+- the full backend suite has a measured 79.998% statement-coverage baseline
+  and a blocking 79.9% floor;
+- deterministic documentation checks validate local links, repository
+  references, and canonical ADR/BUG/EXP identifier uniqueness;
+- GitHub Actions executes these gates and the frontend production build on
+  pushes and pull requests;
 - behavioral scenarios now have a versioned four-layer contract, but the first
   small continuously repeated cross-branch suite still needs populated cases;
 - provider-history growth is measured and shadow-planned but has no active
@@ -274,8 +281,8 @@ Missing engineering surfaces:
 
 - keep V2, rich traces, shell registry, API contract, UI inspector, and docs in
   lockstep;
-- add documentation integrity and backend lint/type checks before broad code
-  rework;
+- preserve and progressively expand the V1.33.0 lint, type, coverage,
+  documentation, and CI baseline instead of weakening it during broad rework;
 - keep database role/preflight and frozen 9-case gate mandatory.
 
 ### P1 - Validate And Activate Context Control

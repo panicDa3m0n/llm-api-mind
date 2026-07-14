@@ -1,8 +1,8 @@
 # Memory Robustness Roadmap
 
 Status: active planning  
-Last updated: 2026-07-13
-App baseline: V1.32.0
+Last updated: 2026-07-14
+App baseline: V1.33.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,

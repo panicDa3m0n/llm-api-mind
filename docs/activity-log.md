@@ -4,6 +4,91 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - V1.33.0 Engineering Quality Baseline
+
+Goal:
+
+Close the P0 engineering-observability gap before broad code rework, while
+keeping all existing typing debt visible and preserving the production and
+laboratory database boundaries.
+
+Changes:
+
+- Added Ruff `E4/E7/E9/F` checks across backend code, tests, and scripts and
+  removed eight objective unused-import/dead-assignment findings without
+  applying mass import sorting.
+- Added an incremental mypy gate over six clean, high-value modules. A separate
+  full-app measurement records 216 existing errors across 23 files.
+- Added full-suite coverage enforcement at 79.9% against the measured 79.998%
+  baseline, with evaluator entry points retained in the denominator.
+- Added deterministic documentation validation for local links, repository
+  references, and canonical ADR/BUG/EXP identifiers. The check also exposed
+  and corrected the canonical shell-conformance bug id collision as BUG-0081.
+- Added `.github/workflows/quality.yml`, documented the local/CI commands, and
+  advanced package and canonical documentation metadata to V1.33.0.
+- Recorded the owner's real GPT Builder validation of BUG-0080: progress notes
+  now remain visible during a multi-action turn.
+
+Boundary:
+
+- No cognitive runtime contract, production configuration, secret, or runtime
+  database was changed for the quality-gate implementation.
+- `backend/data/app.db` remained an unrelated mutable laboratory artifact and
+  is excluded from the release commit.
+
+Verification:
+
+- Ruff: passed across `backend/app`, `backend/tests`, and `scripts`.
+- Incremental mypy: 6 source files passed.
+- Documentation integrity: 48 files, 1,119 repository references, and 223
+  canonical identifiers passed.
+- Backend: `161 passed`; exact coverage 8,195/10,244 statements (`79.998%`).
+- Frozen preliminary regression: `9/9` at
+  `backend/app/evals/runs/20260714_090856_preliminary-regression-v1`.
+- Frontend V1.33.0 production build: passed.
+
+## 2026-07-13 - V1.32.1 GPT Progress-Note Fix
+
+Goal:
+
+Remove long silent periods from non-trivial Custom GPT turns without weakening
+the mandatory bootstrap/action/finalize lifecycle.
+
+Changes:
+
+- Replaced the GPT bridge prompt with an explicit turn state machine that
+  permits and requires short public progress notes after bootstrap and during
+  long cognitive work, while finalizing only the concluding answer.
+- Added note waypoints before the first action cluster, slow metacognition,
+  strategy changes, continued multi-action work, and long final synthesis.
+- Aligned GPT Action descriptions with that distinction, corrected bootstrap
+  field placement/context V2 language, added `mode`, and kept every operation
+  description below the GPT Builder 300-character limit.
+- Added a plain-Markdown final-draft rule excluding `:::writing` and other
+  private ChatGPT UI directives.
+
+Boundary:
+
+- The native MiniMax prompt was inspected and not changed. Its established
+  Public Work Notes and Long Reasoning Notes policy already has the intended
+  behavior.
+- No backend endpoint, production database, or VPS runtime was changed.
+
+Follow-up validation:
+
+- On 2026-07-14 the owner tested the revised prompt and Action schema in the
+  real GPT Builder flow and confirmed that progress notes work throughout the
+  multi-action turn. The fix is included in V1.33.0.
+
+Verification:
+
+- `backend/tests/test_gpt_bridge.py`: `7 passed`; coverage includes prompt
+  markers, lifecycle assets, operation description length, and
+  progress-note/finalize wording.
+- Prompt size is 7,223 characters; Action descriptions are 263, 276, and 266
+  characters. JSON parsing, `git diff --check`, and the staged database
+  boundary check pass.
+
 ## 2026-07-13 - V1.32.0 Production Deployment
 
 Goal:

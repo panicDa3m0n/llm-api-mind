@@ -7,7 +7,48 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
-## BUG-0079 - Cognitive Shell Families Drifted Across Contract Layers
+## BUG-0080 - GPT Bridge Finalize Wording Created Long Silent Turns
+
+Date Found: 2026-07-13
+Status: fixed and behaviorally validated in GPT Builder for V1.33.0
+
+Symptoms:
+
+A source-sensitive external GPT evaluation completed bootstrap, seven
+successful cognitive Actions, and finalize in about 108 seconds, but exposed
+no public progress note. The user reasonably interpreted the long silence as a
+stalled turn and closed it.
+
+Root Cause:
+
+The compact GPT prompt mentioned work notes weakly while stricter lifecycle
+wording could be read as prohibiting all visible prose before finalize. The
+Builder schema also described finalize as preceding the visible answer rather
+than specifically the final answer.
+
+Fix:
+
+The GPT prompt now explicitly permits and requires concise progress notes after
+bootstrap during non-trivial work, defines useful long-turn waypoints, and
+reserves finalize for the concluding answer. Action descriptions use the same
+distinction. The native MiniMax prompt was already correct and remains
+unchanged.
+
+Regression Test:
+
+The GPT Builder asset test checks the progress-note policy, final-answer
+boundary, special UI directive prohibition, and the 300-character operation
+description limit. On 2026-07-14 the owner also repeated a real multi-action
+Custom GPT turn and confirmed that progress notes remained visible throughout
+the work instead of leaving a long silent interval.
+
+Related Files:
+
+- `backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md`
+- `backend/app/plugins/gpt_bridge/openapi_gpt_action.json`
+- `backend/tests/test_gpt_bridge.py`
+
+## BUG-0081 - Cognitive Shell Families Drifted Across Contract Layers
 
 Date Found: 2026-07-13
 Status: fixed in V1.32.0

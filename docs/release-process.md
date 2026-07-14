@@ -161,10 +161,11 @@ Current environment notes:
 
 ```txt
 The GitHub connector can access installed repositories, but does not expose repository creation.
-The `gh` CLI is not installed in the local environment.
+GitHub CLI 2.74.2 is installed at ~/.local/bin/gh; authentication is required before local pushes.
 Initial push was completed by the human owner.
 Non-interactive HTTPS push from this environment succeeded on 2026-05-08.
 SSH push is not currently available because GitHub rejects the local key.
+The credential available on 2026-07-13 authenticated the wrong account and GitHub rejected publication with 403.
 ```
 
 Remote setup options:
@@ -176,14 +177,17 @@ git remote add origin https://github.com/panicDa3m0n/llm-api-mind.git
 git push -u origin main
 ```
 
-2. Install and authenticate GitHub CLI, then create the repository from this folder:
+2. Authenticate the installed GitHub CLI, then publish from this folder:
 
 ```txt
-gh repo create panicDa3m0n/llm-api-mind --private --source=. --remote=origin --push
+~/.local/bin/gh auth login --hostname github.com --git-protocol https --web
+~/.local/bin/gh auth setup-git
 ```
 
-Current next push command once credentials are available:
+For the current catch-up release, publish the verified feature branch first
+and merge it through a pull request. Do not force-update stale `main`:
 
 ```txt
-git push -u origin main
+git push -u origin feature/agent-modes-history-compaction
+gh pr create --base main --head feature/agent-modes-history-compaction
 ```

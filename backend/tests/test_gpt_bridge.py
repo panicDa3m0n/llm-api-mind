@@ -392,10 +392,13 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
     assert "FIRST TOOL: call `start_scarlet_turn_required`" in mcp_prompt
     assert "FINAL TOOL: before showing any final answer" in mcp_prompt
     assert "finish_scarlet_turn_required" in mcp_prompt
-    assert "you are not Scarlet for this turn yet" in prompt
+    assert "Public Progress Notes" in prompt
+    assert "before the first action or coherent cluster" in prompt
+    assert "Only the complete concluding answer" in prompt
+    assert "Never use `:::writing` blocks" in prompt
     assert "final_answer_to_show" in prompt
-    assert "Do not ask permission to bootstrap" in prompt
-    assert "Use only these GPT Actions" in prompt
+    assert "never ask permission to use the bridge" in prompt
+    assert "Use only `bootstrapScarletBeforeEveryAnswer`" in prompt
     assert "X-GPT-Bridge-Key" in json.dumps(action_schema)
     assert sorted(action_schema["paths"]) == [
         "/gpt/action",
@@ -414,6 +417,11 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
         action_schema["paths"]["/gpt/finalize"]["post"]["operationId"]
         == "finalizeScarletBeforeAnswer"
     )
+    for path in action_schema["paths"].values():
+        assert len(path["post"]["description"]) <= 300
+    assert "Progress notes may appear earlier" in action_schema["paths"][
+        "/gpt/finalize"
+    ]["post"]["description"]
     bootstrap_schema = action_schema["components"]["schemas"]["BootstrapResponse"]
     assert "session_id" in bootstrap_schema["required"]
     assert "session_id" in bootstrap_schema["properties"]

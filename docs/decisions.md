@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0083 - Engineering Quality Gates Start As An Explicit Incremental Baseline
+
+Date: 2026-07-14
+Status: accepted and implemented in V1.33.0
+
+Context:
+
+The runtime had broad pytest and whole-system regression evidence but no
+blocking lint, static typing, statement-coverage floor, documentation-integrity
+check, or repository CI workflow. Turning every possible rule on at once would
+mix hundreds of pre-existing typing findings and mechanical import-order churn
+into unrelated cognitive work; omitting the debt entirely would leave future
+reworks without an objective engineering floor.
+
+Decision:
+
+- block objective Ruff `E4`, `E7`, `E9`, and `F` defects across backend code,
+  tests, and scripts;
+- block mypy regressions first in six clean, high-value configuration,
+  routing, retrieval, accounting, and database-boundary modules;
+- preserve the measured full-application mypy debt as an explicit non-blocking
+  baseline rather than suppressing it globally;
+- measure the complete backend suite, including evaluator entry points, and
+  enforce a 79.9% statement-coverage floor against the 79.998% baseline;
+- validate documentation links, repository references, and canonical
+  ADR/BUG/EXP identifiers deterministically;
+- run the same gates plus the frontend production build in GitHub Actions.
+
+Consequences:
+
+Large reworks now have a reproducible engineering floor in addition to the
+frozen cognitive regression suite. Import sorting, wider mypy coverage, and
+higher per-module test thresholds remain deliberate follow-up slices. Future
+changes should expand the baseline or reduce measured debt, not hide it with
+broad exclusions.
+
+Links:
+
+- `backend/pyproject.toml`
+- `.github/workflows/quality.yml`
+- `scripts/check_documentation.py`
+- `docs/quality-gates.md`
+
 ## ADR-0082 - The Shell Registry Is An Executable Organ Contract
 
 Date: 2026-07-13

@@ -822,7 +822,7 @@ def test_chat_sessions_list_returns_recent_titles(db_engine: Engine) -> None:
     client = make_client(db_engine)
 
     first = client.post("/api/chat/sessions", json={"title": "First chat"}).json()
-    second = client.post("/api/chat/sessions", json={"title": "Second chat"}).json()
+    client.post("/api/chat/sessions", json={"title": "Second chat"})
 
     initial_response = client.get("/api/chat/sessions")
     assert initial_response.status_code == 200

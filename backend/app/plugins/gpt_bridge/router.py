@@ -1,6 +1,5 @@
 import json
 import time
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException, Query, Request, Response, status
@@ -43,7 +42,7 @@ from app.runtime.maintenance import (
 )
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import ChatSession, Message, Trace, Turn, new_id
+from app.storage.models import ChatSession, Trace, Turn, new_id
 
 ProviderFactory = Any
 
