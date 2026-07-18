@@ -1,6 +1,6 @@
 # GPT Actions Bridge Plugin
 
-Status: V1.49.0 Actions-only experimental adapter using shared
+Status: V1.49.1 Actions-only experimental adapter using shared
 `scarlet-model-context-v2` and the native `mind_shell` dispatcher.
 
 Purpose:

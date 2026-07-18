@@ -9,6 +9,44 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0077 - Recoverable Action Retry Evidence And Natural Recovery
+
+Status: deterministic and direct behavioral evidence accepted for V1.49.1
+
+Hypothesis:
+
+A corrected action can be represented as one inspectable attempt chain without
+deterministically declaring semantic equivalence, allowing truthful final
+answers while retaining real failures.
+
+Method:
+
+- reproduce the old failure on current code before the fix;
+- cover equivalent, unrelated, different-operation, non-recoverable,
+  out-of-order, capability, stale-manifest, native sync/stream, and GPT Actions
+  cases;
+- run the unchanged frozen preliminary gate before and after; and
+- give MiniMax M3 a natural durable preference while the harness corrupts only
+  its first memory-write command at the runtime boundary, then inspect the
+  complete model/tool/validator/persistence outcome.
+
+Result:
+
+Before the fix, the successful retry remained absent from the hard obligation.
+After the fix, all transports preserve the failure and expose the later call as
+a semantic candidate. In the real probe, Scarlet corrected the malformed
+command with the same intent, stored a faithful preference with complete
+provenance, and answered naturally. The semantic validator's pass agrees with
+the inspected evidence; it is not the basis of the qualitative judgment. The
+GPT lifecycle test additionally found and fixed stale dynamic-obligation
+deduplication.
+
+Evidence:
+
+- pre gate `20260718_195924_preliminary-regression-v1`;
+- post gate `20260718_201150_preliminary-regression-v1`;
+- `docs/evaluations/v1.49.1-action-retry-obligations.md`.
+
 ## EXP-0076 - Maintenance Domain Equivalence And Semantic Probe
 
 Status: bounded pre/post and direct behavioral evidence accepted for V1.49.0

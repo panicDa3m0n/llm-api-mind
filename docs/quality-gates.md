@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.49.0 candidate (V1.43.0 deployed)
+App baseline: V1.49.1 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -161,6 +161,12 @@ scheduler, shared contracts, and facade are at 74%, 79%, 76%, 100%, and 100%.
 Frozen pre/post gates pass 9/9 and focused maintenance/history/facade contracts
 pass 32/32. Direct compaction and MiniMax idle-maintenance results were read and
 judged semantically in addition to their persisted technical evidence.
+
+V1.49.1 passes 257 tests at 81.71%. Shared action-attempt obligations are
+covered across equivalent and non-equivalent retries, recoverability, order,
+capability checks, stale GPT manifests, native sync/stream, and the GPT Actions
+lifecycle. Frozen pre/post gates pass 9/9. A direct MiniMax recovery was judged
+from its actual actions, results, persistence, validation reasons, and answer.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

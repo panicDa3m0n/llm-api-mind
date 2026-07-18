@@ -4,6 +4,33 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.49.1 Action Retry Evidence Reconciliation (SCA-42)
+
+Fixed the shared final-answer evidence defect where a failed API Mind action
+remained the only hard obligation even after Scarlet successfully corrected
+the same operation. Current-turn tool obligations are now rebuilt from the
+authoritative complete call list. Recoverable same-operation attempts are
+linked as candidates with commands, intents, results, tool-call ids, and trace
+ids; semantic equivalence remains an LLM-validator judgment rather than a
+deterministic string or score rule. Unrecovered, non-recoverable, and
+different-operation failures remain hard.
+
+The GPT Actions E2E test exposed a second facet of the same root defect:
+persisted bootstrap/action manifests deduplicated the old failed obligation
+and ignored a later successful call. Rebuilding only tool-derived obligations
+fixed this while preserving static conflict, source, and final-boundary rules.
+
+The frozen pre gate `20260718_195924_preliminary-regression-v1` and post gate
+`20260718_201150_preliminary-regression-v1` both pass 9/9. Focused shared
+answer-control tests pass 58/58; all 257 backend tests pass at 81.71% coverage.
+A natural MiniMax M3 probe then received a deliberately malformed first
+`memory write` at the runtime boundary, corrected it autonomously, stored one
+faithful `user_preference` with complete session/turn/message provenance, and
+answered proportionately without exposing irrelevant internal failure noise.
+The actual commands, results, obligation chain, validation reasons, persisted
+memory, and answer were inspected directly; the result was not accepted from
+the validator flag alone.
+
 ## 2026-07-18 - V1.49.0 Maintenance Runtime Domains (SCA-37)
 
 Separated the 1,383-line maintenance runtime into a scheduling/dispatch owner,

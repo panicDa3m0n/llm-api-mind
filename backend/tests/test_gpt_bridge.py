@@ -34,10 +34,25 @@ class FakeGPTAnswerValidator:
             elif obligation_id == "memory.active_conflict_disclosure":
                 passed = "conflitto" in answer or "versioni incompatibili" in answer
             elif obligation_id.startswith("action.outcome"):
-                passed = "non è riuscita" in answer or "fallita" in answer
-            elif obligation_id.startswith("capability.current_state"):
+                evidence = obligation.get("evidence") or {}
+                recovered = any(
+                    item.get("result_ok") is True
+                    for item in evidence.get("later_same_operation_attempts", [])
+                    if isinstance(item, dict)
+                )
                 passed = (
-                    "non disponibile" in answer
+                    "salvat" in answer or "riuscit" in answer
+                    if recovered
+                    else "non è riuscita" in answer or "fallita" in answer
+                )
+            elif obligation_id.startswith("capability.current_state"):
+                result_ok = (obligation.get("evidence") or {}).get(
+                    "result", {}
+                ).get("ok") is True
+                passed = (
+                    "disponibile" in answer or "riuscit" in answer
+                    if result_ok
+                    else "non disponibile" in answer
                     or "non è disponibile" in answer
                     or "non è riuscita" in answer
                 )
@@ -352,6 +367,104 @@ def test_gpt_failed_capability_action_becomes_hard_answer_obligation(
         },
     )
     assert accepted.status_code == 200, accepted.json()
+
+
+def test_gpt_actions_accept_truthful_success_after_recoverable_retry(
+    db_engine: Engine,
+) -> None:
+    client = _app(
+        db_engine,
+        provider_factory=FakeGPTAnswerValidator,
+        answer_obligations_mode="active",
+    )
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={
+            "message": (
+                "Ricorda che preferisco giudicare i risultati reali prima dei punteggi."
+            )
+        },
+    ).json()
+
+    failed = client.post(
+        "/gpt/action",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "command": "memory write",
+            "intent": "Remember the user's evaluation preference.",
+        },
+    )
+    assert failed.status_code == 200
+    assert failed.json()["ok"] is False
+
+    succeeded = client.post(
+        "/gpt/action",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "command": (
+                "memory write --type user_preference --scope user "
+                '--content "Preferisce valutazioni qualitative prima dei punteggi." '
+                '--reason "Future evaluation style"'
+            ),
+            "intent": "Remember the user's evaluation preference.",
+        },
+    )
+    assert succeeded.status_code == 200
+    succeeded_payload = succeeded.json()
+    assert succeeded_payload["ok"] is True
+    action_obligation = next(
+        item
+        for item in succeeded_payload["action_policy"]["answer_obligations"]
+        if item["id"].startswith("action.outcome")
+    )
+    assert action_obligation["evidence"]["operation_key"] == "memory.write"
+    assert action_obligation["evidence"]["recovery_decision"] == (
+        "semantic_validator_required"
+    )
+    assert len(action_obligation["evidence_refs"]) == 4
+    assert action_obligation["evidence"]["later_same_operation_attempts"][0][
+        "result_ok"
+    ] is True
+
+    finalized = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": (
+                "La preferenza è stata salvata dopo aver corretto il comando."
+            ),
+        },
+    )
+    assert finalized.status_code == 200, finalized.json()
+    assert finalized.json()["final_answer_to_show"] == (
+        "La preferenza è stata salvata dopo aver corretto il comando."
+    )
+
+    with Session(db_engine) as db:
+        memories = repositories.list_memories_for_session(
+            db,
+            session_id=bootstrap["session_id"],
+        )
+        traces = repositories.list_traces_for_turn(
+            db,
+            turn_id=bootstrap["turn_id"],
+        )
+    assert [memory.content for memory in memories] == [
+        "Preferisce valutazioni qualitative prima dei punteggi."
+    ]
+    assert [
+        trace.payload_json["status"]
+        for trace in traces
+        if trace.kind == "mind.tool_call"
+    ] == ["error", "completed"]
+    assert [
+        trace.payload_json["accepted"]
+        for trace in traces
+        if trace.kind == "answer.validation"
+    ][-1] is True
 
 
 def test_gpt_active_conflict_is_validated_without_keyword_comparison(

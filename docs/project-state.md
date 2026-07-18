@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.49.0 candidate (V1.43.0 deployed)
+App baseline: V1.49.1 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -85,7 +85,9 @@ Implemented and verified:
   tool call emerges; incomplete attempts remain trace-only evidence;
 - shared native/GPT answer obligations with hard, warning, and advisory
   severity; one bounded correction for structural or semantic hard failures;
-  and fail-closed validator handling without deterministic language matching;
+  fail-closed validator handling without deterministic language matching; and
+  V1.49.1 attempt-chain evidence that lets the validator recognize a
+  materially equivalent successful retry without erasing the failed call;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;
@@ -100,7 +102,7 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 244 tests passed at 81.44% statement coverage;
+- backend: 257 tests passed at 81.71% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -183,6 +185,11 @@ Current verification baseline:
   natural idle-maintenance probes preserved scheduling, source anchoring,
   canonical chronology, summary quality, and conservative memory judgment.
   Deployment remains V1.43.0.
+- V1.49.1 candidate: SCA-42 frozen pre/post gates passed 9/9; focused shared
+  answer-control contracts passed 58/58. Native sync/stream and GPT Actions now
+  preserve recoverable action-attempt chains, and a directly inspected MiniMax
+  turn corrected and completed the same memory intent with truthful final
+  behavior. Deployment remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -463,14 +470,12 @@ behavior:
 ## 7. Current Best Next Step
 
 SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
-facades. The next planned organizational slice is SCA-39, but the GPT Actions
-bridge remains an experimental external adapter: its cleanup must preserve the
-shared native context/shell architecture and must not displace higher-value
-native-system stability work.
-BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
-organization work.
-BUG-0093/SCA-43 separately tracks model-facing verification for the frozen
-automatic-memory reference.
+facades, and SCA-42 closes the shared successful-retry evidence defect. SCA-39
+is deliberately deferred because the GPT Actions bridge is an experimental
+external adapter and its cleanup must not displace native-system stability.
+The next concrete gate is BUG-0093/SCA-43: add model-facing verification for
+the frozen automatic-memory reference without rewriting the historical V1
+fixture or weakening provenance.
 Long varied sessions should still monitor active compaction/degradation;
 duplicate/conflict adjudication remains a separate later discussion.
 

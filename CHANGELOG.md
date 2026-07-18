@@ -6,6 +6,32 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.49.1 - Action Retry Evidence Reconciliation
+
+#### Fixed
+
+- Rebuild current-turn action obligations from the authoritative tool-call
+  chain so a recoverable failure can expose later same-operation attempts to
+  the semantic answer validator on native sync, native stream, and GPT
+  Actions.
+- Keep the initial failure and every linked trace visible while letting the
+  validator decide whether command, intent, and result prove a materially
+  equivalent recovery; different-operation, non-recoverable, and unrelated
+  retries remain hard failures.
+- Replace stale persisted GPT action/capability obligations with the latest
+  current-turn evidence instead of deduplicating away successful later calls.
+
+#### Verification
+
+- Frozen SCA-42 pre/post gates pass 9/9; focused answer-control, native chat,
+  and GPT bridge contracts pass 58/58; the complete backend passes 257 tests
+  at 81.71% coverage.
+- A directly inspected MiniMax M3 turn encountered an injected real shell
+  validation failure, corrected the same memory-write intent, persisted a
+  faithful source-linked preference, and answered naturally. The action
+  sequence, validator findings, memory, provenance, and final text were judged
+  directly rather than inferred from aggregate status or scores.
+
 ### V1.49.0 - Maintenance Runtime Domains
 
 #### Changed

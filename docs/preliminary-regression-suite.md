@@ -38,6 +38,10 @@ Latest organizational equivalence evidence: SCA-37/V1.49.0 passed 9/9 before
 with stable source, retrieval, navigation, lifecycle, and maintenance-boundary
 fields unchanged.
 
+Latest shared-runtime fix evidence: SCA-42/V1.49.1 passed the same gate 9/9
+before (`20260718_195924_preliminary-regression-v1`) and after
+(`20260718_201150_preliminary-regression-v1`) action retry reconciliation.
+
 The runner makes two ignored local copies:
 
 ```txt

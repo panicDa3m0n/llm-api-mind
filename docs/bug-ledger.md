@@ -83,7 +83,7 @@ Related:
 ## BUG-0091 - Successful Action Retry Is Missing From Answer Obligations
 
 Date Found: 2026-07-18
-Status: confirmed pre-existing defect; tracked in Linear SCA-42
+Status: fixed and regression-tested in V1.49.1
 
 Symptoms:
 
@@ -109,18 +109,30 @@ The failure to reconcile a successful equivalent retry into the answer
 obligation evidence is a deterministic shared-runtime defect. It predates and
 is outside the SCA-34 support extraction.
 
-Required Fix:
+Fix:
 
-Preserve the action-attempt chain and let a successful materially equivalent
-retry satisfy the recoverable failure without hiding true unrecovered or
-non-equivalent failures. Apply the rule consistently to native sync/stream and
-GPT finalization, with direct behavioral inspection.
+The shared obligation compiler now rebuilds tool-derived obligations from all
+authoritative current-turn calls. It preserves the failed attempt and links
+later recoverable same-operation attempts as semantic candidates. The answer
+validator, not a deterministic comparator, decides whether command, intent,
+and result materially recovered the same action. GPT action manifests are also
+rebuilt so persisted failure evidence cannot hide a later success.
+
+Direct Evidence:
+
+In session `ses_3d412c64a0ec4e29884a82b778f49b91`, MiniMax M3 retried an
+injected malformed `memory write`, stored
+`mem_4023cf8a8684439f81b7a20969235246` with complete provenance, and produced
+a natural final answer. The V2 obligation retained both action traces and the
+semantic validator explicitly accepted the recovered chain. Native sync,
+stream, and GPT lifecycle regressions cover the same rule.
 
 Related:
 
 - Linear SCA-42
 - Linear SCA-28
 - Linear SCA-34
+- ADR-0104
 
 ## BUG-0090 - Query-String Bridge Key Was Recorded In Proxy Logs
 

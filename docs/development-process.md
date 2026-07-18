@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.49.0 candidate (V1.43.0 deployed)
+Current app version: V1.49.1 candidate (V1.43.0 deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -194,7 +194,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.49.0 candidate extends the deployed V1.43.0 Actions-only GPT
+The current V1.49.1 candidate extends the deployed V1.43.0 Actions-only GPT
 bridge baseline and includes:
 
 - local MiniMax-based Scarlet runtime;

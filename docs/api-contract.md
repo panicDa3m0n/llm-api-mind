@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.49.0 candidate (V1.43.0 deployed; public contract unchanged)
+App baseline: V1.49.1 candidate (V1.43.0 deployed; public contract unchanged)
 
 ## Response Philosophy
 
@@ -3914,7 +3914,7 @@ The detailed implementation order is tracked in `docs/memory-roadmap.md`.
 
 ### Response-Control And Validation
 
-Status: implemented in V1.41.0.
+Status: implemented in V1.41.0; retry-chain evidence reconciled in V1.49.1.
 
 Internal traces:
 
@@ -3934,6 +3934,21 @@ Implemented obligation sources:
 - source-sensitive claim guard selected for the turn;
 - current capability evidence returned by shell inspection; and
 - completed or failed Mind shell actions.
+
+V1.49.1 action-attempt contract:
+
+- tool-derived obligations are rebuilt from the authoritative complete
+  current-turn tool-call sequence; static obligations remain unchanged;
+- a recoverable failed action may include bounded later successful calls with
+  the same canonical shell operation as recovery candidates;
+- the original failure and all candidate commands, intents, results,
+  tool-call ids, and trace ids remain in evidence;
+- canonical operation equality is candidate recall only. The structured LLM
+  validator decides whether a later call materially fulfills the same intent;
+- non-recoverable, unrecovered, different-operation, and semantically
+  non-equivalent attempts remain hard failures; and
+- GPT action responses recompile this evidence after every call, so persisted
+  bootstrap/action manifests cannot mask a later successful attempt.
 
 Contract:
 

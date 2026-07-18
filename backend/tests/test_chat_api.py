@@ -740,6 +740,115 @@ class FakeSemanticAnswerRecoveryProvider(FakeAnswerBoundaryRecoveryProvider):
         )
 
 
+class FakeRecoveredActionProvider(FakeChatProvider):
+    memory_content = "Preferisce valutazioni qualitative prima dei punteggi."
+
+    def _result_with_actions(
+        self,
+        tool_runner: LLMToolRunner,
+    ) -> LLMTextResult:
+        failed = tool_runner(
+            LLMToolUse(
+                id="toolu_failed_memory_write",
+                name="mind_shell",
+                input={
+                    "command": "memory write",
+                    "intent": "Remember the user's evaluation preference.",
+                },
+            )
+        )
+        succeeded = tool_runner(
+            LLMToolUse(
+                id="toolu_successful_memory_write",
+                name="mind_shell",
+                input={
+                    "command": (
+                        "memory write --type user_preference --scope user "
+                        f"--content \"{self.memory_content}\" "
+                        "--reason \"Future evaluation style\""
+                    ),
+                    "intent": "Remember the user's evaluation preference.",
+                },
+            )
+        )
+        text = f"Ho salvato la preferenza dopo aver corretto il comando.\n{NATIVE_FINAL_MARKER}"
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=text,
+            provider_message_id="provider_recovered_action",
+            raw_content=[{"type": "text", "text": text}],
+            stop_reason="end_turn",
+            tool_calls=[failed, succeeded],
+            raw_provider_messages=[
+                {
+                    "id": "provider_recovered_action",
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        )
+
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ) -> LLMTextResult:
+        del messages, system, max_tokens, tools, max_tool_calls
+        return self._result_with_actions(tool_runner)
+
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ):
+        del messages, system, max_tokens, tools, max_tool_calls
+        result = self._result_with_actions(tool_runner)
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
+        payload = json.loads(prompt)
+        if payload.get("task") != (
+            "Evaluate the draft only against each listed obligation."
+        ):
+            return super().generate_text(prompt=prompt)
+        findings = []
+        for obligation in payload["obligations"]:
+            evidence = obligation.get("evidence") or {}
+            recovered = any(
+                item.get("result_ok") is True
+                for item in evidence.get("later_same_operation_attempts", [])
+                if isinstance(item, dict)
+            )
+            findings.append(
+                {
+                    "obligation_id": obligation["id"],
+                    "status": "pass" if recovered else "fail",
+                    "reason": (
+                        "The later same-intent memory write persisted successfully."
+                        if recovered
+                        else "No successful equivalent retry is present."
+                    ),
+                }
+            )
+        return LLMTextResult(
+            model="semantic-validator-test",
+            text=json.dumps({"findings": findings}),
+        )
+
+
 def make_client(
     db_engine: Engine, settings_overrides: dict | None = None
 ) -> TestClient:
@@ -2412,3 +2521,124 @@ def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
     assert validations[0]["payload"]["structural_final_boundary"]["accepted"] is True
     assert validations[0]["payload"]["semantic"]["accepted"] is False
     assert validations[1]["payload"]["semantic"]["accepted"] is True
+
+
+def test_native_sync_accepts_truthful_success_after_recoverable_action_retry(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeRecoveredActionProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={
+            "message": (
+                "Ricorda che preferisco giudicare i risultati reali prima dei punteggi."
+            )
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["assistant_message"]["content"] == (
+        "Ho salvato la preferenza dopo aver corretto il comando."
+    )
+    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
+    manifest = [
+        trace
+        for trace in traces
+        if trace["kind"] == "answer.obligations"
+        and trace["payload"].get("phase") == "draft_1"
+    ][-1]["payload"]["manifest"]
+    action_obligation = next(
+        item
+        for item in manifest["obligations"]
+        if item["id"] == "action.outcome.toolu_failed_memory_write"
+    )
+    assert action_obligation["evidence"]["recovery_decision"] == (
+        "semantic_validator_required"
+    )
+    evidence_refs = action_obligation["evidence_refs"]
+    assert len(evidence_refs) == 4
+    assert evidence_refs[0] == next(
+        trace["id"]
+        for trace in traces
+        if trace["kind"] == "mind.tool_call"
+        and trace["payload"]["provider_tool_use_id"]
+        == "toolu_failed_memory_write"
+    )
+    assert evidence_refs[2] == next(
+        trace["id"]
+        for trace in traces
+        if trace["kind"] == "mind.tool_call"
+        and trace["payload"]["provider_tool_use_id"]
+        == "toolu_successful_memory_write"
+    )
+    assert evidence_refs[1].startswith("tool_")
+    assert evidence_refs[3].startswith("tool_")
+    validation = [
+        trace for trace in traces if trace["kind"] == "answer.validation"
+    ][-1]
+    assert validation["payload"]["accepted"] is True
+    assert validation["payload"]["semantic"]["accepted"] is True
+
+    with Session(db_engine) as db:
+        memories = repositories.list_memories(db)
+    assert [
+        memory.content
+        for memory in memories
+        if memory.content == FakeRecoveredActionProvider.memory_content
+    ] == [FakeRecoveredActionProvider.memory_content]
+
+
+def test_native_stream_accepts_truthful_success_after_recoverable_action_retry(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeRecoveredActionProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream",
+        json={
+            "message": (
+                "Ricorda che preferisco giudicare i risultati reali prima dei punteggi."
+            )
+        },
+    ) as response:
+        assert response.status_code == 200
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    assert events[-1]["type"] == "turn_complete"
+    assert events[-1]["data"]["assistant_message"]["content"] == (
+        "Ho salvato la preferenza dopo aver corretto il comando."
+    )
+    turn_id = events[-1]["data"]["turn_id"]
+    traces = client.get(f"/api/debug/traces/{turn_id}").json()
+    validation = [
+        trace for trace in traces if trace["kind"] == "answer.validation"
+    ][-1]
+    assert validation["payload"]["accepted"] is True
+    assert validation["payload"]["semantic"]["accepted"] is True
+    tool_traces = [trace for trace in traces if trace["kind"] == "mind.tool_call"]
+    assert [trace["payload"]["status"] for trace in tool_traces] == [
+        "error",
+        "completed",
+    ]
+    assert [trace["payload"]["result"]["ok"] for trace in tool_traces] == [
+        False,
+        True,
+    ]
+
+    with Session(db_engine) as db:
+        memories = repositories.list_memories(db)
+    assert any(
+        memory.content == FakeRecoveredActionProvider.memory_content
+        for memory in memories
+    )

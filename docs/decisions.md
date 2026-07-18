@@ -7,6 +7,46 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0104 - Action Recovery Uses Deterministic Candidate Recall And Semantic Judgment
+
+Date: 2026-07-18
+Status: accepted for V1.49.1
+
+Context:
+
+One API Mind operation may fail because a model emits incomplete syntax and
+then succeed after correction. Treating each call independently makes a
+truthful final success impossible, while declaring every later call with the
+same command family equivalent would overwrite real failures and confuse
+semantically different actions.
+
+Decision:
+
+- rebuild tool-derived answer obligations from the complete authoritative
+  current-turn call sequence on native and GPT transports;
+- use the canonical shell operation only to recall bounded later candidates;
+- link candidates only for recoverable failures with a later successful
+  same-operation attempt;
+- preserve the initial failure, all call/trace references, commands, intents,
+  and results in the hard obligation; and
+- require the LLM answer validator to decide material equivalence and truthful
+  wording. No string, score, or operation-name match may itself declare the
+  action recovered.
+
+Consequences:
+
+Scarlet can truthfully describe final success after a real correction without
+erasing the failed attempt. Unrecovered, non-recoverable, different-operation,
+and semantically unrelated same-operation attempts remain visible and hard.
+Persisted GPT manifests cannot remain stale because dynamic tool obligations
+are reconstructed while static obligations are preserved.
+
+Links:
+
+- Linear SCA-42
+- BUG-0091
+- `docs/evaluations/v1.49.1-action-retry-obligations.md`
+
 ## ADR-0103 - Maintenance Keeps One Runtime Facade With Three Domain Owners
 
 Date: 2026-07-18
