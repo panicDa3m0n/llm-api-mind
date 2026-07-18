@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.37.0
+App baseline: V1.38.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -91,6 +91,10 @@ guards without lowering the project floor.
 
 V1.37.0 passes 207 tests at 80.21%. The frozen reranker evaluator is included
 at 79% module coverage; it is not omitted from the project denominator.
+
+V1.38.0 passes 209 tests at 80.45%. Historical provenance maintenance adds
+94%-covered classification and guarded mutation logic; the unchanged frozen
+preliminary suite passes 9/9.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

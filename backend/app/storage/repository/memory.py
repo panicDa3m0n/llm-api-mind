@@ -544,6 +544,7 @@ def update_memory_lifecycle(
     memory_id: str,
     status: str | None = None,
     metadata: dict[str, Any] | None = None,
+    touch_source_session: bool = True,
 ) -> MemoryRecord | None:
     memory = db.get(MemoryRecord, memory_id)
     if memory is None:
@@ -555,7 +556,7 @@ def update_memory_lifecycle(
         memory.metadata_json = metadata
     memory.updated_at = utc_now()
     db.add(memory)
-    if memory.source_session_id is not None:
+    if touch_source_session and memory.source_session_id is not None:
         _touch_session(db, memory.source_session_id)
     db.commit()
     db.refresh(memory)

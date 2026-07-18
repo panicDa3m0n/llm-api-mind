@@ -6,13 +6,26 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.37.0 calibrates final memory relevance on frozen and live evidence. V1.36.1
+V1.38.0 separates historical provenance audit from guarded maintenance and
+classifies explicit Codex fixtures without semantic inference. V1.37.0
+calibrates final memory relevance on frozen and live evidence. V1.36.1
 prevents thinking-only provider messages from becoming successful empty Scarlet
 turns. V1.36.0 remains the chronology-accounting baseline. V1.32.0
 remains the currently deployed HoneyLabs production runtime until later versions
 pass the protected database deployment boundary.
 
 ### Added
+
+- Added the read-only `memory-provenance-audit-v2` contract with orthogonal
+  provenance, record-disposition, exact-duplicate-review, criteria, and
+  candidate-digest evidence.
+- Added dedicated dry-run-first maintenance routes for exact source-message
+  repair and explicit Codex fixture deprecation. Apply requires an approved
+  operation token, the reviewed candidate digest, and a verified backup
+  reference.
+- Added a V1.38 production-data assessment and disposable-copy procedure that
+  distinguishes 241 active structured test fixtures, one already inactive
+  fixture, and seven unresolved inconsistent/non-user source links.
 
 - Added a ten-case immutable full-DB final-rerank calibration runner plus an
   inherited wrong-entity regression covering
@@ -93,6 +106,13 @@ pass the protected database deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Historical lifecycle maintenance no longer makes old source sessions or
+  memories cognitively recent. Explicit fixture records are deprecated with
+  append-only, non-recent activity and synchronized fact/retrieval status;
+  they are never hard-deleted.
+- `GET /api/maintenance/memory/provenance` is now strictly read-only. Mutation
+  moved out of the query string and into purpose-specific guarded POST routes.
 
 - Advanced backend, frontend, GPT Action schema, and canonical project metadata
   to V1.37.0.

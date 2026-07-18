@@ -7,6 +7,49 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0083 - Codex Evaluation Fixtures Entered Production Active Memory
+
+Date Found: 2026-07-18
+Status: fix implemented in V1.38.0; production apply pending protected gate
+
+Symptoms:
+
+The production database contained 242 memories sourced from three Codex seed
+sessions. The original provenance audit reported them only as missing a turn,
+so active test records could participate in memory retrieval and appeared
+indistinguishable from uncertain historical data at the audit-summary level.
+
+Root Cause:
+
+An earlier evaluation dataset was written into the persistent production
+database before strict database roles and disposable evaluator boundaries were
+established. The maintenance API also combined read and write behavior and did
+not classify record disposition separately from source completeness.
+
+Fix:
+
+V1.38.0 introduces a read-only orthogonal audit and recognizes a test fixture
+only when its complete metadata, tag, and source-session-title contract agree.
+A dedicated guarded operation deprecates active fixtures, facts, and derived
+retrieval artifacts after dry-run, candidate-digest review, and verified
+backup. It records non-recent lifecycle activity and never deletes history.
+
+Regression Test:
+
+- partial markers or content mentioning Codex tests cannot classify a fixture;
+- exact duplicate content remains review-only;
+- missing approval and candidate drift fail closed;
+- apply propagates inactive lifecycle to facts/surfaces without touching the
+  source session or recent-memory eligibility; and
+- production-copy and direct Scarlet checks must pass before closure.
+
+Related Files:
+
+- `backend/app/runtime/memory_provenance.py`
+- `backend/tests/test_maintenance_api.py`
+- `docs/evaluations/v1.38-historical-provenance-audit.md`
+- Linear SCA-20
+
 ## BUG-0082 - Explicit Exasperation Does Not Activate Affective Context
 
 Date Found: 2026-07-14

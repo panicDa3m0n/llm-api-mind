@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.37.0
+App baseline: V1.38.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -195,14 +195,17 @@ Implemented:
 - memory activity ledger for cognitive recency;
 - compact automatic hooks and compact shell result profiles;
 - summary audit/reconciliation and dry-run-first provenance repair;
+- read-only provenance/disposition audit with digest-guarded exact repair and
+  explicit-fixture deprecation;
 - idle summary/missed-memory review, proposal ledger, and cautious resolution.
 
 Current limits:
 
 - duplicate and conflict adjudication is not mature enough for deterministic
   auto-merge or auto-deprecation;
-- 242 production historical memories still lack enough evidence for a safe
-  deterministic provenance repair;
+- seven production memories have inconsistent or non-user historical source links that
+  cannot be repaired without semantic adjudication and remain retained,
+  review-only, and excluded from automatic V2 delivery;
 - single-user scope is operational convention, not authenticated ownership;
 - autonomous write behavior and immediate use of retrieved preferences remain
   model-dependent;
@@ -321,8 +324,8 @@ Current engineering baseline:
 1. Design duplicate candidate detection as evidence, not deterministic truth.
 2. Keep conflict adjudication LLM/human-aware; do not infer conflicts from
    similarity alone.
-3. Improve historical provenance only where session/message evidence is
-   defensible.
+3. Keep the seven unresolved historical source links review-only unless new
+   exact evidence appears; never synthesize provenance from similarity.
 4. Calibrate final-rerank candidate coverage/thresholds, KG recall, and
    maintenance retries on frozen and live cases.
 5. Design authenticated user ownership before multi-user data exists.

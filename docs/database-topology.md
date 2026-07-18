@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-13
-Backend baseline: V1.37.0
+Last updated: 2026-07-18
+Backend baseline: V1.38.0
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -23,12 +23,13 @@ environments to `test`, and `production` to `production`. Any other
 `mobile_test`, because that name alone does not say whether its mounted data is
 preview data or real data.
 
-V1.29.0 adds `memory_activities` through normal schema initialization and two
-explicit maintenance mutations: summary reconciliation and source-message
-repair. Both must be audited/dry-run on a disposable `test` copy first.
-Provenance repair defaults to `apply=false`; summary reconciliation defaults to
-`dry_run=true`. Neither operation is a startup data migration, and neither may
-be exercised against the VPS production DB during evaluator work.
+V1.29.0 adds `memory_activities` through normal schema initialization. V1.38.0
+replaces the mixed provenance audit/apply route with a strictly read-only audit
+and two guarded maintenance POST operations. Every real repair or explicit
+fixture deprecation requires a prior disposable-copy run, an online production
+backup reference, the current reviewed candidate digest, and an exact approval
+token. Summary reconciliation remains dry-run-first. None of these operations
+is a startup migration or an evaluator action against production.
 
 `CODEX_TEST` remains the legacy, useful *copy-once isolation mechanism*. It is
 not a role. When true, it selects `CODEX_TEST_DATABASE_URL` and may create it
@@ -60,6 +61,17 @@ are therefore laboratory measurements, never claims about VPS production.
 
 The historical files remain on disk because deletion is a separate data
 retention decision. Their presence does not make them runtime candidates.
+
+The strict read-only V1.38.0 pre-deploy audit of the VPS database classified
+307 memories: 58 complete user-message source hooks, 242 source-session-only
+records, and seven invalid source-message hooks. Independent structured inspection proved
+all 242 source-session-only records belong to three named Codex seed sessions;
+241 were active and one already deprecated. Of the seven invalid links, four
+point outside the declared turn and three point to an assistant message inside
+it. They do not have a unique defensible correction and are retained for review. Production
+mutation is permitted only after the V1.38 disposable-copy gate and a fresh
+backup; the final post-deploy inventory and backup path are recorded in the
+V1.38 evaluation report.
 
 ## Runtime Guardrails
 

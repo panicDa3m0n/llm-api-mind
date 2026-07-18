@@ -2,7 +2,7 @@
 
 Status: active planning  
 Last updated: 2026-07-14
-App baseline: V1.37.0
+App baseline: V1.38.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -815,7 +815,8 @@ Recommended next implementation order:
 4. Calibrate recall-route coverage and final reranking on frozen and live
    negative controls.
 5. Add maintenance retry/resume and evaluate pending proposal quality.
-6. Repair historical provenance only where source evidence is defensible.
+6. Keep the seven residual inconsistent/non-user historical source links review-only;
+   V1.38 already isolates explicit fixtures and repairs only exact evidence.
 7. Add branch-level behavioral acceptance and operator memory-health views.
 8. Design Dream/compaction only after the proposal and conflict evidence is
    reliable at larger memory counts.

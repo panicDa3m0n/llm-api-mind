@@ -9,6 +9,52 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0066 - Historical Provenance And Fixture Isolation
+
+Status: local implementation accepted; production-copy/deployment gate pending
+
+Hypothesis:
+
+Structured provenance and fixture markers can separate defensible maintenance
+from semantic guesswork, allowing explicit test contamination to be deprecated
+without mutating uncertain historical memories or distorting recent-memory
+state.
+
+Method:
+
+- inspect the production inventory read-only before defining classes;
+- inspect exact source sessions, turns, messages, metadata, tags, lifecycle,
+  and duplicate groups;
+- encode the resulting criteria without semantic similarity;
+- require a reviewed candidate digest and backup reference for apply;
+- exercise audit, dry-run, drift rejection, apply, lifecycle propagation, and
+  recency isolation on disposable databases;
+- repeat against an online production copy before production apply; and
+- verify normal retrieval and a natural Scarlet turn after deployment.
+
+Initial Result:
+
+The production legacy read-only baseline contained 307 memories: 61 complete,
+242 session-only records, and four invalid stored message links. The stricter
+V2 contract reclassified three assistant-message hooks from complete to
+invalid, yielding 58 valid and seven review-only links. All 242 session-only
+records satisfy three independent explicit Codex fixture markers; 241 are
+active and one already inactive. Exact transcript inspection found no unique
+deterministic repair for the seven invalid links.
+Focused tests passed 13/13, the full suite passed 209 tests at 80.45% coverage,
+and the ignored historical artifact produced the expected 34 repair and 241
+active-fixture candidates without changing its hash.
+
+Decision:
+
+Accept the classification and guarded workflow for the production-copy gate.
+Do not auto-repair the seven invalid links and do not broaden SCA-20 into
+duplicate/conflict adjudication.
+
+Evidence:
+
+`docs/evaluations/v1.38-historical-provenance-audit.md`
+
 ## EXP-0065 - Frozen And Live Final-Rerank Calibration
 
 Status: accepted for V1.37.0; longitudinal provider drift remains monitored

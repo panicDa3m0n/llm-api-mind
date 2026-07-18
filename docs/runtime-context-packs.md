@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-14
 Status: V1.36.1 context projection active; token-partition compaction shadow
-App baseline: V1.37.0
+App baseline: V1.38.0
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system

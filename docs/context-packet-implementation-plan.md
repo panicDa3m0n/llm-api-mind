@@ -55,6 +55,13 @@ historical summaries, passed SQLite integrity, and passed native MiniMax and
 public GPT Actions V2 smoke probes. The remaining 242 provenance gaps were not
 guessable and were deliberately left unresolved.
 
+V1.38.0 later inspected those 242 records structurally and established that
+they were Codex seed fixtures rather than one homogeneous class of uncertain
+human memories: 241 remained active and one was already deprecated. Their
+disposition is handled by the guarded fixture-deprecation workflow. Four
+different inconsistent source-message links remain genuinely unresolved and
+are not rewritten automatically.
+
 ## Purpose
 
 Implement the compact dynamic context contract reviewed in
