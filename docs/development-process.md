@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.42.0 (deployed)
+Current app version: V1.43.0 (deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -186,14 +186,16 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current deployed V1.42.0 baseline extends V1.41.0 with traceable
-agent-mode routing and includes:
+The current deployed V1.43.0 baseline extends V1.42.0 with an Actions-only GPT
+bridge and includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
   episodic summaries;
 - `mind_shell` as the single model-facing API Mind command tool, with legacy
   endpoint dispatch retained for backend/debug compatibility;
+- three mandatory external GPT Actions with no MCP connector or query-string
+  authentication surface;
 - runtime context blocks for session continuity, message perception, and
   Scarlet state;
 - dashboard settings for active profile, privacy scope, locale, language, and

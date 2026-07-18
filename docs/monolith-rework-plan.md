@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 implementation complete
-Runtime baseline: V1.42.0 deployed; V1.43.0 candidate under verification
+Status: accepted execution map from SCA-10; SCA-22 completed and deployed
+Runtime baseline: V1.43.0 deployed
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`

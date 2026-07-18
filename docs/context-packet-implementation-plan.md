@@ -691,8 +691,8 @@ The following are explicitly outside V1.29.0 unless separately approved:
 - multi-user authentication and data ownership migration;
 - embodiment context packs and mode routing;
 - removal of legacy runtime fields or legacy memory activity columns;
-- removal of the deprecated GPT MCP bridge (implemented separately by SCA-22
-  in the V1.43.0 candidate);
+- removal of the deprecated GPT MCP bridge (implemented and deployed
+  separately by SCA-22 in V1.43.0);
 - prompt, provider-history, or GPT Actions transport redesign.
 
 ### Separate Duplicate And Conflict Workstream

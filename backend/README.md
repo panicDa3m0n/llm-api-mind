@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.42.0 deployed.
+App baseline: V1.43.0 deployed.
 
 Current scope:
 

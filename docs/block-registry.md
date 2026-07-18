@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-18
-System version assessed: V1.42.0 (deployed)
+System version assessed: V1.43.0 (deployed; block contract unchanged)
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the

@@ -216,3 +216,8 @@ GPT bootstrap/action/finalize smoke at merge commit
 `fbdf431f7da1cd186a2c2b2cce90626c8f44ce6f`; annotated tag `v1.42.0` points
 to that deployed runtime commit. The later documentation closure commit does
 not move the runtime tag.
+V1.43.0 passed both remote quality workflows, protected backup, new-image
+preflight, restart, integrity, MCP proxy retirement, and authenticated GPT
+bootstrap/help/finalize smoke at merge commit
+`29c2852f9f34be8d888ab3921d15405094b9cb59`; annotated tag `v1.43.0` points
+to that deployed runtime commit. Historical `mcp_bridge` rows remain canonical.

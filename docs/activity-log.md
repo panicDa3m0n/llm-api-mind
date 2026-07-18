@@ -29,6 +29,20 @@ is `20260718_163657_preliminary-regression-v1`. CI, merge, Nginx retirement,
 and production database preservation are tracked in
 `docs/evaluations/v1.43-mcp-retirement.md`.
 
+Production closure completed at merge
+`29c2852f9f34be8d888ab3921d15405094b9cb59` (PR #15). The verified online
+backup is
+`/var/backups/scarlet-mobile-test/v1430-20260718T164517Z/app.db.pre-v1430`
+with SHA-256
+`7c0758032c4d92e6dc8cddcaeb2d80858f430a9f8c0fea9dc6fee1cf8acd55d7`.
+New-image and post-restart preflights reported production/direct ownership,
+29 tables, and integrity `ok`. Nginx MCP removal passed `nginx -t`; public
+`/mcp` now returns 404. Authenticated GPT smoke session
+`ses_7702a8ba8c3a485980ee8768a4cda701`, turn
+`turn_6889e99475ae41208242b7e2aa7542b1`, passed bootstrap/help/finalize.
+Post-smoke counts are 235 sessions and 903 messages; all 34 historical MCP
+sessions remain present.
+
 ## 2026-07-18 - SCA-10 Atomic Monolith Rework Map
 
 Inspected current top-level functions, imports, consumers, and measured line

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.42.0 (deployed)
+App baseline: V1.43.0 (deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -88,13 +88,14 @@ Implemented and verified:
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
   context routing, persistent resumable posture, `mode` shell commands, and
   ordered per-block receipts that separate eligibility from delivery;
-- V1.43.0 release candidate removes the deprecated MCP experiment and
+- V1.43.0 removes the deprecated MCP experiment and
   query-string authentication; the three GPT Actions remain the sole external
   model transport, while historical MCP-originated records are preserved.
 
 Current verification baseline:
 
-- backend: 241 tests passed at 81.29% statement coverage;
+- backend: 238 tests passed at 81.34% statement coverage; three MCP-only tests
+  were removed with their retired transport;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -144,6 +145,11 @@ Current verification baseline:
   two-session MiniMax chain also persisted then recovered scouting while
   keeping active human turns interactive and denying autonomous sensor
   execution.
+- V1.43.0 production rollout: both remote workflows, protected backup,
+  new-image production preflight, restart, package/OpenAPI version, DB
+  integrity, Nginx MCP-location removal, public `/mcp` 404, and authenticated
+  GPT bootstrap/help/finalize smoke passed. All 34 historical `mcp_bridge`
+  sessions remain unchanged.
 
 ### 3.2 Dynamic Context
 
