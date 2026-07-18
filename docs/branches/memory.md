@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-18
-System version assessed: V1.47.0 candidate
+System version assessed: V1.48.0 candidate
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -29,6 +29,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 - V1.47.0 separa search, open, facts e graph manuali dalla mutazione, mantenendo
   identici facade, shell, ranking, payload, provenienza, activity e trace.
   L'uso diretto conferma una navigazione compatta e cognitivamente utile.
+- V1.48.0 separa write/fatti, lifecycle, proposal e relation evidence dietro
+  il facade stabile. Similarita e conflitti restano evidenze, non decisioni
+  automatiche. Uso diretto e MiniMax confermano write, dedup, supersessione,
+  provenienza e risposta naturale coerenti.
 - V1.29.0 sostituisce il packet automatico ricco con tre liste di hook V2
   (`relevant`, `recent_user`, `recent_general`), deduplicate e navigabili.
 - `memory_activities` separa recenza cognitiva append-only da `updated_at`;

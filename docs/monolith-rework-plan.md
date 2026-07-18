@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 through SCA-36 verified
-Runtime baseline: V1.43.0 deployed; V1.47.0 candidate in SCA-36
+Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 through SCA-38 verified
+Runtime baseline: V1.43.0 deployed; V1.48.0 candidate in SCA-38
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -28,9 +28,13 @@ not permanent thresholds.
 
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
-| `backend/app/mind/memory.py` | 1,938 after SCA-36 | write policy, facts backfill, lifecycle, proposals, relation evidence, compatibility facade | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
+| `backend/app/mind/memory.py` | 38 after SCA-38 | compatibility facade for all memory commands | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | high: stable import contract |
 | `backend/app/mind/memory_read.py` | 975 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
-| `backend/app/mind/memory_shared.py` | 152 | shared fields, payload, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
+| `backend/app/mind/memory_write.py` | 616 | write contracts/policy, exact dedup, facts and backfill | facade, lifecycle, proposals, dispatcher | very high: semantic persistence |
+| `backend/app/mind/memory_lifecycle.py` | 462 | deprecate/supersede and fact lifecycle propagation | facade, dispatcher | very high: semantic state mutation |
+| `backend/app/mind/memory_proposals.py` | 555 | maintenance proposal preflight, ledger payload and apply | facade, maintenance runtime/API | high: background semantic candidates |
+| `backend/app/mind/memory_relations.py` | 274 | atomic conflicts and maintenance overlap evidence | facade, dispatcher | high: evidence authority |
+| `backend/app/mind/memory_shared.py` | 156 | shared fields, payload, normalization, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
 | `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
 | `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
 | `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
@@ -126,16 +130,18 @@ provenance, facts, graph topology, and all four trace kinds.
 
 ### 5. Memory Mutation And Evidence
 
-Issue: SCA-38, blocked by SCA-36.
+Issue: SCA-38, completed in the V1.48.0 candidate.
 
-Separate write policy, deprecate/supersede lifecycle, proposals, and
-relation/conflict evidence. Splitting code must not silently change duplicate
-or conflict policy: similarity remains evidence rather than deterministic
-truth, and no auto-merge or auto-deprecation is introduced.
+Write/fact materialization, deprecate/supersede lifecycle, maintenance
+proposals, and relation/conflict evidence now have dedicated owners behind the
+38-line `memory.py` facade. Similarity remains evidence rather than
+deterministic truth, and no auto-merge or auto-deprecation was introduced.
+Frozen pre/post gates pass 9/9; focused contracts pass 70/70; direct shell,
+proposal, and natural Scarlet probes preserve mutation semantics and behavior.
 
 ### 6. Maintenance Domains
 
-Issue: SCA-37, blocked by SCA-38.
+Issue: SCA-37, unblocked by completed SCA-38.
 
 Separate scheduler/dispatcher, summary-history work, and memory-review/proposal
 resolution. Preserve job kinds, persisted status, idempotency, retry behavior,

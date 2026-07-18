@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.47.0 candidate (V1.43.0 deployed)
+Current app version: V1.48.0 candidate (V1.43.0 deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -194,7 +194,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.47.0 candidate extends the deployed V1.43.0 Actions-only GPT
+The current V1.48.0 candidate extends the deployed V1.43.0 Actions-only GPT
 bridge baseline and includes:
 
 - local MiniMax-based Scarlet runtime;
@@ -208,6 +208,8 @@ bridge baseline and includes:
   context-accounting support modules behind the unchanged native chat facade;
 - one typed native-turn lifecycle owner behind the thin native HTTP facade;
 - one typed automatic-memory retrieval owner behind the stable context facade;
+- dedicated memory read, write, lifecycle, proposal, and relation-evidence
+  owners behind the stable memory facade;
 - one typed memory read owner plus minimal shared contracts behind the stable
   memory facade;
 - runtime context blocks for session continuity, message perception, and

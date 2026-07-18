@@ -9,6 +9,44 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0075 - Memory Mutation Surface Equivalence Probe
+
+Status: bounded pre/post and direct behavioral evidence accepted for V1.48.0
+
+Hypothesis:
+
+Write, lifecycle, proposal, and relation evidence can move to dedicated owners
+without changing shell/API contracts, persisted state, trace kinds, proposal
+decisions, conflict semantics, or Scarlet's natural memory behavior.
+
+Method:
+
+- run the frozen nine-case gate before and after extraction and compare stable
+  source, retrieval, navigation, and lifecycle fields;
+- run focused mutation, shell, maintenance, storage, and facade contracts;
+- exercise write, exact duplicate, fact conflict, supersede, and proposals on
+  disposable databases while inspecting records, facts, activities, traces,
+  and provenance; and
+- give MiniMax M3 a natural durable preference without asking for a tool, then
+  inspect its actions, stored memory, provenance, and final answer.
+
+Result:
+
+Both frozen gates passed 9/9 with identical stable evidence. Direct shell use
+created exactly two intended memories, rejected an exact repeat as a duplicate,
+reported only the real atomic-fact conflict, and removed it after explicit
+supersession. Proposal application preserved provenance and a later equivalent
+candidate became `noop_duplicate`. Scarlet autonomously wrote one faithful
+user preference with complete provenance and acknowledged it only after the
+successful tool result. Human/LLM judgment found the action sequence useful
+and proportionate rather than accepting aggregate scores alone.
+
+Evidence:
+
+- pre gate `20260718_192112_preliminary-regression-v1`;
+- post gate `20260718_193026_preliminary-regression-v1`;
+- `docs/evaluations/v1.48-memory-mutation-surface.md`.
+
 ## EXP-0074 - Memory Read Surface Equivalence Probe
 
 Status: bounded pre/post evidence accepted for the V1.47.0 candidate

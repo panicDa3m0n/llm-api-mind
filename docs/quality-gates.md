@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.47.0 candidate (V1.43.0 deployed)
+App baseline: V1.48.0 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,7 +43,7 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers seventeen high-value modules that currently pass
+The blocking mypy gate covers twenty-one high-value modules that currently pass
 without suppressing their own errors:
 
 - native chat provider-history transformations;
@@ -51,7 +51,8 @@ without suppressing their own errors:
 - native chat context-accounting persistence and request statistics;
 - shared native sync/stream turn orchestration and completion;
 - automatic memory candidate retrieval, classification, and final reranking;
-- manual memory read/search/facts/graph and shared memory contracts;
+- manual memory read/search/facts/graph, mutation/lifecycle/proposal/relation
+  owners, and shared memory contracts;
 - runtime configuration;
 - agent modes;
 - shell command registry;
@@ -146,6 +147,12 @@ context/retrieval contracts pass 101/101.
 V1.47.0 passes 245 tests at 81.54%. The memory read owner is at 85% and shared
 memory contracts are at 97%. Frozen pre/post gates pass 9/9 and focused
 shell/memory/V2/structure contracts pass 63/63.
+
+V1.48.0 passes 246 tests at 81.59%. Memory write, lifecycle, proposals, and
+relations are at 88%, 60%, 75%, and 98%; shared contracts remain at 97%.
+Frozen pre/post gates pass 9/9 and focused mutation/maintenance/facade
+contracts pass 70/70. Direct shell, proposal, and natural Scarlet probes are
+reviewed qualitatively in addition to deterministic pass counters.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

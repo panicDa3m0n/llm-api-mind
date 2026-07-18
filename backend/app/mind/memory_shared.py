@@ -122,6 +122,10 @@ def _normalize_freeform_label(value: str) -> str:
     return cleaned[:80] or DEFAULT_MEMORY_SCOPE
 
 
+def _normalize_memory_text(value: str) -> str:
+    return " ".join(value.casefold().split())
+
+
 def _record_memory_activity(
     db: Session,
     *,

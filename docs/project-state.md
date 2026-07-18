@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.47.0 candidate (V1.43.0 deployed)
+App baseline: V1.48.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -172,6 +172,11 @@ Current verification baseline:
 - V1.47.0 candidate: SCA-36 frozen pre/post gates passed 9/9 with identical
   stable read evidence; focused contracts passed 63/63 and direct shell use
   preserved search, open, facts, graph, provenance, and traces. Deployment
+  remains V1.43.0.
+- V1.48.0 candidate: SCA-38 frozen pre/post gates passed 9/9 with identical
+  stable mutation evidence; focused contracts passed 70/70. Direct shell,
+  proposal, and natural MiniMax probes preserved write, deduplication,
+  lifecycle, evidence authority, provenance, and agent behavior. Deployment
   remains V1.43.0.
 
 ### 3.2 Dynamic Context
@@ -444,10 +449,11 @@ behavior:
 
 ## 7. Current Best Next Step
 
-SCA-36 now separates memory search/read/facts/graph from mutation behind the
-unchanged shell/dispatcher facade. The next dependent organizational issue is
-SCA-38: separate write, lifecycle, proposal, and relation evidence without
-changing duplicate/conflict policy.
+SCA-36 and SCA-38 now separate memory read, mutation, lifecycle, proposal, and
+relation-evidence domains behind the unchanged shell/dispatcher facade. The
+next dependent organizational issue is SCA-37: separate maintenance scheduling,
+summary/history work, and memory-review/proposal resolution without changing
+job lifecycle or auto-apply guards.
 BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
 organization work.
 BUG-0093/SCA-43 separately tracks model-facing verification for the frozen

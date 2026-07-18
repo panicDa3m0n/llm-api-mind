@@ -7,6 +7,43 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0102 - Memory Mutation Domains Share A Stable Facade, Not Policy
+
+Date: 2026-07-18
+Status: accepted for V1.48.0
+
+Context:
+
+After read extraction, `app.mind.memory` still combined write policy, fact
+materialization, lifecycle, maintenance proposals, and relation evidence.
+These domains share persistence primitives but have different callers and
+different authority: relation similarity is evidence, while lifecycle is an
+explicit state mutation.
+
+Decision:
+
+- `memory_write` owns write validation, exact deduplication, traces, fact
+  materialization/backfill, and retrieval-artifact synchronization;
+- `memory_lifecycle` owns deprecate/supersede contracts and propagation to
+  memory facts;
+- `memory_proposals` owns maintenance candidate preflight, idempotent ledger
+  records, payloads, and explicit proposal application;
+- `memory_relations` owns atomic conflict and maintenance-overlap evidence;
+- `memory.py` remains the stable re-export facade; and
+- no similarity detector may auto-merge or auto-deprecate memory as a side
+  effect of this ownership split.
+
+Consequences:
+
+Mutation behavior can now be changed and tested by authority boundary. The
+proposal pipeline reuses write/fact primitives rather than copying them, and
+relation outputs remain inspectable evidence rather than deterministic truth.
+
+Links:
+
+- Linear SCA-38
+- `docs/evaluations/v1.48-memory-mutation-surface.md`
+
 ## ADR-0101 - Memory Read Commands Have A Dedicated Owner Behind The Facade
 
 Date: 2026-07-18

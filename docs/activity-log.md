@@ -4,6 +4,39 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.48.0 Memory Mutation And Evidence (SCA-38)
+
+Separated the remaining memory mutation surface into `memory_write` (write
+contract, policy, exact dedup, facts and backfill), `memory_lifecycle`
+(deprecate/supersede), `memory_proposals` (maintenance preflight, ledger and
+apply), and `memory_relations` (atomic conflicts and overlap evidence).
+`memory.py` is now a 38-line compatibility facade rather than a 1,938-line
+mixed owner. The moved public objects remain identical through the facade.
+
+The frozen pre gate `20260718_192112_preliminary-regression-v1` and post gate
+`20260718_193026_preliminary-regression-v1` both pass 9/9. Stable source
+inventory, automatic selection, candidate count, manual search/facts and
+lifecycle results are identical. Focused mutation/maintenance tests pass
+70/70; all 246 backend tests pass at 81.59% coverage. Ruff and mypy pass across
+21 guarded modules, and normalized OpenAPI is byte-identical.
+
+Direct shell use on a disposable database stored two conflicting Zero-Luce
+formats, deduplicated an exact repeat, exposed one atomic-fact conflict, and
+cleared it by superseding the old memory. The old memory/fact became
+deprecated, the replacement stayed active, and write/review/supersede
+activities plus expected traces were present. A proposal probe kept a new
+candidate in the cautious lane, applied it with complete provenance, and
+classified a later equivalent candidate as `noop_duplicate` without creating
+a second memory.
+
+A natural MiniMax M3 turn received only a human-style preference statement.
+Scarlet consulted memory help, wrote one `user_preference` with complete
+session/turn/message provenance, and then accurately acknowledged the saved
+preference. Qualitatively the action and answer were proportionate; no
+systemic behavioral bug appeared. Two failed probe attempts were harness-only
+SQLAlchemy/repository mistakes before result inspection and did not exercise
+or change application behavior.
+
 ## 2026-07-18 - V1.47.0 Memory Read Surface (SCA-36)
 
 Moved memory search, read, facts, graph, their Pydantic request contracts, read

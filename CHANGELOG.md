@@ -6,6 +6,29 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.48.0 - Memory Mutation And Evidence Boundaries
+
+#### Changed
+
+- Split memory write/fact materialization, lifecycle, maintenance proposals,
+  and relation evidence into four dedicated owners behind `app.mind.memory`.
+- Reduced `app.mind.memory` from 1,938 lines to a 38-line compatibility facade
+  while preserving dispatcher, shell, API, maintenance, and evaluator imports.
+- Extended the blocking mypy surface from 17 to 21 modules and fixed two
+  proposal-flow type narrowings without changing their runtime decisions.
+
+#### Verification
+
+- Frozen SCA-38 pre/post gates pass 9/9 with identical source inventory,
+  retrieval ids, facts, search results, and lifecycle targets.
+- Focused mutation/maintenance contracts pass 70/70; the complete backend
+  passes 246 tests at 81.59% coverage; Ruff and mypy pass.
+- Direct shell use verified write, exact deduplication, atomic conflict
+  evidence, supersession, fact lifecycle, activities, and traces on an
+  isolated database.
+- A natural MiniMax M3 turn autonomously wrote one sourceable user preference
+  and answered consistently with the successful persistence result.
+
 ### V1.47.0 - Memory Read Surface Boundary
 
 #### Changed

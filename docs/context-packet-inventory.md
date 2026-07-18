@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-18
-Code baseline reviewed: V1.39.0
+Code baseline reviewed: V1.48.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -22,6 +22,8 @@ V1.36.0 introduced accounting and the shadow provider-history plan without
 changing the V2 dynamic packet shape. V1.39.0 activates a separate derived
 history view for native MiniMax only when a valid compaction artifact exists;
 it still does not change the V2 dynamic packet fields inventoried here.
+V1.46.0 through V1.48.0 separate retrieval, read, and mutation ownership
+without changing any automatic or manual model packet shape in this inventory.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
