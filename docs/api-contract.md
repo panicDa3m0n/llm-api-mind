@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-14
-App baseline: V1.35.0
+App baseline: V1.36.0
 
 ## Response Philosophy
 
@@ -281,7 +281,7 @@ State changes write an `agent.mode` trace and `agent.mode.changed` event.
 
 ### Context Accounting
 
-Status: implemented preflight/observation and shadow planning in V1.30.0
+Status: accounting v2 and token-partition shadow planning in V1.36.0
 
 Native chat writes:
 
@@ -291,19 +291,29 @@ context.accounting.observed
 ```
 
 The preflight trace reports exact local JSON characters and bytes plus clearly
-labelled token estimates for static policy, dynamic runtime, provider history,
-current message, tool schema, and request structure. The observed trace records
-provider first-step input separately from aggregate tool-loop usage and can
-calibrate future estimates for that model/session.
+labelled token estimates for static policy, model-context packet, provider
+history, current message, Mind shell schema, and request structure. It also
+contains `chronology_source_map`, mapping canonical provider slices to complete
+turn, message, tool-call, request-trace, and response-trace ids without mutation.
+
+The observed trace records every provider step. Effective input is
+`input_tokens + cache_read_input_tokens + cache_creation_input_tokens` when the
+provider reports those fields. It exposes first and maximum effective step plus
+cumulative tool-loop usage; only compatible accounting-v2 observations can
+calibrate later preflight estimates.
 
 GPT bootstrap writes only the preflight measure of the backend response packet.
 It explicitly lists manual GPT policy, native ChatGPT history, Actions
 serialization, request structure, and provider token usage as unobserved. It
 must not be interpreted as total ChatGPT model input.
 
-Compaction remains `shadow`: traces can say the 400k trigger would fire and
-project a 100k summary plus the desired eight complete turns, but no canonical
-message, transcript, trace, or provider-history record is mutated.
+Compaction remains `shadow`. The plan divides the 500k operational input into
+measured external overhead `O`, compacted-summary maximum `C=100k`, exact
+complete-turn maximum `H=100k`, dynamic active growth `A`, and safety `M=25k`.
+Turns are selected by incremental token cost, never a fixed count. A turn that
+exceeds `H` but fits the physical 1M window remains whole and reduces `A`; a
+turn beyond 1M fails closed. No canonical message, transcript, trace, or
+provider-history record is mutated.
 
 ## Planned Chat And Debug API
 

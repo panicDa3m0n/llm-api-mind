@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-14
-App baseline: V1.35.0
+App baseline: V1.36.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -76,8 +76,9 @@ Implemented and verified:
   maintenance, debug, and rollback, not exposed as a second native model tool;
 - GPT Actions bridge using mandatory bootstrap/action/finalize lifecycle and
   the same context compiler and shell dispatcher as native Scarlet;
-- per-turn context accounting with exact character/byte channels, provider
-  first-step observations, and non-destructive compaction planning;
+- per-turn accounting v2 with separate policy/V2/history/current/shell
+  channels, cache-aware provider steps, exact chronology source maps, and
+  non-destructive `C/H/A` compaction planning;
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
   context routing, persistent resumable posture, and `mode` shell commands;
 - deprecated MCP experiment retained temporarily but not part of the target
@@ -139,10 +140,16 @@ outside automatic model input. Every `model.context` trace records the exact
 projection audit, and native MiniMax plus GPT bootstrap consume the same
 canonical V2 document.
 
+V1.36.0 adds a measured shadow budget for provider-native history. The normal
+500k partition reserves up to 100k for recursive summary, 100k for exact recent
+complete turns, 25k safety, and computes active growth from actual external
+overhead. Source-labelled full/derived evaluation supports this design, but it
+does not change active model input.
+
 Still open:
 
-- provider-native history is not budgeted or compacted and can outweigh V2 in
-  tool-heavy sessions;
+- persist recursive compacted summaries and route the derived history only
+  after a multi-cycle evaluation and explicit approval;
 - the first mode router is active for automatic runtime blocks; on-demand
   shell operations remain available independently;
 - no high-frequency perception or embodiment stream exists.
@@ -299,10 +306,11 @@ Current engineering baseline:
 
 ### P1 - Validate And Activate Context Control
 
-1. Accumulate exact accounting from long varied post-V1.30 sessions.
-2. Design and test the derived 100k chronology plus desired eight-turn tail.
-3. Define degradation when the measured tail cannot fit below 500k.
-4. Promote active compaction only after direct continuity/source tests.
+1. Persist recursive source-labelled summary artifacts under the 100k `C` cap.
+2. Build the derived input router behind `shadow` without canonical mutation.
+3. Run a multi-cycle continuity/source/provenance comparison, including the
+   whole-turn exception.
+4. Promote active compaction only after explicit approval of that gate.
 
 ### P2 - Memory Integrity
 

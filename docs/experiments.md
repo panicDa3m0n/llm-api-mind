@@ -220,7 +220,7 @@ tag.
 
 ## EXP-0059 - Long-Session Accounting And Compaction Calibration
 
-Status: shadow measurement active; compaction not active
+Status: V1.36 bounded calibration accepted; compaction remains shadow-only
 
 Hypothesis:
 
@@ -236,24 +236,37 @@ therefore was not a reliable measure of one context window.
 
 Variant:
 
-V1.30.0 adds preflight/observed accounting and a 400k shadow trigger. The
-provisional derived shape targets about 100k summary tokens plus eight complete
-turns, but produces only a plan and never mutates history.
+V1.36.0 replaces the fixed eight-turn proxy with exact source-labelled provider
+slices and a token partition `O + C + H + A + M <= 500k`. `C` and normal `H`
+are capped at 100k each, `M` reserves 25k, and `A` is derived from measured
+external overhead. Accounting v2 includes cache-read/cache-creation input per
+model step and does not learn from incompatible v1 observations.
 
 Read-Only Laboratory Evidence:
 
-Three real sessions showed first-step ratios around 3.75-4.83 chars/token.
-Eight-turn proxies varied from about 63k to 159k estimated tokens; one
-tool-heavy five-turn session reached about 323k. This falsifies the assumption
-that a fixed recent-turn count has a stable cost.
+Three real sessions mapped exactly at about 56k, 163k, and 350k history tokens.
+The normal 100k `H` retained respectively 8, 2, and 1 complete turns. In the
+last session the newest turn alone was about 340k, confirming that complete
+turns need an explicit physical-window exception rather than a count rule.
 
-Next Test:
+Bounded Full-vs-Derived Result:
 
-Collect exact V1.30 traces during a long varied direct Scarlet session. Compare
-full history with a source-labelled derived compaction for semantic continuity,
-tool provenance, exact-source navigation, answer quality, latency, and failed
-or thinking-only completions. Activation requires an approved insufficient-
-headroom degradation rule.
+Six MiniMax M3 calls compared two source-labelled session continuations. On the
+163k varied session, derived input fell from about 174k to 91k and latency from
+93s to 49s while preserving the core constraints, verification history, and
+source detail. Both variants shared one causal-attribution overclaim. On the
+350k tool-heavy session, the full variant ended at `max_tokens` with no public
+text while derived completed; the input saving was small because the 340k
+newest turn must remain exact. This second comparison is behaviorally
+inconclusive but validates the exception boundary.
+
+Decision:
+
+Accept accounting v2, exact source maps, and the token-partition planner in
+shadow mode. If a turn exceeds normal `H` but fits 1M, retain it whole and
+reduce `A`; beyond 1M fail closed. Active routing still requires persisted
+recursive summary artifacts, a multi-cycle test, and separate owner approval.
+See `docs/evaluations/v1.36-history-compaction-calibration.md`.
 
 ## EXP-0057 - ChatGPT MCP/App Bridge Usability
 

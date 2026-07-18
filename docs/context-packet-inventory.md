@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-14
-Code baseline reviewed: V1.35.0
+Code baseline reviewed: V1.36.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -18,6 +18,8 @@ rich internal/legacy source snapshot. Active model delivery now uses
 `scarlet-model-context-v2`. V1.35.0 completes the field-level review of
 `preserved_context`: only compact focus, affect, and metacognitive blocks may
 be projected automatically, and only when their organ mode enables them.
+V1.36.0 changes accounting and the shadow provider-history plan, not the V2
+dynamic packet shape or this inventory's field dispositions.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a

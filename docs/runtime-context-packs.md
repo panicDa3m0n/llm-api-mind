@@ -1,8 +1,8 @@
 # Runtime Context And Agent Modes
 
 Last updated: 2026-07-14
-Status: V1.35.0 context projection active; history compaction still gated
-App baseline: V1.35.0
+Status: V1.36.0 context projection active; token-partition compaction shadow
+App baseline: V1.36.0
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -35,9 +35,11 @@ uses these configurable policy values:
 |---|---:|---|
 | `context_window_tokens` | 1,000,000 | Provider model window. |
 | `context_operational_input_limit_tokens` | 500,000 | Maximum input budget API Mind intends to use. |
-| `context_compaction_trigger_tokens` | 400,000 | 80% trigger inside the API Mind budget. |
-| `history_compaction_target_tokens` | 100,000 | Target size for a future chronological compaction. |
-| `history_compaction_recent_turns` | 8 | Desired complete-turn tail retained after compaction. |
+| `context_compaction_trigger_tokens` | 400,000 | Compatibility warning threshold; not the V1.36 partition trigger. |
+| `history_compaction_target_tokens` | 100,000 | Maximum recursively compacted chronology (`C`). |
+| `history_compaction_verbatim_tokens` | 100,000 | Normal maximum exact complete-turn chronology (`H`). |
+| `history_compaction_safety_tokens` | 25,000 | Technical safety reservation (`M`). |
+| `history_compaction_recent_turns` | 8 | Compatibility setting only; V1.36 selection is token-based. |
 | `history_compaction_mode` | `shadow` | Measure and plan; never mutate active history. |
 
 The 500k value is an input-context policy, not the provider's output
@@ -53,24 +55,25 @@ context.accounting.preflight
 context.accounting.observed
 ```
 
-Preflight keeps exact JSON character and UTF-8 byte counts separate from token
-estimates for:
+Accounting v2 keeps exact JSON character and UTF-8 byte counts separate from
+token estimates for:
 
 - static system policy;
-- dynamic runtime context;
+- model context packet (normally V2);
 - provider history;
 - current user message;
-- tool schema;
+- Mind shell tool schema;
 - request structure.
 
-Provider token usage is authoritative only after the call. The observed trace
-therefore records first-model-step input tokens separately from aggregate
-tool-loop usage. Using total tool-loop input as if it were one request would
-greatly overstate context size.
+Provider token usage is authoritative only after the call. Every model step
+records effective input as uncached input plus cache-read and cache-creation
+tokens, along with the maximum step and cumulative tool-loop usage. Cumulative
+usage is never treated as one context window.
 
 The estimator starts at a conservative configurable 3.5 characters/token and
-calibrates from the median of valid first-step observations for the same model
-and session.
+calibrates only from compatible accounting-v2 first-step observations for the
+same model and session. V1 observations are excluded because their cache
+boundary was incomplete.
 
 GPT bootstrap writes a partial preflight measure of the backend packet only.
 The backend cannot observe the manually configured GPT system prompt, native
@@ -85,28 +88,31 @@ session/message/turn commands. A future active compact history is a derived
 model-input view, never a rewrite of messages, traces, provider history, or
 source transcripts.
 
-The intended derived view is:
+The V1.36 shadow partition is:
 
 ```txt
-chronological compaction around 100k tokens
-+ desired last 8 complete provider turns
-+ current user turn
-+ current static/dynamic/tool context
+O + C + H + A + M <= 500k
 ```
 
-Eight turns are an objective, not an unconditional count. Tool-heavy turns can
-be very large. Before active compaction, the planner must verify that the
-summary target, actual recent-turn tail, and all fixed channels fit below 500k
-with useful headroom. If not, activation requires an explicitly tested
-degradation strategy, such as compacting part of the nominal tail. V1.30.0 does
-not choose that strategy automatically.
+- `O` is measured policy, V2, current-message, shell-schema, and request
+  overhead; it is not compacted.
+- `C` is the previous compacted summary plus all newly evicted complete turns,
+  recursively recompressed under 100k.
+- `H` is the newest exact complete turns selected backward by incremental token
+  cost under the normal 100k maximum.
+- `A` is the free area that fills with new turns and current tool activity.
+- `M` is the 25k technical safety reservation.
+
+The trigger is derived from actual `O`: provider history reaches the remaining
+operational capacity. A fixed number of turns is not used.
 
 The shadow plan reports:
 
 - whether the estimated trigger would fire;
-- retained turn ids and estimated tail cost;
-- projected active input and free headroom;
-- `would_compact_insufficient_headroom` when the proposal does not fit;
+- an exact source map from provider slices to turn, message, tool, and trace ids;
+- `C/H/A` token areas and the complete turns selected for each derived area;
+- a whole-turn exception when the newest turn exceeds `H` but fits 1M;
+- a fail-closed status when one turn exceeds the physical model window;
 - `canonical_history_mutation=none`.
 
 ## Real Laboratory Measurement
@@ -114,23 +120,23 @@ The shadow plan reports:
 On 2026-07-13 the mutable local laboratory DB was opened read-only. It was not
 the VPS production DB and no records were changed.
 
-Observed first-step ratios on three real sessions ranged approximately from
-3.75 to 4.83 JSON characters per provider input token. Tool-loop aggregate
-usage was sometimes several times larger than the first request, confirming
-the need for separate metrics.
+V1.36 reconstructed exact provider-history slices for three sessions and ran a
+six-call bounded MiniMax comparison on two. Full evidence and qualitative
+judgment are in
+`docs/evaluations/v1.36-history-compaction-calibration.md`.
 
-Measured recent-turn proxy costs varied materially:
+Exact completed-turn costs varied materially:
 
-| Laboratory session | Complete turns measured | Recent-tail JSON chars | Estimate at 3.5 chars/token |
+| Laboratory session | Complete turns | History estimate | Exact turns retained in normal `H` |
 |---|---:|---:|---:|
-| `ses_474f6033e6284006ad4899c21abb4766` | 8 | 220,482 | 62,995 |
-| `ses_4d87888f5e264bc0947ddb5a963aa3ae` | 8 | 555,333 | 158,667 |
-| `ses_5c2096e50e8c492fb85d8658bd0dc4de` | 5 | 1,128,891 | 322,540 |
+| `ses_474f6033e6284006ad4899c21abb4766` | 8 | 56,395 | 8 |
+| `ses_4d87888f5e264bc0947ddb5a963aa3ae` | 9 | 163,366 | 2 |
+| `ses_5c2096e50e8c492fb85d8658bd0dc4de` | 5 | 350,187 | 1 exceptional 340,504-token turn |
 
-The last case is tool-heavy and demonstrates why a fixed eight-turn tail
-cannot be activated from theory alone. Exact V1.30 accounting did not yet exist
-when these historical turns ran; the table is a read-only reconstruction and
-is not a post-deploy provider trace.
+With observed `O` approximated at 25k, normal `C=100k`, `H=100k`, and `M=25k`
+leave about 250k tokens in `A`. The last case is tool-heavy: its newest turn
+must remain whole, so the exception reduces active headroom instead of
+pretending the normal partition still fits.
 
 ## Always-On Spine
 
@@ -217,12 +223,13 @@ version, and explicit background-process exclusion.
 
 Active history compaction requires:
 
-1. exact accounting traces from long and varied post-V1.30 sessions;
+1. exact accounting traces from long and varied sessions (completed in V1.36);
 2. a versioned summary artifact with coverage/source boundaries;
 3. tests proving the canonical chronology remains unchanged and navigable;
 4. natural direct Scarlet comparisons for continuity, source use, tool loops,
    and response completion;
-5. an approved degradation rule when 100k plus eight turns does not fit;
+5. approved whole-turn handling when normal `H` does not fit (defined in
+   V1.36) plus a multi-cycle test;
 6. rollback to full history or an earlier derived view.
 
 New agent modes or mode-tag enforcement require branch-specific behavioral

@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-14
-App baseline: V1.35.0
+App baseline: V1.36.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,7 +43,7 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers eight high-value modules that currently pass
+The blocking mypy gate covers nine high-value modules that currently pass
 without suppressing their own errors:
 
 - runtime configuration;
@@ -53,6 +53,7 @@ without suppressing their own errors:
 - canonical V2 context compilation;
 - final memory reranking;
 - context accounting;
+- chronological source mapping and shadow partition planning;
 - database ownership boundaries.
 
 Imports are treated as external to this first slice so SQLModel repository

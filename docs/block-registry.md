@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-14
-System version assessed: V1.35.0
+System version assessed: V1.36.0
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -205,8 +205,8 @@ automatic context packets.
 ## 7. Next Registry Work
 
 - keep new optional organ families behind explicit field allowlists and audit;
-- accumulate long-session provider observations and validate the 100k plus
-  desired eight-turn compaction shape;
+- persist recursive summary artifacts and validate the V1.36 token partition
+  across multiple compaction cycles;
 - populate natural behavioral scenarios for mode routing and continuity;
 - update this registry before promoting active compaction or hard-gating any
   cognitive command by mode.

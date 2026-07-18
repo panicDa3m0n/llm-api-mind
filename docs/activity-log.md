@@ -4,6 +4,45 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-14 - V1.36.0 Chronology Accounting And Shadow Calibration (SCA-5)
+
+Goal:
+
+Replace fixed-turn chronological planning with measured token areas, preserve
+exact source provenance, and evaluate full versus derived continuity without
+activating compaction.
+
+Changes:
+
+- Added exact provider-history source maps for complete turns, messages, tool
+  calls, and request/response traces.
+- Added the `O + C + H + A + M <= 500k` shadow planner with token-based recent
+  turn selection, whole-turn 1M exception, and fail-closed physical-window rule.
+- Upgraded accounting to v2 with separate policy/V2/history/current/shell
+  channels and effective per-step cache-aware provider input.
+- Added a repeatable bounded calibration runner and focused deterministic tests.
+
+Evidence:
+
+- Three read-only real sessions measured about 56k, 163k, and 350k provider
+  history tokens; normal `H=100k` retained 8, 2, and 1 complete turns.
+- Six approved MiniMax calls compared full/derived continuity on two sessions.
+  The 163k derived case reduced input by about 48% and latency by about 47%
+  while preserving the principal evidence. The 350k case confirmed the
+  single-turn exception; its full variant produced no public text at
+  `max_tokens`, so that quality comparison remains inconclusive.
+- Focused verification: 12 accounting/compaction tests, Ruff, and mypy passed;
+  the complete backend suite passed 192 tests at 80% coverage.
+
+Boundary:
+
+- `backend/data/app.db` was read only and remains an unrelated modified local
+  file outside this change.
+- No VPS, production DB, canonical provider history, prompt, or active model
+  input was changed.
+- Active compaction remains gated on recursive summary persistence,
+  multi-cycle evaluation, and explicit owner approval.
+
 ## 2026-07-14 - V1.35.0 Preserved Context Review (SCA-18)
 
 Goal:

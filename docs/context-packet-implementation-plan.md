@@ -20,6 +20,15 @@ adds the next control layer without rewriting that result:
 No V1.30 operation compacts or replaces canonical chronology. Duplicate and
 conflict adjudication remains outside this follow-up.
 
+## V1.36.0 Chronology Follow-Up
+
+V1.36 replaces the fixed recent-turn assumption with an exact provider-history
+source map and the shadow partition `O + C + H + A + M <= 500k`. `C` and normal
+`H` are configurable 100k maxima, `M` is 25k, and complete turns enter `H`
+backward by token cost. A whole turn may exceed `H` only as an explicit
+physical-window exception. The active V2 packet and canonical provider history
+remain unchanged.
+
 ## Implementation Result
 
 V1.29.0 implements Phases 1 through 10 for the reviewed packet families. The

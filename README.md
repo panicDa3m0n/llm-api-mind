@@ -43,9 +43,8 @@ The project has a working local baseline runtime:
 - episodic recall through session summaries plus full transcript retrieval by session id;
 - rich automatic retrieval/runtime traces plus a compact
   `scarlet-model-context-v2` packet shared by native MiniMax and GPT Actions;
-- per-channel context accounting, provider first-step observations, and a
-  non-destructive 400k-trigger compaction plan targeting a future 100k
-  chronology plus measured recent turns;
+- accounting v2 with cache-aware provider steps, exact chronology source maps,
+  and non-destructive `O/C/H/A/M` token-partition compaction planning;
 - agent-only `idle`/`interactive`/`scouting` modes with multi-tag automatic
   context eligibility and shell inspection/selection;
 - runtime event control plane feeding the cockpit timeline and compact
@@ -95,10 +94,10 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Accumulate exact post-V1.30 accounting from long, varied real sessions.
-2. Validate a derived 100k chronology plus desired eight-turn tail and define
-   degradation when the tail does not fit under 500k.
-3. Populate natural behavioral scenarios for context, communication, focus,
+1. Persist recursive source-labelled chronology summaries and build the
+   derived model-input router behind the existing shadow gate.
+2. Validate multiple compaction cycles before explicit active-mode approval.
+3. Expand natural behavioral scenarios for context, communication, focus,
    volition, affect, metacognition, identity, and memory.
 4. Validate those existing organs and behaviors before coupling organs or
    adding autonomous cycles.
