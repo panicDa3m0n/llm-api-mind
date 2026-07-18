@@ -1,4 +1,5 @@
 import json
+from hashlib import sha256
 
 from fastapi.testclient import TestClient
 from sqlalchemy.engine import Engine
@@ -13,6 +14,7 @@ from app.llm.provider import (
     LLMToolUse,
 )
 from app.main import create_app
+from app.runtime.history_compaction import build_chronology_source_map
 from app.storage import repositories
 
 
@@ -1179,6 +1181,116 @@ def test_second_chat_turn_uses_persisted_history(db_engine: Engine) -> None:
         "user",
         "assistant",
     ]
+
+
+def test_active_history_compaction_routes_sync_and_stream_without_mutating_canonical(
+    db_engine: Engine,
+) -> None:
+    client = make_client(
+        db_engine,
+        settings_overrides={"history_compaction_mode": "active"},
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+    session_id = session["id"]
+    first = client.post(
+        f"/api/chat/sessions/{session_id}/turn",
+        json={"message": "first"},
+    ).json()
+    client.post(
+        f"/api/chat/sessions/{session_id}/turn",
+        json={"message": "second"},
+    )
+
+    with Session(db_engine) as db:
+        source_map = build_chronology_source_map(
+            db,
+            session_id=session_id,
+            chars_per_token=2.0,
+        )
+        first_unit = source_map["turns"][0]
+        summary = "The first completed turn is preserved in compact form."
+        repositories.create_history_compaction(
+            db,
+            session_id=session_id,
+            summary=summary,
+            summary_sha256=sha256(summary.encode()).hexdigest(),
+            source_history_sha256=source_map["canonical_history_sha256"],
+            covered_through_turn_id=first["turn_id"],
+            covered_turn_ids=[first["turn_id"]],
+            covered_sources=[
+                {
+                    "turn_id": first["turn_id"],
+                    "sha256": first_unit["sha256"],
+                    "estimated_tokens": first_unit["estimated_tokens"],
+                }
+            ],
+            source_estimated_tokens=first_unit["estimated_tokens"],
+            summary_estimated_tokens=20,
+            trigger_turn_id=first["turn_id"],
+            model="MiniMax-M3",
+            provider_message_id="provider_compaction",
+            metadata={
+                "legacy_prefix_sha256": source_map["legacy_prefix"]["sha256"]
+            },
+        )
+
+    sync = client.post(
+        f"/api/chat/sessions/{session_id}/turn",
+        json={"message": "third"},
+    ).json()
+    sync_traces = client.get(f"/api/debug/traces/{sync['turn_id']}").json()
+    sync_request = next(trace for trace in sync_traces if trace["kind"] == "llm.request")
+    assert sync_request["payload"]["provider_history_source"] == (
+        "history_compaction_artifact"
+    )
+    assert len(sync_request["payload"]["canonical_provider_messages"]) == 5
+    assert len(sync_request["payload"]["provider_messages"]) == 3
+    assert summary in sync_request["payload"]["system"]
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session_id}/turn/stream",
+        json={"message": "fourth"},
+    ) as response:
+        decoded = [json.loads(line) for line in response.iter_lines() if line]
+    complete = decoded[-1]["data"]
+    stream_traces = client.get(
+        f"/api/debug/traces/{complete['turn_id']}"
+    ).json()
+    stream_request = next(
+        trace for trace in stream_traces if trace["kind"] == "llm.request"
+    )
+    assert stream_request["payload"]["provider_history_source"] == (
+        "history_compaction_artifact"
+    )
+    assert len(stream_request["payload"]["canonical_provider_messages"]) == 7
+    assert len(stream_request["payload"]["provider_messages"]) == 5
+    assert summary in stream_request["payload"]["system"]
+
+    with Session(db_engine) as db:
+        stored = repositories.get_chat_session(db, session_id)
+        routing_traces = repositories.list_traces_for_session(
+            db,
+            session_id=session_id,
+            kinds=["history.routing"],
+            limit=20,
+        )
+
+    assert stored is not None
+    assert len(stored.provider_history_json) == 8
+    assert [message["role"] for message in stored.provider_history_json] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+    assert [
+        trace.payload_json["status"] for trace in routing_traces
+    ].count("derived_history_active") == 2
 
 
 def test_chat_turn_selects_relevant_memory_context(db_engine: Engine) -> None:

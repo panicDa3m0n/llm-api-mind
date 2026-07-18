@@ -2,7 +2,7 @@
 
 Status: active planning  
 Last updated: 2026-07-14
-App baseline: V1.38.0
+App baseline: V1.39.0
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -35,8 +35,9 @@ Implemented today:
 - `session_summaries` table as the episodic recall index for chat sessions.
 - `search_documents_fts` as a derived SQLite FTS5 sparse index for memory and
   session retrieval.
-- `sessions.provider_history_json` as the MiniMax/Anthropic-compatible
-  provider-native history used for model-facing multi-turn continuity.
+- `sessions.provider_history_json` as the authoritative append-only
+  MiniMax/Anthropic-compatible provider history. V1.39 may derive a compacted
+  model-facing prefix from it, but never overwrites this canonical chronology.
 - Temporal filters on `POST /mind/memory/search` and `GET /mind/sessions`,
   resolved by the backend from runtime time.
 - semantic `scope`/`type`, backend-derived tags/metadata, timestamps, and

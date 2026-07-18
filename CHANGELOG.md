@@ -6,7 +6,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.38.0 separates historical provenance audit from guarded maintenance and
+V1.39.0 activates recursive source-labelled native history compaction without
+mutating canonical chronology. V1.38.0 separates historical provenance audit from guarded maintenance and
 classifies explicit Codex fixtures without semantic inference. V1.37.0
 calibrates final memory relevance on frozen and live evidence. V1.36.1
 prevents thinking-only provider messages from becoming successful empty Scarlet
@@ -15,6 +16,12 @@ currently deployed HoneyLabs production runtime after passing the protected
 database deployment boundary.
 
 ### Added
+
+- Added append-only recursive chronology artifacts, immediate maintenance jobs,
+  active sync/stream routing, deterministic source manifests, and explicit
+  canonical fallback under SCA-32.
+- Added `history.routing` evidence plus canonical and model-facing request
+  snapshots for active native turns.
 
 - Added the read-only `memory-provenance-audit-v2` contract with orthogonal
   provenance, record-disposition, exact-duplicate-review, criteria, and
@@ -106,6 +113,12 @@ database deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Changed the compaction trigger to the configured total model-input threshold
+  and, after activation, to the estimated derived next-turn view rather than
+  immutable canonical-history size.
+- Changed the active native request to `compacted chronology + exact token tail
+  + current user` while keeping provider-history persistence canonical.
 
 - Deployed V1.38.0 after a verified online backup and production-role
   preflight. The guarded apply deprecated all 242 explicit Codex fixtures,
@@ -204,6 +217,13 @@ database deployment boundary.
   summarization, and Dream remain background processes.
 
 ### Fixed
+
+- Fixed `context.accounting.observed` reporting every compaction plan as
+  shadow-only even when the request used active derived history.
+- Fixed generated chronology summaries carrying altered/shortened opaque source
+  IDs by removing unverified IDs and supplying backend-owned exact manifests.
+- Fixed active compaction jobs being eligible after every later turn solely
+  because canonical history remains above the trigger.
 
 - Rejected semantically empty terminal chat results in both synchronous and
   streaming routes. Repeated or non-recoverable empty results now fail the

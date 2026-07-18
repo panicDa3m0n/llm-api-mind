@@ -65,6 +65,7 @@ def test_init_db_creates_core_tables() -> None:
         "memory_proposals",
         "memory_surfaces",
         "session_summaries",
+        "history_compactions",
         "maintenance_jobs",
         "search_documents_fts",
     }.issubset(table_names)

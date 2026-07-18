@@ -38,6 +38,7 @@ def build_context_accounting_preflight(
     messages: list[LLMMessage],
     tools: list[dict[str, Any]],
     settings: Any,
+    compacted_chronology: str = "",
     external_unobserved_context: list[str] | None = None,
 ) -> dict[str, Any]:
     fallback_ratio = float(settings.context_estimated_chars_per_token)
@@ -50,7 +51,7 @@ def build_context_accounting_preflight(
     message_payloads = [message.model_dump(mode="json") for message in messages]
     history_payloads = message_payloads[:-1] if message_payloads else []
     current_payloads = message_payloads[-1:] if message_payloads else []
-    effective_system = f"{base_system}\n\n{runtime_context}"
+    effective_system = f"{base_system}\n\n{runtime_context}{compacted_chronology}"
     wire_payload = {
         "system": effective_system,
         "messages": message_payloads,
@@ -64,6 +65,8 @@ def build_context_accounting_preflight(
         "current_user_message": current_payloads,
         "mind_shell_tool_schema": tools,
     }
+    if compacted_chronology:
+        raw_channels["compacted_chronology"] = compacted_chronology
     channels = {
         name: _measurement(value, chars_per_token=ratio)
         for name, value in raw_channels.items()
@@ -89,6 +92,7 @@ def build_context_accounting_preflight(
         source_map=chronology_source_map,
         external_context_tokens=external_context_tokens,
         provider_history_tokens=provider_history_tokens,
+        trigger_tokens=int(settings.context_compaction_trigger_tokens),
         operational_limit_tokens=int(
             settings.context_operational_input_limit_tokens
         ),
@@ -153,6 +157,7 @@ def build_context_accounting_observation(
         if first_step_input and request_chars > 0
         else None
     )
+    compaction_plan = preflight.get("compaction_plan") or {}
     return {
         "schema_version": CONTEXT_ACCOUNTING_VERSION,
         "stage": "observed",
@@ -177,7 +182,10 @@ def build_context_accounting_observation(
             "chars_per_first_step_input_token": observed_ratio,
             "usable_for_future_preflight": observed_ratio is not None,
         },
-        "compaction_plan_was_shadow_only": True,
+        "compaction_plan_mode": compaction_plan.get("mode"),
+        "compaction_plan_was_shadow_only": bool(
+            compaction_plan.get("shadow_only")
+        ),
         "canonical_history_mutated": False,
     }
 

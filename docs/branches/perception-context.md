@@ -127,6 +127,13 @@ turni fissi. `C` e `H` hanno massimali normali da 100k, la sicurezza riserva
 25k e `A` assorbe il resto sotto 500k. Un turno singolo oltre `H` resta intero
 se entra nella finestra fisica da 1M; oltre 1M il piano fallisce chiuso.
 
+Aggiornamento V1.39.0: la compattazione cronologica e attiva sul runtime nativo
+in modalita protetta. Gli artifact ricorsivi sono append-only e source-labelled;
+la richiesta al modello usa `cronologia compattata + coda canonica esatta +
+messaggio corrente`, mentre persistenza e audit continuano a usare la storia
+canonica completa. Artifact mancanti, stale o non mappabili producono fallback
+esplicito alla cronologia canonica.
+
 ## Sviluppi precedenti
 
 - Memory Context Pipeline v0.
@@ -146,7 +153,7 @@ se entra nella finestra fisica da 1M; oltre 1M il piano fallisce chiuso.
 - V1.26.0 planning: baseline documentale per context pack, classificazione
   organi/fonti/capacita, degradazione sotto budget e shadow router futuro.
 
-## Verifica V1.36.0
+## Verifica V1.39.0
 
 - Implementazione: compilatore V2 condiviso, proiettore preservato con
   allowlist, exact `model.context`, audit field-level, tempo utente unico,
@@ -156,19 +163,23 @@ se entra nella finestra fisica da 1M; oltre 1M il piano fallisce chiuso.
 - Evidenza Scarlet: probe nativo e GPT riusciti; memoria e tempo V2 usati
   correttamente.
 - Integrazione runtime: V2 e router automatico `interactive` attivi;
-  accounting attivo, compattazione solo shadow.
+  accounting e compattazione cronologica derivata attivi, con fallback
+  canonico condiviso tra sync e streaming.
 - Calibrazione cronologica: tre sessioni reali lette senza mutazione e confronto
   bounded full/derived su due; il caso normale ha ridotto input e latenza, il
   caso da 340k ha validato l'eccezione whole-turn.
-- Prossimo gate: persistenza summary ricorsiva, router derivato multi-ciclo e
-  approvazione esplicita prima dell'attivazione.
+- Verifica diretta V1.39: due generazioni MiniMax ricorsive su copia disposable
+  di una sessione da circa 350k token; richiamo corretto dal prefisso compattato,
+  coda esatta preservata e nessuna mutazione canonica.
+- Prossimo gate: monitorare qualita multi-ciclo, fedelta delle fonti e taratura
+  delle partizioni prima di modificarne i massimali.
 
 ## Evolutive
 
 - Calibrare i tag del registry gia attivo senza ampliare implicitamente le
   allowlist model-facing.
-- Progettare e validare la vista cronologica derivata senza perdere continuita
-  semantica, tool evidence o cronologia canonica.
+- Monitorare la vista cronologica derivata su ulteriori sessioni lunghe senza
+  perdere continuita semantica, tool evidence o cronologia canonica.
 - Sostituire eventuali responsabilita residue di `scarlet_state` con organi o
   comandi dedicati, senza reiniettare il blocco legacy.
 - Separare dati sessione, dati messaggio, dati utente e dati ambiente con

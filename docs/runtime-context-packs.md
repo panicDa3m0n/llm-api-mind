@@ -1,8 +1,8 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-14
-Status: V1.36.1 context projection active; token-partition compaction shadow
-App baseline: V1.38.0
+Last updated: 2026-07-18
+Status: V1.39.0 context projection and guarded token-partition compaction active
+App baseline: V1.39.0
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -35,12 +35,12 @@ uses these configurable policy values:
 |---|---:|---|
 | `context_window_tokens` | 1,000,000 | Provider model window. |
 | `context_operational_input_limit_tokens` | 500,000 | Maximum input budget API Mind intends to use. |
-| `context_compaction_trigger_tokens` | 400,000 | Compatibility warning threshold; not the V1.36 partition trigger. |
+| `context_compaction_trigger_tokens` | 400,000 | Active total model-input trigger. |
 | `history_compaction_target_tokens` | 100,000 | Maximum recursively compacted chronology (`C`). |
 | `history_compaction_verbatim_tokens` | 100,000 | Normal maximum exact complete-turn chronology (`H`). |
 | `history_compaction_safety_tokens` | 25,000 | Technical safety reservation (`M`). |
 | `history_compaction_recent_turns` | 8 | Compatibility setting only; V1.36 selection is token-based. |
-| `history_compaction_mode` | `shadow` | Measure and plan; never mutate active history. |
+| `history_compaction_mode` | `shadow` | `off`, planning-only `shadow`, or guarded derived-history `active`. |
 
 The 500k value is an input-context policy, not the provider's output
 `max_tokens`. These limits are validated in configuration so trigger, target,
@@ -83,12 +83,12 @@ never be presented as complete ChatGPT context accounting.
 
 ## Non-Destructive Compaction Contract
 
-The full canonical chronology is append-only and must remain navigable through
-session/message/turn commands. A future active compact history is a derived
+The full canonical chronology is append-only and remains navigable through
+session/message/turn commands. In active mode the compact history is a derived
 model-input view, never a rewrite of messages, traces, provider history, or
 source transcripts.
 
-The V1.36 shadow partition is:
+The V1.39 active partition retains the V1.36 design:
 
 ```txt
 O + C + H + A + M <= 500k
@@ -103,10 +103,12 @@ O + C + H + A + M <= 500k
 - `A` is the free area that fills with new turns and current tool activity.
 - `M` is the 25k technical safety reservation.
 
-The trigger is derived from actual `O`: provider history reaches the remaining
-operational capacity. A fixed number of turns is not used.
+The trigger fires when estimated total model input reaches the configured
+400k threshold. After an artifact exists, scheduling measures the derived view
+Scarlet would receive, not the ever-growing canonical history. A fixed number
+of turns is never used.
 
-The shadow plan reports:
+The plan and active runtime report:
 
 - whether the estimated trigger would fire;
 - an exact source map from provider slices to turn, message, tool, and trace ids;
@@ -114,6 +116,21 @@ The shadow plan reports:
 - a whole-turn exception when the newest turn exceeds `H` but fits 1M;
 - a fail-closed status when one turn exceeds the physical model window;
 - `canonical_history_mutation=none`.
+
+Active mode persists append-only `history_compactions` artifacts. Each artifact
+records its generation, previous artifact, exact covered-turn prefix, source
+digests, source IDs, model, token estimates, and summary digest. Generation is
+recursive: the provider receives the prior summary plus only newly compactable
+turns. Unverified opaque IDs produced in summary prose are removed, while an
+exact backend-built `<source_manifest>` supplies navigable turn, message, tool,
+and trace anchors.
+
+The native sync and stream paths both send the compacted summary in system
+context, the exact uncompressed tail, and the current user message. Request
+traces store both `canonical_provider_messages` and the actual
+`provider_messages`. Completion always appends the provider result to the
+canonical request, never to the derived request. A missing or stale artifact
+falls back to full canonical history with an explicit `history.routing` trace.
 
 ## Real Laboratory Measurement
 
@@ -137,6 +154,15 @@ With observed `O` approximated at 25k, normal `C=100k`, `H=100k`, and `M=25k`
 leave about 250k tokens in `A`. The last case is tool-heavy: its newest turn
 must remain whole, so the exception reduces active headroom instead of
 pretending the normal partition still fits.
+
+V1.39 activated the design on an ignored copy of that same 350,187-token
+session. Generation 1 compacted four turns and retained the indivisible
+340,504-token turn. Generation 2 recursively compacted the first artifact plus
+that turn, covered five turns, and reduced the next model-facing exact tail to
+2,701 estimated tokens. A direct MiniMax M3 recall turn used generation 2,
+reduced 21 canonical request messages to 3 model-facing messages, accurately
+recalled the earlier CLI framing, and preserved the full canonical prefix.
+See `docs/evaluations/v1.39-active-history-compaction.md`.
 
 ## Always-On Spine
 
@@ -219,18 +245,23 @@ Every runtime context records `agent_mode` and a `mode_routing` decision with
 eligible capabilities, included block types, ineligible block types, registry
 version, and explicit background-process exclusion.
 
-## Activation Gates
+## Activation And Monitoring
 
-Active history compaction requires:
+The active gate completed in V1.39 with:
 
 1. exact accounting traces from long and varied sessions (completed in V1.36);
 2. a versioned summary artifact with coverage/source boundaries;
 3. tests proving the canonical chronology remains unchanged and navigable;
-4. natural direct Scarlet comparisons for continuity, source use, tool loops,
-   and response completion;
+4. direct Scarlet checks for continuity, source use, recursive routing, and
+   response completion;
 5. approved whole-turn handling when normal `H` does not fit (defined in
    V1.36) plus a multi-cycle test;
-6. rollback to full history or an earlier derived view.
+6. fail-safe fallback to full history when no valid active artifact exists.
+
+Ongoing monitoring still needs naturally longer multi-cycle sessions, provider
+summary drift review, and explicit answer-obligation work under SCA-28. The GPT
+bridge receives the same backend V2 packet, but backend compaction cannot see or
+rewrite native ChatGPT conversation history outside the bridge.
 
 New agent modes or mode-tag enforcement require branch-specific behavioral
 scenarios. Webhooks, sensors, scouting perception, motor actions, Dream, and

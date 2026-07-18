@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-14
-Code baseline reviewed: V1.38.0
+Last reviewed: 2026-07-18
+Code baseline reviewed: V1.39.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -18,8 +18,10 @@ rich internal/legacy source snapshot. Active model delivery now uses
 `scarlet-model-context-v2`. V1.35.0 completes the field-level review of
 `preserved_context`: only compact focus, affect, and metacognitive blocks may
 be projected automatically, and only when their organ mode enables them.
-V1.36.0 changes accounting and the shadow provider-history plan, not the V2
-dynamic packet shape or this inventory's field dispositions.
+V1.36.0 introduced accounting and the shadow provider-history plan without
+changing the V2 dynamic packet shape. V1.39.0 activates a separate derived
+history view for native MiniMax only when a valid compaction artifact exists;
+it still does not change the V2 dynamic packet fields inventoried here.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
@@ -50,7 +52,8 @@ Every local turn has this provider shape:
 ```txt
 tools    = [mind_shell schema]
 system   = base Scarlet system prompt + <runtime_context>{...}</runtime_context>
-messages = provider-native active-session history + current user message
+messages = canonical active-session history + current user message
+           OR valid compacted chronology + exact canonical tail + current user
 ```
 
 The exact request is persisted in `llm.request`. `memory.context` and `runtime.context` are built before the request.
@@ -76,9 +79,13 @@ Builder dashboard; the bridge does not transport the native full prompt.
 ### P-02 Provider-Native Active-Session History
 
 Active-session continuity, not a context packet: prior user/assistant text and
-provider-native `thinking`, `tool_use`, and `tool_result` blocks. It remains
-managed by the provider-history mechanism, separately from semantic memory,
-episodic retrieval, and dynamic runtime perception.
+provider-native `thinking`, `tool_use`, and `tool_result` blocks. Canonical
+history remains append-only and is always used for persistence and audit. In
+active V1.39 routing, a valid derived artifact may replace the older prefix in
+the model request with a compacted chronology while preserving an exact recent
+tail. Missing, stale, or unmappable artifacts fall back to the full canonical
+history. This lifecycle remains separate from semantic memory, episodic
+retrieval, and dynamic runtime perception.
 
 ### P-03 Tool/Action Schema
 

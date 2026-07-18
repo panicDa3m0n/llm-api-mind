@@ -17,7 +17,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.30.0**.
+Current app baseline: **V1.39.0**.
 
 The project has a working local baseline runtime:
 
@@ -44,7 +44,7 @@ The project has a working local baseline runtime:
 - rich automatic retrieval/runtime traces plus a compact
   `scarlet-model-context-v2` packet shared by native MiniMax and GPT Actions;
 - accounting v2 with cache-aware provider steps, exact chronology source maps,
-  and non-destructive `O/C/H/A/M` token-partition compaction planning;
+  and active non-destructive recursive `O/C/H/A/M` history compaction;
 - agent-only `idle`/`interactive`/`scouting` modes with multi-tag automatic
   context eligibility and shell inspection/selection;
 - runtime event control plane feeding the cockpit timeline and compact
@@ -94,17 +94,16 @@ The project has a working local baseline runtime:
 ## Immediate Roadmap
 
 ```txt
-1. Persist recursive source-labelled chronology summaries and build the
-   derived model-input router behind the existing shadow gate.
-2. Validate multiple compaction cycles before explicit active-mode approval.
-3. Expand natural behavioral scenarios for context, communication, focus,
+1. Monitor active recursive history compaction across naturally long sessions
+   while preserving full canonical history and source navigation.
+2. Expand natural behavioral scenarios for context, communication, focus,
    volition, affect, metacognition, identity, and memory.
-4. Validate those existing organs and behaviors before coupling organs or
+3. Validate those existing organs and behaviors before coupling organs or
    adding autonomous cycles.
-5. Keep duplicate/conflict automation and authenticated ownership as separate
+4. Keep duplicate/conflict automation and authenticated ownership as separate
    later workstreams; design ownership before personal data or
    external/embodied operation expands.
-6. Reduce code monoliths behind the frozen regression gate.
+5. Reduce code monoliths behind the frozen regression gate.
 ```
 
 See `docs/project-state.md` for the integrated current-state map and the

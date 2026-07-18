@@ -154,6 +154,7 @@ def test_observation_uses_first_provider_step_and_total_tool_loop_usage() -> Non
         "session_id": "ses_test",
         "turn_id": "turn_test",
         "total": {"json_chars": 900},
+        "compaction_plan": {"mode": "shadow", "shadow_only": True},
     }
     result = LLMTextResult(
         model="MiniMax-M3",
@@ -195,6 +196,33 @@ def test_observation_uses_first_provider_step_and_total_tool_loop_usage() -> Non
     assert payload["calibration_observation"][
         "chars_per_first_step_input_token"
     ] == 3.0
+    assert payload["canonical_history_mutated"] is False
+    assert payload["compaction_plan_mode"] == "shadow"
+    assert payload["compaction_plan_was_shadow_only"] is True
+
+
+def test_observed_accounting_reports_active_compaction_mode() -> None:
+    payload = build_context_accounting_observation(
+        preflight_trace_id="trace_preflight",
+        preflight={
+            "session_id": "ses_active",
+            "turn_id": "turn_active",
+            "model": "MiniMax-M3",
+            "total": {"json_chars": 100},
+            "compaction_plan": {
+                "mode": "active",
+                "shadow_only": False,
+            },
+        },
+        result=LLMTextResult(
+            text="done",
+            model="MiniMax-M3",
+            usage={},
+        ),
+    )
+
+    assert payload["compaction_plan_mode"] == "active"
+    assert payload["compaction_plan_was_shadow_only"] is False
     assert payload["canonical_history_mutated"] is False
 
 

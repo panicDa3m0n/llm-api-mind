@@ -20,12 +20,14 @@ from app.mind.memory import (
     memory_proposal_payload,
 )
 from app.runtime.events import record_event
+from app.runtime.history_runtime import generate_history_compaction
 from app.storage import repositories
 from app.storage.models import MaintenanceJob, utc_now
 
 
 SESSION_IDLE_MAINTENANCE_KIND = "session.idle_maintenance"
 SESSION_SUMMARY_REPAIR_KIND = "session.summary_repair"
+SESSION_HISTORY_COMPACTION_KIND = "session.history_compaction"
 logger = logging.getLogger(__name__)
 
 MEMORY_REVIEW_SYSTEM_PROMPT = """You review a completed chat session for Scarlet's memory maintenance.
@@ -139,6 +141,82 @@ def schedule_session_idle_maintenance(
             "due_at": job.due_at.isoformat(),
             "idle_seconds": settings.maintenance_idle_seconds,
             "superseded_job_ids": [item.id for item in superseded],
+        },
+        source="maintenance",
+        actor="backend",
+        visibility="debug",
+        status=job.status,
+        parent_event_id=trigger_event_id,
+    )
+    return job, event
+
+
+def schedule_history_compaction(
+    db: Session,
+    *,
+    settings: Settings,
+    session_id: str,
+    trigger_turn_id: str,
+    trigger_event_id: str | None,
+    source_map: dict[str, Any],
+    external_context_tokens: int,
+    chars_per_token: float,
+    model_history_tokens: int | None = None,
+) -> tuple[MaintenanceJob, Any] | None:
+    if settings.history_compaction_mode != "active":
+        return None
+    source_history_sha256 = source_map.get("canonical_history_sha256")
+    canonical_history_tokens = int(
+        source_map.get("canonical_estimated_tokens") or 0
+    )
+    active_history_tokens = (
+        int(model_history_tokens)
+        if model_history_tokens is not None
+        else canonical_history_tokens
+    )
+    total_estimated_tokens = active_history_tokens + external_context_tokens
+    if (
+        source_map.get("status") != "complete"
+        or not source_history_sha256
+        or total_estimated_tokens < settings.context_compaction_trigger_tokens
+    ):
+        return None
+
+    job, superseded = repositories.schedule_session_maintenance_job(
+        db,
+        kind=SESSION_HISTORY_COMPACTION_KIND,
+        session_id=session_id,
+        trigger_turn_id=trigger_turn_id,
+        trigger_event_id=trigger_event_id,
+        due_at=utc_now(),
+        input_payload={
+            "source_history_sha256": source_history_sha256,
+            "canonical_history_estimated_tokens": canonical_history_tokens,
+            "model_history_estimated_tokens": active_history_tokens,
+            "external_context_estimated_tokens": external_context_tokens,
+            "total_estimated_tokens": total_estimated_tokens,
+            "chars_per_token": chars_per_token,
+            "trigger_tokens": settings.context_compaction_trigger_tokens,
+        },
+        idempotency_key=(
+            f"{SESSION_HISTORY_COMPACTION_KIND}:{session_id}:"
+            f"{source_history_sha256}"
+        ),
+    )
+    event = record_event(
+        db,
+        session_id=session_id,
+        turn_id=trigger_turn_id,
+        event_type="history.compaction.scheduled",
+        payload={
+            "job_id": job.id,
+            "source_history_sha256": source_history_sha256,
+            "total_estimated_tokens": total_estimated_tokens,
+            "canonical_history_estimated_tokens": canonical_history_tokens,
+            "model_history_estimated_tokens": active_history_tokens,
+            "trigger_tokens": settings.context_compaction_trigger_tokens,
+            "superseded_job_ids": [item.id for item in superseded],
+            "canonical_history_mutation": "none",
         },
         source="maintenance",
         actor="backend",
@@ -335,6 +413,25 @@ def run_maintenance_job(
         )
 
     try:
+        if job_ref.kind == SESSION_HISTORY_COMPACTION_KIND:
+            compaction_result = _run_history_compaction(
+                engine,
+                settings=settings,
+                provider_factory=provider_factory,
+                job=job_ref,
+            )
+            status = "completed" if compaction_result.get("ok") else "failed"
+            return _finish_job(
+                engine,
+                job_id=job_ref.id,
+                session_id=job_ref.session_id,
+                turn_id=job_ref.trigger_turn_id,
+                trigger_event_id=job_ref.trigger_event_id,
+                status=status,
+                result=compaction_result,
+                error=None if status == "completed" else compaction_result,
+            )
+
         if job_ref.kind == SESSION_SUMMARY_REPAIR_KIND:
             repair_result = _run_summary_repair(
                 engine,
@@ -507,6 +604,29 @@ def _run_summary_repair(
         "target_last_message_id": target_message_id,
         "attempt": job.input_payload.get("attempt"),
     }
+
+
+def _run_history_compaction(
+    engine: Engine,
+    *,
+    settings: Settings,
+    provider_factory: ProviderFactory,
+    job: MaintenanceJobRef,
+) -> dict[str, Any]:
+    return generate_history_compaction(
+        engine,
+        settings=settings,
+        provider_factory=provider_factory,
+        session_id=job.session_id,
+        trigger_turn_id=job.trigger_turn_id,
+        expected_history_sha256=str(
+            job.input_payload.get("source_history_sha256") or ""
+        ),
+        external_context_tokens=int(
+            job.input_payload.get("external_context_estimated_tokens") or 0
+        ),
+        chars_per_token=float(job.input_payload.get("chars_per_token") or 3.5),
+    )
 
 
 def _verify_session_still_idle(

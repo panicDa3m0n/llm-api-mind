@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0091 - Active Chronology Is A Recursive Derived View With Deterministic Sources
+
+Date: 2026-07-18
+Status: accepted and implemented in V1.39.0
+
+Context:
+
+V1.36 established exact turn source maps and a token-based shadow partition,
+but canonical provider history still grew without an active derived route. A
+safe activation must preserve the complete source transcript, survive stale or
+missing summaries, avoid rerunning merely because canonical history never
+shrinks, and prevent LLM-generated summaries from inventing opaque source IDs.
+
+Decision:
+
+- persist append-only chronology artifacts separately from episodic summaries;
+- recursively summarize the previous artifact plus only newly compactable
+  complete turns;
+- route compacted chronology, exact newest turns, and current user input in
+  both sync and stream paths;
+- always append provider output to the canonical request history;
+- store canonical and model-facing requests together in `llm.request` traces;
+- validate artifacts against the exact canonical turn/digest prefix and fall
+  back to full history on every invalid state;
+- build source manifests deterministically and remove generated opaque IDs not
+  present in source input;
+- schedule later cycles from estimated derived next-turn size, using canonical
+  history only as immutable source material.
+
+Consequences:
+
+Long native sessions can regain active headroom without losing exact history or
+navigation. Summary semantics remain LLM-generated, but source identity is
+backend-owned. The current design does not compact unobserved native ChatGPT
+history. Naturally long multi-cycle behavior remains a monitored surface.
+
+Links:
+
+- `backend/app/runtime/history_runtime.py`
+- `backend/app/runtime/history_compaction.py`
+- `docs/evaluations/v1.39-active-history-compaction.md`
+- Linear SCA-32
+
 ## ADR-0090 - Historical Provenance Maintenance Requires Deterministic Evidence
 
 Date: 2026-07-18

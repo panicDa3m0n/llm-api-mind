@@ -6,6 +6,12 @@ cognitive organs, canonical memory, and derived retrieval state.
 """
 
 from app.storage.models import utc_now
+from app.storage.repository.history import (
+    create_history_compaction,
+    get_history_compaction,
+    get_latest_history_compaction,
+    list_history_compactions,
+)
 from app.storage.repository.memory import (
     RESOLVED_MEMORY_PROPOSAL_STATUSES,
     add_memory,
@@ -134,6 +140,7 @@ __all__ = [
     "close_intention_record",
     "complete_maintenance_job",
     "complete_turn",
+    "create_history_compaction",
     "create_affect_state",
     "create_chat_session",
     "create_focus_record",
@@ -147,8 +154,10 @@ __all__ = [
     "get_message",
     "get_embedding_vector_by_key",
     "get_focus_record",
+    "get_history_compaction",
     "get_intention_record",
     "get_latest_affect_state",
+    "get_latest_history_compaction",
     "get_maintenance_job",
     "get_memory",
     "get_memory_graph_edge_by_key",
@@ -171,6 +180,7 @@ __all__ = [
     "list_events_for_turn",
     "list_focus_records",
     "list_focus_transitions",
+    "list_history_compactions",
     "list_intention_links",
     "list_intention_records",
     "list_maintenance_jobs",
