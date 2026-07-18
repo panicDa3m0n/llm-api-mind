@@ -193,6 +193,41 @@ Evidence:
 
 `docs/evaluations/v1.38-historical-provenance-audit.md`
 
+## EXP-0070 - Personal-Negative Reranker Revalidation
+
+Status: measured; runtime correction deferred by owner decision
+
+Hypothesis:
+
+The accepted V1.37 final-rerank floor may admit plausible but unsupported
+personal memories near its boundary, and realistic personal negatives can show
+whether a safe global correction exists.
+
+Method:
+
+- retain all eleven accepted positive, negative, graph, temporal, and entity
+  controls against the immutable V1.37 database;
+- add five natural unsupported personal questions before changing policy;
+- run all sixteen cases twice with the real configured OpenRouter reranker;
+- reject any correction that restores negatives by losing close positives or
+  by replacing reranker authority with deterministic relevance scores.
+
+Result:
+
+The comparison passed 30/32. Only the favourite-colour negative failed, in the
+same way in both repetitions. Its highest unrelated score was `0.006339`; the
+required-positive floor was `0.007432`. Removing document metadata did not
+solve the negative and lost a required Vetro-Luna fact. The narrow separation
+does not justify a stable threshold-only change.
+
+Decision:
+
+Keep the expanded calibration harness and defer runtime changes. A retrieved
+memory is evidence available to Scarlet, not an obligation to use it in the
+answer. Reopen on broader provider drift evidence, answer-level harm, or a
+better reranker policy. Full evidence is in
+`docs/evaluations/v1.43-memory-rerank-negative-calibration.md`.
+
 ## EXP-0065 - Frozen And Live Final-Rerank Calibration
 
 Status: accepted for V1.37.0; longitudinal provider drift remains monitored
