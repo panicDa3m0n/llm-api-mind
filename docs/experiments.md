@@ -9,6 +9,53 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0064 - Thinking-Only Final Recovery And Isolation
+
+Status: completed for V1.36.1; natural recurrence remains monitored
+
+Hypothesis:
+
+A single bounded continuation can recover a stochastic MiniMax thinking-only
+`end_turn` without treating private reasoning as an answer or cognitive action,
+while repeated invalid output fails visibly and leaves canonical history clean.
+
+Method:
+
+- reproduce the pre-fix behavior with provider and API fixtures;
+- test one thinking-only response followed by a public final response;
+- test repeated thinking-only responses through the configured retry limit;
+- inspect sync/stream turn state, assistant messages, runtime events, traces,
+  and provider history;
+- run one natural MiniMax M3 control against an isolated in-memory database at
+  the configured `131072` token budget, without forcing the stochastic symptom.
+
+Results:
+
+- the initial fixtures confirmed a backend defect independent of model
+  variability: empty provider results were accepted as successful turns;
+- the recovered fixture produced one public answer and one explicit recovery
+  event, while canonical provider history contained only the valid assistant
+  message;
+- exhaustion fixtures failed explicitly and persisted no assistant message;
+- the natural control completed normally with user/assistant messages, zero
+  recovery events, zero tool calls, and zero memory records;
+- 30 focused provider/chat tests passed; the full backend suite passed 198
+  tests at 80.22% coverage.
+
+Decision:
+
+Accept the bounded policy as the SCA-19 fix. Treat future isolated provider
+occurrences as stochastic unless traces show the invariant or retry bound was
+bypassed. Do not add broad generic retries or infer tool/memory operations from
+private thinking.
+
+Evidence:
+
+- direct control `turn_83848970e2b3410cb68faae248189f17`
+- `backend/tests/test_minimax_client.py`
+- `backend/tests/test_chat_api.py`
+- ADR-0088 and BUG-0067
+
 ## EXP-0063 - Natural Cross-Branch Behavioral Baseline
 
 Status: completed for V1.34.0; repeated pre/post use is now the gate

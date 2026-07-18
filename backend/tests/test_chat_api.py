@@ -444,6 +444,162 @@ class FakeMemoryProvider(FakeChatProvider):
         )
 
 
+class FakeThinkingOnlyProvider(FakeChatProvider):
+    @staticmethod
+    def _result(model: str) -> LLMTextResult:
+        return LLMTextResult(
+            model=model,
+            text="",
+            usage={"input_tokens": 8, "output_tokens": 5},
+            provider_message_id="provider_thinking_only",
+            raw_content=[
+                {
+                    "type": "thinking",
+                    "thinking": "I should answer, but this message has no public text.",
+                    "signature": "test-signature",
+                }
+            ],
+            stop_reason="end_turn",
+            raw_provider_messages=[
+                {
+                    "id": "provider_thinking_only",
+                    "stop_reason": "end_turn",
+                    "content": [
+                        {
+                            "type": "thinking",
+                            "thinking": "I should answer, but this message has no public text.",
+                            "signature": "test-signature",
+                        }
+                    ],
+                }
+            ],
+        )
+
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ) -> LLMTextResult:
+        return self._result(self.settings.minimax_model)
+
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ):
+        result = self._result(self.settings.minimax_model)
+        yield LLMStreamEvent(
+            type="thinking_captured",
+            data={
+                "model_step": 1,
+                "index": 0,
+                "provider_message_id": result.provider_message_id,
+                "stop_reason": result.stop_reason,
+                "text": result.raw_content[0]["thinking"],
+                "has_text": True,
+            },
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
+class FakeRecoveredFinalProvider(FakeChatProvider):
+    @staticmethod
+    def _result(model: str) -> LLMTextResult:
+        return LLMTextResult(
+            model=model,
+            text="Ora ti rispondo pubblicamente.",
+            usage={"input_tokens": 20, "output_tokens": 12},
+            provider_message_id="provider_recovered",
+            raw_content=[{"type": "text", "text": "Ora ti rispondo pubblicamente."}],
+            stop_reason="end_turn",
+            raw_provider_messages=[
+                {
+                    "id": "provider_recovered",
+                    "model": model,
+                    "stop_reason": "end_turn",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Ora ti rispondo pubblicamente.",
+                        }
+                    ],
+                    "usage": {"input_tokens": 12, "output_tokens": 5},
+                }
+            ],
+            completion_recovery={
+                "attempted": True,
+                "recovered": True,
+                "attempt_count": 1,
+                "attempts": [
+                    {
+                        "id": "provider_thinking_only",
+                        "stop_reason": "end_turn",
+                        "content": [
+                            {
+                                "type": "thinking",
+                                "thinking": "I omitted the public answer.",
+                                "signature": "test-signature",
+                            }
+                        ],
+                        "reason": "thinking_only_end_turn",
+                        "recoverable": True,
+                    }
+                ],
+            },
+        )
+
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ) -> LLMTextResult:
+        return self._result(self.settings.minimax_model)
+
+    def stream_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ):
+        result = self._result(self.settings.minimax_model)
+        yield LLMStreamEvent(
+            type="completion_recovery",
+            data={
+                "model_step": 1,
+                "attempt": 1,
+                "reason": "thinking_only_end_turn",
+                "provider_message_id": "provider_thinking_only",
+                "stop_reason": "end_turn",
+            },
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
 def make_client(
     db_engine: Engine, settings_overrides: dict | None = None
 ) -> TestClient:
@@ -506,6 +662,42 @@ def make_memory_client(db_engine: Engine) -> TestClient:
         create_app(
             settings,
             llm_provider_factory=lambda settings: FakeMemoryProvider(settings),
+            db_engine=db_engine,
+        )
+    )
+
+
+def make_thinking_only_client(db_engine: Engine) -> TestClient:
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M3",
+        minimax_max_tokens=4096,
+        maintenance_enabled=False,
+    )
+    return TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda active: FakeThinkingOnlyProvider(active),
+            db_engine=db_engine,
+        )
+    )
+
+
+def make_recovered_final_client(db_engine: Engine) -> TestClient:
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M3",
+        minimax_max_tokens=4096,
+        maintenance_enabled=False,
+    )
+    return TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda active: FakeRecoveredFinalProvider(active),
             db_engine=db_engine,
         )
     )
@@ -1677,3 +1869,93 @@ def test_chat_turn_returns_503_when_provider_is_not_configured(
 
     assert response.status_code == 503
     assert response.json()["detail"]["code"] == "llm.not_configured"
+
+
+def test_chat_turn_rejects_thinking_only_final_result(db_engine: Engine) -> None:
+    client = make_thinking_only_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Dimmi cosa ne pensi."},
+    )
+
+    assert response.status_code == 502
+    assert response.json()["detail"]["code"] == "llm.incomplete_response"
+    with Session(db_engine) as db:
+        turns = repositories.list_turns_for_session(db, session_id=session["id"])
+        messages = repositories.list_messages(db, session_id=session["id"])
+        tool_calls = repositories.list_tool_calls_for_turn(
+            db,
+            turn_id=turns[-1].id,
+        )
+        memories = repositories.list_all_memories(db)
+    assert turns[-1].status == "failed"
+    assert turns[-1].error_json["code"] == "llm.incomplete_response"
+    assert [message.role for message in messages] == ["user"]
+    assert tool_calls == []
+    assert memories == []
+
+
+def test_streaming_chat_rejects_thinking_only_final_result(
+    db_engine: Engine,
+) -> None:
+    client = make_thinking_only_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream",
+        json={"message": "Dimmi cosa ne pensi."},
+    ) as response:
+        assert response.status_code == 200
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    assert events[-1]["type"] == "error"
+    assert events[-1]["data"]["code"] == "llm.incomplete_response"
+    assert not any(event["type"] == "turn_complete" for event in events)
+    with Session(db_engine) as db:
+        turns = repositories.list_turns_for_session(db, session_id=session["id"])
+        messages = repositories.list_messages(db, session_id=session["id"])
+    assert turns[-1].status == "failed"
+    assert turns[-1].error_json["code"] == "llm.incomplete_response"
+    assert [message.role for message in messages] == ["user"]
+
+
+def test_streaming_chat_traces_recovered_public_final_without_history_pollution(
+    db_engine: Engine,
+) -> None:
+    client = make_recovered_final_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream",
+        json={"message": "Dimmi cosa ne pensi."},
+    ) as response:
+        assert response.status_code == 200
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    assert events[-1]["type"] == "turn_complete"
+    turn_id = events[-1]["data"]["turn_id"]
+    recovery_runtime_events = [
+        event["data"]["event"]
+        for event in events
+        if event["type"] == "runtime_event"
+        and event["data"]["event"]["type"] == "llm.completion.recovery.started"
+    ]
+    assert len(recovery_runtime_events) == 1
+    assert recovery_runtime_events[0]["payload"]["reason"] == ("thinking_only_end_turn")
+
+    traces = client.get(f"/api/debug/traces/{turn_id}").json()
+    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
+    assert response_trace["payload"]["completion_recovery"]["recovered"] is True
+
+    with Session(db_engine) as db:
+        stored_session = repositories.get_chat_session(db, session["id"])
+        assert stored_session is not None
+        provider_history = stored_session.provider_history_json
+    assert [item["role"] for item in provider_history] == ["user", "assistant"]
+    assert provider_history[-1]["content"] == [
+        {"type": "text", "text": "Ora ti rispondo pubblicamente."}
+    ]

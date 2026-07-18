@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-07-13
-System version assessed: V1.30.0
+Last updated: 2026-07-18
+System version assessed: V1.36.1
 Status: active branch
 
 ## Filosofia del ramo
@@ -64,6 +64,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
   Custom GPT Actions: note brevi dopo bootstrap durante indagini lunghe,
   finalize riservato alla sola risposta conclusiva e nessun silenzio prolungato
   imposto dal protocollo di trasporto.
+- V1.36.1 rende la risposta pubblica un invariante di completamento: un
+  `end_turn` con solo thinking riceve una sola continuazione tracciata; se non
+  produce testo o tool reali, il turno fallisce esplicitamente senza salvare
+  una risposta vuota o trasformare il thinking privato in azione cognitiva.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 
@@ -78,7 +82,7 @@ confrontare cio che l'utente vede con cio che MiniMax riceve realmente. Il ramo
 non e ancora L5 perche il comportamento agentico intermedio non e sempre
 naturale, coerente o proporzionato al lavoro in corso.
 
-Sistema valutato: V1.30.0.
+Sistema valutato: V1.36.1.
 Aggiornamento V1.7.1: il ramo ora include una policy esplicita di
 proporzionalita. La qualita comunicativa non dipende solo da trasparenza e
 verifica, ma anche dalla capacita di non trasformare ogni risposta in un
@@ -100,6 +104,9 @@ chat naturale.
 Aggiornamento candidato V1.32.1: il prompt esterno GPT separa esplicitamente
 note operative e risposta finale. Il prompt MiniMax nativo conserva invariata
 la policy completa Public Work Notes/Long Reasoning Notes.
+Aggiornamento V1.36.1: il backend distingue finalmente omissione stocastica del
+provider e turno Scarlet valido. Il normale percorso resta invariato; recovery,
+esaurimento e isolamento della cronologia sono tracciati e testati.
 
 ## Sviluppi precedenti
 
@@ -139,14 +146,15 @@ la policy completa Public Work Notes/Long Reasoning Notes.
 - V1.16.1: prompt fix per rimuovere il frame assistente/servizio nelle prime
   sezioni del system prompt.
 
-## Verifica V1.30.0
+## Verifica V1.36.1
 
 - Implementazione: prompt identitario, effort routing, note pubbliche,
   semantic stream, replay storico e due superfici UI.
 - Test deterministici: chat/stream/provider/UI build coprono il trasporto, non
   la naturalezza del linguaggio.
 - Evidenza Scarlet: ampia evidenza live su note, risposte dirette e turni
-  source-sensitive; restano over-processing e occasionali finali thinking-only.
+  source-sensitive; l'occasionale finale thinking-only resta possibile come
+  comportamento provider, ma non puo piu completare silenziosamente il turno.
 - Integrazione runtime: attiva per ogni turno nativo; il GPT usa un prompt
   manuale equivalente ma indipendente.
 - Prossimo gate: una suite comportamentale piccola e ripetibile su greeting,

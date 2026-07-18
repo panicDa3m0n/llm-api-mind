@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-14
-Current app version: V1.36.0
+Current app version: V1.36.1
 Process baseline: V1.0.1
 Status: accepted
 
@@ -186,7 +186,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.36.0 baseline includes:
+The current V1.36.1 baseline includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -215,6 +215,9 @@ The current V1.36.0 baseline includes:
   and evaluation imports do not silently initialize a configured runtime DB.
 - executable shell-organ conformance across registry, help, parser, handlers,
   persistence, pagination, negative paths, and model-facing presentation.
+- a user-facing completion invariant with one bounded thinking-only recovery,
+  explicit failed-turn exhaustion, and no promotion of private thinking into
+  public or cognitive state.
 - blocking Ruff checks for objective Python defects, an incremental mypy gate,
   a measured full-suite coverage floor, deterministic documentation integrity,
   and a GitHub Actions workflow that runs these checks with the frontend build.

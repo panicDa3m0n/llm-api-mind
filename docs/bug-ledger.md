@@ -316,7 +316,7 @@ Related Files:
 ## BUG-0067 - MiniMax Can End A Turn With Thinking Only
 
 Date Found: 2026-07-12
-Status: open / parked after V1.29.0 live evaluation
+Status: fixed in V1.36.1; natural recurrence remains monitored
 
 Symptoms:
 
@@ -337,20 +337,40 @@ established as the cause.
 
 Fix:
 
-Parked outside the context-packet scope. Evaluate a bounded continuation or
-explicit failed-turn policy for thinking-only final results. Do not fabricate a
-memory write from thinking text.
+The Anthropic-compatible tool-chat loop now recognizes a terminal response
+with no public text and no tool call. A thinking-only `end_turn` receives one
+configurable bounded continuation in the same provider request sequence. If the
+continuation is still empty, or if the terminal response is otherwise empty,
+the provider raises `LLMIncompleteResponseError`; synchronous and streaming
+chat mark the turn failed as `llm.incomplete_response` and do not persist an
+assistant message. The chat boundary also rejects empty results from alternate
+provider adapters.
+
+The failed provider response remains recovery trace evidence. The synthetic
+continuation is ephemeral; neither item is copied into canonical provider
+history, and private thinking is never converted into an answer, memory, or
+tool action.
 
 Regression Test:
 
-Pending: provider fixture returning thinking-only `end_turn`, plus a live retry
-probe that distinguishes provider failure from memory/context failure.
+- provider fixture verifies one recovery and a public final answer;
+- repeated thinking-only fixtures verify bounded exhaustion and explicit
+  failure;
+- synchronous and streaming API fixtures verify failed-turn persistence with
+  no empty assistant message;
+- recovered streaming fixture verifies the recovery event/trace and canonical
+  history isolation;
+- a natural MiniMax M3 control on an isolated database completed normally at
+  the configured `131072` token budget, with no recovery, tool, or memory side
+  effect. This control does not claim the stochastic provider symptom can no
+  longer recur; it verifies normal turns are not disturbed by the policy.
 
 Related Evidence:
 
 - disposable turn `turn_1515d897c1654e1abfa93a6eadea348a`
 - successful retry `turn_5d1e7dbf48ad47d3907e3d28a208dd36`
 - successful recall `turn_0334a4d4349f4f9c9211ae4c1ef38e1d`
+- isolated V1.36.1 control `turn_83848970e2b3410cb68faae248189f17`
 
 ## BUG-0066 - Missing Session Summaries Are Not Reconciled Or Retried
 

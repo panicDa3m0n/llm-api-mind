@@ -4,6 +4,44 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.36.1 Thinking-Only Final Recovery (SCA-19)
+
+Goal:
+
+Prevent private provider thinking without public text or a tool call from being
+accepted as a completed Scarlet turn.
+
+Changes:
+
+- Added one configurable continuation for thinking-only `end_turn` responses
+  in the Anthropic-compatible tool-chat loop.
+- Added explicit `LLMIncompleteResponseError` exhaustion and sync/stream
+  `llm.incomplete_response` failed-turn handling.
+- Kept incomplete attempts in recovery evidence while excluding them from
+  canonical provider history and all cognitive-state derivation.
+- Added recovery metadata to assistant/trace/event surfaces and the dedicated
+  `llm.completion.recovery.started` runtime event.
+- Advanced package and canonical documentation metadata to V1.36.1.
+
+Verification:
+
+- Initial fixtures reproduced the systemic defect: thinking-only results were
+  emitted as `final_result`, HTTP 200, and `turn_complete`.
+- Provider and chat regression slice: 30 tests passed after the fix.
+- Direct isolated MiniMax M3 control used the normal `131072` output budget and
+  completed with a public answer, no recovery, no tool call, and no memory
+  mutation.
+- Full backend suite: 198 tests passed at 80.22% coverage. Ruff, blocking mypy,
+  documentation integrity, frontend production build, and the staged database
+  boundary also passed.
+
+Boundary:
+
+- This changes acceptance and bounded recovery of invalid final output, not
+  provider thinking style, memory policy, compaction, or generic retries.
+- `backend/data/app.db` remains an unrelated modified local file and was not
+  used by the live control.
+
 ## 2026-07-14 - V1.36.0 Chronology Accounting And Shadow Calibration (SCA-5)
 
 Goal:
