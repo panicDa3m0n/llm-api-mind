@@ -7,6 +7,40 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0092 - Stream Omitted Model-Context Trace Linkage
+
+Date Found: 2026-07-18
+Status: fixed and regression-tested in V1.45.0
+
+Symptoms:
+
+Native sync and stream turns both generated a `model.context` trace. Sync
+included its profile/id in `llm.request` and returned the id in final
+`trace_ids`; stream omitted all three references even though the trace existed.
+
+Root Cause:
+
+The two routes independently assembled the same preflight invariants. The
+stream copy did not carry newer model-context observability fields added to the
+sync path.
+
+Fix:
+
+Both transports now use `prepare_native_turn`, which links the projection
+profile and trace exactly once. The stream regression checks the request link
+and final turn reference against the actual stored trace.
+
+Direct Evidence:
+
+The post-change stream turn `turn_17b7c06281ad4aa9852047bd3d9e0e76`
+references `trace_930ef7997e104a798ecc2c5dab2b8efc` consistently in stored
+request and completed turn evidence.
+
+Related:
+
+- Linear SCA-33
+- ADR-0099
+
 ## BUG-0091 - Successful Action Retry Is Missing From Answer Obligations
 
 Date Found: 2026-07-18

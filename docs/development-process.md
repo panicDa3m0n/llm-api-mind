@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.44.0 candidate (V1.43.0 deployed)
+Current app version: V1.45.0 candidate (V1.43.0 deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -194,7 +194,7 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.44.0 candidate extends the deployed V1.43.0 Actions-only GPT
+The current V1.45.0 candidate extends the deployed V1.43.0 Actions-only GPT
 bridge baseline and includes:
 
 - local MiniMax-based Scarlet runtime;
@@ -206,6 +206,7 @@ bridge baseline and includes:
   authentication surface;
 - cohesive typed provider-history, response/event serialization, and
   context-accounting support modules behind the unchanged native chat facade;
+- one typed native-turn lifecycle owner behind the thin native HTTP facade;
 - runtime context blocks for session continuity, message perception, and
   Scarlet state;
 - dashboard settings for active profile, privacy scope, locale, language, and

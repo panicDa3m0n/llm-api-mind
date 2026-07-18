@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.44.0 candidate (V1.43.0 deployed)
+App baseline: V1.45.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -78,6 +78,8 @@ Implemented and verified:
   the same context compiler and shell dispatcher as native Scarlet;
 - native chat support split into typed provider-history, serialization, and
   accounting owners behind the unchanged router facade;
+- native sync/stream preparation, execution, answer control, failure, and
+  completion owned by one typed turn service behind the thin HTTP facade;
 - one bounded provider continuation for a thinking-only `end_turn`, followed
   by explicit `llm.incomplete_response` failure if no public answer or real
   tool call emerges; incomplete attempts remain trace-only evidence;
@@ -98,7 +100,7 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 244 tests passed at 81.41% statement coverage;
+- backend: 244 tests passed at 81.44% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -157,6 +159,11 @@ Current verification baseline:
   OpenAPI JSON remained exactly equal, focused support/chat/bridge tests passed
   57/57, and a directly inspected two-turn native MiniMax probe preserved
   canonical provider continuity. Deployment remains V1.43.0.
+- V1.45.0 candidate: SCA-33 frozen pre/post gates passed 9/9, OpenAPI remained
+  equal, and the shared native lifecycle preserved sync-to-stream provider
+  continuity in a directly inspected MiniMax probe. Stream now links its
+  generated model-context trace consistently (BUG-0092). Deployment remains
+  V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -318,12 +325,13 @@ The current largest modules are:
 ```txt
 frontend/src/App.tsx                         4474 lines
 backend/app/mind/memory.py                   2921
-backend/app/api/chat.py                      2197
 backend/app/plugins/gpt_bridge/router.py     1507
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
 backend/app/mind/context.py                  1809
+backend/app/api/chat_native_turn.py          1638
 backend/app/runtime/maintenance.py           1383
+backend/app/api/chat.py                       218
 ```
 
 These files are not automatically incorrect, but they concentrate unrelated
@@ -336,9 +344,9 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in thirteen high-value typed modules while the measured
+- mypy blocks regressions in fourteen high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.34 backend suite passes 182 tests at 80.19% statement coverage;
+- the full V1.45 backend suite passes 244 tests at 81.44% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -424,10 +432,11 @@ behavior:
 
 ## 7. Current Best Next Step
 
-After SCA-34 closes the first chat-support rework slice, the next approved
-atomic issue is SCA-33: extract native sync/stream turn orchestration behind
-the unchanged router while preserving real transport differences. BUG-0091 is
-tracked separately in SCA-42 and must not be hidden inside organization work.
+After SCA-33 closes native turn orchestration, the next approved atomic issue
+is SCA-35: separate automatic context candidate retrieval/ranking from runtime
+packet assembly without changing selected/near-miss/excluded semantics.
+BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
+organization work.
 Long varied sessions should still monitor active compaction/degradation;
 duplicate/conflict adjudication remains a separate later discussion.
 

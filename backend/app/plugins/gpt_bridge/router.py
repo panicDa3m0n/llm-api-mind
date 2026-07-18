@@ -6,8 +6,10 @@ from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.api.chat import _compose_system_with_runtime_context
 from app.api.chat_accounting import provider_message_stats as _provider_message_stats
+from app.api.chat_native_turn import (
+    compose_system_with_runtime_context as _compose_system_with_runtime_context,
+)
 from app.api.chat_provider_history import (
     provider_messages_for_turn as _provider_messages_for_turn,
     valid_provider_history as _valid_provider_history,

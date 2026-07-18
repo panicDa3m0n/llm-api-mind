@@ -2087,10 +2087,18 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
     assert runtime_event["data"]["schema_version"] == "runtime-context-v1"
     assert len(runtime_event["data"]["blocks"]) == 4
     request_trace = next(trace for trace in traces if trace["kind"] == "llm.request")
+    model_context_trace = next(
+        trace for trace in traces if trace["kind"] == "model.context"
+    )
     assert request_trace["payload"]["tool_loop_policy"] == "model_controlled_unbounded"
     assert request_trace["payload"]["provider_history_source"] == (
         "messages.text_reconstructed"
     )
+    assert request_trace["payload"]["model_context_profile"] == "v2"
+    assert request_trace["payload"]["model_context_trace_id"] == (
+        model_context_trace["id"]
+    )
+    assert model_context_trace["id"] in complete["trace_ids"]
     assert request_trace["payload"]["stream"] is True
     assert FakeToolCallingProvider.seen_max_tool_calls[-1] is None
     persisted_events = client.get(

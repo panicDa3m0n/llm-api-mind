@@ -7,6 +7,44 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0099 - One Native Turn Lifecycle Behind The HTTP Facade
+
+Date: 2026-07-18
+Status: accepted for V1.45.0
+
+Context:
+
+Native sync and stream routes duplicated context construction, history
+routing, trace assembly, answer control, persistence, and scheduling. The
+duplication had already caused stream to create a model-context trace without
+linking it into request or final-turn evidence.
+
+Decision:
+
+- `app.api.chat_native_turn` owns native turn preparation, execution, failure,
+  and completion;
+- `app.api.chat` remains the stable FastAPI and response-model facade;
+- shared invariants have one implementation, while entrypoint names,
+  accounting transport, NDJSON emission, stream flags, and post-open error
+  delivery remain explicit transport differences;
+- model-facing policy, tool semantics, provider history, and answer-obligation
+  behavior do not change as part of this organization slice; and
+- both transports must link every generated model-context trace into request
+  and completion evidence.
+
+Consequences:
+
+Future native lifecycle changes have one owner and can be tested without
+editing route registration. The service remains substantial because tool and
+answer-control ordering are one cohesive lifecycle; further separation needs
+its own evidence rather than another line-count-only move.
+
+Links:
+
+- Linear SCA-33
+- BUG-0092
+- `docs/evaluations/v1.45-native-turn-orchestration.md`
+
 ## ADR-0098 - Behavioral Tests Require Direct Reasoned Inspection
 
 Date: 2026-07-18

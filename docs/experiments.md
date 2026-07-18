@@ -9,6 +9,44 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0072 - Native Turn Orchestration Equivalence Probe
+
+Status: bounded pre/post evidence accepted for the V1.45.0 candidate
+
+Hypothesis:
+
+Sync/stream native turn invariants can move behind one typed service without
+changing API, continuity, tool/answer ordering, persistence, or natural answer
+quality, while eliminating an observed trace-parity defect.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after;
+- compare normalized OpenAPI documents exactly;
+- run focused and complete deterministic suites;
+- send the same two natural prompts to pre/post disposable MiniMax runtimes;
+- inspect provider messages, model actions, stream events, traces, and final
+  text directly rather than accepting completion scores.
+
+Result:
+
+Both gates passed 9/9 and OpenAPI remained equal. The post sync turn chose
+`quieta`; the next stream received prior user, complete prior assistant
+content, and current user, then reused `quieta` correctly in one sentence.
+Stream model-context evidence is now linked consistently, fixing BUG-0092.
+
+The post recovery made an unnecessary `help` call after first omitting the
+private final marker. Pre-change runs under the same prompt ranged from two
+thinking-only failures to a clean successful correction without that call.
+Because recovery code and inputs were preserved and the outcomes vary by
+provider sample, the extra call is model variance, not an SCA-33 regression.
+
+Evidence:
+
+- pre gate `20260718_181621_preliminary-regression-v1`;
+- post gate `20260718_183109_preliminary-regression-v1`;
+- `docs/evaluations/v1.45-native-turn-orchestration.md`.
+
 ## EXP-0071 - Native Chat Support Extraction Continuity Probe
 
 Status: bounded pre/post evidence accepted for the V1.44.0 candidate

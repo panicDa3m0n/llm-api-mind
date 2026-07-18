@@ -166,6 +166,12 @@ serialization, and accounting support from the native chat router, the
 identical post-change gate passed 9/9 in
 `20260718_175231_preliminary-regression-v1`.
 
+SCA-33 established its V1.44 pre-change baseline at 9/9 in
+`20260718_181621_preliminary-regression-v1`. After extracting shared native
+sync/stream orchestration and fixing stream model-context trace linkage, the
+identical post-change gate passed 9/9 in
+`20260718_183109_preliminary-regression-v1`.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

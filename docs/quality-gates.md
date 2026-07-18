@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.44.0 candidate (V1.43.0 deployed)
+App baseline: V1.45.0 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,12 +43,13 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers thirteen high-value modules that currently pass
+The blocking mypy gate covers fourteen high-value modules that currently pass
 without suppressing their own errors:
 
 - native chat provider-history transformations;
 - native chat response/event serialization;
 - native chat context-accounting persistence and request statistics;
+- shared native sync/stream turn orchestration and completion;
 - runtime configuration;
 - agent modes;
 - shell command registry;
@@ -134,6 +135,11 @@ serialization, and accounting modules are at 93%, 99%, and 97% coverage. Their
 focused contracts preserve facade identity, canonical and reconstructed
 history, tool exchanges, response/event projections, and accounting. The
 unchanged frozen preliminary suite passes 9/9 before and after SCA-34.
+
+V1.45.0 passes 244 tests at 81.44%. The typed native-turn service is at 90%
+coverage and preserves sync, stream, tool, recovery, answer-control,
+persistence, and failure paths. The unchanged frozen preliminary suite passes
+9/9 before and after SCA-33, and OpenAPI remains equal.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

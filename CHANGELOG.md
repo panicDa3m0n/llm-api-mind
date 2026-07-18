@@ -6,6 +6,34 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.45.0 - Native Turn Orchestration Boundary
+
+#### Changed
+
+- Moved native sync/stream preparation, provider execution, answer control,
+  failure recording, completion, and maintenance scheduling behind the typed
+  `app.api.chat_native_turn` service boundary.
+- Reduced `app.api.chat` to HTTP route registration, request validation,
+  response mapping, and debug-route ownership while preserving its public
+  facade and every existing endpoint schema.
+- Added `chat_native_turn.py` to the blocking mypy surface.
+
+#### Fixed
+
+- Stream turns now expose the generated `model.context` trace through both
+  `llm.request.model_context_trace_id` and final `trace_ids`, matching sync
+  observability (BUG-0092).
+
+#### Verification
+
+- Frozen SCA-33 pre/post gates pass 9/9; normalized OpenAPI remains identical
+  at 26 paths.
+- Focused native/GPT tests pass 57/57; the complete backend passes 244 tests at
+  81.44% coverage; Ruff and mypy pass.
+- A directly inspected two-turn MiniMax probe preserved exact same-session
+  continuity across sync then stream and proved the repaired model-context
+  trace linkage.
+
 ### V1.44.0 - Native Chat Support Extraction
 
 #### Changed

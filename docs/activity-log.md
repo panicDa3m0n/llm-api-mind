@@ -4,6 +4,37 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.45.0 Native Turn Orchestration (SCA-33)
+
+Moved the native sync/stream lifecycle from `app.api.chat` into the typed
+`app.api.chat_native_turn` owner. The shared preparation now creates user,
+memory/runtime/model context, history routing, obligations, accounting, and
+request evidence once; shared completion owns assistant persistence, response
+traces, provider history, completion events, and maintenance scheduling.
+Sync and stream retain their real transport differences. The FastAPI facade is
+now 218 lines rather than 2,197.
+
+The extraction exposed and fixed BUG-0092: stream created `model.context` but
+did not include its id/profile in `llm.request` or the final turn `trace_ids`.
+The new regression verifies the stream trace exists, is referenced by the
+request, and is returned by the completed turn.
+
+The frozen pre gate was
+`20260718_181621_preliminary-regression-v1`; the post gate is
+`20260718_183109_preliminary-regression-v1`, both 9/9. OpenAPI remains exactly
+equal at 26 paths. Focused tests pass 57/57; all 244 backend tests pass at
+81.44% coverage; Ruff and mypy across 14 guarded modules pass.
+
+The directly inspected post probe used session
+`ses_fedef0f9287b4846add12057caf9b93e`. Sync chose `quieta`; the next streamed
+turn received all three canonical messages and explained that exact word in
+one sentence. Its `model.context` trace
+`trace_930ef7997e104a798ecc2c5dab2b8efc` is now linked in both request and
+completion evidence. The recovery made one unnecessary `help` call after
+omitting the private final marker. The unchanged pre implementation showed
+different stochastic recovery outcomes under the same prompt, so this is
+classified as model variance rather than an orchestration regression.
+
 ## 2026-07-18 - V1.44.0 Native Chat Support Extraction (SCA-34)
 
 Extracted provider-history conversion, response/event serialization, and

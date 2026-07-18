@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 deployed and SCA-34 verified
-Runtime baseline: V1.43.0 deployed; V1.44.0 candidate in SCA-34
+Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 and SCA-33 verified
+Runtime baseline: V1.43.0 deployed; V1.45.0 candidate in SCA-33
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -28,7 +28,8 @@ The counts below were measured from the current V1.42-based worktree on
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
 | `backend/app/mind/memory.py` | 2,921 | command bodies, read/search, facts, graph, write policy, lifecycle, proposals, relation evidence, payloads | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
-| `backend/app/api/chat.py` | 2,197 after SCA-34 | HTTP router, sync and stream turn loops, shell runner, answer obligations, and orchestration traces | app factory, chat tests | very high: every native turn |
+| `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
+| `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
 | `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
 | `backend/app/mind/context.py` | 1,809 | automatic memory retrieval, runtime assembly, compatibility rendering, block construction, ranking/classification, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
@@ -86,13 +87,15 @@ continuity probe were preserved.
 
 ### 2. Native Turn Orchestration
 
-Issue: SCA-33, blocked by SCA-34.
+Issue: SCA-33, completed in the V1.45.0 candidate.
 
-Move the sync/stream agent turn lifecycle behind a service boundary while
-keeping FastAPI registration in `build_chat_router`. Preserve tool-loop order,
-thinking-only recovery, answer obligations, trace order, canonical provider
-history, and final persistence. Shared behavior must not be achieved by
-flattening real sync/stream transport differences.
+Native preflight, execution, failure, completion, and scheduling now live in
+`chat_native_turn.py`; `build_chat_router` is a thin HTTP facade. Tool-loop
+order, thinking-only recovery, answer obligations, canonical provider history,
+and transport differences are preserved. Frozen pre/post gates pass 9/9,
+OpenAPI is equal, and a directly inspected sync-to-stream MiniMax probe
+preserved continuity. The extraction also fixed BUG-0092, where stream created
+but did not link its model-context trace.
 
 ### 3. Context Retrieval Separation
 
