@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-18
-Backend baseline: V1.41.0 (deployed)
+Backend baseline: V1.42.0 (deployed)
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -50,7 +50,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.41.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.41.0 online backup is `/var/backups/scarlet-mobile-test/v1410-20260718T150527Z/app.db.pre-v1410` (SHA-256 `33a7ec43853e51ed5b5a37df4929dd0537b354f503465e7d19fe4d30d34c4253`). |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.42.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.42.0 online backup is `/var/backups/scarlet-mobile-test/v1420-20260718T155202Z/app.db.pre-v1420` (SHA-256 `4bb4ffda39801dd6ff0f3f827567ffcf06ca5666538831dad44659ac9bd3ac57`). |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; legacy Git LFS-tracked file | Published index pointer is SHA-256 `827bb...c1ed5`; the current worktree file is a later dirty LFS object `9b6e...0448f`. It is not production and must not be staged except for a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -165,6 +165,12 @@ V1.41.0 preserves the same data and maintenance boundary. It adds active
 shared answer obligations with `ANSWER_OBLIGATIONS_MODE=active` and a 4,096
 token semantic-validator output budget. These settings change answer control,
 not database ownership or canonical history.
+
+V1.42.0 preserves the same data and maintenance boundary. It adds ordered
+per-block agent-mode routing receipts and stricter resumable-mode ownership;
+these changes affect model-context delivery and traces, not database ownership
+or canonical history. The post-deploy production preflight remained
+`production`/`direct` with SQLite integrity `ok`.
 
 For every deployment:
 

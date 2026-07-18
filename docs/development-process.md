@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-07-14
-Current app version: V1.42.0 (release candidate)
+Last updated: 2026-07-18
+Current app version: V1.42.0 (deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -186,8 +186,8 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.42.0 release candidate extends the deployed V1.41.0 baseline
-with traceable agent-mode routing and includes:
+The current deployed V1.42.0 baseline extends V1.41.0 with traceable
+agent-mode routing and includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and

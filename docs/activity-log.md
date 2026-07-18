@@ -31,6 +31,28 @@ idle/scouting runtime was added or claimed.
 
 Evidence: `docs/evaluations/v1.42-agent-mode-routing.md`.
 
+Production closure completed at merge
+`fbdf431f7da1cd186a2c2b2cce90626c8f44ce6f` (PR #12, tag `v1.42.0`). Before
+restart, the production database was backed up to
+`/var/backups/scarlet-mobile-test/v1420-20260718T155202Z/app.db.pre-v1420`;
+SHA-256 `4bb4ffda39801dd6ff0f3f827567ffcf06ca5666538831dad44659ac9bd3ac57`
+and SQLite integrity `ok` were verified. New-image and post-restart preflights
+both reported `production`/`direct`, `CODEX_TEST=false`, 29 tables, and
+integrity `ok`. Package and OpenAPI report V1.42.0; local/remote frontend index
+hashes both equal
+`f4761c309b5d8c9ed30dee81406bb2efd8be2d0afdd85eada6e8e3159f7f5d94`.
+
+The native production smoke used session
+`ses_5907d6cb1ba247be8cae6e25ee067e5e`, turn
+`turn_107be89d322f44b38126cf9563d7c567`; it correctly distinguished active
+`interactive` from resumable `idle`, denied sensors/autonomy, and emitted four
+ordered delivery receipts. The GPT smoke used session
+`ses_36b1516e665a4c1fb323068299f5f97d`, turn
+`turn_106cfe946336484ead093cdd87a96457`; compact bootstrap, `mode read`, and
+exact finalize all completed with the same active/resume boundary. Public
+health returned 200, unauthenticated bridge access returned 401, and service
+logs contained no deployment error.
+
 ## 2026-07-18 - V1.42.0 Agent Mode Routing Initial Checkpoint (SCA-6)
 
 Started SCA-6 from the deployed V1.41 baseline. The initial checkpoint

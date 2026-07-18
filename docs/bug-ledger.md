@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0088 - Mode Routing Receipt Confused Eligibility With Delivery
 
 Date Found: 2026-07-18
-Status: fixed and directly verified in V1.42.0 release candidate
+Status: fixed, directly verified, and deployed in V1.42.0
 
 Symptoms:
 

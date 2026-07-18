@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.42.0 (release candidate; V1.41.0 deployed)
+App baseline: V1.42.0 (deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -137,10 +137,12 @@ Current verification baseline:
   new-image production preflight, restart, integrity, frontend parity, native
   structural-boundary smoke, and GPT capability/finalize smoke passed. The
   post-smoke database remained production/direct with integrity `ok`.
-- V1.42.0 release-candidate verification: the frozen gate passed 9/9, native
-  and GPT interactive receipts matched, and a bounded two-session MiniMax chain
-  persisted then recovered scouting while keeping active human turns
-  interactive and denying autonomous sensor execution.
+- V1.42.0 production rollout: the frozen gate passed 9/9; protected backup,
+  new-image preflight, restart, integrity, frontend parity, native routing
+  smoke, and GPT bootstrap/action/finalize smoke passed. A bounded disposable
+  two-session MiniMax chain also persisted then recovered scouting while
+  keeping active human turns interactive and denying autonomous sensor
+  execution.
 
 ### 3.2 Dynamic Context
 

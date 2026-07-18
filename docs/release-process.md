@@ -210,3 +210,9 @@ preflight, restart, integrity, frontend parity, native answer-obligation smoke,
 and GPT bridge `help`/finalize smoke at merge commit
 `10ecfb0c0aeeb458a7896887aaebad55cbd85277`; annotated tag `v1.41.0` points
 to that deployed runtime commit.
+V1.42.0 passed both remote quality workflows, protected backup, new-image
+preflight, restart, integrity, frontend parity, native mode-routing smoke, and
+GPT bootstrap/action/finalize smoke at merge commit
+`fbdf431f7da1cd186a2c2b2cce90626c8f44ce6f`; annotated tag `v1.42.0` points
+to that deployed runtime commit. The later documentation closure commit does
+not move the runtime tag.

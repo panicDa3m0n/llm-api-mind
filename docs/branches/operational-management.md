@@ -1,7 +1,7 @@
 # Branch: Gestione Operativa
 
 Last updated: 2026-07-18
-System version assessed: V1.42.0 (release candidate)
+System version assessed: V1.42.0 (deployed)
 Status: focus lifecycle and mode routing validated within implemented boundaries
 
 ## Filosofia del ramo
