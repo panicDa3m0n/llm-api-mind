@@ -7,6 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0090 - Historical Provenance Maintenance Requires Deterministic Evidence
+
+Date: 2026-07-18
+Status: accepted and implemented in V1.38.0
+
+Context:
+
+The original provenance route combined classification and mutation through an
+`apply` query flag. Its broad unresolved class also made 242 explicit Codex
+fixtures look equivalent to genuinely ambiguous historical memories. Similar
+content, reranker score, or an LLM guess cannot prove which session turn or
+message caused a memory.
+
+Decision:
+
+- make provenance audit unconditionally read-only and separate provenance
+  validity from record disposition;
+- allow exact source repair only when the declared session and turn resolve and
+  contain exactly one persisted user message;
+- classify a Codex fixture only when metadata, tags, and source-session title
+  all satisfy the fixed structured contract;
+- treat exact content equality as review evidence, never automatic semantic
+  redundancy;
+- require dry-run, reviewed candidate digest, verified backup reference, and
+  exact approval token before any production mutation;
+- deprecate proven fixtures without deleting history, synchronize facts and
+  retrieval artifacts, and keep maintenance activity outside cognitive
+  recency; and
+- retain ambiguous or inconsistent real memories until exact evidence or an
+  explicit semantic adjudicator can decide them.
+
+Consequences:
+
+Historical cleanup becomes reproducible and fail-closed. The system can remove
+known test contamination from active cognition without pretending to know the
+origin or meaning of uncertain records. Audit and maintenance remain internal
+backend surfaces, not additional model-facing tools.
+
+Links:
+
+- `backend/app/runtime/memory_provenance.py`
+- `docs/evaluations/v1.38-historical-provenance-audit.md`
+- Linear SCA-20
+
 ## ADR-0089 - Final Memory Relevance Uses A Query-Relative Reranker Floor
 
 Date: 2026-07-18

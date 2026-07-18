@@ -11,7 +11,11 @@ from app.mind.context_projection import (
 from app.mind.context_sessions import MISSING_SUMMARY, STALE_SUMMARY
 from app.mind.contracts import MindAPIContext
 from app.mind.memory import handle_memory_read
-from app.runtime.maintenance import memory_provenance_audit, session_summary_audit
+from app.runtime.maintenance import session_summary_audit
+from app.runtime.memory_provenance import (
+    memory_provenance_audit,
+    repair_exact_source_messages,
+)
 from app.runtime.preferences import RuntimePreferences
 from app.storage import repositories
 from app.storage.db import init_db
@@ -454,11 +458,17 @@ def test_provenance_audit_repairs_only_unambiguous_source_turns() -> None:
         memory.source_message_id = None
         db.add(memory)
         db.commit()
-        dry_run = memory_provenance_audit(db, apply=False)
+        dry_run = memory_provenance_audit(db)
         assert dry_run["counts"]["repairable_single_user_message"] == 1
         assert repositories.get_memory(db, memory.id).source_message_id is None
-        applied = memory_provenance_audit(db, apply=True)
-        assert applied["repaired"] == 1
+        candidate = dry_run["candidate_sets"]["exact_source_message_repair"]
+        applied = repair_exact_source_messages(
+            db,
+            dry_run=False,
+            expected_candidate_digest=candidate["digest_sha256"],
+            backup_reference="test-backup",
+        )
+        assert applied["applied_count"] == 1
         assert repositories.get_memory(db, memory.id).source_message_id == message.id
 
 

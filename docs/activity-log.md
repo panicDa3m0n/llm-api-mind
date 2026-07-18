@@ -4,6 +4,49 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.38.0 Historical Provenance Audit And Guarded Cleanup (SCA-20)
+
+Goal:
+
+Classify historical memory provenance from direct evidence, isolate explicit
+test contamination, and replace the mixed audit/apply route with a protected
+maintenance workflow.
+
+Changes:
+
+- Added an orthogonal read-only provenance/disposition audit with published
+  criteria and candidate-set digests.
+- Added dedicated exact-source repair and explicit-fixture deprecation routes
+  guarded by dry-run, backup reference, digest, and approval token.
+- Kept exact duplicates review-only and excluded semantic similarity from all
+  mutation decisions.
+- Kept maintenance lifecycle activity outside recent memory and stopped
+  historical lifecycle operations from touching source-session recency.
+
+Evidence So Far:
+
+- Production read-only baseline: 307 memories, including 241 active explicit
+  Codex fixtures, one already inactive fixture, and seven inconsistent or
+  non-user real source links retained for review.
+- Focused tests: 13 passed. Full backend: 209 passed at 80.45% coverage. New
+  module coverage: 94%. Ruff passed.
+- Historical ignored DB read-only control: 34 exact repairs, 241 active fixture
+  candidates, and unchanged source hash.
+- Disposable production-copy gate: 241 fixture memories, 201 facts, and 1,406
+  surfaces deprecated; zero recent-eligible maintenance activities, zero active
+  candidate overlap, unchanged seed-session timestamps, SQLite integrity `ok`.
+- Final local gates: 209 backend tests at 80.45%, focused 13/13, preliminary
+  regression 9/9, Ruff, blocking mypy, documentation integrity, and frontend
+  production build all passed.
+
+Boundary And Next Gate:
+
+- `backend/data/app.db` remains unrelated and unstaged.
+- No production mutation occurred during classification or implementation.
+- Run the new code against an online production copy, then merge, back up,
+  deploy, apply the reviewed candidate set, and verify retrieval plus a direct
+  Scarlet turn before closing SCA-20.
+
 ## 2026-07-18 - V1.37.0 Final Memory Rerank Calibration (SCA-3)
 
 Goal:

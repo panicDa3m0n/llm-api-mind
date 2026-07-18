@@ -173,7 +173,7 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.37.0.
+Sistema valutato: V1.38.0.
 
 Aggiornamento V1.37.0:
 
@@ -189,6 +189,18 @@ Aggiornamento V1.37.0:
   tecnica e semantica, compreso un negativo con `memories.relevant` vuoto.
 - Trace e report espongono soglia effettiva e latenza del reranker. Il dettaglio
   completo e in `docs/evaluations/v1.37-memory-rerank-calibration.md`.
+
+Aggiornamento V1.38.0:
+
+- l'audit storico separa validita della provenance e disposizione del record;
+- i fixture sono riconosciuti solo dal contratto strutturato completo di
+  metadata, tag e sessione sorgente, mai dalla somiglianza del contenuto;
+- audit e mutazione sono superfici distinte: repair/deprecazione richiedono
+  dry-run, digest del candidate set e backup verificato;
+- la manutenzione storica produce attivita append-only non eleggibile per le
+  recent memories e non aggiorna artificialmente la sessione sorgente;
+- sette link sorgente incoerenti o non-user restano review-only: il sistema non inventa
+  il turno o messaggio corretto quando piu origini sono plausibili.
 
 Aggiornamento V1.31.0:
 
@@ -472,9 +484,12 @@ Aggiornamento V1.13.0 - corrected context eval:
 - Integrazione runtime: retrieval ricco interno e hook V2 compatti sono sempre
   costruiti; la configurazione `active` usa OpenRouter rerank come dipendenza
   esplicita e non assume fallback deterministico.
-- Produzione: 46 memorie storiche riparate deterministicamente; 242 restano
-  senza evidenza sufficiente e non devono essere inventate. Summary eleggibili
-  riconciliate, con maintenance ordinaria a 15 minuti.
+- Produzione: 46 memorie storiche erano state riparate deterministicamente in
+  V1.29. L'audit V1.38 ha poi separato 242 record con hook di sola sessione in
+  241 fixture Codex attivi e uno gia inattivo, tutti provati da marcatori
+  strutturati; sette ulteriori link incoerenti o non-user restano senza riparazione
+  automatica. Summary eleggibili riconciliate, con maintenance ordinaria a 15
+  minuti.
 - Prossimo gate: misurare candidate coverage, latenza, disponibilita e soglia
   del final rerank su DB completo; poi separare evidence detection da
   adjudication per duplicati/conflitti e introdurre ownership utente reale.

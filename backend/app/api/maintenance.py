@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -12,10 +12,15 @@ from app.config import Settings
 from app.llm.factory import build_llm_provider
 from app.mind.memory import memory_proposal_payload
 from app.runtime.maintenance import (
-    memory_provenance_audit,
     run_maintenance_job,
     schedule_summary_repairs,
     session_summary_audit,
+)
+from app.runtime.memory_provenance import (
+    MemoryProvenanceMutationError,
+    deprecate_explicit_test_fixtures,
+    memory_provenance_audit,
+    repair_exact_source_messages,
 )
 from app.storage import repositories
 from app.storage.models import MaintenanceJob, MemoryProposal, MemoryRecord, utc_now
@@ -34,6 +39,48 @@ class MaintenanceProposalArchiveBody(BaseModel):
     def merge_reason_into_result(self) -> "MaintenanceProposalArchiveBody":
         if self.reason is not None and "reason" not in self.result:
             self.result = {**self.result, "reason": self.reason}
+        return self
+
+
+class MemoryProvenanceRepairBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dry_run: bool = True
+    expected_candidate_digest: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    backup_reference: str | None = Field(default=None, min_length=1, max_length=1000)
+    approval: Literal["repair-exact-source-messages"] | None = None
+
+    @model_validator(mode="after")
+    def require_apply_guards(self) -> "MemoryProvenanceRepairBody":
+        if not self.dry_run and self.approval != "repair-exact-source-messages":
+            raise ValueError("Apply requires approval='repair-exact-source-messages'.")
+        return self
+
+
+class ExplicitTestFixtureDeprecationBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dry_run: bool = True
+    reason: str = Field(min_length=1, max_length=1000)
+    expected_candidate_digest: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    backup_reference: str | None = Field(default=None, min_length=1, max_length=1000)
+    approval: Literal["deprecate-explicit-codex-test-fixtures"] | None = None
+
+    @model_validator(mode="after")
+    def require_apply_guards(self) -> "ExplicitTestFixtureDeprecationBody":
+        if (
+            not self.dry_run
+            and self.approval != "deprecate-explicit-codex-test-fixtures"
+        ):
+            raise ValueError(
+                "Apply requires approval='deprecate-explicit-codex-test-fixtures'."
+            )
         return self
 
 
@@ -183,15 +230,59 @@ def build_maintenance_router(
 
     @router.get("/memory/provenance")
     def audit_memory_provenance(
-        apply: bool = Query(default=False),
         limit: int | None = Query(default=None, ge=1, le=10000),
     ) -> dict[str, Any]:
         with Session(engine) as db:
-            report = memory_provenance_audit(db, apply=apply, limit=limit)
+            report = memory_provenance_audit(db, limit=limit)
         return {
             "operation": "maintenance.memory.provenance",
             **report,
         }
+
+    @router.post("/memory/provenance/repair")
+    def repair_memory_provenance(
+        body: MemoryProvenanceRepairBody,
+    ) -> dict[str, Any]:
+        try:
+            with Session(engine) as db:
+                return repair_exact_source_messages(
+                    db,
+                    dry_run=body.dry_run,
+                    expected_candidate_digest=body.expected_candidate_digest,
+                    backup_reference=body.backup_reference,
+                )
+        except MemoryProvenanceMutationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "memory_provenance.mutation_guard_failed",
+                    "message": str(exc),
+                    "recoverable": True,
+                },
+            ) from exc
+
+    @router.post("/memory/provenance/deprecate-explicit-test-fixtures")
+    def deprecate_memory_test_fixtures(
+        body: ExplicitTestFixtureDeprecationBody,
+    ) -> dict[str, Any]:
+        try:
+            with Session(engine) as db:
+                return deprecate_explicit_test_fixtures(
+                    db,
+                    reason=body.reason,
+                    dry_run=body.dry_run,
+                    expected_candidate_digest=body.expected_candidate_digest,
+                    backup_reference=body.backup_reference,
+                )
+        except MemoryProvenanceMutationError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={
+                    "code": "memory_provenance.mutation_guard_failed",
+                    "message": str(exc),
+                    "recoverable": True,
+                },
+            ) from exc
 
     @router.post("/jobs/{job_id}/run")
     def run_pending_maintenance_job(job_id: str) -> dict[str, Any]:

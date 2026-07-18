@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.37.0
+App baseline: V1.38.0
 
 ## Response Philosophy
 
@@ -3444,13 +3444,45 @@ running historical memory review.
 
 ### GET /api/maintenance/memory/provenance
 
-Status: implemented in V1.29.0
+Status: implemented in V1.29.0; replaced by the read-only V2 audit in V1.38.0
 
-Dry-run by default (`apply=false`). Classifies memory source hooks by scope and
-proposes a source message only when the recorded source turn contains exactly
-one matching persisted user message. `apply=true` writes only those
-unambiguous hooks and does not alter semantic memory timestamps. Ambiguous or
-invalid sources remain unresolved and are excluded from automatic V2 hints.
+This route cannot mutate state. It classifies provenance validity separately
+from record disposition, publishes the exact criteria used, and returns stable
+candidate ids plus SHA-256 digests for later guarded maintenance. A source
+message is proposed only when the persisted source session and turn resolve
+and the turn contains exactly one user message. Exact normalized duplicates
+are review evidence only. Explicit test-fixture classification requires the
+complete structured Codex metadata, tag, and source-session-title contract;
+content similarity never authorizes mutation.
+
+Query:
+
+```txt
+limit   optional audit display bound, 1..10000
+```
+
+### POST /api/maintenance/memory/provenance/repair
+
+Status: implemented in V1.38.0
+
+Dry-run-first internal maintenance route. Apply repairs only the exact
+single-user-message candidates returned by the current full audit. A real
+apply requires `dry_run=false`, approval `repair-exact-source-messages`, the
+reviewed `expected_candidate_digest`, and a non-empty verified
+`backup_reference`. Candidate drift fails with HTTP 409. Repair activity is
+append-only and excluded from cognitive recency.
+
+### POST /api/maintenance/memory/provenance/deprecate-explicit-test-fixtures
+
+Status: implemented in V1.38.0
+
+Dry-run-first internal maintenance route for records proven to be Codex test
+fixtures by the complete structured contract. A real apply requires
+`dry_run=false`, approval `deprecate-explicit-codex-test-fixtures`, the
+reviewed candidate digest, a verified backup reference, and an explicit
+reason. It deprecates memory, facts, and derived retrieval artifacts, records
+an append-only non-recent lifecycle event, and never hard-deletes source data.
+Candidate drift or a missing/inactive candidate fails closed.
 
 ### GET /api/maintenance/overview
 

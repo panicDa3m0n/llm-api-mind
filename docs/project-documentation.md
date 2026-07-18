@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.37.0
+App baseline: V1.38.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -77,6 +77,12 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.36-history-compaction-calibration.md`: exact real-session
   token accounting, full/derived MiniMax comparison, and the accepted
   whole-turn exception while active compaction remains gated.
+- `docs/evaluations/v1.37-memory-rerank-calibration.md`: immutable candidate
+  coverage, final-rerank calibration, sourceable V2 delivery, latency, and
+  direct MiniMax semantic review.
+- `docs/evaluations/v1.38-historical-provenance-audit.md`: production-read-only
+  classification, explicit fixture criteria, mutation guards, disposable-copy
+  gate, residual ambiguous links, and deployment evidence.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

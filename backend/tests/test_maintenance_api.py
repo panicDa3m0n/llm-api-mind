@@ -6,6 +6,8 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.main import create_app
+from app.mind.search import sync_memory_retrieval_artifacts
+from app.runtime.memory_provenance import memory_provenance_audit
 from app.storage import repositories
 from app.storage.models import utc_now
 
@@ -232,3 +234,178 @@ def test_summary_reconcile_returns_scheduled_ids_after_session_closes(
     body = response.json()
     assert len(body["scheduled_job_ids"]) == 1
     assert body["scheduled_job_ids"][0].startswith("mnt_")
+
+
+def test_provenance_fixture_deprecation_is_explicit_guarded_and_auditable(
+    db_engine: Engine,
+) -> None:
+    client = make_client(db_engine)
+    with Session(db_engine) as db:
+        source_session = repositories.create_chat_session(
+            db,
+            title="Codex Test Seed - guarded fixture",
+        )
+        fixture = repositories.add_memory(
+            db,
+            memory_type="project_fact",
+            scope="project",
+            content="Controlled fixture content.",
+            reason_for_storage="Fixture for provenance maintenance.",
+            source_session_id=source_session.id,
+            tags=["codex-test", "codex-dirty-memory-v1"],
+            metadata={
+                "codex_test_dataset_version": "dirty-memory-v1",
+                "codex_test_key": "guarded-fixture",
+                "codex_test_lane": "project",
+            },
+        )
+        fact = repositories.add_memory_fact(
+            db,
+            memory_id=fixture.id,
+            entity="fixture",
+            predicate="is_controlled",
+            value={"value": True},
+            source_session_id=source_session.id,
+        )
+        sync_memory_retrieval_artifacts(
+            db,
+            [fixture],
+            facts_by_memory={fixture.id: [fact]},
+        )
+        db.refresh(source_session)
+        original_session_updated_at = source_session.updated_at
+        fixture_id = fixture.id
+        source_session_id = source_session.id
+
+    audit_response = client.get("/api/maintenance/memory/provenance")
+    assert audit_response.status_code == 200
+    audit = audit_response.json()
+    assert audit["read_only"] is True
+    assert audit["record_counts"]["explicit_test_fixture"] == 1
+    candidate = audit["candidate_sets"]["explicit_test_fixture_deprecation"]
+    assert candidate["memory_ids"] == [fixture_id]
+
+    legacy_apply_query = client.get(
+        "/api/maintenance/memory/provenance",
+        params={"apply": "true"},
+    )
+    assert legacy_apply_query.status_code == 200
+    assert legacy_apply_query.json()["read_only"] is True
+    with Session(db_engine) as db:
+        unchanged = repositories.get_memory(db, fixture_id)
+        assert unchanged is not None
+        assert unchanged.status == "active"
+
+    dry_run = client.post(
+        "/api/maintenance/memory/provenance/deprecate-explicit-test-fixtures",
+        json={"dry_run": True, "reason": "Confirmed test-only fixture."},
+    )
+    assert dry_run.status_code == 200
+    assert dry_run.json()["applied_count"] == 0
+
+    missing_approval = client.post(
+        "/api/maintenance/memory/provenance/deprecate-explicit-test-fixtures",
+        json={
+            "dry_run": False,
+            "reason": "Confirmed test-only fixture.",
+            "expected_candidate_digest": candidate["digest_sha256"],
+            "backup_reference": "test-backup",
+        },
+    )
+    assert missing_approval.status_code == 422
+
+    drifted = client.post(
+        "/api/maintenance/memory/provenance/deprecate-explicit-test-fixtures",
+        json={
+            "dry_run": False,
+            "reason": "Confirmed test-only fixture.",
+            "expected_candidate_digest": "0" * 64,
+            "backup_reference": "test-backup",
+            "approval": "deprecate-explicit-codex-test-fixtures",
+        },
+    )
+    assert drifted.status_code == 409
+    assert drifted.json()["detail"]["code"] == (
+        "memory_provenance.mutation_guard_failed"
+    )
+
+    applied = client.post(
+        "/api/maintenance/memory/provenance/deprecate-explicit-test-fixtures",
+        json={
+            "dry_run": False,
+            "reason": "Confirmed test-only fixture.",
+            "expected_candidate_digest": candidate["digest_sha256"],
+            "backup_reference": "test-backup",
+            "approval": "deprecate-explicit-codex-test-fixtures",
+        },
+    )
+    assert applied.status_code == 200
+    body = applied.json()
+    assert body["applied_count"] == 1
+    assert len(body["activity_ids"]) == 1
+    assert body["residual_audit"]["candidate_sets"][
+        "explicit_test_fixture_deprecation"
+    ]["count"] == 0
+
+    with Session(db_engine) as db:
+        stored = repositories.get_memory(db, fixture_id)
+        assert stored is not None
+        assert stored.status == "deprecated"
+        assert stored.metadata_json["lifecycle"]["last_event"]["backup_reference"] == (
+            "test-backup"
+        )
+        stored_fact = repositories.list_memory_facts(
+            db,
+            memory_id=fixture_id,
+            include_inactive=True,
+        )[0]
+        assert stored_fact.status == "deprecated"
+        surfaces = repositories.list_memory_surfaces(
+            db,
+            target_type="memory",
+            target_id=fixture_id,
+        )
+        assert surfaces
+        assert {surface.status for surface in surfaces} == {"deprecated"}
+        activities = repositories.list_memory_activities(db, memory_id=fixture_id)
+        assert activities[0].eligible_for_recent is False
+        source_session = repositories.get_chat_session(db, source_session_id)
+        assert source_session is not None
+        assert source_session.updated_at == original_session_updated_at
+
+
+def test_provenance_audit_does_not_infer_fixture_or_redundancy_from_similarity(
+    db_engine: Engine,
+) -> None:
+    make_client(db_engine)
+    with Session(db_engine) as db:
+        source_session = repositories.create_chat_session(db, title="Real conversation")
+        first = repositories.add_memory(
+            db,
+            memory_type="project_fact",
+            scope="project",
+            content="The phrase codex-test can be discussed in real project work.",
+            reason_for_storage="Real discussion, not a fixture.",
+            source_session_id=source_session.id,
+            tags=["codex-test"],
+            metadata={},
+        )
+        second = repositories.add_memory(
+            db,
+            memory_type="project_fact",
+            scope="project",
+            content="The phrase codex-test can be discussed in real project work.",
+            reason_for_storage="Exact duplicate for review only.",
+            source_session_id=source_session.id,
+            tags=["codex-test"],
+            metadata={},
+        )
+        audit = memory_provenance_audit(db)
+        first_id = first.id
+        second_id = second.id
+
+    by_id = {item["memory_id"]: item for item in audit["items"]}
+    for memory_id in (first_id, second_id):
+        assert by_id[memory_id]["record_class"] == "exact_duplicate_review_candidate"
+        assert by_id[memory_id]["recommended_action"] == "review_only"
+        assert by_id[memory_id]["fixture_evidence"]["confirmed"] is False
