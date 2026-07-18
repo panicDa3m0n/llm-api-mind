@@ -89,13 +89,15 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 198 tests passed at 80.22% statement coverage;
+- backend: 209 tests passed at 80.45% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
-- V1.32.0 production rollout: native MiniMax and GPT Actions smoke tests passed;
-  OpenRouter final rerank completed in production traces and DB integrity
-  remained `ok`.
+- V1.38.0 production rollout: guarded provenance cleanup deprecated all 242
+  explicit fixtures after backup and disposable-copy proof; native MiniMax and
+  GPT bridge controls passed the fixture-isolation target, OpenRouter embedding
+  and rerank completed after runtime config alignment, and DB integrity stayed
+  `ok`.
 - V1.30.0 disposable MiniMax mode probe: explicit `mode set scouting`, persisted
   resumable posture, interactive override, and no-autonomous-runtime boundary
   all observed after iterative correction.
@@ -108,8 +110,8 @@ Current verification baseline:
   shell calls, recovered from the one malformed memory-write command, and did
   not mutate production data.
 - V1.33.0 GitHub catch-up: feature history published through PR #1; push and
-  pull-request quality workflows both passed, while production remains tagged
-  and deployed at the exact V1.32.0 runtime commit.
+  pull-request quality workflows both passed. That historical deployment
+  boundary was later superseded by the protected V1.38.0 rollout above.
 - V1.34.0 natural behavioral baseline: 12 scenarios across 8 groups and 36
   authoritative live MiniMax M3 turns after 45 shakedown turns exposed two
   evaluator-oracle errors and session-identity leakage. Every authoritative
@@ -211,8 +213,8 @@ Current limits:
   model-dependent;
 - final rerank now has a frozen/live V1.37 calibration over 11 cases and an
   adaptive `0.004 + 1% relative` floor; larger-memory candidate pressure,
-  provider drift/availability, and KG entity resolution still need
-  longitudinal evidence;
+  provider drift/availability, KG entity resolution, and a production negative
+  accepted at `0.004102` still need longitudinal evidence;
 - maintenance retry/resume and future Dream review remain incomplete.
 
 ### 3.5 Organs

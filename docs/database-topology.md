@@ -44,7 +44,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.32.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.32.0 backup is `/var/backups/scarlet-mobile-test/v1320-20260713T211855Z/app.db.pre-v1320`. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.38.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.38.0 backup is `/var/backups/scarlet-mobile-test/v1380-20260718T112717Z/app.db.pre-v1380` (SHA-256 `367a8bbf4783d0a738fe90e42c721de3a926999545a6fa22e8add57a31bd77b7`). |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; legacy Git LFS-tracked file | Published index pointer is SHA-256 `827bb...c1ed5`; the current worktree file is a later dirty LFS object `9b6e...0448f`. It is not production and must not be staged except for a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -69,9 +69,11 @@ all 242 source-session-only records belong to three named Codex seed sessions;
 241 were active and one already deprecated. Of the seven invalid links, four
 point outside the declared turn and three point to an assistant message inside
 it. They do not have a unique defensible correction and are retained for review. Production
-mutation is permitted only after the V1.38 disposable-copy gate and a fresh
-backup; the final post-deploy inventory and backup path are recorded in the
-V1.38 evaluation report.
+mutation was permitted only after the V1.38 disposable-copy gate and a fresh
+backup. The guarded production apply is complete: all 242 fixtures are
+deprecated, while the seven uncertain real links remain review-only. Final
+counts, backup evidence, and direct controls are recorded in the V1.38
+evaluation report.
 
 ## Runtime Guardrails
 
@@ -130,7 +132,7 @@ DATABASE_URL=sqlite:///./data/app.db
 The value `mobile_test` is historical deployment naming; the explicit role is
 what declares that its mounted database contains production data.
 
-Current V1.32.0 production maintenance policy, retained from V1.29.0:
+Current V1.38.0 production maintenance policy, retained from V1.29.0:
 
 ```txt
 MAINTENANCE_ENABLED=true
@@ -143,9 +145,10 @@ maintenance job. The broad repair scanner remains disabled on this deployment
 so it cannot summarize a newly completed turn immediately; it can be enabled
 again after its age policy is separated from historical reconciliation.
 
-V1.32.0 preserves that maintenance boundary while aligning active cognition
+V1.38.0 preserves that maintenance boundary while aligning active cognition
 with the verified local runtime: `model_context_profile=v2`, OpenRouter
-retrieval/rerank enabled, active final arbitration at threshold `0.01`, active
+retrieval/rerank enabled, active final arbitration with absolute floor `0.004`
+and relative floor `0.01`, active
 agent-mode routing, and optional focus/volition/affect/temporal/Dream injection
 off. Production role and disabled broad summary reconciliation are deliberate
 deployment differences, not local/remote feature drift.

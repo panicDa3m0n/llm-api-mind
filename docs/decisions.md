@@ -84,9 +84,11 @@ Consequences:
 The policy handles query-local score scale without allowing recall-route scores
 to decide semantics. Frozen post-change controls pass 22/22, including a
 two-memory answer and a wrong-entity collision, while unrelated negatives
-remain empty. The calibration is strong project evidence, not a universal
-numeric proof; provider drift and
-larger candidate pools remain monitored.
+remain empty. A later production negative accepted an unrelated candidate at
+`0.004102`, just above the absolute floor. This does not justify a blind
+threshold change: it confirms that the calibration is strong project evidence,
+not a universal numeric proof, and that provider drift, lexical ambiguity, and
+larger candidate pools remain monitored under SCA-3 follow-up work.
 
 Links:
 

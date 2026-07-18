@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0083 - Codex Evaluation Fixtures Entered Production Active Memory
 
 Date Found: 2026-07-18
-Status: fix implemented in V1.38.0; production apply pending protected gate
+Status: fixed, deployed, and verified in V1.38.0
 
 Symptoms:
 
@@ -49,6 +49,55 @@ Related Files:
 - `backend/tests/test_maintenance_api.py`
 - `docs/evaluations/v1.38-historical-provenance-audit.md`
 - Linear SCA-20
+
+## BUG-0085 - Completed Native Turn Contained Only A Public Work Note
+
+Date Found: 2026-07-18
+Status: open; assigned to SCA-28
+
+Symptoms:
+
+A direct production Scarlet turn ended with provider `end_turn`, no tool call,
+and only a truncated public progress note. The backend marked the turn
+completed because non-empty public text existed, although no conclusive answer
+was present.
+
+Current Assessment:
+
+This is a systemic answer-obligation gap, not ordinary answer-quality variance
+and not a thinking-only SCA-19 case. The runtime needs a traced, proportionate
+distinction between progress narration and a final semantic answer without
+using brittle string matching for normal content.
+
+Evidence:
+
+- session `ses_02f95bf1a9874b0cb3fa5cd613377897`;
+- turn `turn_fc2045c3b17542b6812c1df8f1994279`;
+- Linear SCA-28.
+
+## BUG-0084 - VPS Retrieval Configuration Drift Disabled Dense Embedding
+
+Date Found: 2026-07-18
+Status: fixed operationally during V1.38.0 deployment
+
+Symptoms:
+
+Production configured the OpenRouter shadow backend but omitted its embedding
+model, causing the local-hash default model name to be sent to OpenRouter and
+return HTTP 400. The VPS also retained the pre-V1.37 rerank threshold.
+
+Fix And Verification:
+
+The production environment now explicitly selects the Nvidia embedding and
+rerank models and the V1.37 absolute/relative floors. After restart, a GPT
+bridge negative control reported both embedding and final rerank `completed`,
+returned zero memories, and finalized successfully.
+
+Regression Target:
+
+Future deployments should compare effective non-secret retrieval settings with
+the release contract during preflight so stale `.env` values cannot silently
+survive code parity.
 
 ## BUG-0082 - Explicit Exasperation Does Not Activate Affective Context
 

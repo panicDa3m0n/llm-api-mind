@@ -10,9 +10,9 @@ V1.38.0 separates historical provenance audit from guarded maintenance and
 classifies explicit Codex fixtures without semantic inference. V1.37.0
 calibrates final memory relevance on frozen and live evidence. V1.36.1
 prevents thinking-only provider messages from becoming successful empty Scarlet
-turns. V1.36.0 remains the chronology-accounting baseline. V1.32.0
-remains the currently deployed HoneyLabs production runtime until later versions
-pass the protected database deployment boundary.
+turns. V1.36.0 remains the chronology-accounting baseline. V1.38.0 is the
+currently deployed HoneyLabs production runtime after passing the protected
+database deployment boundary.
 
 ### Added
 
@@ -106,6 +106,14 @@ pass the protected database deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Deployed V1.38.0 after a verified online backup and production-role
+  preflight. The guarded apply deprecated all 242 explicit Codex fixtures,
+  retained seven uncertain real source links for review, preserved source
+  session recency, and passed direct native/GPT isolation controls.
+- Aligned effective VPS retrieval configuration with the V1.37 adaptive floor
+  and explicit Nvidia OpenRouter embedding/rerank models; post-restart traces
+  completed both stages.
 
 - Historical lifecycle maintenance no longer makes old source sessions or
   memories cognitively recent. Explicit fixture records are deprecated with
