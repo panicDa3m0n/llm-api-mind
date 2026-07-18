@@ -101,6 +101,9 @@ discussed before a new fix is attempted.
   and GitHub Actions baseline for engineering changes.
 - `docs/database-topology.md`: canonical ownership map and deployment/test
   boundary for production, laboratory, test, and preliminary databases.
+- `docs/monolith-rework-plan.md`: current code-concentration inventory, stable
+  facades, dependency order, atomic Linear slices, and mandatory pre/post gate
+  for organizational rework.
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: project-visible change history.
 

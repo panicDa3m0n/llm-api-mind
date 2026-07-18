@@ -7,6 +7,47 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0095 - Monolith Rework Uses Stable Facades And Atomic Issues
+
+Date: 2026-07-18
+Status: accepted planning boundary in SCA-10
+
+Context:
+
+Several runtime and frontend files now concentrate multiple contracts, but
+line count alone does not distinguish operational coupling from a large
+declarative catalog. A broad refactor could preserve unit tests while changing
+trace order, provider history, memory lifecycle, model context, or GPT parity.
+The GPT router also still contains deprecated MCP code scheduled for removal.
+
+Decision:
+
+- split one contract or lifecycle per issue behind an unchanged public facade;
+- run the identical frozen preliminary gate before and after every executable
+  slice, plus focused tests and direct use of the affected surface;
+- remove deprecated MCP before refactoring the remaining GPT Actions router;
+- separate chat support before native turn orchestration, and memory read
+  surfaces before mutation/proposal/maintenance dependencies;
+- treat `mind/schema.py` as a coherent declarative catalog until import or
+  ownership evidence justifies a split;
+- forbid incidental database, API, prompt, policy, or behavior changes inside
+  organization-only slices; and
+- keep broad live Scarlet campaigns owner-triggered while requiring bounded
+  direct validation for agent-facing runtime changes.
+
+Consequences:
+
+SCA-10 closes with an executable map rather than a risky mega-branch. SCA-22
+and SCA-33 through SCA-41 carry the actual code changes and can be accepted,
+reverted, or reordered independently. Structural improvement is measured by
+clear ownership and preserved behavior, not by a target line count.
+
+Links:
+
+- Linear SCA-10
+- `docs/monolith-rework-plan.md`
+- `docs/preliminary-regression-suite.md`
+
 ## ADR-0094 - Agent Mode Receipts Separate Eligibility From Delivery
 
 Date: 2026-07-18

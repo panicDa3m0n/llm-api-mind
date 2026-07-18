@@ -303,13 +303,13 @@ The current largest modules are:
 
 ```txt
 frontend/src/App.tsx                         4474 lines
-backend/app/mind/memory.py                   2916
-backend/app/plugins/gpt_bridge/router.py     1919
-backend/app/mind/schema.py                   1814
+backend/app/mind/memory.py                   2921
+backend/app/api/chat.py                      2641
+backend/app/plugins/gpt_bridge/router.py     2273
+backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
-backend/app/mind/context.py                  1705
-backend/app/api/chat.py                      1682
-backend/app/runtime/maintenance.py           1349
+backend/app/mind/context.py                  1809
+backend/app/runtime/maintenance.py           1383
 ```
 
 These files are not automatically incorrect, but they concentrate unrelated
@@ -381,6 +381,12 @@ Current engineering baseline:
 - split GPT Actions and deprecated MCP transport;
 - componentize developer and mobile frontends;
 - preserve public facades and compare the exact preliminary suite before/after.
+
+SCA-10 converts this priority into the ordered, independently gated issues
+SCA-22 and SCA-33 through SCA-41. MCP removal precedes GPT-router refactoring;
+declarative `mind/schema.py` is deferred until measured import pressure
+justifies a split. The canonical execution map is
+`docs/monolith-rework-plan.md`.
 
 ### P5 - Identity, Relationship, Learning, And Governance
 

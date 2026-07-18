@@ -153,6 +153,13 @@ latest recorded run is `20260713_163648_preliminary-regression-v1`. This
 confirms the frozen assembled contracts, not free-form provider behavior or
 the semantic quality of every branch.
 
+SCA-10 revalidated the unchanged V1.42 planning baseline at 9/9 in
+`20260718_162024_preliminary-regression-v1`, then passed the identical
+post-documentation gate 9/9 in
+`20260718_162350_preliminary-regression-v1`. No runtime code changed in the
+planning issue; every executable rework child must record its own fresh
+pre/post pair instead of treating this planning run as permanent approval.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

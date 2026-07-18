@@ -4,6 +4,28 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - SCA-10 Atomic Monolith Rework Map
+
+Inspected current top-level functions, imports, consumers, and measured line
+counts across memory, chat, GPT bridge, context, maintenance, developer UI, and
+mobile UI. The review rejected line count as an automatic refactor criterion:
+`mind/schema.py` remains a large but mostly declarative catalog, while the
+operational files mix separable contracts and lifecycle responsibilities.
+
+Created `docs/monolith-rework-plan.md` and nine child issues (SCA-33 through
+SCA-41). SCA-22 must remove deprecated MCP before SCA-39 touches the GPT
+router. Chat support precedes turn orchestration; memory read precedes mutation
+and maintenance splits. Every code slice preserves a public facade and requires
+its own immutable 9/9 pre/post gate, focused tests, and direct isolated use.
+
+The current frozen gate passed 9/9 in
+`20260718_162024_preliminary-regression-v1` and the identical final gate passed
+9/9 in `20260718_162350_preliminary-regression-v1`. SCA-10 changes
+documentation and planning only: no runtime, API, prompt, database, or
+deployment change was made. A live Scarlet probe is intentionally not claimed
+for a documentation-only issue; future agent-facing extraction slices require
+their own bounded direct probe.
+
 ## 2026-07-18 - V1.43.0 Reranker Negative Calibration Checkpoint (SCA-31)
 
 Started SCA-31 from the deployed V1.42 baseline. Read-only inspection of the
