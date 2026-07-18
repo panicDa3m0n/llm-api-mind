@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.41.0 (deployed)
+App baseline: V1.42.0 (release candidate)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -92,6 +92,9 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.41-answer-obligations.md`: structural and semantic final-
   answer contracts, bounded correction, GPT rejection policy, focused tests,
   and direct native/GPT probe evidence.
+- `docs/evaluations/v1.42-agent-mode-routing.md`: per-block routing receipts,
+  off/shadow/active delivery semantics, native/GPT parity, prompt selection
+  calibration, and bounded two-session Scarlet evidence.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

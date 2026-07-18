@@ -1,8 +1,8 @@
 # Branch: Gestione Operativa
 
 Last updated: 2026-07-18
-System version assessed: V1.40.0
-Status: focus lifecycle longitudinally validated; conservative activation retained
+System version assessed: V1.42.0 (release candidate)
+Status: focus lifecycle and mode routing validated within implemented boundaries
 
 ## Filosofia del ramo
 
@@ -96,6 +96,22 @@ Focus is therefore a validated controlled lifecycle, not an instruction to
 persist every conversational topic. It remains model-facing only when active;
 automatic focus selection and coupling to volition or modes are not accepted.
 Evidence: `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
+
+## Verifica V1.42.0
+
+Mode routing now emits one ordered receipt per automatic context block, with
+capability tags, eligibility, actual delivery, and reason. Off, shadow, and
+active policies no longer conflate a tag mismatch with exclusion; unknown
+blocks remain fail-open and visible. Native and GPT human turns produce the
+same interactive routing boundary, while on-demand shell cognition remains
+available independently.
+
+A bounded natural two-session chain persisted `scouting`, recovered it in a
+new session, and kept both human turns `interactive`. The first pre-fix probe
+had collapsed capability honesty into `idle`; the policy now explicitly
+distinguishes idle absence of direction from scouting exploratory orientation.
+No idle/scouting autonomous cycle or sensor behavior exists or was claimed.
+Evidence: `docs/evaluations/v1.42-agent-mode-routing.md`.
 
 ## Evolutive
 

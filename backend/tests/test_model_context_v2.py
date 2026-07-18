@@ -4,6 +4,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, create_engine
 
 from app.config import Settings
+from app.mind.agent_modes import route_context_blocks
 from app.mind.context_projection import (
     compile_model_context_v2,
     compile_model_context_v2_with_audit,
@@ -299,6 +300,49 @@ def test_v2_preserved_families_use_explicit_field_allowlists_and_audit() -> None
         "content.debug_summary.dominant_variables"
         in decisions["affective_context"]["excluded_source_fields"]
     )
+
+
+def test_v2_projection_cannot_restore_blocks_excluded_by_active_mode_routing() -> None:
+    engine = _engine()
+    init_db(engine)
+    source_blocks = _preserved_source_blocks()
+    routed_blocks, routing = route_context_blocks(
+        source_blocks,
+        active_tag="idle",
+        routing_mode="active",
+    )
+
+    with Session(engine) as db:
+        current = repositories.create_chat_session(db, title="Current")
+        document, audit = compile_model_context_v2_with_audit(
+            db,
+            chat_session=current,
+            rich_memory_context={"selected": []},
+            legacy_runtime_payload={"blocks": routed_blocks},
+            now=datetime(2026, 7, 12, 12, 0, tzinfo=timezone.utc),
+            preferences=_preferences(),
+            settings=_settings(),
+            agent_mode={
+                "active_tag": "idle",
+                "active_runtime_implemented": True,
+                "source": "test",
+                "resume_tag": None,
+                "resume_runtime_implemented": None,
+            },
+        )
+
+    assert routing["excluded_block_types"] == [
+        "affective_context",
+        "metacognitive_context",
+        "message_context",
+    ]
+    assert [block["type"] for block in document["preserved_context"]] == [
+        "focus_context"
+    ]
+    assert audit["included_block_types"] == ["focus_context"]
+    by_family = {item["family"]: item for item in audit["families"]}
+    assert by_family["affective_context"]["source_present"] is False
+    assert by_family["metacognitive_context"]["source_present"] is False
 
 
 def _preserved_source_blocks() -> list[dict]:

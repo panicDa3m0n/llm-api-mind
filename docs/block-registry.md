@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-18
-System version assessed: V1.41.0 (deployed)
+System version assessed: V1.42.0 (release candidate)
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -123,6 +123,15 @@ the model document.
 
 Volition is never injected automatically.
 
+Before V2 projection, the agent-mode router emits one ordered decision per rich
+context block. Each decision records block id/type, capability and status,
+required mode tags, eligibility, actual delivery, disposition, and reason.
+`off` delivers all blocks, `shadow` delivers all and records
+`would_exclude`, and `active` excludes registered ineligible blocks.
+Unregistered blocks fail open and are explicitly reported for registry review.
+These receipts remain trace/UI evidence; they are not duplicated into Scarlet's
+model document.
+
 ## 3. Rich Internal Evidence
 
 The backend still builds `runtime-context-v1` and a rich `memory.context`
@@ -212,7 +221,8 @@ automatic context packets.
 - keep new optional organ families behind explicit field allowlists and audit;
 - monitor recursive summary quality and validate the V1.36 token partition
   across additional compaction cycles;
-- populate natural behavioral scenarios for mode routing and continuity;
+- monitor the accepted V1.42 mode-routing and continuity scenarios when mode
+  semantics or block tags change;
 - monitor answer-obligation validator quality and GPT correction behavior;
 - update this registry before changing active compaction budgets or hard-gating
   any cognitive command by mode.

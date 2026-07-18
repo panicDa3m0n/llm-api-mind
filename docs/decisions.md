@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0094 - Agent Mode Receipts Separate Eligibility From Delivery
+
+Date: 2026-07-18
+Status: accepted and implemented for V1.42.0
+
+Context:
+
+Mode routing had one correct active filter but an ambiguous trace contract.
+When routing was off or shadow, ineligible blocks were still delivered while
+the aggregate receipt omitted them from `included_block_types`. A type-only
+receipt also could not identify duplicate blocks or explain individual
+decisions.
+
+Decision:
+
+- derive filtering and trace aggregates from the same ordered per-block
+  decision list;
+- distinguish policy eligibility from actual delivery;
+- deliver unregistered block types fail-open while reporting registry drift;
+- reject unknown modes and routing policies before context delivery;
+- preserve on-demand shell availability independently of automatic routing;
+- enforce resumable ownership at the persistence primitive as well as shell;
+- define `idle` as no direction to resume and `scouting` as an exploratory
+  orientation that remains selectable before sensor execution exists; and
+- do not claim behavioral validation for idle/scouting model cycles until such
+  a runtime actually exists.
+
+Consequences:
+
+Trace/UI/evaluation consumers can reconstruct exactly what reached the model.
+New block families cannot disappear silently, but every unregistered receipt
+becomes actionable registry evidence. Human chat remains `interactive`, and
+scouting remains a persistent posture without sensors or autonomous work.
+
+Links:
+
+- Linear SCA-6
+- BUG-0088
+- EXP-0060
+- `backend/app/mind/agent_modes.py`
+- `docs/evaluations/v1.42-agent-mode-routing.md`
+
 ## ADR-0093 - Final Answers Use Shared Traceable Runtime Obligations
 
 Date: 2026-07-18

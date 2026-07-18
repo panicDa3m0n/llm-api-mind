@@ -1027,6 +1027,17 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
         "message_context",
         "scarlet_state",
     ]
+    mode_routing = runtime_context_trace["mode_routing"]
+    assert mode_routing["active_tag"] == "interactive"
+    assert mode_routing["routing_applied"] is True
+    assert mode_routing["excluded_block_ids"] == []
+    assert mode_routing["included_block_ids"] == [
+        "session.continuity",
+        "scarlet.agent_mode",
+        "turn.perception",
+        "scarlet.dynamic_state",
+    ]
+    assert all(item["delivered"] for item in mode_routing["block_decisions"])
     model_context_trace = traces[3]["payload"]
     projection_audit = model_context_trace["projection_audit"]
     projection_by_family = {

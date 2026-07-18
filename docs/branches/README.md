@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-18
-App baseline: V1.41.0 (deployed)
+App baseline: V1.42.0 (release candidate)
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -41,8 +41,8 @@ turns. Every branch document must state:
 | Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
-| Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; mode active and separate | validate mode routing before goal/task organ |
-| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register, final-answer obligations | V1.41 prevents progress-only completion; no autonomous cycle | validate mode routing, then risk/receipt policy |
+| Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; V1.42 mode receipts and two-session resume passed | retain separation before goal/task organ |
+| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register, final-answer obligations | V1.42 clarifies exploratory mode selection; no autonomous cycle | risk/permission receipt policy |
 | External operativity | L1 | supporting traces/events only | no external-world action suite | permission/safety/rollback architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |

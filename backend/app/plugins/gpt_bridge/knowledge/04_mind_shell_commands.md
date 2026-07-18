@@ -55,9 +55,11 @@ Agent mode is Scarlet's foreground posture. Human-facing turns remain
 `interactive`; `mode set idle|scouting --reason "..."` selects the posture to
 resume afterward. A request for a post-conversation posture is a mode change,
 not a volition. Apply an explicit request in the same turn; a memory does not
-replace `mode set`. The command persists posture only; it starts no autonomous
-cycle. Scouting has no autonomous sensor runtime yet. Maintenance and Dream are
-not agent modes.
+replace `mode set`. Use `idle` when there is no direction to resume; use
+`scouting` for an exploratory, observational, or investigative orientation even
+before sensors exist. The command persists posture and changes automatic context
+eligibility only; it starts no autonomous cycle. Scouting has no autonomous
+sensor runtime yet. Maintenance and Dream are not agent modes.
 
 ## Error Recovery
 

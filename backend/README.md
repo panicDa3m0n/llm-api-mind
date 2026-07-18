@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.34.0.
+App baseline: V1.42.0 release candidate.
 
 Current scope:
 
@@ -45,8 +45,8 @@ Current scope:
   `scarlet-model-context-v2` document shared by native MiniMax and GPT Actions;
 - exact character/byte context accounting, provider token observations, and
   shadow-only history compaction planning;
-- agent-mode registry, automatic block routing, persistent resumable posture,
-  and `mode` shell family;
+- agent-mode registry, per-block automatic-routing receipts, persistent
+  resumable posture, and `mode` shell family;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - per-session idle maintenance that schedules summary refresh, missed-memory
