@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0096 - Retire MCP And Keep GPT Actions As The Sole External Bridge
+
+Date: 2026-07-18
+Status: accepted and implemented for V1.43.0
+
+Context:
+
+The MCP/App experiment could not be attached to the target Custom GPT while
+Actions remained the working integration. Production inspection found 34
+historical `mcp_bridge` sessions and recent requests from an external
+`openai-mcp` client, proving the route was externally discoverable rather than
+an unused internal helper. The owner nevertheless confirmed that this
+connector path is deprecated and must not remain as a competing contract.
+Query-string bridge authentication also caused credentials to appear in proxy
+access logs.
+
+Decision:
+
+- remove the application `/mcp` route, JSON-RPC lifecycle, tool descriptors,
+  connector prompt, tests, and Nginx proxy location;
+- remove bridge-key query parameters from every GPT route;
+- retain `Authorization: Bearer` and `X-GPT-Bridge-Key` authentication;
+- keep the three Custom GPT Actions as the sole external model transport;
+- keep native `mind_shell` and internal/debug `/mind/*` boundaries unchanged;
+- preserve all historical MCP-originated database evidence; and
+- coordinate bridge-key rotation with the external GPT dashboard rather than
+  breaking the active Actions configuration unilaterally.
+
+Consequences:
+
+Current code and operational documentation expose one external GPT contract.
+Historical sessions remain navigable and old ADR/experiment records remain
+truthful. A separately coordinated credential rotation is still required
+because prior query-string use may have copied the current secret into access
+logs.
+
+Links:
+
+- Linear SCA-22
+- BUG-0090
+- `backend/app/plugins/gpt_bridge/`
+- `docs/evaluations/v1.43-mcp-retirement.md`
+
 ## ADR-0095 - Monolith Rework Uses Stable Facades And Atomic Issues
 
 Date: 2026-07-18
@@ -1020,7 +1063,7 @@ Related Files:
 ## ADR-0075 - ChatGPT MCP/App Bridge As Alternative GPT Surface
 
 Date: 2026-07-08
-Status: deprecated for target GPT flow
+Status: superseded by ADR-0096 in V1.43.0
 
 Context:
 
@@ -1082,7 +1125,7 @@ Consequences:
 Related Files:
 
 - `backend/app/plugins/gpt_bridge/router.py`
-- `backend/app/plugins/gpt_bridge/scarlet_mcp_system_prompt.md`
+- historical connector prompt removed in V1.43.0
 - `backend/app/plugins/gpt_bridge/README.md`
 - `backend/tests/test_gpt_bridge.py`
 - `docs/api-contract.md`

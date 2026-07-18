@@ -371,13 +371,10 @@ GET  /api/debug/state/{session_id}
 
 Status: implemented in V1.24.0, GPT Builder packaging added in V1.24.1,
 bootstrap response compacted in V1.24.2, mandatory prompt protocol reinforced
-in V1.24.3, experimental MCP/App bridge added in V1.25.0, GPT Actions
-operation ids and finalize output aligned in V1.25.2, GPT Builder schema
-parity for top-level `session_id` and required action `intent` added in
-V1.25.3. MCP/App is deprecated for the target Custom GPT flow and retained
-temporarily for traceability.
-V1.41.0 adds shared answer-obligation manifests and finalize validation without
-changing the three-operation transport surface.
+in V1.24.3, and GPT Actions operation ids/finalize output aligned through
+V1.25.3. V1.41.0 adds shared answer-obligation manifests and finalize
+validation. V1.43.0 removes the deprecated MCP/App experiment and leaves the
+three-operation Actions transport as the sole external GPT surface.
 
 Purpose:
 
@@ -391,7 +388,6 @@ GPT Builder assets:
 
 ```txt
 backend/app/plugins/gpt_bridge/scarlet_gpt_system_prompt.md
-backend/app/plugins/gpt_bridge/scarlet_mcp_system_prompt.md
 backend/app/plugins/gpt_bridge/knowledge/
 backend/app/plugins/gpt_bridge/openapi_gpt_action.json
 ```
@@ -403,11 +399,9 @@ The OpenAPI file is not a new runtime capability; it is the minimal Actions
 schema that lets the GPT Builder understand the three bridge endpoints and the
 `X-GPT-Bridge-Key` header.
 
-The MCP prompt is the deprecated companion prompt for a ChatGPT GPT configured
-with Apps / Connectors instead of Custom GPT Actions. Platform testing showed
-the target GPT Builder flow exposes Actions rather than letting this connector
-be attached as the active custom GPT surface. A GPT can use Actions or Apps,
-not both in the same GPT configuration.
+The removed MCP/App prompt and connector contract remain documented only in
+the changelog and ADR history. They are not current builder assets or runtime
+capabilities.
 
 Bootstrap response profile:
 
@@ -455,22 +449,6 @@ finalizeScarletBeforeAnswer
 The compact GPT Builder prompt treats bootstrap/finalize as mandatory for every
 user message, not only for technical or memory-sensitive turns. `/gpt/action`
 is required whenever the GPT needs API Mind information or state operations.
-
-Deprecated MCP/App turn protocol:
-
-```txt
-1. start_scarlet_turn_required  -> required at the start of every user turn.
-2. scarlet_*_command tools      -> execute needed mind_shell commands.
-3. finish_scarlet_turn_required -> required before the GPT shows the answer.
-```
-
-The MCP lifecycle tool descriptions intentionally begin with exact Italian
-obligation phrases for ChatGPT model selection:
-
-```txt
-Usa sempre a inizio di ogni turno
-Usa sempre prima della tua risposta finale
-```
 
 `POST /gpt/bootstrap`
 
@@ -630,66 +608,10 @@ review, and provider history would miss the assistant answer.
 
 `POST /mcp`
 
-Status:
-
-Deprecated experimental private-preview MCP/App bridge for ChatGPT Developer
-Mode connectors. It remains available temporarily for traceability but is no
-longer the recommended Scarlet GPT path.
-
-Transport:
-
-- single Streamable HTTP endpoint path, currently POST-only JSON-RPC responses;
-- `GET /mcp` returns `405 Method Not Allowed` because this preview does not
-  provide an SSE stream;
-- initializes an MCP session with `Mcp-Session-Id` so subsequent tool calls can
-  reuse the active Scarlet session and turn.
-
-Authentication:
-
-- supports the same `Authorization: Bearer <key>` and `X-GPT-Bridge-Key`
-  values as `/gpt/*`;
-- also accepts `?key=<GPT_BRIDGE_API_KEY>` for private connector previews where
-  custom headers are unavailable;
-- query-key auth is not the intended production/submission security model.
-
-Implemented JSON-RPC methods:
-
-```txt
-initialize
-notifications/initialized
-ping
-tools/list
-tools/call
-resources/list
-prompts/list
-```
-
-Implemented tools:
-
-```txt
-start_scarlet_turn_required
-finish_scarlet_turn_required
-scarlet_help_command
-scarlet_memory_command
-scarlet_session_command
-scarlet_metacognition_command
-scarlet_focus_command
-scarlet_affect_command
-scarlet_volition_command
-scarlet_shell_command
-```
-
-All `scarlet_*_command` tools take a single `command` string and optional
-`intent`, then dispatch through the existing `mind_shell` runtime. Family tools
-prefix the command namespace when useful, so `scarlet_memory_command` can accept
-either `search "Impi" --top 5` or `memory search "Impi" --top 5`.
-
-Tool results return both MCP `content` text and `structuredContent`; full
-backend diagnostics remain in traces exactly as with the Actions bridge.
-As of V1.25.1, every MCP tool descriptor also declares an `outputSchema` for
-its `structuredContent`: lifecycle tools advertise turn/session/finalization
-fields and command tools advertise shell response/tool-call fields, with shared
-`ok` and `summary` fields across all tools.
+Status: removed in V1.43.0. Requests are not routed by the application. The
+retirement also removes query-string bridge-key authentication. Canonical
+historical records created with `source=mcp_bridge` remain unchanged and
+navigable; transport retirement is not data deletion.
 
 ## Implemented Internal Runtime Context
 

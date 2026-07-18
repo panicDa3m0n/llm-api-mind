@@ -4,6 +4,31 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.43.0 MCP Retirement (SCA-22)
+
+Removed the deprecated MCP/App connector implementation after the owner
+confirmed that Custom GPT Actions are the sole target external transport. The
+slice deletes `/mcp`, its in-process connector state, JSON-RPC/tool metadata,
+the connector prompt, query-string authentication, and MCP-only tests while
+leaving GPT bootstrap/action/finalize, native `mind_shell`, internal `/mind/*`,
+and every historical database record unchanged.
+
+Production read-only inspection before implementation found 34 historical
+sessions with `source=mcp_bridge` and recent access-log requests from an
+external `openai-mcp` client. This evidence is preserved rather than relabelled
+or deleted. It also showed that query-key credentials crossed the proxy-log
+boundary; code now rejects query-only authentication, while actual key
+rotation remains a coordinated owner/dashboard operation.
+
+Focused GPT bridge and shell verification passes 27/27. The complete backend
+passes 238 tests at 81.34%; Ruff, mypy, documentation integrity, frontend
+build, and the unchanged 9/9 post gate pass. A direct isolated
+bootstrap/help/finalize cycle completed and `/mcp` returned 404. Initial frozen
+gate passed 9/9 in `20260718_162922_preliminary-regression-v1`; the post gate
+is `20260718_163657_preliminary-regression-v1`. CI, merge, Nginx retirement,
+and production database preservation are tracked in
+`docs/evaluations/v1.43-mcp-retirement.md`.
+
 ## 2026-07-18 - SCA-10 Atomic Monolith Rework Map
 
 Inspected current top-level functions, imports, consumers, and measured line

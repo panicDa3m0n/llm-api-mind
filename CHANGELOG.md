@@ -6,6 +6,29 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.43.0 - Actions-Only GPT Bridge
+
+#### Changed
+
+- Removed the deprecated `/mcp` JSON-RPC transport, MCP tool descriptors,
+  connector prompt, and private-preview query-string authentication.
+- Kept the GPT bridge on the mandatory bootstrap/action/finalize Actions
+  lifecycle and the shared `mind_shell(command, intent)` dispatcher.
+- Preserved every historical `mcp_bridge` session, message, turn, tool call,
+  trace, and cognitive record as canonical evidence.
+
+#### Security
+
+- Bridge authentication now accepts configured secrets only through
+  `Authorization: Bearer` or `X-GPT-Bridge-Key`; URLs no longer carry bridge
+  credentials into access logs.
+
+#### Verification
+
+- Focused GPT bridge and shell tests pass 27/27 after removal. Frozen pre/post,
+  complete quality, and protected production rollout evidence are recorded in
+  `docs/evaluations/v1.43-mcp-retirement.md`.
+
 ### Atomic Monolith Rework Planning
 
 #### Added
