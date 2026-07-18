@@ -22,12 +22,13 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
+from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage.db import create_db_engine, init_db
 
 
-CALIBRATION_VERSION = "memory-rerank-calibration-v1"
+CALIBRATION_VERSION = "memory-rerank-negative-calibration-v2"
 DEFAULT_SOURCE_DB = "data/v131-live-rerank-provenance-20260713.db"
-DEFAULT_RUN_DB = "data/sca3-memory-rerank-run.db"
+DEFAULT_RUN_DB = "data/sca31-memory-rerank-run.db"
 EXPECTED_SOURCE_SHA256 = (
     "4fd51648530bb9cb0959fba0adc0a96ec9cf41eb35408373085ffbbe64535010"
 )
@@ -60,6 +61,25 @@ class CalibrationProbeProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
+        if system and "runtime answer-obligation judge" in system:
+            payload = json.loads(prompt)
+            findings = [
+                {
+                    "obligation_id": obligation["id"],
+                    "status": "pass",
+                    "reason": (
+                        "The controlled calibration answer makes no claim beyond "
+                        "the retrieval evidence under test."
+                    ),
+                }
+                for obligation in payload.get("obligations", [])
+            ]
+            return LLMTextResult(
+                model=self.settings.minimax_model,
+                text=json.dumps({"findings": findings}),
+                usage={"input_tokens": 1, "output_tokens": 1},
+                stop_reason="end_turn",
+            )
         return self._result()
 
     def generate_chat(
@@ -101,11 +121,12 @@ class CalibrationProbeProvider:
         )
 
     def _result(self) -> LLMTextResult:
+        text = f"Calibration retrieval completed.\n{NATIVE_FINAL_MARKER}"
         return LLMTextResult(
             model=self.settings.minimax_model,
-            text="Calibration retrieval completed.",
+            text=text,
             usage={"input_tokens": 1, "output_tokens": 4},
-            raw_content=[{"type": "text", "text": "Calibration retrieval completed."}],
+            raw_content=[{"type": "text", "text": text}],
             stop_reason="end_turn",
         )
 
@@ -267,6 +288,51 @@ def calibration_cases() -> tuple[CalibrationCase, ...]:
             rationale=(
                 "Existing regression control: sharing the generic word protocol "
                 "must not turn Zero-Luce into evidence about Mare-Vetro."
+            ),
+        ),
+        CalibrationCase(
+            case_id="unknown_landscape_preference",
+            category="negative_personal_preference",
+            query="Ti ricordi se preferisco il mare o la montagna?",
+            rationale=(
+                "No stored memory establishes a sea-versus-mountain preference; "
+                "generic preference memories are distractors."
+            ),
+        ),
+        CalibrationCase(
+            case_id="unknown_colleague_name",
+            category="negative_personal_relationship",
+            query="Come si chiama il mio collega Marco?",
+            rationale=(
+                "No stored memory establishes a colleague named Marco; known-person "
+                "memories must not substitute for this relationship."
+            ),
+        ),
+        CalibrationCase(
+            case_id="unknown_strawberry_allergy",
+            category="negative_personal_constraint",
+            query="Sono allergico alle fragole?",
+            rationale=(
+                "No stored memory establishes a strawberry allergy; the chocolate "
+                "limit is a nearby food/body distractor, not evidence."
+            ),
+        ),
+        CalibrationCase(
+            case_id="unknown_running_routine",
+            category="negative_personal_routine",
+            query="A che ora vado a correre di solito?",
+            rationale=(
+                "No stored memory establishes a running routine; temporal and "
+                "personal memories are distractors."
+            ),
+        ),
+        CalibrationCase(
+            case_id="unknown_favourite_colour",
+            category="negative_personal_preference",
+            query="Qual e il mio colore preferito?",
+            rationale=(
+                "No stored memory establishes a favourite colour; generic user "
+                "preferences must not be accepted."
             ),
         ),
     )
@@ -650,9 +716,9 @@ def _fresh_copy(*, source_db: Path, run_db: Path) -> None:
 def _validate_run_path(*, source_db: Path, run_db: Path) -> None:
     if not source_db.exists():
         raise RuntimeError(f"Calibration source does not exist: {source_db}")
-    if "sca3-memory-rerank" not in run_db.name:
+    if "memory-rerank" not in run_db.name:
         raise RuntimeError(
-            "Disposable run database filename must contain 'sca3-memory-rerank'."
+            "Disposable run database filename must contain 'memory-rerank'."
         )
     if source_db.resolve() == run_db.resolve():
         raise RuntimeError("Calibration source and run database must differ.")

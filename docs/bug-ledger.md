@@ -7,6 +7,39 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0089 - Final Reranker Can Admit Unsupported Personal Hooks Near Floor
+
+Date Found: 2026-07-18
+Status: confirmed, monitored, and deferred by owner decision
+
+Symptoms:
+
+A production tea/mint-preference query admitted an unrelated Context Router
+memory at `0.004102` against the `0.004` floor. In the frozen expanded suite,
+an unsupported favourite-colour question reproducibly admitted unrelated user
+and project memories, with a highest score of `0.006339`.
+
+Classification:
+
+This is a real model-facing retrieval precision defect, not ordinary answer
+variance: the reranker crossed its configured acceptance boundary. It is not
+currently a stability blocker because selected memories remain evidence hooks
+that the answer model can reject, and no answer-level false claim has been
+demonstrated by this issue.
+
+Decision And Evidence:
+
+No threshold or runtime policy changed. The observed negative ceiling is too
+close to the required-positive floor (`0.007432`) for a robust numeric fix, and
+removing document metadata lost a required positive without clearing the
+negative. Five personal negatives remain in the replicable calibration suite.
+Revisit with broader provider drift data or demonstrated answer-level harm.
+
+Related:
+
+- Linear SCA-31
+- `docs/evaluations/v1.43-memory-rerank-negative-calibration.md`
+
 ## BUG-0088 - Mode Routing Receipt Confused Eligibility With Delivery
 
 Date Found: 2026-07-18

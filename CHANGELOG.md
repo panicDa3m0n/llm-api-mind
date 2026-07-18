@@ -6,6 +6,21 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Memory Reranker Revalidation
+
+#### Added
+
+- Added five realistic unsupported-personal-memory controls to the immutable
+  final-reranker calibration suite and updated its controlled provider for the
+  shared answer-obligation contract.
+
+#### Evaluation
+
+- Repeated real-provider comparison passed 30/32 probes. One personal negative
+  remained above the current floor, but the negative ceiling was too close to
+  the positive floor for a robust threshold-only change. Runtime correction is
+  deferred; no production rerank policy or setting changed.
+
 ### V1.42.0 - Traceable Agent Mode Routing
 
 #### Added

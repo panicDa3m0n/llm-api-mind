@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -18,6 +19,7 @@ from app.mind.relevance_rerank import (
     MemoryRecallCandidate,
     run_memory_relevance_rerank,
 )
+from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage.models import MemoryRecord
 
 
@@ -55,9 +57,10 @@ def _run(*, groups: list[list[str]], scores: dict[str, float]) -> dict:
 def test_calibration_cases_cover_positive_negative_graph_and_live_review() -> None:
     cases = calibration_cases()
 
-    assert len(cases) == 11
+    assert len(cases) == 16
     assert len({case.case_id for case in cases}) == len(cases)
     assert any(case.category == "negative" for case in cases)
+    assert sum(case.category.startswith("negative_personal") for case in cases) == 5
     assert any(case.required_route == "graph" for case in cases)
     assert any(len(case.required_groups) > 1 for case in cases)
     assert sum(case.live_scarlet for case in cases) == 3
@@ -66,9 +69,7 @@ def test_calibration_cases_cover_positive_negative_graph_and_live_review() -> No
 def test_calibration_probe_provider_supports_sync_tools_and_streaming() -> None:
     provider = CalibrationProbeProvider(Settings(minimax_model="test-model"))
 
-    assert provider.generate_text(prompt="x").text == (
-        "Calibration retrieval completed."
-    )
+    assert provider.generate_text(prompt="x").text.endswith(NATIVE_FINAL_MARKER)
     assert provider.generate_chat(messages=[]).model == "test-model"
     assert (
         provider.generate_chat_with_tools(
@@ -86,6 +87,12 @@ def test_calibration_probe_provider_supports_sync_tools_and_streaming() -> None:
         )
     )
     assert [event.type for event in events] == ["text_delta", "final_result"]
+
+    judge = provider.generate_text(
+        prompt='{"obligations":[{"id":"source.required"}]}',
+        system="You are the runtime answer-obligation judge.",
+    )
+    assert json.loads(judge.text)["findings"][0]["status"] == "pass"
 
 
 def test_calibration_orchestrates_repetitions_live_cases_and_source_guard(

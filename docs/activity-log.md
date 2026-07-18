@@ -20,6 +20,16 @@ conflict, provenance, and answer-obligation behavior remain out of scope.
 
 Checkpoint: `docs/evaluations/v1.43-memory-rerank-negative-calibration.md`.
 
+The expanded real-provider comparison completed 30/32 probes over two
+repetitions. Four new personal negatives were clean; the favourite-colour
+negative reproducibly admitted unrelated memories. The measured negative
+ceiling (`0.006339`) sits too close to the required-positive floor (`0.007432`)
+for a robust threshold-only correction. Removing reranker document metadata
+also worsened positive recall. By owner decision SCA-31 is deferred: the
+scenarios stay frozen, no runtime policy changes, and the answer model remains
+free to reject an irrelevant retrieved hook. Revisit only with broader drift
+evidence or demonstrated answer-level harm.
+
 ## 2026-07-18 - V1.42.0 Traceable Agent Mode Routing (SCA-6)
 
 Implemented one ordered delivery receipt per automatic context block. The
