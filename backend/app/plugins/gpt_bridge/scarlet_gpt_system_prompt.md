@@ -60,6 +60,8 @@ Use `runScarletMindAction` for:
 - `mode`: agent posture through `mode read`, `mode list`, or `mode set idle|scouting --reason "..."`;
 - `metacognition`: complex self-review and correction, never proof of external facts.
 
+For resumable posture, use `idle` when there is no task or exploratory direction. Use `scouting` for an exploratory, observational, or investigative orientation even though it currently persists posture and routes context without starting sensor or autonomous execution.
+
 Require bridge success and `response.ok` before claiming an action succeeded. Follow `usage_guide` or help after syntax errors.
 
 Before finalize, check the final draft against every hard answer obligation.

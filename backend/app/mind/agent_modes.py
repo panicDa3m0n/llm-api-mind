@@ -14,7 +14,7 @@ from sqlmodel import Session
 from app.storage import repositories
 
 
-AGENT_MODE_REGISTRY_VERSION = "2026-07-13.agent-modes-v1"
+AGENT_MODE_REGISTRY_VERSION = "2026-07-18.agent-modes-routing-v2"
 AGENT_MODE_SETTING_PREFIX = "agent_mode"
 AGENT_MODE_VALUES = ("idle", "interactive", "scouting")
 AGENT_MODE_RESUMABLE_VALUES = ("idle", "scouting")
@@ -40,7 +40,10 @@ class ModeCapabilitySpec:
 AGENT_MODES: tuple[AgentModeSpec, ...] = (
     AgentModeSpec(
         tag="idle",
-        purpose="Scarlet is available and active but not currently engaged in a task or human exchange.",
+        purpose=(
+            "Scarlet is available but has no current task, human exchange, or "
+            "exploratory direction to resume."
+        ),
         implemented_runtime=True,
     ),
     AgentModeSpec(
@@ -50,7 +53,11 @@ AGENT_MODES: tuple[AgentModeSpec, ...] = (
     ),
     AgentModeSpec(
         tag="scouting",
-        purpose="Scarlet studies an environment or information field with exploratory attention.",
+        purpose=(
+            "Scarlet keeps an exploratory orientation toward an environment or "
+            "information field. Selecting it is valid even before sensor or "
+            "autonomous execution exists; it persists posture and routes context only."
+        ),
         implemented_runtime=False,
     ),
 )
@@ -228,6 +235,8 @@ def set_preferred_agent_mode(
 ) -> dict[str, Any]:
     if mode not in AGENT_MODE_VALUES:
         raise ValueError(f"Unsupported agent mode: {mode}")
+    if mode not in AGENT_MODE_RESUMABLE_VALUES:
+        raise ValueError(f"Agent mode is not resumable: {mode}")
     previous = preferred_agent_mode(db, profile_id=profile_id)
     setting = repositories.upsert_app_setting(
         db,
@@ -247,8 +256,14 @@ def mode_routing_decision(
     *,
     active_tag: str,
     routing_mode: str,
+    blocks: list[dict[str, Any]] | None = None,
     block_types: list[str] | None = None,
 ) -> dict[str, Any]:
+    if active_tag not in AGENT_MODE_VALUES:
+        raise ValueError(f"Unsupported active agent mode: {active_tag}")
+    if routing_mode not in {"off", "shadow", "active"}:
+        raise ValueError(f"Unsupported agent mode routing: {routing_mode}")
+
     eligible = [
         spec
         for spec in MODE_CAPABILITIES
@@ -259,21 +274,59 @@ def mode_routing_decision(
         for spec in MODE_CAPABILITIES
         if spec.context_block_type is not None
     }
-    included_blocks: list[str] = []
-    ineligible_blocks: list[str] = []
-    for block_type in block_types or []:
-        spec = eligibility_by_block.get(block_type)
-        if spec is None or active_tag in spec.mode_tags:
-            included_blocks.append(block_type)
-        else:
-            ineligible_blocks.append(block_type)
+    routing_inputs = blocks or [
+        {"id": None, "type": block_type}
+        for block_type in block_types or []
+    ]
+    block_decisions = [
+        _block_routing_decision(
+            block=block,
+            input_index=index,
+            active_tag=active_tag,
+            routing_mode=routing_mode,
+            spec=eligibility_by_block.get(str(block.get("type") or "")),
+        )
+        for index, block in enumerate(routing_inputs)
+    ]
     return {
         "registry_version": AGENT_MODE_REGISTRY_VERSION,
         "active_tag": active_tag,
         "routing_mode": routing_mode,
+        "routing_applied": routing_mode == "active",
         "eligible_capabilities": [spec.capability for spec in eligible],
-        "included_block_types": included_blocks,
-        "ineligible_block_types": ineligible_blocks,
+        "included_block_ids": [
+            item["block_id"]
+            for item in block_decisions
+            if item["delivered"] and item["block_id"] is not None
+        ],
+        "included_block_types": [
+            item["block_type"] for item in block_decisions if item["delivered"]
+        ],
+        "excluded_block_ids": [
+            item["block_id"]
+            for item in block_decisions
+            if not item["delivered"] and item["block_id"] is not None
+        ],
+        "excluded_block_types": [
+            item["block_type"] for item in block_decisions if not item["delivered"]
+        ],
+        "ineligible_block_types": [
+            item["block_type"]
+            for item in block_decisions
+            if item["eligibility"] == "ineligible"
+        ],
+        "would_exclude_block_types": [
+            item["block_type"]
+            for item in block_decisions
+            if item["delivery_disposition"] == "shadow_included"
+        ],
+        "unregistered_block_types": [
+            item["block_type"]
+            for item in block_decisions
+            if item["eligibility"] == "unregistered"
+        ],
+        "block_decisions": block_decisions,
+        "on_demand_shell_commands_remain_available": True,
         "background_processes_excluded": True,
     }
 
@@ -287,12 +340,78 @@ def route_context_blocks(
     decision = mode_routing_decision(
         active_tag=active_tag,
         routing_mode=routing_mode,
-        block_types=[str(block.get("type") or "") for block in blocks],
+        blocks=blocks,
     )
-    if routing_mode != "active":
-        return blocks, decision
-    excluded = set(decision["ineligible_block_types"])
-    return [block for block in blocks if block.get("type") not in excluded], decision
+    routed = [
+        block
+        for block, block_decision in zip(
+            blocks, decision["block_decisions"], strict=True
+        )
+        if block_decision["delivered"]
+    ]
+    return routed, decision
+
+
+def _block_routing_decision(
+    *,
+    block: dict[str, Any],
+    input_index: int,
+    active_tag: str,
+    routing_mode: str,
+    spec: ModeCapabilitySpec | None,
+) -> dict[str, Any]:
+    block_id = block.get("id") if isinstance(block.get("id"), str) else None
+    block_type = str(block.get("type") or "")
+
+    if spec is None:
+        eligibility = "unregistered"
+        delivered = True
+        delivery_disposition = "included_unregistered"
+        reason = (
+            "No registered mode capability owns this block type; it is delivered "
+            "fail-open and reported for registry review."
+        )
+    else:
+        eligible_for_mode = active_tag in spec.mode_tags
+        eligibility = "eligible" if eligible_for_mode else "ineligible"
+        if routing_mode == "active" and not eligible_for_mode:
+            delivered = False
+            delivery_disposition = "excluded"
+            reason = (
+                f"Active tag {active_tag!r} is not in the capability tags; active "
+                "routing excludes this automatic block."
+            )
+        elif routing_mode == "shadow" and not eligible_for_mode:
+            delivered = True
+            delivery_disposition = "shadow_included"
+            reason = (
+                f"Active tag {active_tag!r} is not in the capability tags; shadow "
+                "routing records the exclusion but still delivers the block."
+            )
+        elif routing_mode == "off":
+            delivered = True
+            delivery_disposition = "included_routing_off"
+            reason = "Mode routing is disabled, so the block is delivered unchanged."
+        else:
+            delivered = True
+            delivery_disposition = "included"
+            reason = (
+                f"Active tag {active_tag!r} matches the capability tags, so the "
+                "automatic block is eligible and delivered."
+            )
+
+    return {
+        "input_index": input_index,
+        "block_id": block_id,
+        "block_type": block_type,
+        "capability": spec.capability if spec is not None else None,
+        "capability_status": spec.status if spec is not None else None,
+        "required_mode_tags": list(spec.mode_tags) if spec is not None else [],
+        "eligibility": eligibility,
+        "delivery_disposition": delivery_disposition,
+        "delivered": delivered,
+        "reason": reason,
+    }
 
 
 def _setting_key(profile_id: str) -> str:

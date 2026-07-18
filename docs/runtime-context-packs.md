@@ -241,9 +241,14 @@ on-demand shell commands unavailable. Hard-gating cognitive commands would be
 a separate behavioral and safety decision; applying it now would regress
 source checks and introspection during conversation.
 
-Every runtime context records `agent_mode` and a `mode_routing` decision with
-eligible capabilities, included block types, ineligible block types, registry
-version, and explicit background-process exclusion.
+Every runtime context records `agent_mode` and an ordered `mode_routing`
+receipt. V1.42 records the id, type, owning capability, required tags,
+eligibility, delivery disposition, actual delivered state, and reason for each
+input block. Aggregate included/excluded fields describe actual delivery;
+`would_exclude` describes shadow-only policy mismatch. Unregistered blocks are
+delivered fail-open and surfaced for registry review. The receipt also records
+that background processes are excluded and on-demand shell commands remain
+available.
 
 ## Activation And Monitoring
 

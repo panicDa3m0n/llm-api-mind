@@ -4,6 +4,49 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.42.0 Traceable Agent Mode Routing (SCA-6)
+
+Implemented one ordered delivery receipt per automatic context block. The
+router now distinguishes policy eligibility from actual delivery across off,
+shadow, and active policies; reports unknown blocks fail-open; preserves exact
+block identity; and keeps every shell family available on demand. The storage
+primitive now rejects system-owned `interactive` independently of the shell.
+
+Focused tests passed 67/67. The full backend suite passed 241 tests at 81.29%;
+Ruff, blocking mypy, documentation integrity, and frontend production build
+passed. The frozen gate first exposed a deterministic evaluator-fixture defect:
+its provider returned metacognition JSON to the answer validator. Separating
+those roles restored the unchanged gate to 9/9 without weakening fail-closed
+runtime validation.
+
+The first direct natural mode chain reproduced the historical ambiguity where
+Scarlet treated missing sensors as a reason to persist idle. Native and GPT
+policy now define idle as no direction to resume and scouting as an exploratory
+orientation that remains valid without sensor/autonomous execution. A fresh
+two-session chain then passed both technical contracts: turn
+`turn_13aa5e5b38ae45caba6f47ec675e96bd` persisted scouting and turn
+`turn_567d4326ce60440f870968d455f0a085` recovered it while active turns stayed
+interactive. Per-block receipts were present in both traces. No autonomous
+idle/scouting runtime was added or claimed.
+
+Evidence: `docs/evaluations/v1.42-agent-mode-routing.md`.
+
+## 2026-07-18 - V1.42.0 Agent Mode Routing Initial Checkpoint (SCA-6)
+
+Started SCA-6 from the deployed V1.41 baseline. The initial checkpoint
+separates real interactive behavior, persistent resume posture, deterministic
+idle/scouting routing, and the absent non-conversational agent runtime.
+
+Baseline tests pass 23/23. Direct receipt inspection found a systemic
+observability defect: `off` and `shadow` deliver ineligible blocks while the
+aggregate `included_block_types` field describes only policy eligibility.
+Receipts also lack per-block ids and reasons. The lower-level mode persistence
+primitive does not independently enforce the public non-resumable
+`interactive` invariant. The approved slice corrects these contracts without
+adding sensors, modes, or autonomous behavior.
+
+Checkpoint: `docs/evaluations/v1.42-agent-mode-routing.md`.
+
 ## 2026-07-18 - V1.41.0 Shared Answer Obligations (SCA-28)
 
 Goal:

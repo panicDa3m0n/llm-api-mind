@@ -6,6 +6,34 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.42.0 - Traceable Agent Mode Routing
+
+#### Added
+
+- Added ordered per-block mode-routing receipts with block identity,
+  capability, required tags, eligibility, actual delivery, and reason.
+- Added deterministic routing matrices for every registered mode, routing
+  policy, duplicate block, unregistered block, and V2 projection boundary.
+
+#### Changed
+
+- `included` and `excluded` aggregates now describe actual delivery, while
+  shadow-only exclusions use a separate `would_exclude` surface.
+- Unregistered automatic block types remain fail-open but are explicitly
+  reported for registry review.
+- The mode persistence primitive now independently rejects system-owned
+  `interactive`, preserving the shell ownership rule for internal callers.
+- Native and GPT policy now distinguish `idle` as no resumable direction from
+  `scouting` as a valid exploratory orientation that still starts no sensor or
+  autonomous runtime.
+
+#### Fixed
+
+- Fixed `off` and `shadow` receipts that previously described policy
+  eligibility as if it were actual model delivery (BUG-0088).
+- Fixed the preliminary gate's controlled provider so metacognition and answer-
+  validation calls use their correct deterministic output contracts.
+
 ### V1.41.0 - Shared Answer Obligations
 
 #### Added

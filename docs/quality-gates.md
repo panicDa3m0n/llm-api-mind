@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.41.0 (deployed)
+App baseline: V1.42.0 (release candidate)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -113,6 +113,12 @@ V1.41.0 passes 234 tests at 81.27%. The shared answer-obligation module is at
 one-correction recovery, explicit exhaustion, semantic source/conflict/tool
 evidence, non-blocking severities, streaming draft isolation, and GPT
 409/422/503 policy.
+
+V1.42.0 passes 241 tests at 81.29%. Agent mode routing is covered across every
+registered tag and policy, duplicate/unregistered blocks, primitive ownership,
+native/GPT parity, V2 exclusion, and shell availability; `agent_modes.py` is at
+98%. The unchanged frozen preliminary suite passes 9/9 after its controlled
+provider learned the distinct answer-validator output contract.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

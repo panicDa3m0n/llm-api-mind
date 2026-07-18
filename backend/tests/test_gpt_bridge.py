@@ -115,6 +115,20 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     model_context_trace = next(
         trace for trace in traces if trace["kind"] == "model.context"
     )
+    runtime_context_trace = next(
+        trace for trace in traces if trace["kind"] == "runtime.context"
+    )
+    mode_routing = runtime_context_trace["payload"]["mode_routing"]
+    assert mode_routing["active_tag"] == "interactive"
+    assert mode_routing["routing_applied"] is True
+    assert mode_routing["excluded_block_ids"] == []
+    assert mode_routing["included_block_ids"] == [
+        "session.continuity",
+        "scarlet.agent_mode",
+        "turn.perception",
+        "scarlet.dynamic_state",
+    ]
+    assert all(item["delivered"] for item in mode_routing["block_decisions"])
     projection_audit = model_context_trace["payload"]["projection_audit"]
     assert projection_audit["schema_version"] == "preserved-context-projection-v1"
     assert projection_audit["included_block_types"] == []

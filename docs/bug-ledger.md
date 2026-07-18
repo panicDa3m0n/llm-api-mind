@@ -7,6 +7,52 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0088 - Mode Routing Receipt Confused Eligibility With Delivery
+
+Date Found: 2026-07-18
+Status: fixed and directly verified in V1.42.0 release candidate
+
+Symptoms:
+
+For an `idle` route, `off` and `shadow` returned message and affect blocks but
+omitted those types from `included_block_types` and listed them only as
+ineligible. Active routing was coherent, but non-active receipts made trace
+consumers unable to distinguish policy mismatch from actual model delivery.
+Receipts also exposed only block types, so duplicate instances and individual
+reasons were not inspectable.
+
+Root Cause:
+
+`mode_routing_decision` calculated eligibility aggregates before
+`route_context_blocks` separately decided whether the policy was active. The
+decision had no representation of actual per-block delivery.
+
+Fix:
+
+V1.42 creates one ordered routing decision per input block and derives both
+delivery and aggregate receipts from that same decision list. `off`, `shadow`,
+and `active` now have explicit dispositions; unregistered blocks are fail-open
+and visible. The same slice enforces resumable-mode ownership in the primitive
+store so internal callers cannot persist `interactive`.
+
+Regression Evidence:
+
+- routing matrix across all three policies;
+- complete registered context inventory across every agent mode;
+- duplicate and unregistered block controls;
+- native/GPT interactive receipt checks;
+- V2 projection cannot restore an actively excluded organ block;
+- manual memory retrieval remains available with a scouting resume posture.
+
+A bounded real MiniMax chain also persisted scouting in one session, recovered
+it in another, and produced per-block interactive receipts. No autonomous
+scouting runtime was claimed or exercised.
+
+Related:
+
+- Linear SCA-6
+- `docs/evaluations/v1.42-agent-mode-routing.md`
+
 ## BUG-0087 - Observed Accounting Always Labelled Compaction As Shadow
 
 Date Found: 2026-07-18

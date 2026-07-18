@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-14
-Current app version: V1.41.0 (deployed)
+Current app version: V1.42.0 (release candidate)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -186,7 +186,8 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.41.0 deployed baseline includes:
+The current V1.42.0 release candidate extends the deployed V1.41.0 baseline
+with traceable agent-mode routing and includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -199,7 +200,7 @@ The current V1.41.0 deployed baseline includes:
   timezone;
 - Tailwind dashboard with chat, sessions, agent stream, memory, profile, and
   settings.
-- traceable per-channel model-input accounting, shadow-only chronological
+- traceable per-channel model-input accounting, active chronological
   compaction planning with token-based complete-turn source maps and an
   agent-mode registry/router for automatic context;
 - versioned four-layer behavioral scenario/run contracts for direct Scarlet
@@ -218,6 +219,8 @@ The current V1.41.0 deployed baseline includes:
 - a user-facing completion invariant with one bounded thinking-only recovery,
   explicit failed-turn exhaustion, and no promotion of private thinking into
   public or cognitive state.
+- ordered mode-routing receipts that distinguish eligibility, actual delivery,
+  and shadow `would_exclude` decisions for every automatic block.
 - a shared native/GPT answer-obligation contract with traced hard, warning,
   and advisory constraints, one correction, and semantic judgment only on
   evidence-bearing turns.

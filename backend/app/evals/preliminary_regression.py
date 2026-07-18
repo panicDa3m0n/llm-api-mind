@@ -69,6 +69,25 @@ class PreliminaryProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
+        if system and "runtime answer-obligation judge" in system:
+            payload = json.loads(prompt)
+            findings = [
+                {
+                    "obligation_id": obligation["id"],
+                    "status": "pass",
+                    "reason": (
+                        "The controlled draft makes no claim that contradicts "
+                        "the supplied tool evidence."
+                    ),
+                }
+                for obligation in payload.get("obligations", [])
+            ]
+            return LLMTextResult(
+                model="preliminary-controlled-provider",
+                text=json.dumps({"findings": findings}),
+                usage={"input_tokens": 1, "output_tokens": 1},
+                stop_reason="end_turn",
+            )
         review = {
             "review_summary": "Controlled review requires current shell help.",
             "risks": [],

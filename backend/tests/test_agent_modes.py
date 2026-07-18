@@ -2,9 +2,13 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.mind.agent_modes import (
+    AGENT_MODE_VALUES,
+    MODE_CAPABILITIES,
     agent_mode_registry,
+    mode_routing_decision,
     resolve_agent_mode,
     route_context_blocks,
+    set_preferred_agent_mode,
 )
 from app.mind.contracts import MindAPIContext
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
@@ -41,7 +45,10 @@ def test_mode_registry_uses_agent_tags_and_excludes_background_processes() -> No
     interactive = next(
         item for item in registry["modes"] if item["tag"] == "interactive"
     )
+    scouting = next(item for item in registry["modes"] if item["tag"] == "scouting")
     assert interactive["manually_resumable"] is False
+    assert scouting["implemented_runtime"] is False
+    assert "persists posture and routes context only" in scouting["purpose"]
 
 
 def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
@@ -93,10 +100,10 @@ def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
 
 def test_mode_routing_filters_only_automatic_context_blocks() -> None:
     blocks = [
-        {"type": "session_context"},
-        {"type": "message_context"},
-        {"type": "affective_context"},
-        {"type": "scarlet_state"},
+        {"id": "session", "type": "session_context"},
+        {"id": "message", "type": "message_context"},
+        {"id": "affect", "type": "affective_context"},
+        {"id": "state", "type": "scarlet_state"},
     ]
 
     routed, decision = route_context_blocks(
@@ -113,6 +120,121 @@ def test_mode_routing_filters_only_automatic_context_blocks() -> None:
         "message_context",
         "affective_context",
     ]
+    assert decision["included_block_ids"] == ["session", "state"]
+    assert decision["excluded_block_ids"] == ["message", "affect"]
+    assert decision["routing_applied"] is True
+    assert decision["on_demand_shell_commands_remain_available"] is True
+    assert [item["delivery_disposition"] for item in decision["block_decisions"]] == [
+        "included",
+        "excluded",
+        "excluded",
+        "included",
+    ]
+
+
+def test_mode_routing_receipts_distinguish_policy_from_actual_delivery() -> None:
+    blocks = [
+        {"id": "session", "type": "session_context"},
+        {"id": "message", "type": "message_context"},
+        {"id": "affect", "type": "affective_context"},
+        {"id": "future", "type": "future_context"},
+    ]
+
+    expected = {
+        "off": {
+            "ids": ["session", "message", "affect", "future"],
+            "excluded": [],
+            "would_exclude": [],
+        },
+        "shadow": {
+            "ids": ["session", "message", "affect", "future"],
+            "excluded": [],
+            "would_exclude": ["message_context", "affective_context"],
+        },
+        "active": {
+            "ids": ["session", "future"],
+            "excluded": ["message_context", "affective_context"],
+            "would_exclude": [],
+        },
+    }
+
+    for routing_mode, receipt in expected.items():
+        routed, decision = route_context_blocks(
+            blocks,
+            active_tag="idle",
+            routing_mode=routing_mode,
+        )
+        assert [block["id"] for block in routed] == receipt["ids"]
+        assert decision["included_block_ids"] == receipt["ids"]
+        assert decision["excluded_block_types"] == receipt["excluded"]
+        assert decision["would_exclude_block_types"] == receipt["would_exclude"]
+        assert decision["ineligible_block_types"] == [
+            "message_context",
+            "affective_context",
+        ]
+        assert decision["unregistered_block_types"] == ["future_context"]
+        assert all(item["reason"] for item in decision["block_decisions"])
+
+
+def test_mode_routing_inventory_covers_every_registered_context_block() -> None:
+    context_specs = [
+        spec for spec in MODE_CAPABILITIES if spec.context_block_type is not None
+    ]
+    blocks = [
+        {"id": f"block-{index}", "type": spec.context_block_type}
+        for index, spec in enumerate(context_specs)
+    ]
+
+    for active_tag in AGENT_MODE_VALUES:
+        decision = mode_routing_decision(
+            active_tag=active_tag,
+            routing_mode="active",
+            blocks=blocks,
+        )
+        assert len(decision["block_decisions"]) == len(context_specs)
+        for spec, block_decision in zip(
+            context_specs, decision["block_decisions"], strict=True
+        ):
+            expected = active_tag in spec.mode_tags
+            assert block_decision["capability"] == spec.capability
+            assert block_decision["required_mode_tags"] == list(spec.mode_tags)
+            assert block_decision["delivered"] is expected
+            assert block_decision["eligibility"] == (
+                "eligible" if expected else "ineligible"
+            )
+
+
+def test_mode_routing_preserves_duplicate_blocks_by_input_identity() -> None:
+    blocks = [
+        {"id": "affect-primary", "type": "affective_context"},
+        {"id": "affect-secondary", "type": "affective_context"},
+    ]
+
+    routed, decision = route_context_blocks(
+        blocks,
+        active_tag="idle",
+        routing_mode="active",
+    )
+
+    assert routed == []
+    assert decision["excluded_block_ids"] == ["affect-primary", "affect-secondary"]
+    assert [item["input_index"] for item in decision["block_decisions"]] == [0, 1]
+
+
+def test_mode_routing_rejects_invalid_registry_inputs() -> None:
+    try:
+        mode_routing_decision(active_tag="dream", routing_mode="active")
+    except ValueError as exc:
+        assert str(exc) == "Unsupported active agent mode: dream"
+    else:
+        raise AssertionError("unknown active mode should fail")
+
+    try:
+        mode_routing_decision(active_tag="idle", routing_mode="maybe")
+    except ValueError as exc:
+        assert str(exc) == "Unsupported agent mode routing: maybe"
+    else:
+        raise AssertionError("unknown routing mode should fail")
 
 
 def test_mode_shell_rejects_persisting_system_owned_interactive_mode(
@@ -136,3 +258,87 @@ def test_mode_shell_rejects_persisting_system_owned_interactive_mode(
     with Session(db_engine) as db:
         state = resolve_agent_mode(db, profile_id="local-user")
     assert state["active_tag"] == "idle"
+
+
+def test_mode_store_primitive_rejects_system_owned_interactive_mode(db_engine) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        try:
+            set_preferred_agent_mode(
+                db,
+                profile_id="local-user",
+                mode="interactive",
+                reason="internal caller must not bypass ownership",
+            )
+        except ValueError as exc:
+            assert str(exc) == "Agent mode is not resumable: interactive"
+        else:
+            raise AssertionError("interactive must remain system-owned")
+        state = resolve_agent_mode(db, profile_id="local-user")
+    assert state["active_tag"] == "idle"
+
+
+def test_manual_memory_retrieval_remains_available_with_scouting_resume_mode(
+    db_engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        source = repositories.create_chat_session(db, title="Source")
+        source_turn = repositories.create_turn(
+            db, session_id=source.id, model="MiniMax-M3"
+        )
+        source_message = repositories.add_message(
+            db,
+            session_id=source.id,
+            turn_id=source_turn.id,
+            role="user",
+            content="The durable anchor is Aurora Sette.",
+        )
+        repositories.add_memory(
+            db,
+            memory_type="project_fact",
+            scope="project",
+            content="The durable anchor is Aurora Sette.",
+            reason_for_storage="Mode routing retrieval control.",
+            source_session_id=source.id,
+            source_turn_id=source_turn.id,
+            source_message_id=source_message.id,
+        )
+        set_preferred_agent_mode(
+            db,
+            profile_id="local-user",
+            mode="scouting",
+            reason="Resume exploratory posture.",
+        )
+        later = repositories.create_chat_session(db, title="Later session")
+        later_turn = repositories.create_turn(
+            db, session_id=later.id, model="MiniMax-M3"
+        )
+        later_session_id = later.id
+        later_turn_id = later_turn.id
+
+    response = dispatch_mind_shell(
+        MindShellRequest(
+            command='memory search "Aurora Sette" --top 5',
+            intent="Recover the sourceable anchor on demand.",
+        ),
+        context=_context(
+            db_engine,
+            session_id=later_session_id,
+            turn_id=later_turn_id,
+        ),
+    )
+
+    assert response.ok is True
+    assert response.result["data"]["memories"][0]["content"] == (
+        "The durable anchor is Aurora Sette."
+    )
+    with Session(db_engine) as db:
+        state = resolve_agent_mode(
+            db,
+            profile_id="local-user",
+            system_mode="interactive",
+            system_reason="Later human turn",
+        )
+    assert state["active_tag"] == "interactive"
+    assert state["resume_tag"] == "scouting"

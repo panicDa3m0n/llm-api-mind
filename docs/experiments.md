@@ -436,8 +436,7 @@ Evidence:
 
 ## EXP-0060 - Agent Mode Routing Behavioral Validation
 
-Status: deterministic foundation implemented; first direct scenario accepted,
-broader repetitions pending
+Status: accepted for V1.42.0 human-turn routing and resumable-posture boundaries
 
 Hypothesis:
 
@@ -484,6 +483,21 @@ trace/state checks, answer rubric, longitudinal checks, and independent
 repetitions. Next compare mode coherence across multiple turns/sessions and
 negative controls. Do not implement scouting sensors merely to exercise the
 tag.
+
+V1.42 checkpoint finding: the router filtered active blocks correctly, but
+`off` and `shadow` receipts conflated tag eligibility with actual delivery and
+could not explain individual blocks. V1.42 derives filtering and receipts from
+one ordered per-block decision list, keeps unknown block types fail-open and
+visible, and enforces resumable ownership in the storage primitive. Focused
+tests cover routing policies, all current tags, duplicate/unregistered blocks,
+V2 projection, native/GPT receipts, and manual retrieval. Direct Scarlet
+verification first reproduced the historical ambiguity in which capability
+honesty collapsed an exploratory request into `idle`. After the policy defined
+`idle` as no resumable direction and `scouting` as a valid exploratory posture
+without sensor execution, a fresh two-session chain passed both turns: scouting
+persisted, the later session recovered it, active human turns stayed
+interactive, and Scarlet made no sensor/autonomy claim. This validates only the
+real human-turn plus resume-posture boundary, not an autonomous scouting loop.
 
 ## EXP-0059 - Long-Session Accounting And Compaction Calibration
 

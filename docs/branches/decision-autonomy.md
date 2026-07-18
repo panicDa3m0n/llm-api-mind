@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-18
-System version assessed: V1.41.0 (deployed)
+System version assessed: V1.42.0 (release candidate)
 Status: volition continuity works when invoked; autonomous persistence remains variable
 
 ## Filosofia del ramo
@@ -110,6 +110,16 @@ shared runtime layer. This does not make volition autonomous and does not prove
 that Scarlet will always select `volition create`; it ensures that a public
 work note alone cannot be accepted as the conclusive answer. The next branch
 gate remains mode routing and later risk/receipt policy.
+
+## Verifica V1.42.0
+
+Automatic context decisions now have per-block receipts and mode persistence
+enforces ownership below the shell boundary. A real two-session chain selected
+and recovered scouting while the system retained interactive ownership of the
+human turns. Prompt policy now gives a positive selection rule for exploratory
+posture without treating missing sensors as a reason to force idle. This is
+bounded posture autonomy, not autonomous execution; the next decision gate is
+risk, authorization, reversibility, and action receipts.
 
 ## Evolutive
 

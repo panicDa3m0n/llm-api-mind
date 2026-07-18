@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.41.0
+App baseline: V1.42.0 (release candidate)
 
 ## Response Philosophy
 
@@ -243,7 +243,8 @@ available command in natural conversation.
 
 ### Agent Mode
 
-Status: implemented in V1.30.0, resumable boundary corrected in V1.32.0
+Status: implemented in V1.30.0; resumable boundary corrected in V1.32.0;
+per-block routing receipts added in V1.42.0
 
 Shell commands:
 
@@ -278,6 +279,27 @@ explicitly not agent modes. Routing can filter automatic context blocks but
 does not disable on-demand shell commands.
 
 State changes write an `agent.mode` trace and `agent.mode.changed` event.
+
+Every `runtime.context` and `model.context` trace now carries a routing receipt
+whose ordered `block_decisions` correspond one-to-one with the input blocks.
+Each decision reports block id/type, owning capability and status, required
+mode tags, `eligible|ineligible|unregistered`, delivery disposition, delivered
+state, and a reason. Aggregate `included_block_*` and `excluded_block_*` fields
+describe actual delivery. `would_exclude_block_types` is populated only when
+shadow routing observes a mismatch while still delivering the block.
+
+Routing semantics are:
+
+- `off`: registered blocks are delivered unchanged;
+- `shadow`: every block is delivered, with mismatches marked
+  `shadow_included`;
+- `active`: registered mismatches are excluded;
+- unregistered types: delivered fail-open and listed in
+  `unregistered_block_types` for registry review.
+
+Unknown mode or routing values fail before delivery. Mode routing never gates
+on-demand shell commands. The lower-level persistence primitive, not only the
+shell handler, enforces that only `idle` and `scouting` are resumable.
 
 ### Context Accounting
 

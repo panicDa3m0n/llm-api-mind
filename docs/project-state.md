@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.41.0 (deployed)
+App baseline: V1.42.0 (release candidate; V1.41.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -86,13 +86,14 @@ Implemented and verified:
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
-  context routing, persistent resumable posture, and `mode` shell commands;
+  context routing, persistent resumable posture, `mode` shell commands, and
+  ordered per-block receipts that separate eligibility from delivery;
 - deprecated MCP experiment retained temporarily but not part of the target
   Custom GPT flow.
 
 Current verification baseline:
 
-- backend: 234 tests passed at 81.27% statement coverage;
+- backend: 241 tests passed at 81.29% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -136,6 +137,10 @@ Current verification baseline:
   new-image production preflight, restart, integrity, frontend parity, native
   structural-boundary smoke, and GPT capability/finalize smoke passed. The
   post-smoke database remained production/direct with integrity `ok`.
+- V1.42.0 release-candidate verification: the frozen gate passed 9/9, native
+  and GPT interactive receipts matched, and a bounded two-session MiniMax chain
+  persisted then recovered scouting while keeping active human turns
+  interactive and denying autonomous sensor execution.
 
 ### 3.2 Dynamic Context
 
@@ -266,13 +271,13 @@ the canonical integrated read.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
-| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting, active recursive compaction and automatic mode router | deployed guarded compaction; monitor multi-cycle quality |
+| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | deploy V1.42 receipts, then monitor multi-cycle quality |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
 | Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
-| Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 technical controls; mode store remains separate | retain proportional selection and validate mode routing before goal/task expansion |
-| Decision autonomy | L2/L3 | Model-controlled shell and volition register; one complete V1.40 cross-session chain and clean ownership controls | close answer obligations before autonomous cycle design |
+| Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
+| Decision autonomy | L2/L3 | Model-controlled shell, volition register, answer obligations, and bounded mode selection | define risk/permission receipts before autonomous cycle design |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |
@@ -395,10 +400,11 @@ behavior:
 
 ## 7. Current Best Next Step
 
-With V1.41 released, the next approved issue is SCA-6: validate
-agent-mode routing against the classified standalone organ defaults. Long
-varied sessions should still monitor active compaction/degradation.
-Duplicate/conflict adjudication remains a separate later discussion.
+After V1.42 deployment closes SCA-6, the next approved issue is SCA-31:
+calibrate the final reranker against negative and near-miss memory cases without
+deterministic relevance scoring. Long varied sessions should still monitor
+active compaction/degradation. Duplicate/conflict adjudication remains a
+separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.
