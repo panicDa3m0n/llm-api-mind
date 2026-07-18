@@ -154,8 +154,13 @@ active mode explicitly:
 ```txt
 RETRIEVAL_HYBRID_MODE=active
 RETRIEVAL_HYBRID_MIN_DENSE_SCORE=0.38
-RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.01
+RETRIEVAL_HYBRID_MIN_RERANK_SCORE=0.004
+RETRIEVAL_HYBRID_RELATIVE_RERANK_FLOOR=0.01
 ```
+
+The effective floor is `max(absolute floor, best query score * relative
+floor)`. Both inputs are final-reranker outputs; sparse, dense, graph, and
+lexical scores only build the candidate pool.
 
 Use `RETRIEVAL_HYBRID_MODE=shadow` to record final-rerank decisions without
 changing selected memories. The setting name is retained for compatibility;

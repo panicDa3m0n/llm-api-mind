@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.36.1
+App baseline: V1.37.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -206,9 +206,10 @@ Current limits:
 - single-user scope is operational convention, not authenticated ownership;
 - autonomous write behavior and immediate use of retrieved preferences remain
   model-dependent;
-- final-rerank threshold (provisionally `0.01` after two V1.31 positive
-  controls and one negative control), candidate coverage, provider
-  availability, and KG entity resolution need broader live calibration;
+- final rerank now has a frozen/live V1.37 calibration over 11 cases and an
+  adaptive `0.004 + 1% relative` floor; larger-memory candidate pressure,
+  provider drift/availability, and KG entity resolution still need
+  longitudinal evidence;
 - maintenance retry/resume and future Dream review remain incomplete.
 
 ### 3.5 Organs

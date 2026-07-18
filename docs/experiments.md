@@ -9,6 +9,42 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0065 - Frozen And Live Final-Rerank Calibration
+
+Status: accepted for V1.37.0; longitudinal provider drift remains monitored
+
+Hypothesis:
+
+A final memory reranker with a calibrated absolute anti-noise floor plus a
+query-relative floor can retain several necessary facts without admitting
+unrelated memories, while sparse, dense, KG, and lexical routes remain recall
+only.
+
+Method:
+
+- freeze ten initial cases and exact expected ids against an immutable
+  36-memory DB, then retain one inherited wrong-entity regression found by the
+  unchanged full gate;
+- repeat all cases twice with real OpenRouter embedding/rerank and controlled
+  answer generation;
+- verify candidate route, final id, sourceable V2 packet, negatives, and
+  latency;
+- inspect memory content before classifying apparent extras as errors;
+- run three selected cases with real MiniMax M3 and judge evidence use.
+
+Result:
+
+The fixed `0.01` baseline passed 18/20 and repeatedly lost one required
+Vetro-Luna fact despite complete candidate coverage. The calibrated
+`max(0.004, best_score * 0.01)` policy passed 22/22; positive floor was
+`0.007432`, negative ceiling `0.003299`, reranker median latency 396.5 ms, and no
+provider error occurred. Three real Scarlet turns passed technical and semantic
+review, including an unrelated negative with no delivered memory.
+
+Evidence:
+
+`docs/evaluations/v1.37-memory-rerank-calibration.md`
+
 ## EXP-0064 - Thinking-Only Final Recovery And Isolation
 
 Status: completed for V1.36.1; natural recurrence remains monitored

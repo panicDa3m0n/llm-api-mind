@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from time import perf_counter
 from typing import Any
 
 from app.mind.facts import fact_search_text
@@ -11,7 +12,7 @@ from app.mind.openrouter_retrieval import OpenRouterRetrievalError
 from app.storage.models import MemoryFact, MemoryRecord
 
 
-FINAL_RERANK_POLICY = "memory_level_rerank_final_arbiter_v1"
+FINAL_RERANK_POLICY = "memory_level_rerank_adaptive_floor_v2"
 RECALL_POOL_POLICY = "round_robin_sparse_dense_graph_lexical_v1"
 
 
@@ -66,10 +67,7 @@ def build_memory_recall_pool(
         for route, memory_ids in routes.items()
     }
     route_ranks = {
-        route: {
-            memory_id: rank
-            for rank, memory_id in enumerate(memory_ids, start=1)
-        }
+        route: {memory_id: rank for rank, memory_id in enumerate(memory_ids, start=1)}
         for route, memory_ids in normalized_routes.items()
     }
     ordered_ids: list[str] = []
@@ -127,9 +125,14 @@ def run_memory_relevance_rerank(
     configured_threshold = getattr(
         settings,
         "retrieval_hybrid_min_rerank_score",
-        0.01,
+        0.004,
     )
-    threshold = float(0.01 if configured_threshold is None else configured_threshold)
+    minimum_threshold = float(
+        0.004 if configured_threshold is None else configured_threshold
+    )
+    relative_floor = float(
+        getattr(settings, "retrieval_hybrid_relative_rerank_floor", 0.01) or 0.0
+    )
     candidate_limit = int(
         getattr(settings, "retrieval_shadow_rerank_candidate_limit", 20) or 20
     )
@@ -142,7 +145,9 @@ def run_memory_relevance_rerank(
         "candidate_count": len(bounded_candidates),
         "candidate_limit": candidate_limit,
         "selected_limit": selected_limit,
-        "acceptance_threshold": threshold,
+        "minimum_acceptance_threshold": minimum_threshold,
+        "relative_acceptance_floor": relative_floor,
+        "acceptance_threshold": minimum_threshold,
         "legacy_weighted_fusion": False,
         "fail_closed": mode == "active",
         "entry_count": 0,
@@ -171,9 +176,7 @@ def run_memory_relevance_rerank(
         )
 
     model = str(getattr(settings, "retrieval_shadow_rerank_model", "") or "")
-    top_n_setting = int(
-        getattr(settings, "retrieval_shadow_rerank_top_n", 10) or 10
-    )
+    top_n_setting = int(getattr(settings, "retrieval_shadow_rerank_top_n", 10) or 10)
     top_n = min(
         len(bounded_candidates),
         max(top_n_setting, max(selected_limit, 1)),
@@ -188,6 +191,7 @@ def run_memory_relevance_rerank(
             getattr(settings, "retrieval_shadow_http_timeout_seconds", 30.0) or 30.0
         ),
     )
+    rerank_started = perf_counter()
     try:
         response = client.rerank(
             model=model,
@@ -204,6 +208,7 @@ def run_memory_relevance_rerank(
                 "error_code": "retrieval_rerank.backend_error",
                 "error_message": str(exc),
                 "error_type": type(exc).__name__,
+                "latency_ms": round((perf_counter() - rerank_started) * 1000),
             },
             entries=_unevaluated_entries(bounded_candidates),
         )
@@ -216,6 +221,9 @@ def run_memory_relevance_rerank(
         score = float(item.get("relevance_score") or 0.0)
         result_by_index[index] = (rank, score)
 
+    best_score = max((result[1] for result in result_by_index.values()), default=0.0)
+    acceptance_threshold = max(minimum_threshold, best_score * relative_floor)
+
     entries: list[MemoryRerankEntry] = []
     for index, candidate in enumerate(bounded_candidates):
         result = result_by_index.get(index)
@@ -225,7 +233,7 @@ def run_memory_relevance_rerank(
                 memory_id=candidate.memory.id,
                 score=result[1] if result is not None else 0.0,
                 rank=result[0] if result is not None else None,
-                accepted=result is not None and result[1] >= threshold,
+                accepted=(result is not None and result[1] >= acceptance_threshold),
                 evaluated=result is not None,
                 routes=candidate.routes,
                 route_ranks=candidate.route_ranks,
@@ -248,11 +256,14 @@ def run_memory_relevance_rerank(
             "status": "completed",
             "model": model,
             "top_n": top_n,
+            "best_score": best_score,
+            "acceptance_threshold": acceptance_threshold,
             "evaluated_count": len(result_by_index),
             "accepted_count": accepted_count,
             "entry_count": accepted_count,
             "response_id": response.get("id"),
             "provider": response.get("provider"),
+            "latency_ms": round((perf_counter() - rerank_started) * 1000),
             "usage": response.get("usage")
             if isinstance(response.get("usage"), dict)
             else {},

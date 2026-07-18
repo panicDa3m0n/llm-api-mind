@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.36.1
+App baseline: V1.37.0
 
 ## Response Philosophy
 
@@ -3031,14 +3031,18 @@ Response result:
     "mode": "active",
     "active": true,
     "status": "completed",
-    "ranking_policy": "memory_level_rerank_final_arbiter_v1",
+    "ranking_policy": "memory_level_rerank_adaptive_floor_v2",
     "recall_pool_policy": "round_robin_sparse_dense_graph_lexical_v1",
     "legacy_weighted_fusion": false,
     "fail_closed": true,
     "candidate_count": 8,
     "evaluated_count": 8,
     "accepted_count": 1,
-    "acceptance_threshold": 0.01,
+    "minimum_acceptance_threshold": 0.004,
+    "relative_acceptance_floor": 0.01,
+    "best_score": 0.91,
+    "acceptance_threshold": 0.0091,
+    "latency_ms": 401,
     "entries": [
       {
         "memory_id": "mem_...",
@@ -3108,8 +3112,11 @@ payload for old evaluator clients; no weighted hybrid fusion occurs. With
 `RETRIEVAL_HYBRID_MODE=off`, the deterministic legacy baseline remains
 explicit. With `shadow`, final rerank evidence is observed without changing
 results. With `active`, only accepted rerank entries are returned. The
-acceptance threshold is calibrated model output handling, not a fusion of
-backend-authored semantic weights.
+effective acceptance threshold is the greater of the configured absolute
+anti-noise floor and the configured fraction of the best reranker score for
+that query. It is calibrated model-output handling, not a fusion of
+backend-authored semantic weights. `latency_ms` measures only the final rerank
+request; embedding and provider answer generation remain separate stages.
 
 ### POST /mind/memory/graph through mind_api
 
