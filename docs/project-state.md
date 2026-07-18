@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.40.0
+App baseline: V1.41.0 release candidate
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -79,6 +79,9 @@ Implemented and verified:
 - one bounded provider continuation for a thinking-only `end_turn`, followed
   by explicit `llm.incomplete_response` failure if no public answer or real
   tool call emerges; incomplete attempts remain trace-only evidence;
+- shared native/GPT answer obligations with hard, warning, and advisory
+  severity; one bounded correction for structural or semantic hard failures;
+  and fail-closed validator handling without deterministic language matching;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;
@@ -350,10 +353,11 @@ Current engineering baseline:
    maintenance retries on frozen and live cases.
 5. Design authenticated user ownership before multi-user data exists.
 
-### P3 - Close Answer Obligations And Preserve Organ Separation
+### P3 - Preserve Organ Separation After Answer-Obligation Closure
 
-- implement SCA-28 so a progress note cannot satisfy a required final answer or
-  silently interrupt a selected cognitive mutation;
+- V1.41 closes SCA-28 with a shared structural/semantic answer-control layer;
+- monitor validator latency, false positives, GPT correction compliance, and
+  natural conflict disclosure without widening this into conflict detection;
 - preserve SCA-4 conservative defaults and add no cross-organ coupling;
 - keep affect model exposure and metacognitive lesson injection experimental;
 - do not build temporal experience or Dream from registry placeholders.
@@ -387,12 +391,10 @@ behavior:
 
 ## 7. Current Best Next Step
 
-The next approved issue is SCA-28: distinguish public progress narration from a
-conclusive final answer and preserve required cognitive actions across that
-boundary. After it closes, SCA-6 can validate agent-mode routing against the
-now-classified standalone organ defaults. Long varied sessions should still
-monitor active compaction/degradation. Duplicate/conflict adjudication remains
-a separate later discussion.
+After V1.41 release closure, the next approved issue is SCA-6: validate
+agent-mode routing against the classified standalone organ defaults. Long
+varied sessions should still monitor active compaction/degradation.
+Duplicate/conflict adjudication remains a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

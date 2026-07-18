@@ -7,6 +7,53 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0093 - Final Answers Use Shared Traceable Runtime Obligations
+
+Date: 2026-07-18
+Status: accepted and implemented for V1.41.0
+
+Context:
+
+Prompt policy and visible runtime evidence do not guarantee that a stochastic
+model will finish a selected action, disclose a material conflict, or keep
+capability claims aligned with current shell state. A V1.40 volition scenario
+ended on a public progress note, while earlier memory probes showed that
+retrieved conflicts and unavailable operations could still be omitted or
+misrepresented in the answer.
+
+Decision:
+
+- compile one shared, traceable answer-obligation manifest for native and GPT
+  transports;
+- classify obligations as `hard`, `warning`, or `advisory` and structural or
+  semantic;
+- use a private native final marker only as a structural boundary, stripping it
+  before persistence, history, traces shown as public content, and UI output;
+- invoke a structured LLM judge only when a semantic obligation exists, never
+  use keyword matching or numeric scores to judge natural-language compliance;
+- allow one bounded correction after a hard failure and never auto-rewrite
+  Scarlet's answer;
+- keep rejected drafts as trace/provider-continuity evidence but never as the
+  canonical assistant message;
+- make GPT `required_actions` contain only executable shell commands while
+  `action_policy.answer_obligations` carries answer constraints; and
+- fail closed when the semantic validator is unavailable.
+
+Consequences:
+
+Native sync and stream paths now distinguish public work notes from a validated
+conclusion. The GPT bridge can reject one draft with recoverable HTTP 409 and
+fails the turn after a second hard violation. Ordinary direct answers pay only
+the structural boundary cost; semantic judge latency is limited to obligated
+turns. Semantic judge quality and external GPT correction compliance remain
+monitored rather than treated as mathematical proof.
+
+Links:
+
+- `backend/app/runtime/answer_obligations.py`
+- `docs/evaluations/v1.41-answer-obligations.md`
+- Linear SCA-28
+
 ## ADR-0092 - Cognitive Organs Keep Independent Conservative Defaults
 
 Date: 2026-07-18

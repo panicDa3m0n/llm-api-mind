@@ -15,6 +15,7 @@ from app.llm.provider import (
 )
 from app.main import create_app
 from app.runtime.history_compaction import build_chronology_source_map
+from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage import repositories
 
 
@@ -602,19 +603,157 @@ class FakeRecoveredFinalProvider(FakeChatProvider):
         )
 
 
+class FakeAnswerBoundaryRecoveryProvider(FakeChatProvider):
+    calls = 0
+
+    def generate_chat_with_tools(
+        self,
+        *,
+        messages: list[LLMMessage],
+        system: str | None = None,
+        max_tokens: int | None = None,
+        tools: list[dict],
+        tool_runner: LLMToolRunner,
+        max_tool_calls: int | None = None,
+    ) -> LLMTextResult:
+        del messages, system, max_tokens, tools, tool_runner, max_tool_calls
+        self.__class__.calls += 1
+        if self.__class__.calls == 1:
+            text = "Controllo un momento e poi ti rispondo."
+            provider_message_id = "provider_progress_only"
+        else:
+            text = f"Eccomi, ho concluso la risposta.\n{NATIVE_FINAL_MARKER}"
+            provider_message_id = "provider_corrected_final"
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=text,
+            usage={"input_tokens": 10, "output_tokens": 5},
+            provider_message_id=provider_message_id,
+            raw_content=[{"type": "text", "text": text}],
+            stop_reason="end_turn",
+            raw_provider_messages=[
+                {
+                    "id": provider_message_id,
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        )
+
+    def stream_chat_with_tools(self, **_kwargs):
+        self.__class__.calls = 1
+        text = "Controllo un momento e poi ti rispondo."
+        result = LLMTextResult(
+            model=self.settings.minimax_model,
+            text=text,
+            provider_message_id="provider_progress_only",
+            raw_content=[{"type": "text", "text": text}],
+            stop_reason="end_turn",
+            raw_provider_messages=[
+                {
+                    "id": "provider_progress_only",
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        )
+        yield LLMStreamEvent(
+            type="text_delta",
+            data={"model_step": 1, "index": 0, "text": text},
+        )
+        yield LLMStreamEvent(
+            type="assistant_answer",
+            data={
+                "model_step": 1,
+                "index": 0,
+                "provider_message_id": result.provider_message_id,
+                "stop_reason": result.stop_reason,
+                "text": text,
+            },
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
+class FakeAnswerBoundaryFailureProvider(FakeAnswerBoundaryRecoveryProvider):
+    def generate_chat_with_tools(self, **kwargs) -> LLMTextResult:
+        result = super().generate_chat_with_tools(**kwargs)
+        text = "Sto ancora verificando."
+        return result.model_copy(
+            update={
+                "text": text,
+                "raw_content": [{"type": "text", "text": text}],
+                "raw_provider_messages": [
+                    {
+                        "id": result.provider_message_id,
+                        "stop_reason": "end_turn",
+                        "content": [{"type": "text", "text": text}],
+                    }
+                ],
+            }
+        )
+
+
+class FakeSemanticAnswerRecoveryProvider(FakeAnswerBoundaryRecoveryProvider):
+    def generate_chat_with_tools(self, **_kwargs) -> LLMTextResult:
+        self.__class__.calls += 1
+        if self.__class__.calls == 1:
+            text = f"È tutto verificato.\n{NATIVE_FINAL_MARKER}"
+            provider_message_id = "provider_unsupported_claim"
+        else:
+            text = (
+                "Non ho evidenza sufficiente per confermarlo.\n"
+                f"{NATIVE_FINAL_MARKER}"
+            )
+            provider_message_id = "provider_grounded_correction"
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=text,
+            provider_message_id=provider_message_id,
+            raw_content=[{"type": "text", "text": text}],
+            stop_reason="end_turn",
+            raw_provider_messages=[
+                {
+                    "id": provider_message_id,
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": text}],
+                }
+            ],
+        )
+
+    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
+        payload = json.loads(prompt)
+        answer = str(payload["draft_answer"]).casefold()
+        findings = [
+            {
+                "obligation_id": item["id"],
+                "status": "pass" if "non ho evidenza" in answer else "fail",
+                "reason": "Fixture semantic judgment.",
+            }
+            for item in payload["obligations"]
+        ]
+        return LLMTextResult(
+            model="semantic-validator-test",
+            text=json.dumps({"findings": findings}),
+        )
+
+
 def make_client(
     db_engine: Engine, settings_overrides: dict | None = None
 ) -> TestClient:
     FakeChatProvider.seen_chat_systems = []
     FakeChatProvider.seen_max_tool_calls = []
     FakeChatProvider.seen_chat_messages = []
+    overrides = {"answer_obligations_mode": "off", **(settings_overrides or {})}
     settings = Settings(
         app_name="Test Mind",
         environment="test",
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
-        **(settings_overrides or {}),
+        **overrides,
     )
     return TestClient(
         create_app(
@@ -637,6 +776,7 @@ def make_tool_client(db_engine: Engine) -> TestClient:
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
+        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -659,6 +799,7 @@ def make_memory_client(db_engine: Engine) -> TestClient:
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
+        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -677,6 +818,7 @@ def make_thinking_only_client(db_engine: Engine) -> TestClient:
         minimax_model="MiniMax-M3",
         minimax_max_tokens=4096,
         maintenance_enabled=False,
+        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -695,6 +837,7 @@ def make_recovered_final_client(db_engine: Engine) -> TestClient:
         minimax_model="MiniMax-M3",
         minimax_max_tokens=4096,
         maintenance_enabled=False,
+        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -705,6 +848,28 @@ def make_recovered_final_client(db_engine: Engine) -> TestClient:
     )
 
 
+def make_answer_boundary_client(
+    db_engine: Engine,
+    *,
+    provider_class=FakeAnswerBoundaryRecoveryProvider,
+) -> TestClient:
+    provider_class.calls = 0
+    settings = Settings(
+        app_name="Test Mind",
+        environment="test",
+        minimax_api_key="test-key",
+        minimax_model="MiniMax-M3",
+        minimax_max_tokens=4096,
+        maintenance_enabled=False,
+        answer_obligations_mode="active",
+    )
+    return TestClient(
+        create_app(
+            settings,
+            llm_provider_factory=lambda active: provider_class(active),
+            db_engine=db_engine,
+        )
+    )
 def add_project_memory(
     db_engine: Engine,
     *,
@@ -976,6 +1141,7 @@ def test_metacognitive_context_inject_mode_is_model_facing(
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
         metacognitive_context_mode="inject",
+        answer_obligations_mode="off",
     )
     client = TestClient(
         create_app(
@@ -1970,6 +2136,7 @@ def test_chat_turn_returns_503_when_provider_is_not_configured(
         minimax_api_key=None,
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
+        answer_obligations_mode="off",
     )
     client = TestClient(create_app(settings, db_engine=db_engine))
     session = client.post("/api/chat/sessions", json={}).json()
@@ -2071,3 +2238,158 @@ def test_streaming_chat_traces_recovered_public_final_without_history_pollution(
     assert provider_history[-1]["content"] == [
         {"type": "text", "text": "Ora ti rispondo pubblicamente."}
     ]
+
+
+def test_native_answer_boundary_recovers_progress_note_before_persistence(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Ciao Scarlet."},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["assistant_message"]["content"] == (
+        "Eccomi, ho concluso la risposta."
+    )
+    assert NATIVE_FINAL_MARKER not in payload["assistant_message"]["content"]
+    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
+    validations = [trace for trace in traces if trace["kind"] == "answer.validation"]
+    assert [trace["payload"]["accepted"] for trace in validations] == [False, True]
+    accounting = next(
+        trace for trace in traces if trace["kind"] == "context.accounting.preflight"
+    )
+    assert accounting["payload"]["channels"]["answer_obligations"][
+        "estimated_tokens"
+    ] > 0
+    events = client.get(
+        "/api/debug/events", params={"turn_id": payload["turn_id"]}
+    ).json()
+    assert [
+        event["type"]
+        for event in events
+        if event["type"] in {"assistant.note.emitted", "assistant.answer.completed"}
+    ] == ["assistant.note.emitted", "assistant.answer.completed"]
+    with Session(db_engine) as db:
+        messages = repositories.list_messages(db, session_id=session["id"])
+        stored_session = repositories.get_chat_session(db, session["id"])
+        assert stored_session is not None
+        provider_history = stored_session.provider_history_json
+    assert [message.content for message in messages] == [
+        "Ciao Scarlet.",
+        "Eccomi, ho concluso la risposta.",
+    ]
+    assert [item["role"] for item in provider_history] == [
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+    ]
+    assert provider_history[1]["content"][0]["text"] == (
+        "Controllo un momento e poi ti rispondo."
+    )
+    assert NATIVE_FINAL_MARKER not in provider_history[-1]["content"][0]["text"]
+
+
+def test_native_answer_boundary_fails_after_second_progress_only_draft(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeAnswerBoundaryFailureProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Ciao Scarlet."},
+    )
+
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert detail["code"] == "llm.incomplete_response"
+    assert detail["details"]["reason"] == "answer_obligation_failed"
+    assert detail["details"]["attempt_count"] == 2
+    with Session(db_engine) as db:
+        turns = repositories.list_turns_for_session(db, session_id=session["id"])
+        messages = repositories.list_messages(db, session_id=session["id"])
+    assert turns[-1].status == "failed"
+    assert [message.role for message in messages] == ["user"]
+
+
+def test_streaming_answer_boundary_emits_only_the_accepted_final_answer(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream",
+        json={"message": "Ciao Scarlet."},
+    ) as response:
+        assert response.status_code == 200
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    final_answers = [
+        event for event in events if event["type"] == "assistant_answer"
+    ]
+    assert len(final_answers) == 1
+    assert final_answers[0]["data"]["text"] == (
+        "Eccomi, ho concluso la risposta."
+    )
+    assert not any(
+        event["type"] in {"text_start", "text_delta"}
+        for event in events
+    )
+    leaked_marker_events = [
+        event for event in events if NATIVE_FINAL_MARKER in json.dumps(event)
+    ]
+    assert leaked_marker_events == [], json.dumps(leaked_marker_events)
+    assert any(
+        event["type"] == "completion_recovery"
+        and event["data"]["reason"] == "answer_obligation_failed"
+        for event in events
+    )
+    assert events[-1]["type"] == "turn_complete"
+    traces = client.get(
+        f"/api/debug/traces/{events[-1]['data']['turn_id']}"
+    ).json()
+    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
+    validation_trace = [
+        trace for trace in traces if trace["kind"] == "answer.validation"
+    ][-1]
+    assert response_trace["payload"]["answer_validation_trace_id"] == (
+        validation_trace["id"]
+    )
+
+
+def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeSemanticAnswerRecoveryProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Puoi verificare lo stato implementato?"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["assistant_message"]["content"] == (
+        "Non ho evidenza sufficiente per confermarlo."
+    )
+    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
+    validations = [trace for trace in traces if trace["kind"] == "answer.validation"]
+    assert len(validations) == 2
+    assert validations[0]["payload"]["structural_final_boundary"]["accepted"] is True
+    assert validations[0]["payload"]["semantic"]["accepted"] is False
+    assert validations[1]["payload"]["semantic"]["accepted"] is True

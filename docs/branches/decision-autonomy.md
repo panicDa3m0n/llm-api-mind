@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-18
-System version assessed: V1.40.0
+System version assessed: V1.41.0 release candidate
 Status: volition continuity works when invoked; autonomous persistence remains variable
 
 ## Filosofia del ramo
@@ -102,6 +102,14 @@ Autonomous invocation is not yet reliable enough for default injection or
 cycles. Volition remains persistent, manually inspectable, model-selected on
 demand, and outside automatic chat context. Evidence:
 `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
+
+## Verifica V1.41.0
+
+The progress-only completion boundary observed in V1.40 is now closed at the
+shared runtime layer. This does not make volition autonomous and does not prove
+that Scarlet will always select `volition create`; it ensures that a public
+work note alone cannot be accepted as the conclusive answer. The next branch
+gate remains mode routing and later risk/receipt policy.
 
 ## Evolutive
 

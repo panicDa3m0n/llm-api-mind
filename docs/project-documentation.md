@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.40.0
+App baseline: V1.41.0 release candidate
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -88,8 +88,10 @@ discussed before a new fix is attempted.
   preservation, and direct MiniMax validation on a disposable database.
 - `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`: correlated focus,
   volition, affect, and metacognition scenarios; runtime receipts; independent
-  controls; project-informed qualitative judgments; and conservative organ
-  default decisions.
+  controls and conservative default decisions.
+- `docs/evaluations/v1.41-answer-obligations.md`: structural and semantic final-
+  answer contracts, bounded correction, GPT rejection policy, focused tests,
+  and direct native/GPT probe evidence.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

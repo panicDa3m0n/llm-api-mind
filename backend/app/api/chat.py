@@ -24,6 +24,7 @@ from app.llm.provider import (
     LLMMessage,
     LLMProvider,
     LLMRequestError,
+    LLMStreamEvent,
     LLMTextResult,
     LLMToolUse,
 )
@@ -60,6 +61,15 @@ from app.runtime.context_accounting import (
 from app.runtime.history_compaction import build_chronology_source_map
 from app.runtime.history_runtime import route_history_for_model
 from app.runtime.preferences import load_runtime_preferences
+from app.runtime.answer_obligations import (
+    AnswerObligationManifest,
+    augment_with_tool_evidence,
+    compile_answer_obligations,
+    correction_instruction,
+    render_answer_obligations,
+    strip_native_final_marker,
+    validate_answer_semantics,
+)
 from app.storage import repositories
 from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
 
@@ -361,6 +371,28 @@ def build_chat_router(
                 system_prompt.content,
                 memory_context.runtime_context,
             ) + history_routing.system_appendix
+            answer_manifest = compile_answer_obligations(
+                transport="native",
+                memory_context=memory_context.payload,
+                metacognitive_context=memory_context.metacognitive_payload,
+            )
+            answer_obligations_trace_id: str | None = None
+            if settings.answer_obligations_mode != "off":
+                answer_obligations_trace_id = _record_answer_obligations(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    manifest=answer_manifest,
+                    mode=settings.answer_obligations_mode,
+                    phase="initial",
+                )
+                trace_ids.append(answer_obligations_trace_id)
+            answer_obligations_appendix = ""
+            if settings.answer_obligations_mode == "active":
+                answer_obligations_appendix = render_answer_obligations(
+                    answer_manifest
+                )
+                effective_system += answer_obligations_appendix
             accounting_trace, accounting_payload = _record_context_accounting_preflight(
                 db,
                 session_id=session_id,
@@ -372,6 +404,7 @@ def build_chat_router(
                 messages=llm_messages,
                 settings=settings,
                 compacted_chronology=history_routing.system_appendix,
+                answer_obligations=answer_obligations_appendix,
             )
             accounting_trace_id = accounting_trace.id
             trace_ids.append(accounting_trace_id)
@@ -435,6 +468,8 @@ def build_chat_router(
                         if message.role in {"user", "assistant"}
                     ],
                     "tools": [MIND_SHELL_TOOL_SCHEMA],
+                    "answer_obligations_trace_id": answer_obligations_trace_id,
+                    "answer_obligations": answer_manifest.model_dump(mode="json"),
                 },
             )
             trace_ids.append(request_trace.id)
@@ -469,21 +504,38 @@ def build_chat_router(
 
         try:
             provider = provider_factory(settings)
+            tool_runner = _build_mind_tool_runner(
+                engine,
+                settings=settings,
+                provider_factory=provider_factory,
+                session_id=session_id,
+                turn_id=turn_id,
+                source_message_id=user_message_response.id,
+                trace_ids=trace_ids,
+            )
             result = provider.generate_chat_with_tools(
                 messages=llm_messages,
                 system=effective_system,
                 max_tokens=max_tokens,
                 tools=[MIND_SHELL_TOOL_SCHEMA],
-                tool_runner=_build_mind_tool_runner(
-                    engine,
+                tool_runner=tool_runner,
+                max_tool_calls=None,
+            )
+            result, final_answer_validation_trace_id = (
+                _enforce_native_answer_obligations(
+                    engine=engine,
                     settings=settings,
-                    provider_factory=provider_factory,
+                    provider=provider,
+                    manifest=answer_manifest,
+                    result=result,
+                    request_messages=llm_messages,
+                    system=effective_system,
+                    max_tokens=max_tokens,
+                    tool_runner=tool_runner,
                     session_id=session_id,
                     turn_id=turn_id,
-                    source_message_id=user_message_response.id,
                     trace_ids=trace_ids,
-                ),
-                max_tool_calls=None,
+                )
             )
         except LLMConfigurationError as exc:
             _record_failed_turn(
@@ -576,6 +628,8 @@ def build_chat_router(
                     "usage": result.usage,
                     "stop_reason": result.stop_reason,
                     "completion_recovery": result.completion_recovery,
+                    "answer_obligations_trace_id": answer_obligations_trace_id,
+                    "answer_validation_trace_id": final_answer_validation_trace_id,
                 },
             )
             response_trace = repositories.add_trace(
@@ -596,6 +650,8 @@ def build_chat_router(
                     ],
                     "raw_provider_messages": result.raw_provider_messages,
                     "completion_recovery": result.completion_recovery,
+                    "answer_obligations_trace_id": answer_obligations_trace_id,
+                    "answer_validation_trace_id": final_answer_validation_trace_id,
                 },
             )
             trace_ids.append(response_trace.id)
@@ -918,6 +974,28 @@ def build_chat_router(
                 system_prompt.content,
                 memory_context.runtime_context,
             ) + history_routing.system_appendix
+            answer_manifest = compile_answer_obligations(
+                transport="native",
+                memory_context=memory_context.payload,
+                metacognitive_context=memory_context.metacognitive_payload,
+            )
+            answer_obligations_trace_id = None
+            if settings.answer_obligations_mode != "off":
+                answer_obligations_trace_id = _record_answer_obligations(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    manifest=answer_manifest,
+                    mode=settings.answer_obligations_mode,
+                    phase="initial",
+                )
+                trace_ids.append(answer_obligations_trace_id)
+            answer_obligations_appendix = ""
+            if settings.answer_obligations_mode == "active":
+                answer_obligations_appendix = render_answer_obligations(
+                    answer_manifest
+                )
+                effective_system += answer_obligations_appendix
             accounting_trace, accounting_payload = _record_context_accounting_preflight(
                 db,
                 session_id=session_id,
@@ -929,6 +1007,7 @@ def build_chat_router(
                 messages=llm_messages,
                 settings=settings,
                 compacted_chronology=history_routing.system_appendix,
+                answer_obligations=answer_obligations_appendix,
             )
             accounting_trace_id = accounting_trace.id
             trace_ids.append(accounting_trace_id)
@@ -991,6 +1070,8 @@ def build_chat_router(
                     ],
                     "tools": [MIND_SHELL_TOOL_SCHEMA],
                     "stream": True,
+                    "answer_obligations_trace_id": answer_obligations_trace_id,
+                    "answer_obligations": answer_manifest.model_dump(mode="json"),
                 },
             )
             trace_ids.append(request_trace.id)
@@ -1044,6 +1125,8 @@ def build_chat_router(
                 accounting_trace_id=accounting_trace_id,
                 accounting_payload=accounting_payload,
                 history_routing_payload=history_routing.payload,
+                answer_manifest=answer_manifest,
+                answer_obligations_trace_id=answer_obligations_trace_id,
             ),
             media_type="application/x-ndjson",
         )
@@ -1157,6 +1240,339 @@ def _build_mind_tool_runner(
     return run
 
 
+def _record_answer_obligations(
+    db: Session,
+    *,
+    session_id: str,
+    turn_id: str,
+    manifest: AnswerObligationManifest,
+    mode: str,
+    phase: str,
+) -> str:
+    trace = repositories.add_trace(
+        db,
+        session_id=session_id,
+        turn_id=turn_id,
+        kind="answer.obligations",
+        payload={
+            "mode": mode,
+            "phase": phase,
+            "manifest": manifest.model_dump(mode="json"),
+            "hard_count": sum(
+                1 for item in manifest.obligations if item.severity == "hard"
+            ),
+            "semantic_count": len(manifest.semantic),
+        },
+    )
+    trace_id = trace.id
+    record_event(
+        db,
+        session_id=session_id,
+        turn_id=turn_id,
+        event_type="answer.obligations.compiled",
+        payload={
+            "mode": mode,
+            "phase": phase,
+            "obligation_ids": [item.id for item in manifest.obligations],
+            "semantic_count": len(manifest.semantic),
+        },
+        source="answer_control",
+        actor="backend",
+        visibility="debug",
+        trace_id=trace_id,
+    )
+    return trace_id
+
+
+def _enforce_native_answer_obligations(
+    *,
+    engine: Engine,
+    settings: Settings,
+    provider: LLMProvider,
+    manifest: AnswerObligationManifest,
+    result: LLMTextResult,
+    request_messages: list[LLMMessage],
+    system: str,
+    max_tokens: int,
+    tool_runner: Callable[[LLMToolUse], LLMExecutedToolCall],
+    session_id: str,
+    turn_id: str,
+    trace_ids: list[str],
+) -> tuple[LLMTextResult, str | None]:
+    if settings.answer_obligations_mode != "active":
+        return result, None
+
+    current = result
+    final_validation_trace_id: str | None = None
+    for attempt in range(2):
+        current_manifest = augment_with_tool_evidence(manifest, current.tool_calls)
+        if current_manifest != manifest:
+            with Session(engine) as db:
+                manifest_trace_id = _record_answer_obligations(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    manifest=current_manifest,
+                    mode=settings.answer_obligations_mode,
+                    phase=f"draft_{attempt + 1}",
+                )
+                trace_ids.append(manifest_trace_id)
+
+        public_answer, structural_ok = strip_native_final_marker(current.text)
+        semantic_validation = (
+            validate_answer_semantics(
+                provider=provider,
+                manifest=current_manifest,
+                answer=public_answer if structural_ok else current.text,
+                max_tokens=settings.answer_validation_max_tokens,
+            )
+            if structural_ok
+            else None
+        )
+        accepted = structural_ok and (
+            semantic_validation is None or semantic_validation.accepted
+        )
+        with Session(engine) as db:
+            validation_trace = repositories.add_trace(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                kind="answer.validation",
+                payload={
+                    "transport": "native",
+                    "attempt": attempt + 1,
+                    "accepted": accepted,
+                    "structural_final_boundary": {
+                        "accepted": structural_ok,
+                        "marker_stripped": structural_ok,
+                    },
+                    "semantic": semantic_validation.model_dump(mode="json")
+                    if semantic_validation is not None
+                    else None,
+                    "manifest": current_manifest.model_dump(mode="json"),
+                    "draft": {
+                        "provider_message_id": current.provider_message_id,
+                        "chars": len(current.text),
+                        "text": current.text,
+                    },
+                },
+            )
+            validation_trace_id = validation_trace.id
+            trace_ids.append(validation_trace_id)
+            final_validation_trace_id = validation_trace_id
+            record_event(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                event_type="answer.validation.accepted"
+                if accepted
+                else "answer.validation.rejected",
+                payload={
+                    "attempt": attempt + 1,
+                    "structural_ok": structural_ok,
+                    "hard_failure_ids": (
+                        semantic_validation.hard_failure_ids
+                        if semantic_validation is not None
+                        else ["answer.final_boundary"]
+                    ),
+                },
+                source="answer_control",
+                actor="backend",
+                visibility="debug",
+                trace_id=validation_trace_id,
+                status="completed" if accepted else "error",
+            )
+        if (
+            semantic_validation is not None
+            and semantic_validation.validator_status == "failed"
+        ):
+            raise LLMIncompleteResponseError(
+                "The answer validator could not evaluate the hard obligations.",
+                details={
+                    "reason": "answer_validation_unavailable",
+                    "recoverable": True,
+                    "validator_error": semantic_validation.validator_error,
+                    "answer_validation_trace_id": final_validation_trace_id,
+                },
+            )
+        if accepted:
+            return (
+                _accepted_native_result(
+                    current,
+                    public_answer=public_answer,
+                    validation_trace_id=final_validation_trace_id,
+                ),
+                final_validation_trace_id,
+            )
+        if attempt == 1:
+            raise LLMIncompleteResponseError(
+                "Scarlet did not satisfy the hard final-answer obligations.",
+                details={
+                    "reason": "answer_obligation_failed",
+                    "attempt_count": 2,
+                    "structural_failure": not structural_ok,
+                    "hard_failure_ids": (
+                        semantic_validation.hard_failure_ids
+                        if semantic_validation is not None
+                        else ["answer.final_boundary"]
+                    ),
+                    "answer_validation_trace_id": final_validation_trace_id,
+                },
+            )
+
+        with Session(engine) as db:
+            record_event(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                event_type="answer.recovery.requested",
+                payload={
+                    "attempt": 1,
+                    "validation_trace_id": final_validation_trace_id,
+                    "structural_failure": not structural_ok,
+                    "hard_failure_ids": (
+                        semantic_validation.hard_failure_ids
+                        if semantic_validation is not None
+                        else ["answer.final_boundary"]
+                    ),
+                },
+                source="answer_control",
+                actor="backend",
+                visibility="debug",
+                status="active",
+                trace_id=final_validation_trace_id,
+            )
+        recovery_instruction = correction_instruction(
+            manifest=current_manifest,
+            validation=semantic_validation,
+            structural_failure=not structural_ok,
+        )
+        continuation_messages = [
+            *request_messages,
+            *[
+                LLMMessage(role=item["role"], content=item["content"])
+                for item in _provider_history_from_result(current)
+            ],
+            LLMMessage(
+                role="user",
+                content=recovery_instruction,
+            ),
+        ]
+        corrected = provider.generate_chat_with_tools(
+            messages=continuation_messages,
+            system=system,
+            max_tokens=max_tokens,
+            tools=[MIND_SHELL_TOOL_SCHEMA],
+            tool_runner=tool_runner,
+            max_tool_calls=None,
+        )
+        current = _merge_answer_recovery_results(
+            current,
+            corrected,
+            recovery_instruction=recovery_instruction,
+        )
+
+    raise AssertionError("answer obligation recovery loop must return or raise")
+
+
+def _accepted_native_result(
+    result: LLMTextResult,
+    *,
+    public_answer: str,
+    validation_trace_id: str | None,
+) -> LLMTextResult:
+    raw_content = _strip_marker_from_content(result.raw_content)
+    raw_messages: list[dict[str, Any]] = []
+    for index, raw_message in enumerate(result.raw_provider_messages):
+        item = dict(raw_message)
+        if index == len(result.raw_provider_messages) - 1:
+            item["content"] = _strip_marker_from_content(
+                _valid_content_blocks(item.get("content"))
+            )
+            item["answer_disposition"] = "accepted_final"
+        raw_messages.append(item)
+    recovery = dict(result.completion_recovery)
+    recovery_tail = _valid_provider_history(result.provider_history_tail)
+    cleaned_tail: ProviderHistory = []
+    if recovery_tail:
+        for item in recovery_tail:
+            cleaned_tail.append(
+                {
+                    "role": item["role"],
+                    "content": _strip_marker_from_content(item["content"]),
+                }
+            )
+    recovery["answer_obligations"] = {
+        "recovered": len(raw_messages) > 1,
+        "validation_trace_id": validation_trace_id,
+    }
+    return result.model_copy(
+        update={
+            "text": public_answer,
+            "raw_content": raw_content,
+            "raw_provider_messages": raw_messages,
+            "completion_recovery": recovery,
+            "provider_history_tail": cleaned_tail,
+        }
+    )
+
+
+def _strip_marker_from_content(
+    content: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    cleaned: list[dict[str, Any]] = []
+    for block in content:
+        item = dict(block)
+        if item.get("type") == "text" and isinstance(item.get("text"), str):
+            text, accepted = strip_native_final_marker(item["text"])
+            if accepted:
+                item["text"] = text
+        cleaned.append(item)
+    return cleaned
+
+
+def _merge_answer_recovery_results(
+    rejected: LLMTextResult,
+    corrected: LLMTextResult,
+    *,
+    recovery_instruction: str,
+) -> LLMTextResult:
+    rejected_messages = [
+        {**item, "answer_disposition": "rejected_progress"}
+        for item in rejected.raw_provider_messages
+    ]
+    usage = dict(rejected.usage)
+    for key, value in corrected.usage.items():
+        if isinstance(value, (int, float)) and isinstance(usage.get(key), (int, float)):
+            usage[key] += value
+        else:
+            usage[key] = value
+    return corrected.model_copy(
+        update={
+            "usage": usage,
+            "tool_calls": [*rejected.tool_calls, *corrected.tool_calls],
+            "raw_provider_messages": [
+                *rejected_messages,
+                *corrected.raw_provider_messages,
+            ],
+            "completion_recovery": {
+                **corrected.completion_recovery,
+                "answer_obligation_attempted": True,
+                "answer_obligation_recovered": True,
+                "rejected_provider_message_id": rejected.provider_message_id,
+            },
+            "provider_history_tail": [
+                *_provider_history_from_result(rejected),
+                {
+                    "role": "user",
+                    "content": [{"type": "text", "text": recovery_instruction}],
+                },
+                *_provider_history_from_result(corrected),
+            ],
+        }
+    )
+
+
 def _stream_turn_events(
     *,
     settings: Settings,
@@ -1177,6 +1593,8 @@ def _stream_turn_events(
     accounting_trace_id: str,
     accounting_payload: dict[str, Any],
     history_routing_payload: dict[str, Any],
+    answer_manifest: AnswerObligationManifest,
+    answer_obligations_trace_id: str | None,
 ) -> Iterator[str]:
     sequence = 0
     pending_runtime_events: list[CognitiveEvent] = []
@@ -1235,30 +1653,45 @@ def _stream_turn_events(
     )
 
     result: LLMTextResult | None = None
+    final_answer_validation_trace_id: str | None = None
     semantic_content_event_seen = False
     try:
         provider = provider_factory(settings)
+        tool_runner = _build_mind_tool_runner(
+            engine,
+            settings=settings,
+            provider_factory=provider_factory,
+            session_id=session_id,
+            turn_id=turn_id,
+            source_message_id=user_message_response.id,
+            trace_ids=trace_ids,
+            event_sink=pending_runtime_events,
+        )
         for stream_event in provider.stream_chat_with_tools(
             messages=llm_messages,
             system=system,
             max_tokens=max_tokens,
             tools=[MIND_SHELL_TOOL_SCHEMA],
-            tool_runner=_build_mind_tool_runner(
-                engine,
-                settings=settings,
-                provider_factory=provider_factory,
-                session_id=session_id,
-                turn_id=turn_id,
-                source_message_id=user_message_response.id,
-                trace_ids=trace_ids,
-                event_sink=pending_runtime_events,
-            ),
+            tool_runner=tool_runner,
             max_tool_calls=None,
         ):
             yield from flush_pending_runtime_events()
             if stream_event.type == "final_result":
                 result = LLMTextResult.model_validate(stream_event.data["result"])
             else:
+                if (
+                    settings.answer_obligations_mode == "active"
+                    and stream_event.type
+                    in {"assistant_answer", "text_delta", "text_start"}
+                ):
+                    continue
+                if stream_event.type in {"assistant_note", "assistant_answer"}:
+                    event_text = str(stream_event.data.get("text") or "")
+                    public_event_text, marker_found = strip_native_final_marker(
+                        event_text
+                    )
+                    if marker_found:
+                        stream_event.data["text"] = public_event_text
                 if stream_event.type in {
                     "assistant_note",
                     "assistant_answer",
@@ -1275,6 +1708,54 @@ def _stream_turn_events(
                     yield emit_runtime_event(provider_event)
                 yield emit(stream_event.type, stream_event.data)
         yield from flush_pending_runtime_events()
+        if result is not None:
+            original_provider_message_id = result.provider_message_id
+            result, final_answer_validation_trace_id = _enforce_native_answer_obligations(
+                engine=engine,
+                settings=settings,
+                provider=provider,
+                manifest=answer_manifest,
+                result=result,
+                request_messages=llm_messages,
+                system=system,
+                max_tokens=max_tokens,
+                tool_runner=tool_runner,
+                session_id=session_id,
+                turn_id=turn_id,
+                trace_ids=trace_ids,
+            )
+            if result.provider_message_id != original_provider_message_id:
+                yield emit(
+                    "completion_recovery",
+                    {
+                        "reason": "answer_obligation_failed",
+                        "answer_validation_trace_id": final_answer_validation_trace_id,
+                    },
+                )
+            if settings.answer_obligations_mode == "active":
+                accepted_answer_event = LLMStreamEvent(
+                    type="assistant_answer",
+                    data={
+                        "model_step": len(result.raw_provider_messages) or 1,
+                        "index": 0,
+                        "provider_message_id": result.provider_message_id,
+                        "stop_reason": result.stop_reason,
+                        "text": result.text,
+                        "answer_validation_trace_id": (
+                            final_answer_validation_trace_id
+                        ),
+                    },
+                )
+                provider_event = record_provider_stream_event(
+                    engine,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    stream_event=accepted_answer_event,
+                )
+                if provider_event is not None:
+                    yield emit_runtime_event(provider_event)
+                yield emit(accepted_answer_event.type, accepted_answer_event.data)
+                semantic_content_event_seen = True
     except LLMConfigurationError as exc:
         failed_event = _record_failed_turn(
             engine,
@@ -1384,6 +1865,8 @@ def _stream_turn_events(
                 "usage": result.usage,
                 "stop_reason": result.stop_reason,
                 "completion_recovery": result.completion_recovery,
+                "answer_obligations_trace_id": answer_obligations_trace_id,
+                "answer_validation_trace_id": final_answer_validation_trace_id,
             },
         )
         response_trace = repositories.add_trace(
@@ -1404,6 +1887,8 @@ def _stream_turn_events(
                 "raw_provider_messages": result.raw_provider_messages,
                 "completion_recovery": result.completion_recovery,
                 "stream": True,
+                "answer_obligations_trace_id": answer_obligations_trace_id,
+                "answer_validation_trace_id": final_answer_validation_trace_id,
             },
         )
         trace_ids.append(response_trace.id)
@@ -1766,6 +2251,9 @@ def _updated_provider_history(
 
 
 def _provider_history_from_result(result: LLMTextResult) -> ProviderHistory:
+    valid_recovery_tail = _valid_provider_history(result.provider_history_tail)
+    if valid_recovery_tail:
+        return valid_recovery_tail
     if result.raw_provider_messages:
         return _provider_history_from_raw_messages(
             result.raw_provider_messages,
@@ -1912,6 +2400,7 @@ def _record_context_accounting_preflight(
     messages: list[LLMMessage],
     settings: Settings,
     compacted_chronology: str = "",
+    answer_obligations: str = "",
     external_unobserved_context: list[str] | None = None,
 ) -> tuple[Trace, dict[str, Any]]:
     payload = build_context_accounting_preflight(
@@ -1926,6 +2415,7 @@ def _record_context_accounting_preflight(
         tools=[MIND_SHELL_TOOL_SCHEMA],
         settings=settings,
         compacted_chronology=compacted_chronology,
+        answer_obligations=answer_obligations,
         external_unobserved_context=external_unobserved_context,
     )
     trace = repositories.add_trace(

@@ -124,7 +124,7 @@ Related Files:
 ## BUG-0085 - Completed Native Turn Contained Only A Public Work Note
 
 Date Found: 2026-07-18
-Status: open; assigned to SCA-28
+Status: fixed in V1.41.0; release verification pending
 
 Symptoms:
 
@@ -149,6 +149,15 @@ Evidence:
   `volition create`; the correlated next session correctly found no persisted
   intention;
 - Linear SCA-28.
+
+Fix And Regression Evidence:
+
+The native runtime now requires a private structural final boundary, strips it
+before persistence and public delivery, and permits one continuation when the
+provider ends on progress-only text. A second miss fails explicitly. Sync and
+stream tests prove that rejected drafts are not canonical messages and that
+streaming exposes only the accepted final answer while retaining legitimate
+work notes and tool events.
 
 ## BUG-0084 - VPS Retrieval Configuration Drift Disabled Dense Embedding
 
@@ -2024,7 +2033,7 @@ classification for this slice.
 ## BUG-0011 - Runtime Context Conflicts And Capabilities Are Not Enforced In Answers
 
 Date Found: 2026-05-13
-Status: monitoring
+Status: fixed for traced hard obligations in V1.41.0; semantic quality monitored
 
 Symptoms:
 
@@ -2041,19 +2050,26 @@ Root Cause:
 
 Fix:
 
-Pending. Recommended first slice:
-
-- Add runtime answer obligations when `memory_context.conflicts` is non-empty.
-- Add a small response-control or post-response validation step for unsupported lifecycle-action claims.
-- Keep lifecycle endpoint design deferred until conflict/capability discipline is reliable.
+V1.41 compiles active memory conflicts into hard semantic answer obligations.
+Capability inspection and failed Mind shell calls augment the same manifest
+with current tool evidence. A compact LLM judge returns per-obligation
+`pass|fail|unknown`; hard non-pass findings trigger one correction and then an
+explicit failed turn. Warning/advisory findings remain trace-only. The system
+does not use string rules to decide whether natural language satisfies an
+obligation and does not adjudicate whether similar memories are conflicts.
 
 Regression Test:
 
-Pending. Re-run the live Mare-Vetro/Zero-Luce sequence after the fix and verify:
+Deterministic native and GPT bridge scenarios now verify:
 
 - conflict is disclosed without the user asking a second time;
 - Scarlet does not offer update/deprecate/delete/consolidation as executable actions while those capabilities are unavailable;
 - capability correction does not require the user to challenge the answer.
+
+A direct GPT bridge `help` probe with the real MiniMax validator also exposed
+and corrected one false-positive obligation that had demanded an exhaustive
+catalog instead of judging only claims made. Longitudinal natural conflict
+behavior remains a monitoring target rather than a release blocker.
 
 Related Files:
 

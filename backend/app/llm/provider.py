@@ -34,6 +34,7 @@ class LLMTextResult(BaseModel):
     tool_calls: list["LLMExecutedToolCall"] = Field(default_factory=list)
     raw_provider_messages: list[dict[str, Any]] = Field(default_factory=list)
     completion_recovery: dict[str, Any] = Field(default_factory=dict)
+    provider_history_tail: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class LLMMessage(BaseModel):

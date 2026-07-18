@@ -9,6 +9,49 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0069 - Shared Answer-Obligation Enforcement
+
+Status: focused implementation and direct probes accepted for V1.41.0
+
+Hypothesis:
+
+A structural final boundary plus proportionate semantic obligations can stop
+progress-only completion and evidence/capability contradictions without using
+deterministic language matching or forcing every turn through a second model.
+
+Method:
+
+- freeze BUG-0085 and BUG-0011 as the starting evidence;
+- exercise native success, one recovery, second failure, streaming isolation,
+  source-sensitive claims, active conflicts, capability inspection, failed
+  actions, and non-blocking warning/advisory findings;
+- use one structured MiniMax judgment only for manifests containing semantic
+  obligations;
+- probe native MiniMax on an isolated DB; and
+- probe GPT bootstrap, `help`, and finalize against the same local runtime with
+  the real MiniMax validator.
+
+Result:
+
+Focused deterministic coverage passes both transports and proves that rejected
+drafts are not persisted. The native real-model probe accepted and stripped
+the private boundary. The first GPT capability probe exposed an over-broad
+validator requirement for an exhaustive catalog; the obligation was corrected
+to judge only claims actually made. The repeated real probe then accepted a
+non-exhaustive but accurate capability answer. Streaming now withholds draft
+text until validation while preserving public notes and tool events.
+
+Decision:
+
+Accept the shared contract and active default for release verification. Keep
+semantic validation limited to evidence-bearing turns, retain one correction,
+and monitor validator false positives and latency. Do not infer memory
+conflicts from semantic similarity inside this feature.
+
+Evidence:
+
+`docs/evaluations/v1.41-answer-obligations.md`
+
 ## EXP-0068 - Longitudinal Cognitive Organ Separation
 
 Status: completed for V1.40.0; conservative defaults retained

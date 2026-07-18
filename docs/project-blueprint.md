@@ -1523,11 +1523,11 @@ Avoid:
 Immediate next recommended steps:
 
 ```txt
-1. Complete the field review of V2 preserved context.
-2. Measure and budget provider-native history, V2, shell results, and GPT bootstrap separately.
-3. Implement a trace-only context-mode router before changing model input.
+1. Close and monitor shared final-answer obligations across native and GPT transports.
+2. Validate the active context-mode router against independent organ defaults.
+3. Monitor recursive chronology quality, token partitions, and canonical fallback.
 4. Design evidence-first duplicate/conflict handling and deterministic user ownership.
-5. Validate existing focus, volition, affect, and metacognition before coupling organs.
+5. Define risk, authorization, reversibility, and receipts before autonomous actions.
 6. Reorganize the largest code monoliths behind the frozen pre/post regression gate.
 ```
 

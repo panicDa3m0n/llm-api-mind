@@ -204,6 +204,8 @@ def record_response_content_events(
             isinstance(block, dict) and block.get("type") == "tool_use"
             for block in content
         )
+        answer_disposition = provider_message.get("answer_disposition")
+        rejected_progress = answer_disposition == "rejected_progress"
         for index, block in enumerate(content):
             if not isinstance(block, dict):
                 continue
@@ -217,7 +219,7 @@ def record_response_content_events(
                         session_id=session_id,
                         turn_id=turn_id,
                         event_type="assistant.note.emitted"
-                        if has_tool_use
+                        if has_tool_use or rejected_progress
                         else "assistant.answer.completed",
                         payload={
                             "text": text,
@@ -225,6 +227,7 @@ def record_response_content_events(
                             "index": index,
                             "provider_message_id": provider_message.get("id"),
                             "stop_reason": provider_message.get("stop_reason"),
+                            "answer_disposition": answer_disposition,
                         },
                         source="assistant",
                         actor="scarlet",
