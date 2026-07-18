@@ -422,6 +422,12 @@ def test_gpt_bridge_requires_key_outside_local(db_engine: Engine) -> None:
     rejected = client.post("/gpt/bootstrap", json={"message": "Ciao"})
     assert rejected.status_code == 401
 
+    rejected_query_key = client.post(
+        "/gpt/bootstrap?key=secret-bridge-key",
+        json={"message": "Ciao"},
+    )
+    assert rejected_query_key.status_code == 401
+
     accepted = client.post(
         "/gpt/bootstrap",
         json={"message": "Ciao"},
@@ -438,6 +444,8 @@ def test_gpt_bridge_routes_are_exposed_in_openapi(db_engine: Engine) -> None:
     assert "/gpt/bootstrap" in schema["paths"]
     assert "/gpt/action" in schema["paths"]
     assert "/gpt/finalize" in schema["paths"]
+    assert "/mcp" not in schema["paths"]
+    assert client.post("/mcp", json={}).status_code == 404
     assert (
         schema["paths"]["/gpt/bootstrap"]["post"]["operationId"]
         == "bootstrapScarletBeforeEveryAnswer"
@@ -466,199 +474,16 @@ def test_gpt_bridge_routes_are_exposed_in_openapi(db_engine: Engine) -> None:
     assert "intent" in action_request_schema["required"]
 
 
-def test_gpt_bridge_mcp_tool_descriptors_include_required_lifecycle_phrases(
-    db_engine: Engine,
-) -> None:
-    client = _app(db_engine)
-
-    initialized = client.post(
-        "/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": "2025-06-18",
-                "capabilities": {},
-                "clientInfo": {"name": "test-client", "version": "1.0.0"},
-            },
-        },
-    )
-
-    assert initialized.status_code == 200
-    assert initialized.headers["mcp-session-id"].startswith("mcp_")
-    assert initialized.json()["result"]["capabilities"]["tools"] == {
-        "listChanged": False
-    }
-
-    tools = client.post(
-        "/mcp",
-        headers={"Mcp-Session-Id": initialized.headers["mcp-session-id"]},
-        json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
-    )
-
-    assert tools.status_code == 200
-    tool_by_name = {tool["name"]: tool for tool in tools.json()["result"]["tools"]}
-    assert "start_scarlet_turn_required" in tool_by_name
-    assert "finish_scarlet_turn_required" in tool_by_name
-    assert (
-        "Usa sempre a inizio di ogni turno"
-        in tool_by_name["start_scarlet_turn_required"]["description"]
-    )
-    assert (
-        "Usa sempre prima della tua risposta finale"
-        in tool_by_name["finish_scarlet_turn_required"]["description"]
-    )
-    assert tool_by_name["scarlet_memory_command"]["inputSchema"]["required"] == [
-        "command"
-    ]
-    assert tool_by_name["start_scarlet_turn_required"]["outputSchema"]["required"] == [
-        "ok",
-        "summary",
-    ]
-    assert tool_by_name["finish_scarlet_turn_required"]["outputSchema"]["required"] == [
-        "ok",
-        "summary",
-    ]
-    assert tool_by_name["scarlet_memory_command"]["outputSchema"]["required"] == [
-        "ok",
-        "summary",
-    ]
-    assert tool_by_name["scarlet_help_command"]["annotations"]["readOnlyHint"] is True
-    assert (
-        tool_by_name["scarlet_memory_command"]["annotations"]["readOnlyHint"] is False
-    )
-
-
-def test_gpt_bridge_mcp_start_command_finish_roundtrip(db_engine: Engine) -> None:
-    client = _app(db_engine)
-
-    initialized = client.post(
-        "/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "initialize",
-            "params": {
-                "protocolVersion": "2025-06-18",
-                "capabilities": {},
-                "clientInfo": {"name": "test-client", "version": "1.0.0"},
-            },
-        },
-    )
-    mcp_session_id = initialized.headers["mcp-session-id"]
-
-    start = client.post(
-        "/mcp",
-        headers={"Mcp-Session-Id": mcp_session_id},
-        json={
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/call",
-            "params": {
-                "name": "start_scarlet_turn_required",
-                "arguments": {
-                    "title": "MCP Bridge Test",
-                    "message": "Ciao Scarlet, sto provando il connector MCP.",
-                },
-            },
-        },
-    )
-
-    assert start.status_code == 200
-    start_result = start.json()["result"]
-    assert start_result["isError"] is False
-    start_content = start_result["structuredContent"]
-    session_id = start_content["session"]["id"]
-    turn_id = start_content["turn_id"]
-    assert start_content["context"]["profile"] == "gpt-bootstrap-compact-v1"
-
-    help_call = client.post(
-        "/mcp",
-        headers={"Mcp-Session-Id": mcp_session_id},
-        json={
-            "jsonrpc": "2.0",
-            "id": 3,
-            "method": "tools/call",
-            "params": {
-                "name": "scarlet_help_command",
-                "arguments": {"command": "help", "intent": "Check shell help."},
-            },
-        },
-    )
-
-    assert help_call.status_code == 200
-    help_content = help_call.json()["result"]["structuredContent"]
-    assert help_content["ok"] is True
-    assert help_content["response"]["result"]["operation"] == "mind_shell.help"
-
-    finish = client.post(
-        "/mcp",
-        headers={"Mcp-Session-Id": mcp_session_id},
-        json={
-            "jsonrpc": "2.0",
-            "id": 4,
-            "method": "tools/call",
-            "params": {
-                "name": "finish_scarlet_turn_required",
-                "arguments": {
-                    "answer": "Ci sono. Il connector MCP ha chiuso bene il turno."
-                },
-            },
-        },
-    )
-
-    assert finish.status_code == 200
-    finish_content = finish.json()["result"]["structuredContent"]
-    assert finish_content["ok"] is True
-    assert finish_content["status"] == "completed"
-    assert finish_content["turn_id"] == turn_id
-
-    with Session(db_engine) as db:
-        messages = repositories.list_messages(db, session_id=session_id)
-        assert [message.role for message in messages] == ["user", "assistant"]
-        traces = repositories.list_traces_for_turn(db, turn_id=turn_id)
-        assert [trace.kind for trace in traces].count("llm.request") == 1
-        assert [trace.kind for trace in traces].count("mind.tool_call") == 1
-        assert [trace.kind for trace in traces].count("llm.response") == 1
-
-
-def test_gpt_bridge_mcp_accepts_private_preview_query_key(
-    db_engine: Engine,
-) -> None:
-    client = _app(
-        db_engine,
-        environment="production",
-        gpt_bridge_api_key="secret-bridge-key",
-    )
-
-    rejected = client.post(
-        "/mcp",
-        json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
-    )
-    assert rejected.status_code == 401
-
-    accepted = client.post(
-        "/mcp?key=secret-bridge-key",
-        json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
-    )
-    assert accepted.status_code == 200
-    assert accepted.json()["result"]["serverInfo"]["name"] == "scarlet-api-mind"
-
 
 def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
     plugin_dir = Path(__file__).parents[1] / "app" / "plugins" / "gpt_bridge"
     prompt = (plugin_dir / "scarlet_gpt_system_prompt.md").read_text()
-    mcp_prompt = (plugin_dir / "scarlet_mcp_system_prompt.md").read_text()
     action_schema = json.loads((plugin_dir / "openapi_gpt_action.json").read_text())
 
     assert len(prompt) <= 8000
-    assert len(mcp_prompt) <= 8000
     assert "bootstrapScarletBeforeEveryAnswer" in prompt
     assert "finalizeScarletBeforeAnswer" in prompt
-    assert "FIRST TOOL: call `start_scarlet_turn_required`" in mcp_prompt
-    assert "FINAL TOOL: before showing any final answer" in mcp_prompt
-    assert "finish_scarlet_turn_required" in mcp_prompt
+    assert not (plugin_dir / "scarlet_mcp_system_prompt.md").exists()
     assert "Public Progress Notes" in prompt
     assert "before the first action or coherent cluster" in prompt
     assert "Only the complete concluding answer" in prompt

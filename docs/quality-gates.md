@@ -120,6 +120,12 @@ native/GPT parity, V2 exclusion, and shell availability; `agent_modes.py` is at
 98%. The unchanged frozen preliminary suite passes 9/9 after its controlled
 provider learned the distinct answer-validator output contract.
 
+V1.43.0 passes 238 tests at 81.34%. Three removed tests belonged solely to the
+retired MCP transport. The Actions bridge retains explicit lifecycle,
+authentication, OpenAPI, answer-obligation, and shell coverage; query-only
+authentication and `/mcp` availability now have negative regressions. The
+unchanged frozen preliminary suite passes 9/9.
+
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate
 the baseline.

@@ -7,6 +7,43 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0090 - Query-String Bridge Key Was Recorded In Proxy Logs
+
+Date Found: 2026-07-18
+Status: transport fixed in V1.43.0; credential rotation pending coordination
+
+Symptoms:
+
+The deprecated MCP private-preview flow accepted
+`/mcp?key=<GPT_BRIDGE_API_KEY>`. Production access-log inspection showed MCP
+requests with the query string present, so the bridge secret crossed a URL/log
+boundary even though it was not committed to the repository.
+
+Root Cause:
+
+The connector experiment could not configure the Custom GPT Action header and
+added query-key authentication as a temporary preview convenience. The same
+fallback was also accepted, though hidden from OpenAPI, by the three GPT
+routes.
+
+Fix:
+
+V1.43 removes `/mcp`, removes every query-key parameter and auth fallback, and
+tests that a production bootstrap with only `?key=` is rejected. Header-based
+Actions authentication remains active.
+
+Residual Action:
+
+Rotate `GPT_BRIDGE_API_KEY` only in a coordinated maintenance step that also
+updates the external GPT Action secret. Never record the old or new value in
+project documentation, issues, command output, or commits.
+
+Related:
+
+- Linear SCA-22
+- ADR-0096
+- `backend/tests/test_gpt_bridge.py`
+
 ## BUG-0089 - Final Reranker Can Admit Unsupported Personal Hooks Near Floor
 
 Date Found: 2026-07-18

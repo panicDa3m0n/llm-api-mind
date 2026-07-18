@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10
-Runtime baseline: V1.42.0 deployed
+Status: accepted execution map from SCA-10; SCA-22 implementation complete
+Runtime baseline: V1.42.0 deployed; V1.43.0 candidate under verification
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -29,7 +29,7 @@ The counts below were measured from the current V1.42-based worktree on
 |---|---:|---|---|---|
 | `backend/app/mind/memory.py` | 2,921 | command bodies, read/search, facts, graph, write policy, lifecycle, proposals, relation evidence, payloads | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
 | `backend/app/api/chat.py` | 2,641 | HTTP models/router, sync and stream turn loops, shell runner, answer obligations, provider history, traces, accounting, response serialization | app factory, GPT bridge, chat tests | very high: every native turn |
-| `backend/app/plugins/gpt_bridge/router.py` | 2,273 | GPT Action lifecycle, compact context, auth, answer validation, plus deprecated MCP transport | app factory, bridge tests, Custom GPT | high: external transport and continuity |
+| `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
 | `backend/app/mind/context.py` | 1,809 | automatic memory retrieval, runtime assembly, compatibility rendering, block construction, ranking/classification, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
 | `backend/app/runtime/maintenance.py` | 1,383 | job scheduling/dispatch, summary repair, history compaction, idle summary, memory review and proposal resolution | app lifecycle, chat, bridge, maintenance API/tests | high: background mutation and summaries |
@@ -65,11 +65,11 @@ rewritten en masse merely to make the facade disappear.
 
 Issue: SCA-22.
 
-The GPT bridge currently contains roughly 500 lines of MCP-only descriptors,
-dispatch, lifecycle, and result formatting. Refactoring those lines before
-removing the deprecated transport would create throwaway structure. SCA-22
-therefore precedes SCA-39 and must prove that GPT Actions, native shell use,
-and internal endpoint dispatch remain intact.
+Completed in the V1.43.0 candidate. The MCP-only route, descriptors, dispatch,
+lifecycle, result formatting, prompt, and query-key authentication are removed.
+SCA-22 still precedes SCA-39 and closes only after proving that GPT Actions,
+native shell use, internal endpoint dispatch, and historical database evidence
+remain intact in production.
 
 ### 1. Chat Support Extraction
 

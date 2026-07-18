@@ -88,8 +88,9 @@ Implemented and verified:
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
   context routing, persistent resumable posture, `mode` shell commands, and
   ordered per-block receipts that separate eligibility from delivery;
-- deprecated MCP experiment retained temporarily but not part of the target
-  Custom GPT flow.
+- V1.43.0 release candidate removes the deprecated MCP experiment and
+  query-string authentication; the three GPT Actions remain the sole external
+  model transport, while historical MCP-originated records are preserved.
 
 Current verification baseline:
 
@@ -378,12 +379,14 @@ Current engineering baseline:
 - split the context collector from retrieval scoring/orchestration;
 - split memory handlers by write/read/lifecycle/maintenance presentation;
 - split chat orchestration from trace/event/provider-history composition;
-- split GPT Actions and deprecated MCP transport;
+- refactor the now Actions-only GPT bridge after the deprecated MCP transport
+  is removed by SCA-22;
 - componentize developer and mobile frontends;
 - preserve public facades and compare the exact preliminary suite before/after.
 
 SCA-10 converts this priority into the ordered, independently gated issues
-SCA-22 and SCA-33 through SCA-41. MCP removal precedes GPT-router refactoring;
+SCA-22 and SCA-33 through SCA-41. SCA-22 removes MCP before GPT-router
+refactoring begins;
 declarative `mind/schema.py` is deferred until measured import pressure
 justifies a split. The canonical execution map is
 `docs/monolith-rework-plan.md`.
