@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0106 - Second Native Marker Miss Uses Semantic Finality, Not Auto-Acceptance
+
+Date: 2026-07-18
+Status: accepted for V1.50.1
+
+Context:
+
+The private native marker remains a useful cheap structural distinction between
+work notes and final answers, but focused V1.50.0 production smoke showed
+MiniMax can omit it in both the original and corrected response while still
+producing a complete answer. Treating every second non-empty draft as final
+would reintroduce the progress-note bug; failing every such draft makes the
+runtime unavailable because of formatting variance.
+
+Decision:
+
+- retain the private marker as the primary boundary and strip it before public
+  persistence;
+- retain exactly one model correction after the first miss;
+- only after the second marker miss, add one hard semantic obligation requiring
+  a complete, standalone, conclusive answer that does not depend on rejected
+  public text;
+- use the existing structured LLM judge for that natural-language decision;
+- accept the original draft unchanged only when all semantic obligations pass;
+  and
+- fail closed when the judge is unavailable, the draft is a note/fragment, or
+  another hard obligation fails.
+
+Consequences:
+
+The runtime no longer turns repeated marker omission alone into an outage, but
+it does not weaken incomplete-response rejection or rewrite Scarlet's voice.
+The fallback adds one validator call only on the rare second-miss path and is
+fully traceable in `answer.validation`.
+
+Links:
+
+- Linear SCA-44
+- BUG-0094
+- EXP-0079
+- `backend/app/runtime/answer_obligations.py`
+- `backend/app/api/chat_native_turn.py`
+
 ## ADR-0105 - Evaluator Acceptance Requires Model Delivery And Completed Turns
 
 Date: 2026-07-18

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.50.0 candidate (V1.43.0 deployed)
+App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -196,7 +196,16 @@ Current verification baseline:
   `llm.request`, provider-observed input, completed assistant persistence, and
   an incomplete-turn negative control. The unchanged V1 gate passes 9/9,
   shell/organ contracts pass 53/53, and the complete backend passes 263 tests
-  at 81.86% coverage. Deployment remains V1.43.0.
+  at 81.86% coverage. It was deployed as merge `7ef3a9b`, but two focused
+  native smokes both failed because MiniMax omitted the private final marker;
+  V1.50.0 was therefore not accepted as the stable release baseline.
+- V1.50.1 candidate: SCA-44 retains the private marker as the primary native
+  boundary and one bounded correction, then uses a fail-closed LLM finality
+  judgment only when the corrected draft still omits the marker. Complete
+  standalone answers may recover without automatic rewriting; progress notes,
+  fragments, empty drafts, and unavailable judgment remain rejected. Focused
+  patch contracts pass 52/52 and the complete backend passes 266 tests at
+  81.89% coverage.
 
 ### 3.2 Dynamic Context
 
@@ -480,11 +489,12 @@ SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
 facades, SCA-42 closes successful-retry evidence, and SCA-43 closes the frozen
 gate's model-delivery/completion blind spot. SCA-39 remains deliberately
 deferred because GPT Actions is an experimental external adapter and must not
-displace native-system stability. The next concrete step is the protected
-V1.50.0 publication and production rollout, followed by parity, database,
-context V2, shell, compaction, and final-answer smoke evidence. Long varied
-sessions still need longitudinal compaction monitoring; duplicate/conflict
-adjudication remains a separate later discussion.
+displace native-system stability. The V1.50.0 rollout reached production but
+its native smoke exposed repeated final-marker omission. The next concrete
+step is therefore protected V1.50.1 publication and rollout, followed by fresh
+parity, database, context V2, shell, compaction, and final-answer evidence. Long
+varied sessions still need longitudinal compaction monitoring; duplicate/
+conflict adjudication remains a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

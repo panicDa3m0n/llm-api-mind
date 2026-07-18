@@ -15,7 +15,10 @@ from app.llm.provider import (
 )
 from app.main import create_app
 from app.runtime.history_compaction import build_chronology_source_map
-from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
+from app.runtime.answer_obligations import (
+    NATIVE_FINAL_MARKER,
+    NATIVE_FINALITY_RECOVERY_ID,
+)
 from app.storage import repositories
 
 
@@ -690,6 +693,81 @@ class FakeAnswerBoundaryFailureProvider(FakeAnswerBoundaryRecoveryProvider):
                         "id": result.provider_message_id,
                         "stop_reason": "end_turn",
                         "content": [{"type": "text", "text": text}],
+                    }
+                ],
+            }
+        )
+
+    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
+        payload = json.loads(prompt)
+        findings = [
+            {
+                "obligation_id": item["id"],
+                "status": "fail",
+                "reason": "The draft is still a progress note.",
+            }
+            for item in payload["obligations"]
+        ]
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=json.dumps({"findings": findings}),
+            provider_message_id="provider_finality_rejected",
+            stop_reason="end_turn",
+        )
+
+
+class FakeMarkerlessConclusiveRecoveryProvider(FakeAnswerBoundaryRecoveryProvider):
+    def generate_chat_with_tools(self, **kwargs) -> LLMTextResult:
+        result = super().generate_chat_with_tools(**kwargs)
+        if self.__class__.calls == 1:
+            return result
+        text = "Eccomi, ho concluso la risposta senza dipendere dalla nota precedente."
+        return result.model_copy(
+            update={
+                "text": text,
+                "raw_content": [{"type": "text", "text": text}],
+                "raw_provider_messages": [
+                    {
+                        "id": result.provider_message_id,
+                        "stop_reason": "end_turn",
+                        "content": [{"type": "text", "text": text}],
+                    }
+                ],
+            }
+        )
+
+    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
+        payload = json.loads(prompt)
+        findings = [
+            {
+                "obligation_id": item["id"],
+                "status": "pass",
+                "reason": "The corrected draft is complete and conclusive.",
+            }
+            for item in payload["obligations"]
+        ]
+        return LLMTextResult(
+            model=self.settings.minimax_model,
+            text=json.dumps({"findings": findings}),
+            provider_message_id="provider_finality_accepted",
+            stop_reason="end_turn",
+        )
+
+
+class FakeEmptyCorrectedBoundaryProvider(FakeAnswerBoundaryRecoveryProvider):
+    def generate_chat_with_tools(self, **kwargs) -> LLMTextResult:
+        result = super().generate_chat_with_tools(**kwargs)
+        if self.__class__.calls == 1:
+            return result
+        return result.model_copy(
+            update={
+                "text": "",
+                "raw_content": [],
+                "raw_provider_messages": [
+                    {
+                        "id": result.provider_message_id,
+                        "stop_reason": "end_turn",
+                        "content": [],
                     }
                 ],
             }
@@ -2442,11 +2520,82 @@ def test_native_answer_boundary_fails_after_second_progress_only_draft(
     assert detail["code"] == "llm.incomplete_response"
     assert detail["details"]["reason"] == "answer_obligation_failed"
     assert detail["details"]["attempt_count"] == 2
+    assert detail["details"]["hard_failure_ids"] == [
+        NATIVE_FINALITY_RECOVERY_ID
+    ]
     with Session(db_engine) as db:
         turns = repositories.list_turns_for_session(db, session_id=session["id"])
         messages = repositories.list_messages(db, session_id=session["id"])
     assert turns[-1].status == "failed"
     assert [message.role for message in messages] == ["user"]
+
+
+def test_native_answer_boundary_accepts_conclusive_second_draft_without_marker(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeMarkerlessConclusiveRecoveryProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Ciao Scarlet."},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["assistant_message"]["content"] == (
+        "Eccomi, ho concluso la risposta senza dipendere dalla nota precedente."
+    )
+    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
+    validation = [
+        trace for trace in traces if trace["kind"] == "answer.validation"
+    ][-1]["payload"]
+    assert validation["accepted"] is True
+    assert validation["structural_final_boundary"] == {
+        "accepted": False,
+        "marker_stripped": False,
+        "semantic_recovery_attempted": True,
+        "semantic_recovery_accepted": True,
+    }
+    assert validation["semantic"]["accepted"] is True
+    assert validation["semantic"]["hard_failure_ids"] == []
+    assert NATIVE_FINALITY_RECOVERY_ID in {
+        item["id"] for item in validation["manifest"]["obligations"]
+    }
+
+
+def test_native_answer_boundary_never_sends_empty_second_draft_to_fallback_judge(
+    db_engine: Engine,
+) -> None:
+    client = make_answer_boundary_client(
+        db_engine,
+        provider_class=FakeEmptyCorrectedBoundaryProvider,
+    )
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    response = client.post(
+        f"/api/chat/sessions/{session['id']}/turn",
+        json={"message": "Ciao Scarlet."},
+    )
+
+    assert response.status_code == 502
+    detail = response.json()["detail"]
+    assert detail["details"]["hard_failure_ids"] == ["answer.final_boundary"]
+    with Session(db_engine) as db:
+        messages = repositories.list_messages(db, session_id=session["id"])
+        turns = repositories.list_turns_for_session(db, session_id=session["id"])
+    assert [message.role for message in messages] == ["user"]
+    traces = client.get(f"/api/debug/traces/{turns[-1].id}").json()
+    validation = [
+        trace for trace in traces if trace["kind"] == "answer.validation"
+    ][-1]["payload"]
+    assert validation["semantic"] is None
+    assert validation["structural_final_boundary"][
+        "semantic_recovery_attempted"
+    ] is False
 
 
 def test_streaming_answer_boundary_emits_only_the_accepted_final_answer(

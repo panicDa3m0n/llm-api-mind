@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.50.0 candidate (V1.43.0 deployed)
+App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -173,6 +173,14 @@ evaluator is 90% covered and its six oracle contracts distinguish rich
 selection, V2/provider delivery, completed turns, guarded repair, report
 persistence, and the incomplete-turn negative control. The integrated V2 gate
 passes 5/5 and the unchanged historical preliminary gate passes 9/9.
+
+V1.50.1 adds the focused native-finality polarity gate. Answer-control and chat
+contracts pass 46/46; with model-facing gate oracles the patch surface passes
+52/52. A complete corrected markerless answer requires and passes explicit
+semantic finality, while a second progress note and empty corrected draft
+remain rejected with no assistant persistence. The complete backend passes 266
+tests at 81.89%. Remote release evidence remains required before this candidate
+replaces V1.50.0.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

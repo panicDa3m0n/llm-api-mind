@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.50.0 candidate (V1.43.0 deployed)
+App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -124,6 +124,9 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.50-model-facing-memory-gate.md`: complementary automatic-
   memory delivery gate, guarded disposable provenance repair, provider-request
   proof, and incomplete-turn negative control.
+- `docs/evaluations/v1.50.1-native-finality-recovery.md`: production marker-
+  omission evidence, semantic finality fallback, polarity controls, and
+  release-acceptance boundary.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

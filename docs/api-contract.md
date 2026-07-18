@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.50.0 candidate (V1.43.0 deployed; public contract unchanged)
+App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
 
 ## Response Philosophy
 
@@ -1577,6 +1577,19 @@ assistant message is created. Streaming turns emit a terminal `error` instead
 of `turn_complete`. A successful streamed recovery records
 `llm.completion.recovery.started`; both sync and stream response traces include
 the final `completion_recovery` object.
+
+Final-boundary invariant (V1.50.1): the private `<scarlet-final/>` marker
+remains the primary native boundary and is stripped before persistence. The
+first marker miss triggers one bounded correction. If the corrected second
+draft is non-empty but still omits the marker, the runtime does not auto-accept
+or rewrite it: it adds the hard semantic obligation
+`answer.final_boundary.semantic_recovery` and uses the structured LLM judge to
+verify that the draft is complete, standalone, conclusive, and independent of
+rejected public text. The original draft is accepted unchanged only when all
+hard semantic obligations pass. A progress note, fragment, `unknown`/`fail`
+finding, or unavailable validator remains HTTP 502 and creates no assistant
+message. `answer.validation.structural_final_boundary` records whether semantic
+recovery was attempted and accepted.
 
 The canonical history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages

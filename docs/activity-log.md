@@ -4,6 +4,31 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.50.1 Native Finality Semantic Recovery (SCA-44)
+
+The protected V1.50.0 rollout passed both remote Quality workflows, online DB
+backup, new-image and post-restart production preflights, frontend parity, and
+version checks at merge `7ef3a9b`. Its first real native smoke selected and
+delivered the exact Zero-Luce memory through rich retrieval, model context V2,
+and `llm.request`, then successfully executed `memory graph`. MiniMax produced
+a complete corrected answer but omitted `<scarlet-final/>` twice, so the
+runtime correctly refused persistence but returned HTTP 502. A second simple
+natural turn reproduced the same failure. V1.50.0 was therefore deployed but
+not accepted as the stable release baseline.
+
+SCA-44 keeps the marker and one bounded correction. Only after a second marker
+miss does it add a hard semantic finality obligation requiring one complete,
+standalone, conclusive answer. The existing LLM judge decides that property;
+the backend does not use keywords, scores, or automatic rewriting. A rejected
+progress note or unavailable judge still fails closed. Focused answer-control
+and chat tests pass 46/46; the six model-facing gate oracles bring the focused
+patch surface to 52/52, including positive, negative, and empty-draft controls.
+The complete backend passes 266 tests at 81.89% coverage. The frozen V1 gate
+passes 9/9 and the updated model-facing V2 gate run
+`20260718_223840_model-facing-memory-gate-v2` passes 5/5. Publication,
+protected patch rollout, and a single repeated native smoke remain before
+release acceptance.
+
 ## 2026-07-18 - V1.50.0 Stabilization Baseline And Model-Facing Memory Gate (SCA-43)
 
 Added `model-facing-memory-gate-v2` as a complementary evaluator instead of
@@ -31,8 +56,11 @@ coverage. Direct shell evidence opens memory/facts/graph/session, completes
 focus and volition lifecycles, reads affect, and records metacognition.
 
 Production had already been verified read-only with complete target provenance,
-so this issue requires no production data mutation. V1.50.0 remains a local
-candidate until protected push/deploy and parity checks complete.
+so this issue required no production data mutation. PR #16 merged at `7ef3a9b`
+after both Quality workflows passed and the image reached the VPS through the
+protected backup/preflight path. The rollout itself stayed data-safe, but its
+native final-answer smoke exposed BUG-0094; V1.50.0 was therefore not tagged or
+accepted as the stable release baseline.
 
 ## 2026-07-18 - V1.49.1 Action Retry Evidence Reconciliation (SCA-42)
 

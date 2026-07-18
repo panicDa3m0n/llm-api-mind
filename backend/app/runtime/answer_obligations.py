@@ -15,6 +15,7 @@ from app.mind.command_registry import validate_shell_command
 ANSWER_OBLIGATIONS_VERSION = "answer-obligations-v2"
 ANSWER_VALIDATION_VERSION = "answer-validation-v1"
 NATIVE_FINAL_MARKER = "<scarlet-final/>"
+NATIVE_FINALITY_RECOVERY_ID = "answer.final_boundary.semantic_recovery"
 _ACTION_ATTEMPT_CHAIN_LIMIT = 6
 
 Severity = Literal["hard", "warning", "advisory"]
@@ -236,6 +237,33 @@ def render_answer_obligations(
         "Treat these as current-turn runtime obligations. Hard obligations must "
         "be satisfied before the answer is final. Do not mention the private "
         "final marker to the user."
+    )
+
+
+def with_native_finality_recovery(
+    manifest: AnswerObligationManifest,
+) -> AnswerObligationManifest:
+    """Add the bounded semantic fallback used after a second missing marker."""
+    obligations = [
+        *manifest.obligations,
+        AnswerObligation(
+            id=NATIVE_FINALITY_RECOVERY_ID,
+            severity="hard",
+            validation_kind="semantic",
+            requirement=(
+                "The draft must be one complete, standalone, conclusive public "
+                "answer to the current user request. It must not be a progress "
+                "note, a promise to continue, a fragment, or depend on public "
+                "text from an earlier rejected draft."
+            ),
+            evidence={
+                "reason": "private_final_marker_missing_after_bounded_correction",
+                "automatic_rewrite": False,
+            },
+        ),
+    ]
+    return manifest.model_copy(
+        update={"obligations": _dedupe_obligations(obligations)}
     )
 
 

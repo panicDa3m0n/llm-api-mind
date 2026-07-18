@@ -7,6 +7,51 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0094 - Repeated Native Final-Marker Omission Discards Conclusive Answers
+
+Date Found: 2026-07-18
+Status: fixed locally in V1.50.1; production verification pending
+
+Symptoms:
+
+Two focused production turns returned HTTP 502
+`llm.incomplete_response`. MiniMax produced non-empty, conclusive corrected
+answers after the runtime's one recovery request, but omitted the private
+`<scarlet-final/>` marker on both attempts. No assistant message was persisted.
+
+Root Cause:
+
+The final boundary relied exclusively on stochastic marker compliance. This
+correctly rejected progress notes, but it also treated a complete corrected
+provider result as structurally incomplete even when its natural-language
+content was independently judgeable as conclusive. The risk had been recorded
+in V1.41.0 but was not previously reproduced twice in focused release smoke.
+
+Fix:
+
+V1.50.1 preserves the marker as the primary boundary and preserves one bounded
+correction. If only the corrected second draft omits the marker, the runtime
+adds a hard semantic finality obligation and asks the existing LLM judge
+whether the draft is complete, standalone, conclusive, and independent of
+rejected public text. Acceptance persists the original text unchanged. A
+progress note, fragment, unavailable judge, or failed semantic obligation still
+fails closed.
+
+Regression Coverage:
+
+- marker path remains accepted and stripped;
+- complete corrected markerless draft is semantically accepted;
+- second progress-only draft remains HTTP 502;
+- judge failure and truly empty provider output remain fail-closed boundaries;
+- no private marker is persisted or exposed publicly.
+
+Related:
+
+- Linear SCA-44
+- ADR-0106
+- EXP-0079
+- `docs/evaluations/v1.50.1-native-finality-recovery.md`
+
 ## BUG-0093 - Frozen Automatic-Memory Gate Does Not Verify Model-Facing Delivery
 
 Date Found: 2026-07-18
