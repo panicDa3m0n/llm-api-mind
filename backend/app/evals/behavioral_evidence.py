@@ -28,6 +28,8 @@ def extract_turn_evidence(
         "event_types": [str(item.get("type")) for item in events],
         "trace_kinds": [str(item.get("kind")) for item in traces],
         "shell_commands": _shell_commands(traces),
+        "tool_calls": _tool_calls(traces),
+        "organ_traces": _organ_traces(traces),
         "memory": {
             "selected_ids": [
                 str(item["id"])
@@ -173,6 +175,53 @@ def _shell_commands(traces: list[dict[str, Any]]) -> list[str]:
         if isinstance(arguments, dict) and isinstance(arguments.get("command"), str):
             commands.append(arguments["command"].strip())
     return commands
+
+
+def _tool_calls(traces: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+    for trace in traces:
+        if trace.get("kind") != "mind.tool_call":
+            continue
+        payload = trace.get("payload")
+        if not isinstance(payload, dict):
+            continue
+        arguments = payload.get("arguments")
+        if not isinstance(arguments, dict) or not isinstance(
+            arguments.get("command"), str
+        ):
+            continue
+        calls.append(
+            {
+                "trace_id": trace.get("id"),
+                "tool_name": payload.get("tool_name"),
+                "arguments": arguments,
+                "result": payload.get("result"),
+                "status": payload.get("status"),
+                "latency_ms": payload.get("latency_ms"),
+            }
+        )
+    return calls
+
+
+def _organ_traces(traces: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    relevant = {
+        "organ.focus",
+        "organ.volition",
+        "organ.affect",
+        "mind.metacognition.step",
+    }
+    grouped: dict[str, list[dict[str, Any]]] = {kind: [] for kind in sorted(relevant)}
+    for trace in traces:
+        kind = trace.get("kind")
+        if kind not in relevant:
+            continue
+        grouped[str(kind)].append(
+            {
+                "trace_id": trace.get("id"),
+                "payload": trace.get("payload"),
+            }
+        )
+    return grouped
 
 
 def _event_data(events: list[dict[str, Any]], event_type: str) -> dict[str, Any]:

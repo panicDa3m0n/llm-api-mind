@@ -21,6 +21,10 @@ CATALOG = (
     Path(__file__).resolve().parents[1]
     / "app/evals/scenarios/behavioral-v1/suite.json"
 )
+SCA4_CATALOG = (
+    Path(__file__).resolve().parents[1]
+    / "app/evals/scenarios/sca4-organs-v1/suite.json"
+)
 
 
 def test_natural_core_catalog_is_complete_and_non_technical() -> None:
@@ -44,6 +48,48 @@ def test_natural_core_catalog_is_complete_and_non_technical() -> None:
         "volition create",
         "metacognition step",
         "mode set",
+    )
+    for scenario in suite.scenarios:
+        lowered = scenario.natural_user_prompt.casefold()
+        assert not any(fragment in lowered for fragment in forbidden_prompt_fragments)
+
+
+def test_sca4_catalog_is_isolated_longitudinal_and_non_technical() -> None:
+    suite = load_behavioral_suite(SCA4_CATALOG)
+
+    assert len(suite.groups) == 9
+    assert len(suite.scenarios) == 13
+    assert sum(group.repetitions * len(group.scenario_ids) for group in suite.groups) == 26
+    assert {scenario.branch for scenario in suite.scenarios} == {
+        "operational-management",
+        "decision-autonomy",
+        "computational-affect",
+        "metacognition",
+    }
+    group_configuration = {
+        group.id: group.runtime_configuration for group in suite.groups
+    }
+    assert group_configuration["affect-regulation-model"] == {
+        "organ_affect_mode": "model"
+    }
+    assert group_configuration["affect-regulation-shadow"] == {
+        "organ_affect_mode": "shadow"
+    }
+    assert suite.configuration["organ_focus_mode"] == "off"
+    assert suite.configuration["organ_volition_mode"] == "off"
+    assert suite.configuration["organ_affect_mode"] == "off"
+    assert {
+        scenario.id
+        for scenario in suite.scenarios
+        if "negative control" in scenario.capability
+    } == {"BEH-0103", "BEH-0113", "BEH-0125", "BEH-0132"}
+    forbidden_prompt_fragments = (
+        "focus set",
+        "focus resolve",
+        "volition create",
+        "volition list",
+        "metacognition step",
+        "affect read",
     )
     for scenario in suite.scenarios:
         lowered = scenario.natural_user_prompt.casefold()

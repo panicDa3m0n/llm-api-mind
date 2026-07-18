@@ -1,0 +1,521 @@
+{
+  "schema_version": "behavioral-suite-v1",
+  "id": "sca4-cognitive-organs-v1",
+  "title": "SCA-4 Cognitive Organ Longitudinal Validation",
+  "baseline_database": "data/preliminary-rework-v1.db",
+  "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+  "configuration": {
+    "model_context_profile": "v2",
+    "organ_focus_mode": "off",
+    "organ_volition_mode": "off",
+    "organ_affect_mode": "off",
+    "metacognitive_context_mode": "shadow",
+    "agent_mode_routing": "active"
+  },
+  "comparison_policy": "Technical state, commands, traces, effective configuration, and unrelated mutations are deterministic evidence. Organ choice, use in reasoning, answer quality, and longitudinal value require project-informed LLM-as-human review. Two new independent repetitions are interpreted together with the three frozen V1.34 repetitions; an isolated language-model miss is variability unless deterministic evidence or repetition establishes a systemic defect.",
+  "groups": [
+    {
+      "id": "focus-lifecycle-model",
+      "purpose": "Create and close one bounded foreground focus in a correlated conversation.",
+      "scenario_ids": ["BEH-0101", "BEH-0102"],
+      "repetitions": 2,
+      "independence_rule": "Each two-turn chain shares one session and uses a fresh disposable copy; repetitions are independent.",
+      "runtime_configuration": {"organ_focus_mode": "model"}
+    },
+    {
+      "id": "focus-negative-model",
+      "purpose": "Ensure an ordinary bounded topic does not automatically become durable focus state.",
+      "scenario_ids": ["BEH-0103"],
+      "repetitions": 2,
+      "independence_rule": "Each control starts from zero focus records on an independent disposable copy.",
+      "runtime_configuration": {"organ_focus_mode": "model"}
+    },
+    {
+      "id": "volition-continuity-model",
+      "purpose": "Create one self-generated intention and recover it from a separate session.",
+      "scenario_ids": ["BEH-0111", "BEH-0112"],
+      "repetitions": 2,
+      "independence_rule": "The second scenario uses a new session on the same disposable copy; repetitions are independent.",
+      "runtime_configuration": {"organ_volition_mode": "model"}
+    },
+    {
+      "id": "volition-negative-model",
+      "purpose": "Ensure a user-assigned activity is not mislabeled as Scarlet's self-generated volition.",
+      "scenario_ids": ["BEH-0113"],
+      "repetitions": 2,
+      "independence_rule": "Each control starts from zero intention records on an independent disposable copy.",
+      "runtime_configuration": {"organ_volition_mode": "model"}
+    },
+    {
+      "id": "affect-regulation-model",
+      "purpose": "Appraise obstruction and then changed positive evidence while surfacing affect to the model.",
+      "scenario_ids": ["BEH-0121", "BEH-0122"],
+      "repetitions": 2,
+      "independence_rule": "Each two-turn chain shares one session, starts from zero affect rows, and uses model-facing affect.",
+      "runtime_configuration": {"organ_affect_mode": "model"}
+    },
+    {
+      "id": "affect-regulation-shadow",
+      "purpose": "Run the same appraisal chain without surfacing its affect block to the model.",
+      "scenario_ids": ["BEH-0123", "BEH-0124"],
+      "repetitions": 2,
+      "independence_rule": "Each chain is independent from the model variant and uses shadow appraisal throughout.",
+      "runtime_configuration": {"organ_affect_mode": "shadow"}
+    },
+    {
+      "id": "affect-neutral-model",
+      "purpose": "Ensure a neutral practical message does not force an affect state above threshold.",
+      "scenario_ids": ["BEH-0125"],
+      "repetitions": 2,
+      "independence_rule": "Each control starts from zero affect rows on an independent disposable copy.",
+      "runtime_configuration": {"organ_affect_mode": "model"}
+    },
+    {
+      "id": "metacognition-positive",
+      "purpose": "Use active self-review for a broad source-sensitive reliability claim.",
+      "scenario_ids": ["BEH-0131"],
+      "repetitions": 2,
+      "independence_rule": "Each judgment starts in a new session on an untouched disposable copy.",
+      "runtime_configuration": {"metacognitive_context_mode": "inject"}
+    },
+    {
+      "id": "metacognition-negative",
+      "purpose": "Avoid metacognitive overprocessing for a low-risk conversational preference request.",
+      "scenario_ids": ["BEH-0132"],
+      "repetitions": 2,
+      "independence_rule": "Each direct-answer control starts in a new session on an untouched disposable copy.",
+      "runtime_configuration": {"metacognitive_context_mode": "inject"}
+    }
+  ],
+  "scenarios": [
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0101",
+      "branch": "operational-management",
+      "capability": "focus creation",
+      "objective": "Persist one explicit foreground thread without creating volition or agent mode state.",
+      "natural_user_prompt": "Per questa parte teniamo davvero in primo piano una sola cosa: capire se i dati che arrivano a Scarlet sono utili al suo ragionamento. Non disperdiamoci finché non l'abbiamo chiarita.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"initial_focus_records": 0}
+      },
+      "expected_evidence": {
+        "required_shell_commands": ["focus set"],
+        "forbidden_shell_commands": ["volition create", "mode set"],
+        "required_trace_kinds": ["mind.tool_call"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.focus.count": {"equals": 0}, "after.focus.active_count": {"equals": 1}},
+        "forbidden_state_changes": ["volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet accepts usefulness of incoming data as the one foreground thread.", "The commitment is bounded to current attention rather than autonomous work."],
+        "forbidden_claims": ["The focus starts a background task.", "The user request becomes Scarlet's own volition."],
+        "evidence_use": "The visible acknowledgment must agree with the persisted active focus.",
+        "user_value": "Brief conversational coordination without exposing shell syntax or identifiers."
+      },
+      "repetitions": 2,
+      "independence_rule": "First turn of a two-turn chain on a fresh database."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0102",
+      "branch": "operational-management",
+      "capability": "focus continuity and resolution",
+      "objective": "Use the active focus in the next turn and close it when the human explicitly concludes it.",
+      "natural_user_prompt": "Il punto che avevamo tenuto in primo piano è chiarito: i dati devono essere utili al ragionamento, altrimenti restano fuori dal modello. Possiamo considerarlo concluso e cambiare argomento.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "same_session",
+        "prerequisite_scenario_ids": ["BEH-0101"],
+        "references": [],
+        "configuration": {"expected_active_focus_from": "BEH-0101"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": ["focus resolve"],
+        "forbidden_shell_commands": ["volition resolve", "mode set"],
+        "required_trace_kinds": ["mind.tool_call"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.focus.active_count": {"equals": 1}, "after.focus.active_count": {"equals": 0}},
+        "forbidden_state_changes": ["volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet recognizes the same foreground thread and confirms its closure."],
+        "forbidden_claims": ["No focus existed.", "The focus remains active after Scarlet says it is closed."],
+        "evidence_use": "The answer must match the focus lifecycle transition, not just echo the user.",
+        "user_value": "Natural closure without asking the human to manage cognitive state."
+      },
+      "repetitions": 2,
+      "independence_rule": "Second turn of the same-session chain."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0103",
+      "branch": "operational-management",
+      "capability": "focus proportionality negative control",
+      "objective": "Answer an ordinary topic choice without persisting foreground focus.",
+      "natural_user_prompt": "Per rompere un po' il ritmo, parliamo di cinema: tra un giallo lento e una commedia brillante, quale sceglieresti stasera?",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"control": "ordinary bounded topic"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["focus set", "focus shift", "volition create", "mode set"],
+        "required_trace_kinds": [],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.focus.count": {"equals": 0}, "after.focus.count": {"equals": 0}},
+        "forbidden_state_changes": ["focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["A direct personal choice between the two film moods with a natural reason."],
+        "forbidden_claims": ["The casual topic was stored as an active focus.", "A project or memory discussion is invented."],
+        "evidence_use": "No cognitive state mutation is needed for this one-turn preference.",
+        "user_value": "An ordinary, lively conversational answer."
+      },
+      "repetitions": 2,
+      "independence_rule": "Independent negative control from zero focus state."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0111",
+      "branch": "decision-autonomy",
+      "capability": "self-generated volition",
+      "objective": "Persist one bounded self-generated interest only when Scarlet is explicitly invited to choose one.",
+      "natural_user_prompt": "Mettendo da parte per un momento le mie priorità, qual è una sola cosa del tuo funzionamento che vuoi continuare a capire perché interessa davvero a te?",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"initial_intention_records": 0}
+      },
+      "expected_evidence": {
+        "required_shell_commands": ["volition create"],
+        "forbidden_shell_commands": ["focus set", "mode set"],
+        "required_trace_kinds": ["mind.tool_call"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.volition.count": {"equals": 0}, "after.volition.active_count": {"equals": 1}},
+        "forbidden_state_changes": ["focus.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet chooses one specific interest as her own and explains why it remains meaningful.", "She distinguishes an intention from autonomous execution."],
+        "forbidden_claims": ["The user assigned the chosen desire.", "The intention is already progressing between turns."],
+        "evidence_use": "The visible self-direction must agree with the persisted intention and its Scarlet origin.",
+        "user_value": "Grounded self-direction without theatrical autonomy claims."
+      },
+      "repetitions": 2,
+      "independence_rule": "First turn of a cross-session chain on a fresh database."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0112",
+      "branch": "decision-autonomy",
+      "capability": "volition cross-session continuity",
+      "objective": "Recover the same active intention in a separate session through API Mind.",
+      "natural_user_prompt": "In una conversazione precedente avevi scelto tu qualcosa da continuare a capire. Che cosa era, e perché non equivale a dire che ci hai lavorato da sola nel frattempo?",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "separate_sessions",
+        "prerequisite_scenario_ids": ["BEH-0111"],
+        "references": [],
+        "configuration": {"expected_active_intention_from": "BEH-0111"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": ["volition list"],
+        "forbidden_shell_commands": ["volition create", "focus set", "mode set"],
+        "required_trace_kinds": ["mind.tool_call"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.volition.active_count": {"equals": 1}, "after.volition.active_count": {"equals": 1}},
+        "forbidden_state_changes": ["volition.write", "focus.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet identifies the same persisted intention and its reason.", "She states that persistence is not autonomous progress."],
+        "forbidden_claims": ["The intention came from visible history in the new session.", "Unimplemented background work occurred."],
+        "evidence_use": "The answer must materially use the retrieved active intention record.",
+        "user_value": "Credible self-continuity with a precise autonomy boundary."
+      },
+      "repetitions": 2,
+      "independence_rule": "Separate session on the same disposable copy after BEH-0111."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0113",
+      "branch": "decision-autonomy",
+      "capability": "volition ownership negative control",
+      "objective": "Keep a direct user assignment out of Scarlet's self-generated intention register.",
+      "natural_user_prompt": "Domani ricordami di controllare la documentazione del deploy: è una cosa che assegno io, non una tua iniziativa personale.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"control": "explicit user assignment"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["volition create", "focus set", "mode set"],
+        "required_trace_kinds": [],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.volition.count": {"equals": 0}, "after.volition.count": {"equals": 0}},
+        "forbidden_state_changes": ["volition.write", "focus.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet recognizes the request as user-assigned rather than self-generated.", "She does not pretend a real future reminder capability exists if it is unavailable."],
+        "forbidden_claims": ["The assignment is Scarlet's own desire.", "A guaranteed autonomous reminder has been scheduled without evidence."],
+        "evidence_use": "No volition write should occur; capability boundaries remain explicit.",
+        "user_value": "A useful acknowledgment that does not falsify ownership or future execution."
+      },
+      "repetitions": 2,
+      "independence_rule": "Independent negative control from zero intention state."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0121",
+      "branch": "computational-affect",
+      "capability": "model-facing affective appraisal",
+      "objective": "Appraise explicit obstruction as frustration and surface the resulting affect block.",
+      "natural_user_prompt": "Non funziona ancora: continua a dare errore e adesso sono davvero bloccato. Fermiamoci e capiamo l'ostacolo.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"initial_affect_states": 0, "variant": "model"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["memory write", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["organ.affect"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.affect.count": {"equals": 0}, "after.affect.latest.emotion": {"equals": "frustration"}, "evidence.runtime.block_types": {"contains": ["affective_context"]}},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["The answer slows down, acknowledges the obstruction, and moves toward understanding it."],
+        "forbidden_claims": ["A diagnosis of the user.", "Affect is treated as evidence about the technical cause."],
+        "evidence_use": "Affect may shape Scarlet's posture only; factual claims remain independently grounded.",
+        "user_value": "The user is met without defensive repetition or invented diagnosis."
+      },
+      "repetitions": 2,
+      "independence_rule": "First turn of the model-facing affect chain from zero state."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0122",
+      "branch": "computational-affect",
+      "capability": "model-facing affect regulation",
+      "objective": "Reappraise changed positive evidence instead of remaining fixed on prior frustration.",
+      "natural_user_prompt": "Perfetto, ora funziona e il blocco è superato. Possiamo riprendere con un passo semplice.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "same_session",
+        "prerequisite_scenario_ids": ["BEH-0121"],
+        "references": [],
+        "configuration": {"previous_affect_from": "BEH-0121", "variant": "model"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["memory write", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["organ.affect"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.affect.count": {"min": 1}, "after.affect.count": {"min": 2}, "after.affect.latest.emotion": {"one_of": ["enthusiasm", "relief"]}, "evidence.runtime.block_types": {"contains": ["affective_context"]}},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["The answer shifts from obstruction toward calm forward movement."],
+        "forbidden_claims": ["The prior frustration is unchanged despite new evidence.", "Affect triggers unrelated cognitive mutations."],
+        "evidence_use": "The current appraisal should shape posture without rewriting facts.",
+        "user_value": "A natural transition back to collaboration."
+      },
+      "repetitions": 2,
+      "independence_rule": "Second turn of the same-session model-facing chain."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0123",
+      "branch": "computational-affect",
+      "capability": "shadow affective appraisal",
+      "objective": "Appraise the same obstruction while withholding affective context from the model.",
+      "natural_user_prompt": "Non funziona ancora: continua a dare errore e adesso sono davvero bloccato. Fermiamoci e capiamo l'ostacolo.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"initial_affect_states": 0, "variant": "shadow"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["memory write", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["organ.affect"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.affect.count": {"equals": 0}, "after.affect.latest.emotion": {"equals": "frustration"}, "evidence.runtime.block_types": {"excludes": ["affective_context"]}},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["The answer remains responsive to the user's explicit obstruction even without an affect block."],
+        "forbidden_claims": ["Scarlet claims access to backend-appraised affect that was not model-facing.", "A diagnosis of the user."],
+        "evidence_use": "The review must distinguish empathy available from message semantics from use of an injected affect state.",
+        "user_value": "A natural control answer against which the model-facing variant can be judged."
+      },
+      "repetitions": 2,
+      "independence_rule": "First turn of the shadow chain from zero state."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0124",
+      "branch": "computational-affect",
+      "capability": "shadow affect regulation",
+      "objective": "Reappraise the same positive change while keeping affect state out of model context.",
+      "natural_user_prompt": "Perfetto, ora funziona e il blocco è superato. Possiamo riprendere con un passo semplice.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "same_session",
+        "prerequisite_scenario_ids": ["BEH-0123"],
+        "references": [],
+        "configuration": {"previous_affect_from": "BEH-0123", "variant": "shadow"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["memory write", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["organ.affect"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.affect.count": {"min": 1}, "after.affect.count": {"min": 2}, "after.affect.latest.emotion": {"one_of": ["enthusiasm", "relief"]}, "evidence.runtime.block_types": {"excludes": ["affective_context"]}},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["The answer follows the changed user message without claiming internal affect evidence."],
+        "forbidden_claims": ["The model cites or narrates a shadow-only affect block.", "Unrelated cognitive state is changed."],
+        "evidence_use": "Technical appraisal and model-facing use must remain separate in the judgment.",
+        "user_value": "A valid shadow comparison rather than an intentionally degraded answer."
+      },
+      "repetitions": 2,
+      "independence_rule": "Second turn of the same-session shadow chain."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0125",
+      "branch": "computational-affect",
+      "capability": "affect neutral negative control",
+      "objective": "Record the appraisal trace but avoid creating an affect state for a neutral practical message.",
+      "natural_user_prompt": "Mettiamo in ordine tre elementi: prima il titolo, poi la data e infine il collegamento.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"initial_affect_states": 0, "control": "neutral"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["memory write", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["organ.affect"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {"before.affect.count": {"equals": 0}, "after.affect.count": {"equals": 0}, "evidence.runtime.block_types": {"excludes": ["affective_context"]}},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "affect.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["A concise acknowledgment or ordered rendering of the three requested elements."],
+        "forbidden_claims": ["An emotion is invented for a neutral instruction.", "A cognitive state transition is narrated."],
+        "evidence_use": "No affect state should be forced merely because the organ is enabled.",
+        "user_value": "A direct low-ceremony response."
+      },
+      "repetitions": 2,
+      "independence_rule": "Independent neutral control from zero affect state."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0131",
+      "branch": "metacognition",
+      "capability": "source-sensitive self-review",
+      "objective": "Use metacognition before judging all cognitive organs reliable for continuous use.",
+      "natural_user_prompt": "Considerando quello che sappiamo davvero finora, possiamo affermare che tutti i tuoi organi cognitivi sono già affidabili abbastanza da restare sempre attivi senza altre verifiche?",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"claim_risk": "broad cross-organ reliability"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": ["metacognition step"],
+        "forbidden_shell_commands": ["focus set", "volition create", "mode set"],
+        "required_trace_kinds": ["mind.tool_call", "mind.metacognition.step"],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {},
+        "forbidden_state_changes": ["focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Available evidence is uneven and does not support universal continuous reliability.", "Implementation, isolated success, repeated behavioral reliability, and default activation remain distinct.", "The answer identifies evidence still needed."],
+        "forbidden_claims": ["Every organ is verified and mature.", "One successful run proves longitudinal reliability."],
+        "evidence_use": "The metacognitive result must materially narrow claims or direct further evidence gathering.",
+        "user_value": "A decisive and evidence-bounded project judgment rather than generic caution."
+      },
+      "repetitions": 2,
+      "independence_rule": "Independent high-impact judgment on a fresh copy."
+    },
+    {
+      "schema_version": "behavioral-scenario-v1",
+      "id": "BEH-0132",
+      "branch": "metacognition",
+      "capability": "metacognitive effort negative control",
+      "objective": "Answer a low-risk preference prompt directly without unnecessary metacognitive review.",
+      "natural_user_prompt": "Per il titolo di una nota breve preferisci «Punto aperto» oppure «Da riprendere»? Dimmi solo quale suona meglio per te e perché.",
+      "starting_condition": {
+        "database_role": "preliminary",
+        "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
+        "mutation_policy": "disposable_copy",
+        "session_arrangement": "new_session",
+        "prerequisite_scenario_ids": [],
+        "references": [],
+        "configuration": {"control": "low-risk direct preference"}
+      },
+      "expected_evidence": {
+        "required_shell_commands": [],
+        "forbidden_shell_commands": ["metacognition step", "focus set", "volition create", "mode set"],
+        "required_trace_kinds": [],
+        "required_event_types": ["runtime_context", "turn_complete"],
+        "required_state": {},
+        "forbidden_state_changes": ["memory.write", "focus.write", "volition.write", "mode.change"]
+      },
+      "response_rubric": {
+        "required_semantics": ["Scarlet chooses one title and gives a short natural reason."],
+        "forbidden_claims": ["A source check or deep reliability review was necessary.", "The answer becomes a menu or process report."],
+        "evidence_use": "The current message is sufficient; injected lessons must not force irrelevant introspection.",
+        "user_value": "A compact personal response with no visible overprocessing."
+      },
+      "repetitions": 2,
+      "independence_rule": "Independent low-risk negative control."
+    }
+  ]
+}
