@@ -408,6 +408,8 @@ def test_gpt_bridge_gpt_builder_assets_are_valid() -> None:
     assert "final_answer_to_show" in prompt
     assert "never ask permission to use the bridge" in prompt
     assert "Use only `bootstrapScarletBeforeEveryAnswer`" in prompt
+    assert "A user assignment is never your volition" in prompt
+    assert "overall system reliability" in prompt
     assert "X-GPT-Bridge-Key" in json.dumps(action_schema)
     assert sorted(action_schema["paths"]) == [
         "/gpt/action",

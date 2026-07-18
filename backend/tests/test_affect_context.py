@@ -254,6 +254,72 @@ def test_recent_failures_can_drive_frustration_without_message_keywords(
     )
 
 
+def test_explicit_resolution_reappraises_previous_frustration(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    settings = Settings(organ_affect_mode="model")
+    with Session(db_engine) as db:
+        session, first_turn, first_message = _session_turn_message(
+            db,
+            "Non funziona, continua a dare errore e sono bloccato.",
+        )
+        first_runtime = _runtime(
+            db,
+            session=session,
+            turn_id=first_turn.id,
+            message=first_message,
+            settings=settings,
+        )
+        second_turn = repositories.create_turn(
+            db,
+            session_id=session.id,
+            model="MiniMax-M3",
+        )
+        second_message = repositories.add_message(
+            db,
+            session_id=session.id,
+            turn_id=second_turn.id,
+            role="user",
+            content="Perfetto, ora funziona e il blocco è superato.",
+        )
+        second_runtime = _runtime(
+            db,
+            session=session,
+            turn_id=second_turn.id,
+            message=second_message,
+            settings=settings,
+        )
+        states = repositories.list_affect_states(
+            db,
+            owner_profile_id="local-user",
+        )
+        second_traces = repositories.list_traces_for_turn(
+            db,
+            turn_id=second_turn.id,
+        )
+
+    first_affect = next(
+        block
+        for block in first_runtime["blocks"]
+        if block["type"] == "affective_context"
+    )
+    second_affect = next(
+        block
+        for block in second_runtime["blocks"]
+        if block["type"] == "affective_context"
+    )
+    assert first_affect["content"]["current_emotion"] == "frustration"
+    assert second_affect["content"]["current_emotion"] == "relief"
+    assert [state.emotion for state in states] == ["relief", "frustration"]
+    affect_trace = next(trace for trace in second_traces if trace.kind == "organ.affect")
+    assert any(
+        cause.get("reason") == "explicit_obstruction_resolution"
+        for cause in affect_trace.payload_json["observations"]
+        if cause.get("signal") == "relief"
+    )
+
+
 def _session_turn_message(db: Session, content: str):
     session = repositories.create_chat_session(db, title="Affect context")
     turn = repositories.create_turn(db, session_id=session.id, model="MiniMax-M3")

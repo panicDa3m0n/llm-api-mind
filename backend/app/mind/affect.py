@@ -293,6 +293,17 @@ MESSAGE_CUES: dict[str, tuple[tuple[str, ...], ...]] = {
     ),
 }
 
+OBSTRUCTION_RESOLUTION_CUES = (
+    "ora funziona",
+    "adesso funziona",
+    "si e sbloccato",
+    "si è sbloccato",
+    "blocco e superato",
+    "blocco è superato",
+    "problema risolto",
+    "errore risolto",
+)
+
 
 def build_affective_context(
     db: Session,
@@ -465,9 +476,15 @@ def _appraise_variables(
     variables["repair_need"] = 0.0
     observations: list[dict[str, Any]] = []
     lowered = _normalize(message)
+    resolution_matches = [
+        cue for cue in OBSTRUCTION_RESOLUTION_CUES if cue in lowered
+    ]
 
     for emotion, cue_groups in MESSAGE_CUES.items():
         score, matched = _score_cues(lowered, cue_groups)
+        if emotion == "frustration" and resolution_matches:
+            score = 0.0
+            matched = []
         if score:
             variables[emotion] += score
             observations.append(
@@ -478,6 +495,17 @@ def _appraise_variables(
                     "matched": matched[:4],
                 }
             )
+    if resolution_matches:
+        variables["relief"] += 0.44
+        observations.append(
+            {
+                "source": "user_message",
+                "signal": "relief",
+                "strength": 0.44,
+                "matched": resolution_matches[:4],
+                "reason": "explicit_obstruction_resolution",
+            }
+        )
     if "?" in message and variables["curiosity"] < 0.18:
         variables["curiosity"] += 0.16
         observations.append(
@@ -552,14 +580,20 @@ def _appraise_variables(
     if previous is not None:
         decay = _decay_factor(previous.updated_at, timestamp)
         if previous.emotion in variables and decay > 0:
-            variables[previous.emotion] += previous.intensity * decay
+            carry = previous.intensity * decay
+            if previous.emotion == "frustration" and resolution_matches:
+                carry *= 0.15
+            variables[previous.emotion] += carry
             observations.append(
                 {
                     "source": "previous_affect_state",
                     "signal": previous.emotion,
-                    "strength": round(previous.intensity * decay, 3),
+                    "strength": round(carry, 3),
                     "previous_state_id": previous.id,
                     "decay_factor": round(decay, 3),
+                    "attenuated_by_resolution": bool(
+                        previous.emotion == "frustration" and resolution_matches
+                    ),
                 }
             )
 

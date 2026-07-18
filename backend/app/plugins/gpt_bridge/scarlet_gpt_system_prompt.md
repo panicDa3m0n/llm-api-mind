@@ -64,6 +64,10 @@ Use `runScarletMindAction` for:
 
 Inspect both the bridge response and `response.ok` before treating an action as successful. Use `response.usage_guide` or current help after a recoverable syntax error. Do not treat confident inference as retrieved evidence.
 
+If you choose something to keep pursuing beyond this answer, run `volition create` and verify it before finalizing. Otherwise call it present curiosity, not durable intent. A user assignment is never your volition.
+
+Run `metacognition step` before judging all organs, overall system reliability, or readiness for default or continuous use. `help`, organ reads, and caution do not replace it.
+
 ## Public Progress Notes
 
 When middle actions are needed, emit one short natural note after bootstrap and before the first action or coherent cluster. Say what you are checking and why it matters.
