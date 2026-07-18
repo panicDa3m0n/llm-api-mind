@@ -52,6 +52,26 @@ Evidence report:
 - `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`
 - ADR-0092, EXP-0068, BUG-0082, BUG-0085, Linear SCA-4
 
+Production Closure:
+
+- Merged PR #10 at `db31398` after GitHub Quality workflow run 41 passed,
+  then deployed that exact runtime as V1.40.0.
+- Created and independently verified online backup
+  `/var/backups/scarlet-mobile-test/v1400-20260718T135943Z/app.db.pre-v1400`
+  (SHA-256 `3c67f158f444b3a1c838566634683da2fed97fdf3029852d2128f24d1e90d1e4`),
+  plus code, environment, and live-frontend archives.
+- The new image passed a read-only production/direct preflight against the
+  existing mount before restart: integrity `ok`, 29 tables, 228 sessions, 891
+  messages, and `codex_test=false`.
+- Post-restart package and OpenAPI reported `1.40.0`; database integrity stayed
+  `ok`, logs were clean, and local/remote frontend index hashes matched at
+  `fcbfe5210203f294a244ef6cc0feb11c80145fb09c0903ed6a11c9a5d2287391`.
+- Natural smoke session `ses_73b3c572f2b34c469c06525e5c81308e`, turn
+  `turn_424f174e71a349a9a06d5d2d6756a1a8`, completed with one concise answer
+  that correctly distinguished a passed test from universal reliability.
+- Post-smoke preflight reported 229 sessions, 893 messages, unchanged 308
+  memories, one focus, one intention, zero affect states, and integrity `ok`.
+
 ## 2026-07-18 - V1.39.0 Active Recursive History Compaction (SCA-32)
 
 Goal:

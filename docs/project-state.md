@@ -125,6 +125,10 @@ Current verification baseline:
   metacognition passed 4/4 positive/negative controls, and volition proved one
   complete cross-session chain plus both ownership controls. The remaining
   failed chain ended on a public work note and is assigned to SCA-28.
+- V1.40.0 production rollout: backup, read-only production preflight, package
+  and OpenAPI version, DB integrity, logs, frontend hash parity, and one natural
+  native smoke all passed. Production data counts changed only by the expected
+  smoke session and messages.
 
 ### 3.2 Dynamic Context
 

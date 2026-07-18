@@ -123,6 +123,9 @@ database deployment boundary.
 
 ### Changed
 
+- Deployed V1.40.0 from merge `db31398` after online SQLite backup, new-image
+  read-only production preflight, restart, version/integrity/log checks,
+  frontend hash parity, and a natural native MiniMax smoke.
 - Advanced backend, frontend, GPT Action schema, prompts, and canonical project
   metadata to V1.40.0.
 - Kept focus bounded, volition on-demand and outside automatic chat injection,

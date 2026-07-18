@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-18
-Backend baseline: V1.39.0 (deployed)
+Backend baseline: V1.40.0 (deployed)
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -50,7 +50,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.39.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.39.0 online backup is `/var/backups/scarlet-mobile-test/v1390-20260718T124832Z/app.db.pre-v1390` (SHA-256 `f8ecc8f173083b64d5288e2b0f912ba4ac4674e2063fd422a8559bd306960e86`). |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.40.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.40.0 online backup is `/var/backups/scarlet-mobile-test/v1400-20260718T135943Z/app.db.pre-v1400` (SHA-256 `3c67f158f444b3a1c838566634683da2fed97fdf3029852d2128f24d1e90d1e4`). |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; legacy Git LFS-tracked file | Published index pointer is SHA-256 `827bb...c1ed5`; the current worktree file is a later dirty LFS object `9b6e...0448f`. It is not production and must not be staged except for a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -138,7 +138,7 @@ DATABASE_URL=sqlite:///./data/app.db
 The value `mobile_test` is historical deployment naming; the explicit role is
 what declares that its mounted database contains production data.
 
-Current V1.39.0 production maintenance policy, retained from V1.29.0:
+Current V1.40.0 production maintenance policy, retained from V1.29.0:
 
 ```txt
 MAINTENANCE_ENABLED=true
@@ -152,7 +152,7 @@ maintenance job. The broad repair scanner remains disabled on this deployment
 so it cannot summarize a newly completed turn immediately; it can be enabled
 again after its age policy is separated from historical reconciliation.
 
-V1.39.0 preserves that maintenance boundary while aligning active cognition
+V1.40.0 preserves that maintenance boundary while aligning active cognition
 with the verified local runtime: `model_context_profile=v2`, OpenRouter
 retrieval/rerank enabled, active final arbitration with absolute floor `0.004`
 and relative floor `0.01`, active

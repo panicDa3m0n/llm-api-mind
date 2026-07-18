@@ -201,3 +201,6 @@ later documentation-only commit.
 V1.39.0 passed the same protected boundary plus active-compaction configuration,
 schema, and natural native routing checks at merge commit `cb400d2`; annotated
 tag `v1.39.0` points to that deployed runtime commit.
+V1.40.0 passed the protected backup, read-only production preflight, restart,
+integrity, frontend parity, and natural native smoke boundary at merge commit
+`db31398`; annotated tag `v1.40.0` points to that deployed runtime commit.
