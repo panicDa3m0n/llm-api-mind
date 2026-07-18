@@ -6,18 +6,20 @@ from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.api.chat import (
+from app.api.chat import _compose_system_with_runtime_context
+from app.api.chat_accounting import provider_message_stats as _provider_message_stats
+from app.api.chat_provider_history import (
+    provider_messages_for_turn as _provider_messages_for_turn,
+    valid_provider_history as _valid_provider_history,
+)
+from app.api.chat_serialization import (
     ChatMessageResponse,
     ChatSessionResponse,
-    _compose_system_with_runtime_context,
-    _memory_context_event_payload,
-    _message_response,
-    _metacognitive_context_event_payload,
-    _provider_message_stats,
-    _provider_messages_for_turn,
-    _runtime_context_event_payload,
-    _session_response,
-    _valid_provider_history,
+    memory_context_event_payload as _memory_context_event_payload,
+    message_response as _message_response,
+    metacognitive_context_event_payload as _metacognitive_context_event_payload,
+    runtime_context_event_payload as _runtime_context_event_payload,
+    session_response as _session_response,
 )
 from app.config import Settings
 from app.llm.factory import active_provider_max_tokens, active_provider_model

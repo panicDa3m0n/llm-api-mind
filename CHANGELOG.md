@@ -6,6 +6,38 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.44.0 - Native Chat Support Extraction
+
+#### Changed
+
+- Extracted provider-history transformations, response/event serialization,
+  and context-accounting helpers from the native chat router into three
+  cohesive typed modules behind the unchanged `app.api.chat` facade.
+- Updated the GPT Actions router to consume the owning support modules instead
+  of private chat-router helpers, without changing its OpenAPI contract.
+- Classified the native project-selected provider runtime as authoritative and
+  the Custom GPT bridge as an experimental external adapter.
+- Made direct qualitative inspection mandatory for behavioral probes; numeric
+  scores and deterministic flags remain supporting evidence rather than the
+  behavioral verdict.
+
+#### Verification
+
+- Frozen SCA-34 pre/post gates pass 9/9; normalized OpenAPI JSON is exactly
+  unchanged at 26 paths and 29 schemas.
+- Focused support/chat/bridge tests pass 57/57; the complete backend passes
+  244 tests at 81.41% coverage; Ruff, mypy, documentation integrity, database
+  boundary, and frontend production build pass.
+- A two-turn isolated MiniMax probe preserved canonical provider history and
+  produced a semantically correct same-session recall answer under direct
+  qualitative review.
+
+#### Known Issues
+
+- A separate isolated probe confirmed that answer obligations can retain a
+  failed action while ignoring its successful corrected retry (BUG-0091,
+  Linear SCA-42). The pre-existing defect is not changed by SCA-34.
+
 ### V1.43.0 - Actions-Only GPT Bridge
 
 #### Changed

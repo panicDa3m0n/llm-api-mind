@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 completed and deployed
-Runtime baseline: V1.43.0 deployed
+Status: accepted execution map from SCA-10; SCA-22 deployed and SCA-34 verified
+Runtime baseline: V1.43.0 deployed; V1.44.0 candidate in SCA-34
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -28,7 +28,7 @@ The counts below were measured from the current V1.42-based worktree on
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
 | `backend/app/mind/memory.py` | 2,921 | command bodies, read/search, facts, graph, write policy, lifecycle, proposals, relation evidence, payloads | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
-| `backend/app/api/chat.py` | 2,641 | HTTP models/router, sync and stream turn loops, shell runner, answer obligations, provider history, traces, accounting, response serialization | app factory, GPT bridge, chat tests | very high: every native turn |
+| `backend/app/api/chat.py` | 2,197 after SCA-34 | HTTP router, sync and stream turn loops, shell runner, answer obligations, and orchestration traces | app factory, chat tests | very high: every native turn |
 | `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
 | `backend/app/mind/context.py` | 1,809 | automatic memory retrieval, runtime assembly, compatibility rendering, block construction, ranking/classification, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
@@ -75,10 +75,14 @@ remain intact in production.
 
 Issue: SCA-34.
 
-Extract provider-history conversion, response/event serialization, and context
-accounting helpers from `chat.py`. These are the lowest-risk seams because they
-already have narrow inputs and can be checked as pure contract transforms.
-Do not change turn orchestration in this slice.
+Completed in the V1.44.0 candidate. Provider-history conversion now lives in
+`chat_provider_history.py`, response/event models and projections in
+`chat_serialization.py`, and context-accounting persistence/statistics in
+`chat_accounting.py`. `chat.py` remains the stable facade for its public
+response models and owns turn orchestration. The GPT bridge imports the owning
+support modules instead of private router helpers. Exact OpenAPI JSON, frozen
+9/9 pre/post behavior, focused contracts, and a same-session native MiniMax
+continuity probe were preserved.
 
 ### 2. Native Turn Orchestration
 

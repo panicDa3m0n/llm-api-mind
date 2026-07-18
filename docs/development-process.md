@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.43.0 (deployed)
+Current app version: V1.44.0 candidate (V1.43.0 deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -103,6 +103,14 @@ Default verification:
 - documentation-only changes: run `git diff --check` and inspect the created
   docs.
 
+Every behavioral probe requires direct qualitative inspection by Codex. Read
+the actual prompt, starting state, model actions, tool results, traces, final
+answer, and follow-up effect. Numeric scores, latency, token counts, and
+deterministic pass flags are diagnostic evidence, but they cannot by themselves
+judge cognitive choice or natural-language quality. Record a reasoned judgment
+and reject a run as evidence when its starting conditions do not match the
+declared scenario.
+
 Complete or advanced live evaluation requires an explicit owner instruction
 for the current task. This includes the repeated natural cross-branch suite,
 large multi-scenario Scarlet batteries, long behavioral sessions, and broad
@@ -151,7 +159,7 @@ docs/preliminary-regression-suite.md
 
 This gate complements pytest and live Scarlet testing. It is a repeatable
 whole-system comparison, not a substitute for either deterministic unit
-contracts or human evaluation of model behavior.
+contracts or reasoned human/LLM-as-human evaluation of model behavior.
 
 The natural cross-branch suite complements the deterministic gate and is run
 only during an owner-authorized evaluation period. It may
@@ -186,8 +194,8 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current deployed V1.43.0 baseline extends V1.42.0 with an Actions-only GPT
-bridge and includes:
+The current V1.44.0 candidate extends the deployed V1.43.0 Actions-only GPT
+bridge baseline and includes:
 
 - local MiniMax-based Scarlet runtime;
 - persistent sessions, traces, events, semantic memories, atomic facts, and
@@ -196,6 +204,8 @@ bridge and includes:
   endpoint dispatch retained for backend/debug compatibility;
 - three mandatory external GPT Actions with no MCP connector or query-string
   authentication surface;
+- cohesive typed provider-history, response/event serialization, and
+  context-accounting support modules behind the unchanged native chat facade;
 - runtime context blocks for session continuity, message perception, and
   Scarlet state;
 - dashboard settings for active profile, privacy scope, locale, language, and

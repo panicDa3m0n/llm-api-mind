@@ -9,6 +9,52 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0071 - Native Chat Support Extraction Continuity Probe
+
+Status: bounded pre/post evidence accepted for the V1.44.0 candidate
+
+Hypothesis:
+
+Provider-history transformations, response/event projections, and context
+accounting can move out of `chat.py` without changing native continuity,
+public payloads, trace contracts, or GPT reuse.
+
+Method:
+
+- run the frozen 9-case gate before and after extraction;
+- compare pre/post OpenAPI JSON exactly;
+- exercise pure support contracts and the focused chat/bridge suites;
+- run two natural turns in one disposable native MiniMax session with the
+  production token budget; and
+- inspect the actual provider request, model actions, traces, and answers
+  qualitatively rather than relying on completion status alone.
+
+Result:
+
+The frozen gate remained 9/9 and OpenAPI JSON was byte-equivalent after JSON
+normalization. In session `ses_2a4fcb91e6f44ed6a0be6273b4fa027b`, Scarlet
+answered the first one-sentence greeting naturally. The second turn received
+three canonical provider messages, including the complete prior assistant
+content, and correctly identified and quoted `Che bello risentirti`. No tool
+call was needed. The answer-obligation layer requested one correction but the
+turn completed with semantically correct continuity.
+
+The qualitative result supports SCA-34: provider history survived the module
+move and was used in the next answer. The phrase about having met `dopo un po'
+di tempo` was a reasonable interpretation rather than stored evidence and is
+minor style variance, not a continuity regression.
+
+An earlier probe exposed BUG-0091 after a failed memory write was successfully
+retried. That defect was isolated in SCA-42 and not changed inside SCA-34. A
+separate attempt using a 1,024-output-token override was rejected as invalid
+evidence because it did not match native Scarlet's configured budget.
+
+Evidence:
+
+- pre gate `20260718_174427_preliminary-regression-v1`;
+- post gate `20260718_175231_preliminary-regression-v1`;
+- `docs/evaluations/v1.44-chat-support-extraction.md`.
+
 ## EXP-0069 - Shared Answer-Obligation Enforcement
 
 Status: focused implementation and direct probes accepted for V1.41.0

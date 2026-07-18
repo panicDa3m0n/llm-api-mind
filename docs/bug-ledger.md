@@ -7,6 +7,48 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0091 - Successful Action Retry Is Missing From Answer Obligations
+
+Date Found: 2026-07-18
+Status: confirmed pre-existing defect; tracked in Linear SCA-42
+
+Symptoms:
+
+In an isolated native MiniMax turn, a malformed `memory write` failed and a
+materially corrected retry then stored the memory successfully. Final-answer
+validation nevertheless retained only the first failed action as evidence and
+rejected two truthful drafts describing the successful retry, including one
+that named the stored memory ID.
+
+Evidence:
+
+- session `ses_472db64bc051471999f95b9b43657e9d`;
+- turn `turn_26109ad9b5da4f819e5e3fe0db464468`;
+- failed trace `trace_0bac38fab3b74edcaa628a3423f0abb6`;
+- successful retry trace `trace_463d5096898d49c8a44ae9243b2aef5c`;
+- false-negative validation trace
+  `trace_c2a3ca2b50894bc0ae7760f3f496e434`.
+
+Classification:
+
+The initial over-eager memory choice and malformed alias were model behavior.
+The failure to reconcile a successful equivalent retry into the answer
+obligation evidence is a deterministic shared-runtime defect. It predates and
+is outside the SCA-34 support extraction.
+
+Required Fix:
+
+Preserve the action-attempt chain and let a successful materially equivalent
+retry satisfy the recoverable failure without hiding true unrecovered or
+non-equivalent failures. Apply the rule consistently to native sync/stream and
+GPT finalization, with direct behavioral inspection.
+
+Related:
+
+- Linear SCA-42
+- Linear SCA-28
+- Linear SCA-34
+
 ## BUG-0090 - Query-String Bridge Key Was Recorded In Proxy Logs
 
 Date Found: 2026-07-18

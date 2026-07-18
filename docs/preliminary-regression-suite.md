@@ -160,6 +160,12 @@ post-documentation gate 9/9 in
 planning issue; every executable rework child must record its own fresh
 pre/post pair instead of treating this planning run as permanent approval.
 
+SCA-34 established its own V1.43 pre-change baseline at 9/9 in
+`20260718_174427_preliminary-regression-v1`. After extracting provider-history,
+serialization, and accounting support from the native chat router, the
+identical post-change gate passed 9/9 in
+`20260718_175231_preliminary-regression-v1`.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

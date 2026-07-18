@@ -7,6 +7,82 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0098 - Behavioral Tests Require Direct Reasoned Inspection
+
+Date: 2026-07-18
+Status: accepted for all current and future behavioral verification
+
+Context:
+
+Technical counters and evaluator scores can prove structural facts, but they
+cannot establish whether Scarlet made a sensible cognitive choice, used
+evidence appropriately, or answered naturally. A numerically successful run
+can still be behaviorally poor, while a semantically valid answer can differ
+from a prepared string.
+
+Decision:
+
+- Codex directly reads every behavioral probe's starting state, prompt, model
+  actions, tool results, traces, final answer, and longitudinal consequence;
+- deterministic checks remain authoritative for IDs, state, commands,
+  persistence, and exact protocol boundaries;
+- cognitive choice and answer quality receive an explicit reasoned judgment;
+- scores, token counts, and latency remain diagnostics rather than verdicts;
+- a run with invalid starting conditions is rejected as evidence instead of
+  being averaged into the result; and
+- large behavioral campaigns remain owner-triggered, while bounded direct
+  probes retain this same qualitative standard.
+
+Consequences:
+
+Evaluation reports must expose enough raw evidence to support review and must
+not hide natural behavior behind one aggregate score. Codex may serve as the
+project-informed LLM-as-human judge, but must state its rubric and distinguish
+model variance, evaluator defects, implementation regressions, and unrelated
+pre-existing bugs.
+
+Links:
+
+- `docs/development-process.md`
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+
+## ADR-0097 - Native Provider Runtime Is Authoritative
+
+Date: 2026-07-18
+Status: accepted
+
+Context:
+
+Custom GPT can expose a stronger external model, but Actions, hidden native
+history, confirmation behavior, and service-owned limits are outside project
+control. The long-term cognitive and embodiment system must remain operable on
+providers selected and integrated inside API Mind.
+
+Decision:
+
+- native Scarlet with project-selected providers such as MiniMax is the
+  authoritative runtime and architecture target;
+- GPT Actions remain an experimental external adapter to shared context,
+  shell, persistence, and answer-control contracts;
+- GPT parity is preserved where practical, but external limitations do not
+  justify extreme core complexity or become requirements for native Scarlet;
+- failures unique to the hosted GPT are classified separately from API Mind
+  defects; and
+- future provider abstractions preserve native observability, continuity, and
+  control before optional external integrations.
+
+Consequences:
+
+Roadmap priority, verification, and refactoring are judged first on native
+runtime behavior. The GPT bridge remains useful and maintained within its
+bounded contract, but it is not the principal system or a substitute for
+internal provider support.
+
+Links:
+
+- `backend/app/plugins/gpt_bridge/README.md`
+- Linear SCA-39
+
 ## ADR-0096 - Retire MCP And Keep GPT Actions As The Sole External Bridge
 
 Date: 2026-07-18

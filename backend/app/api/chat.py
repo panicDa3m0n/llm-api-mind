@@ -1,7 +1,5 @@
-import json
 import time
 from collections.abc import Callable, Iterator
-from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
@@ -11,6 +9,39 @@ from pydantic import ValidationError
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
+from app.api.chat_accounting import (
+    context_accounting_summary as _context_accounting_summary,
+    post_turn_model_history_tokens as _post_turn_model_history_tokens,
+    provider_message_stats as _provider_message_stats,
+    record_context_accounting_observed as _record_context_accounting_observed,
+    record_context_accounting_preflight as _record_context_accounting_preflight,
+)
+from app.api.chat_provider_history import (
+    ProviderHistory,
+    provider_history_from_result as _provider_history_from_result,
+    provider_messages_for_turn as _provider_messages_for_turn,
+    updated_provider_history as _updated_provider_history,
+    valid_content_blocks as _valid_content_blocks,
+    valid_provider_history as _valid_provider_history,
+)
+from app.api.chat_serialization import (
+    ChatMessageResponse,
+    ChatSessionResponse,
+    ChatTurnResponse,
+    EventResponse,
+    TraceResponse,
+    event_response as _event_response,
+    event_stream_payload as _event_stream_payload,
+    incomplete_result_details as _incomplete_result_details,
+    memory_context_event_payload as _memory_context_event_payload,
+    message_response as _message_response,
+    metacognitive_context_event_payload as _metacognitive_context_event_payload,
+    ndjson as _ndjson,
+    response_event_messages as _response_event_messages,
+    runtime_context_event_payload as _runtime_context_event_payload,
+    session_response as _session_response,
+    trace_response as _trace_response,
+)
 from app.config import Settings
 from app.llm.factory import (
     active_provider_max_tokens,
@@ -42,7 +73,6 @@ from app.mind.shell import (
 )
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.runtime.events import (
-    event_payload,
     record_event,
     record_provider_stream_event,
     record_response_content_events,
@@ -53,10 +83,6 @@ from app.runtime.maintenance import (
     schedule_history_compaction,
     schedule_session_idle_maintenance,
     schedule_summary_repairs,
-)
-from app.runtime.context_accounting import (
-    build_context_accounting_observation,
-    build_context_accounting_preflight,
 )
 from app.runtime.history_compaction import build_chronology_source_map
 from app.runtime.history_runtime import route_history_for_model
@@ -71,11 +97,10 @@ from app.runtime.answer_obligations import (
     validate_answer_semantics,
 )
 from app.storage import repositories
-from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
+from app.storage.models import ChatSession, CognitiveEvent
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
-ProviderHistory = list[dict[str, Any]]
 
 
 class ChatSessionCreate(BaseModel):
@@ -83,67 +108,10 @@ class ChatSessionCreate(BaseModel):
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
-class ChatSessionResponse(BaseModel):
-    id: str
-    title: str | None
-    created_at: datetime
-    updated_at: datetime
-    metadata: dict[str, Any]
-
-
-class ChatMessageResponse(BaseModel):
-    id: str
-    session_id: str
-    turn_id: str | None
-    role: str
-    content: str
-    created_at: datetime
-    metadata: dict[str, Any]
-
-
 class ChatTurnRequest(BaseModel):
     message: str = Field(min_length=1, max_length=20000)
     system: str | None = Field(default=None, max_length=20000)
     max_tokens: int | None = Field(default=None, ge=1, le=131072)
-
-
-class ChatTurnResponse(BaseModel):
-    session: ChatSessionResponse
-    turn_id: str
-    status: str
-    user_message: ChatMessageResponse
-    assistant_message: ChatMessageResponse
-    trace_ids: list[str]
-    model: str
-    latency_ms: int
-    usage: dict[str, Any]
-
-
-class TraceResponse(BaseModel):
-    id: str
-    session_id: str
-    turn_id: str | None
-    kind: str
-    payload: dict[str, Any]
-    created_at: datetime
-
-
-class EventResponse(BaseModel):
-    id: str
-    session_id: str
-    turn_id: str | None
-    seq: int
-    type: str
-    source: str
-    actor: str
-    visibility: str
-    status: str
-    parent_event_id: str | None
-    trace_id: str | None
-    tool_call_id: str | None
-    message_id: str | None
-    payload: dict[str, Any]
-    created_at: datetime
 
 
 def build_chat_router(
@@ -1892,16 +1860,13 @@ def _stream_turn_events(
             },
         )
         trace_ids.append(response_trace.id)
-        accounting_trace = repositories.add_trace(
+        accounting_trace = _record_context_accounting_observed(
             db,
             session_id=session_id,
             turn_id=turn_id,
-            kind="context.accounting.observed",
-            payload=build_context_accounting_observation(
-                preflight_trace_id=accounting_trace_id,
-                preflight=accounting_payload,
-                result=result,
-            ),
+            preflight_trace_id=accounting_trace_id,
+            preflight=accounting_payload,
+            result=result,
         )
         trace_ids.append(accounting_trace.id)
         final_runtime_events.append(
@@ -2056,28 +2021,6 @@ def _stream_turn_events(
     yield emit("turn_complete", turn_response.model_dump(mode="json"))
 
 
-def _ndjson(event_type: str, data: dict[str, Any]) -> str:
-    return json.dumps({"type": event_type, "data": data}, ensure_ascii=True) + "\n"
-
-
-def _post_turn_model_history_tokens(
-    source_map: dict[str, Any],
-    history_routing_payload: dict[str, Any],
-) -> int:
-    canonical_tokens = int(source_map.get("canonical_estimated_tokens") or 0)
-    if history_routing_payload.get("status") != "derived_history_active":
-        return canonical_tokens
-    turns = source_map.get("turns")
-    covered_count = int(history_routing_payload.get("covered_turn_count") or 0)
-    if not isinstance(turns, list) or covered_count < 0 or covered_count > len(turns):
-        return canonical_tokens
-    return sum(
-        int(unit.get("estimated_tokens") or 0)
-        for unit in turns[covered_count:]
-        if isinstance(unit, dict)
-    )
-
-
 def _compose_system_with_runtime_context(
     base_system: str,
     runtime_context: str,
@@ -2211,272 +2154,6 @@ def _require_session(db: Session, session_id: str) -> ChatSession:
     return chat_session
 
 
-def _provider_messages_for_turn(
-    *,
-    chat_session: ChatSession,
-    history: list[Message],
-    current_user_message: Message,
-) -> tuple[str, list[LLMMessage]]:
-    provider_history = _valid_provider_history(chat_session.provider_history_json)
-    if provider_history:
-        return (
-            "session.provider_history_json",
-            [
-                LLMMessage(role=item["role"], content=item["content"])
-                for item in [
-                    *provider_history,
-                    _provider_user_text_message(current_user_message.content),
-                ]
-            ],
-        )
-
-    return (
-        "messages.text_reconstructed",
-        [
-            LLMMessage(role=item["role"], content=item["content"])
-            for item in _text_provider_history(history)
-        ],
-    )
-
-
-def _updated_provider_history(
-    request_messages: list[LLMMessage],
-    result: LLMTextResult,
-) -> ProviderHistory:
-    history = [
-        _llm_message_to_provider_history_item(message) for message in request_messages
-    ]
-    history.extend(_provider_history_from_result(result))
-    return history
-
-
-def _provider_history_from_result(result: LLMTextResult) -> ProviderHistory:
-    valid_recovery_tail = _valid_provider_history(result.provider_history_tail)
-    if valid_recovery_tail:
-        return valid_recovery_tail
-    if result.raw_provider_messages:
-        return _provider_history_from_raw_messages(
-            result.raw_provider_messages,
-            tool_calls=result.tool_calls,
-        )
-
-    raw_content = _valid_content_blocks(result.raw_content)
-    if not raw_content and result.text:
-        raw_content = [{"type": "text", "text": result.text}]
-    if not raw_content:
-        return []
-    return [{"role": "assistant", "content": raw_content}]
-
-
-def _response_event_messages(result: LLMTextResult) -> list[dict[str, Any]]:
-    if result.raw_provider_messages:
-        return result.raw_provider_messages
-
-    raw_content = _valid_content_blocks(result.raw_content)
-    if not raw_content and result.text:
-        raw_content = [{"type": "text", "text": result.text}]
-    if not raw_content:
-        return []
-    return [
-        {
-            "id": result.provider_message_id,
-            "stop_reason": result.stop_reason,
-            "content": raw_content,
-        }
-    ]
-
-
-def _provider_history_from_raw_messages(
-    raw_provider_messages: list[dict[str, Any]],
-    *,
-    tool_calls: list[LLMExecutedToolCall],
-) -> ProviderHistory:
-    tool_calls_by_id = {
-        tool_call.provider_tool_use_id: tool_call for tool_call in tool_calls
-    }
-    history: ProviderHistory = []
-    for raw_message in raw_provider_messages:
-        content = _valid_content_blocks(raw_message.get("content"))
-        if not content:
-            continue
-        history.append({"role": "assistant", "content": content})
-        tool_results = [
-            _tool_result_block(tool_calls_by_id[tool_use_id])
-            for tool_use_id in _tool_use_ids(content)
-            if tool_use_id in tool_calls_by_id
-        ]
-        if tool_results:
-            history.append({"role": "user", "content": tool_results})
-    return history
-
-
-def _tool_result_block(tool_call: LLMExecutedToolCall) -> dict[str, Any]:
-    return {
-        "type": "tool_result",
-        "tool_use_id": tool_call.provider_tool_use_id,
-        "content": json.dumps(tool_call.result, ensure_ascii=True),
-        "is_error": tool_call.status != "completed",
-    }
-
-
-def _tool_use_ids(content_blocks: list[dict[str, Any]]) -> list[str]:
-    ids: list[str] = []
-    for block in content_blocks:
-        if block.get("type") != "tool_use":
-            continue
-        tool_use_id = block.get("id")
-        if isinstance(tool_use_id, str) and tool_use_id:
-            ids.append(tool_use_id)
-    return ids
-
-
-def _valid_provider_history(value: Any) -> ProviderHistory:
-    if not isinstance(value, list):
-        return []
-    history: ProviderHistory = []
-    for item in value:
-        if not isinstance(item, dict):
-            continue
-        role = item.get("role")
-        content = _valid_content_blocks(item.get("content"))
-        if role in {"user", "assistant"} and content:
-            history.append({"role": role, "content": content})
-    return history
-
-
-def _text_provider_history(messages: list[Message]) -> ProviderHistory:
-    return [
-        _provider_user_text_message(message.content)
-        if message.role == "user"
-        else _provider_assistant_text_message(message.content)
-        for message in messages
-        if message.role in {"user", "assistant"}
-    ]
-
-
-def _provider_user_text_message(content: str) -> dict[str, Any]:
-    return {"role": "user", "content": [{"type": "text", "text": content}]}
-
-
-def _provider_assistant_text_message(content: str) -> dict[str, Any]:
-    return {"role": "assistant", "content": [{"type": "text", "text": content}]}
-
-
-def _llm_message_to_provider_history_item(message: LLMMessage) -> dict[str, Any]:
-    content = message.content
-    if isinstance(content, str):
-        return {
-            "role": message.role,
-            "content": [{"type": "text", "text": content}],
-        }
-    return {
-        "role": message.role,
-        "content": _valid_content_blocks(content),
-    }
-
-
-def _valid_content_blocks(value: Any) -> list[dict[str, Any]]:
-    if not isinstance(value, list):
-        return []
-    blocks: list[dict[str, Any]] = []
-    for block in value:
-        if not isinstance(block, dict):
-            continue
-        block_type = block.get("type")
-        if isinstance(block_type, str) and block_type:
-            blocks.append(block)
-    return blocks
-
-
-def _record_context_accounting_preflight(
-    db: Session,
-    *,
-    session_id: str,
-    turn_id: str,
-    model: str,
-    transport: str,
-    base_system: str,
-    runtime_context: str,
-    messages: list[LLMMessage],
-    settings: Settings,
-    compacted_chronology: str = "",
-    answer_obligations: str = "",
-    external_unobserved_context: list[str] | None = None,
-) -> tuple[Trace, dict[str, Any]]:
-    payload = build_context_accounting_preflight(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        model=model,
-        transport=transport,
-        base_system=base_system,
-        runtime_context=runtime_context,
-        messages=messages,
-        tools=[MIND_SHELL_TOOL_SCHEMA],
-        settings=settings,
-        compacted_chronology=compacted_chronology,
-        answer_obligations=answer_obligations,
-        external_unobserved_context=external_unobserved_context,
-    )
-    trace = repositories.add_trace(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        kind="context.accounting.preflight",
-        payload=payload,
-    )
-    return trace, payload
-
-
-def _record_context_accounting_observed(
-    db: Session,
-    *,
-    session_id: str,
-    turn_id: str,
-    preflight_trace_id: str,
-    preflight: dict[str, Any],
-    result: LLMTextResult,
-) -> Trace:
-    return repositories.add_trace(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        kind="context.accounting.observed",
-        payload=build_context_accounting_observation(
-            preflight_trace_id=preflight_trace_id,
-            preflight=preflight,
-            result=result,
-        ),
-    )
-
-
-def _context_accounting_summary(payload: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "schema_version": payload.get("schema_version"),
-        "transport": payload.get("transport"),
-        "total": payload.get("total"),
-        "policy": payload.get("policy"),
-        "compaction_plan": payload.get("compaction_plan"),
-    }
-
-
-def _provider_message_stats(messages: list[LLMMessage]) -> dict[str, Any]:
-    serializable = [message.model_dump(mode="json") for message in messages]
-    serialized = json.dumps(serializable, ensure_ascii=False)
-    block_count = 0
-    for message in messages:
-        if isinstance(message.content, list):
-            block_count += len(message.content)
-        else:
-            block_count += 1
-    return {
-        "message_count": len(messages),
-        "content_block_count": block_count,
-        "json_chars": len(serialized),
-        "approx_tokens": max(1, len(serialized) // 4) if serialized else 0,
-    }
-
-
 def _record_failed_turn(
     engine: Engine,
     *,
@@ -2518,124 +2195,3 @@ def _record_failed_turn(
             status=completed.status,
             trace_id=trace.id,
         )
-
-
-def _incomplete_result_details(result: LLMTextResult) -> dict[str, Any]:
-    raw_types = [
-        block.get("type")
-        for block in _valid_content_blocks(result.raw_content)
-        if isinstance(block.get("type"), str)
-    ]
-    return {
-        "reason": "empty_terminal_result",
-        "stop_reason": result.stop_reason,
-        "provider_message_id": result.provider_message_id,
-        "raw_content_types": raw_types,
-        "tool_call_count": len(result.tool_calls),
-        "completion_recovery": result.completion_recovery,
-    }
-
-
-def _session_response(chat_session: ChatSession) -> ChatSessionResponse:
-    return ChatSessionResponse(
-        id=chat_session.id,
-        title=chat_session.title,
-        created_at=chat_session.created_at,
-        updated_at=chat_session.updated_at,
-        metadata=chat_session.metadata_json,
-    )
-
-
-def _message_response(message: Message) -> ChatMessageResponse:
-    return ChatMessageResponse(
-        id=message.id,
-        session_id=message.session_id,
-        turn_id=message.turn_id,
-        role=message.role,
-        content=message.content,
-        created_at=message.created_at,
-        metadata=message.metadata_json,
-    )
-
-
-def _trace_response(trace: Trace) -> TraceResponse:
-    return TraceResponse(
-        id=trace.id,
-        session_id=trace.session_id,
-        turn_id=trace.turn_id,
-        kind=trace.kind,
-        payload=trace.payload_json,
-        created_at=trace.created_at,
-    )
-
-
-def _event_response(event: CognitiveEvent) -> EventResponse:
-    payload = event_payload(event)
-    return EventResponse(
-        id=payload["id"],
-        session_id=payload["session_id"],
-        turn_id=payload["turn_id"],
-        seq=payload["seq"],
-        type=payload["type"],
-        source=payload["source"],
-        actor=payload["actor"],
-        visibility=payload["visibility"],
-        status=payload["status"],
-        parent_event_id=payload["parent_event_id"],
-        trace_id=payload["trace_id"],
-        tool_call_id=payload["tool_call_id"],
-        message_id=payload["message_id"],
-        payload=payload["payload"],
-        created_at=event.created_at,
-    )
-
-
-def _event_stream_payload(event: CognitiveEvent) -> dict[str, Any]:
-    return _event_response(event).model_dump(mode="json")
-
-
-def _memory_context_event_payload(memory_context: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "operation": memory_context.get("operation"),
-        "trace_id": memory_context.get("trace_id"),
-        "searched": memory_context.get("searched"),
-        "selected_count": memory_context.get("selected_count"),
-        "candidate_count": memory_context.get("candidate_count"),
-        "ranked_candidate_count": memory_context.get("ranked_candidate_count"),
-        "negative_evidence": memory_context.get("negative_evidence"),
-        "selected": memory_context.get("selected", []),
-        "near_miss": memory_context.get("near_miss", []),
-        "excluded": memory_context.get("excluded", []),
-        "conflicts": memory_context.get("conflicts", []),
-    }
-
-
-def _metacognitive_context_event_payload(
-    metacognitive_context: dict[str, Any],
-) -> dict[str, Any]:
-    return {
-        "operation": metacognitive_context.get("operation"),
-        "trace_id": metacognitive_context.get("trace_id"),
-        "schema_version": metacognitive_context.get("schema_version"),
-        "mode": metacognitive_context.get("mode"),
-        "model_facing": metacognitive_context.get("model_facing"),
-        "selection": metacognitive_context.get("selection", {}),
-        "triggers": metacognitive_context.get("triggers", []),
-        "lessons": metacognitive_context.get("lessons", []),
-        "runtime_inputs": metacognitive_context.get("runtime_inputs", {}),
-        "policy": metacognitive_context.get("policy", {}),
-    }
-
-
-def _runtime_context_event_payload(runtime_context: dict[str, Any]) -> dict[str, Any]:
-    blocks = runtime_context.get("blocks", [])
-    return {
-        "operation": "runtime.context",
-        "trace_id": runtime_context.get("trace_id"),
-        "schema_version": runtime_context.get("schema_version"),
-        "session_id": runtime_context.get("session_id"),
-        "turn_id": runtime_context.get("turn_id"),
-        "block_count": len(blocks) if isinstance(blocks, list) else 0,
-        "block_index": runtime_context.get("block_index", []),
-        "blocks": blocks if isinstance(blocks, list) else [],
-    }

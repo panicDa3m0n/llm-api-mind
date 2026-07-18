@@ -4,6 +4,42 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.44.0 Native Chat Support Extraction (SCA-34)
+
+Extracted provider-history conversion, response/event serialization, and
+context-accounting persistence/statistics from `backend/app/api/chat.py` into
+three cohesive typed support modules. The native chat module remains the
+public facade and turn orchestrator; the GPT Actions router now imports the
+owning support modules rather than private router helpers. `chat.py` decreased
+from 2,641 to 2,197 lines without changing HTTP schemas or turn policy.
+
+The frozen gate passed 9/9 before
+(`20260718_174427_preliminary-regression-v1`) and after
+(`20260718_175231_preliminary-regression-v1`). Normalized pre/post OpenAPI JSON
+is exactly equal at 26 paths and 29 schemas. Focused tests pass 57/57; the full
+backend passes 244 tests at 81.41% coverage; Ruff, mypy across 13 guarded
+modules, documentation integrity, database boundary, and frontend production
+build pass.
+
+A bounded two-turn MiniMax probe on a disposable DB was inspected directly,
+not accepted from status counters. Scarlet answered a one-sentence greeting,
+then received three canonical provider messages and correctly quoted `Che
+bello risentirti` from her prior answer. The slight service-like closing in the
+first reply and temporal gloss in the second were judged style variance, not
+provider-history loss.
+
+One earlier run with a 1,024-output-token override was rejected as invalid
+evidence because it did not match native Scarlet's configured budget. A
+separate valid probe exposed BUG-0091: a corrected memory-write retry succeeded
+but answer obligations kept only the first failed attempt and rejected a
+truthful final answer. The pre-existing defect is isolated in Linear SCA-42
+and was not changed inside SCA-34.
+
+The owner also fixed two durable boundaries: native project-selected providers
+remain the authoritative system while GPT Actions are an experimental adapter,
+and every behavioral test requires qualitative inspection of real actions and
+answers in addition to technical metrics.
+
 ## 2026-07-18 - V1.43.0 MCP Retirement (SCA-22)
 
 Removed the deprecated MCP/App connector implementation after the owner

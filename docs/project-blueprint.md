@@ -251,6 +251,13 @@ LLMProvider.tool_loop(...)
 
 Do not let provider-specific response shapes leak everywhere.
 
+The native runtime and project-selected providers are the authoritative
+execution path. External hosted-model bridges such as Custom GPT are useful
+experiments and adapters to the same cognitive contracts, not architectural
+drivers. Preserve parity where the external service exposes enough control,
+but do not complicate the core to emulate inaccessible provider-owned history,
+tool policy, or accounting.
+
 ### 4.3 Frontend
 
 Preferred:
