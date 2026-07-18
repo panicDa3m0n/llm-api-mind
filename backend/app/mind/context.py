@@ -1,5 +1,4 @@
 import json
-import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -9,18 +8,9 @@ from sqlmodel import Session
 
 from app.mind.affect import build_affective_context
 from app.mind.agent_modes import resolve_agent_mode, route_context_blocks
-from app.mind.facts import fact_payload, fact_search_text
-from app.mind.graph_retrieval import (
-    build_memory_graph_expansion,
-    graph_signals_by_memory,
-)
-from app.mind.relevance_rerank import (
-    FINAL_RERANK_POLICY,
-    MemoryRerankEntry,
-    MemoryRerankPlan,
-    build_memory_recall_pool,
-    rerank_status_payload,
-    run_memory_relevance_rerank,
+from app.mind.context_retrieval import (
+    build_automatic_memory_retrieval,
+    candidate_summary,
 )
 from app.mind.metacognitive_context import (
     build_metacognitive_context_payload,
@@ -36,42 +26,13 @@ from app.runtime.preferences import RuntimePreferences
 from app.mind.command_registry import COMMAND_FAMILIES
 from app.mind.context_projection import compile_model_context_v2_with_audit
 from app.mind.schema import build_mind_shell_catalog, shell_metadata
-from app.mind.search import (
-    entity_token_groups,
-    query_tokens,
-    retrieval_stage_manifest,
-    search_documents,
-    sparse_results_by_source,
-    sync_memory_documents,
-)
-from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.storage import repositories
-from app.storage.models import ChatSession, MemoryFact, MemoryRecord, Message, utc_now
+from app.storage.models import ChatSession, MemoryRecord, Message, utc_now
 
 
 RECENT_DIALOGUE_LIMIT = 8
-INTERNAL_CANDIDATE_LIMIT = 20
-MODEL_SELECTED_LIMIT = 5
-NEAR_MISS_MIN_SCORE = 1.5
 MODEL_MEMORY_PACKET_VERSION = "memory-packet-v1"
 MODEL_RUNTIME_CONTEXT_PROFILE = "compact-model-facing-v1"
-
-
-@dataclass(frozen=True)
-class MemoryCandidateScore:
-    memory: MemoryRecord
-    score: float
-    why_relevant: str
-    sparse_score: float
-    current_overlap: list[str]
-    context_overlap: list[str]
-    generic_overlap: list[str]
-    tag_overlap: list[str]
-    strong_signal: bool
-    graph_score: float = 0.0
-    graph_signal: dict[str, Any] | None = None
-    hybrid_score: float | None = None
-    hybrid_signals: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -137,168 +98,28 @@ def build_memory_context(
         "available_capabilities": capabilities,
         "time": timestamp.isoformat(),
     }
-    lexical_queries = _lexical_queries(
+    retrieval = build_automatic_memory_retrieval(
+        db,
         current_user_message=current_user_message.content,
         recent_dialogue=recent_dialogue,
-    )
-    candidates = repositories.list_memories(
-        db,
-        scope=None,
-        include_low_confidence=False,
-    )
-    facts_by_memory = {
-        memory.id: repositories.list_memory_facts(db, memory_id=memory.id)
-        for memory in candidates
-    }
-    sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
-    # The final query already contains the current message plus recent context.
-    # Joining every diagnostic variant would duplicate the current message and
-    # bias both sparse recall and the final reranker.
-    sparse_query = lexical_queries[-1]
-    sparse_matches = sparse_results_by_source(
-        search_documents(
-            db,
-            query=sparse_query,
-            kind="memory",
-            limit=INTERNAL_CANDIDATE_LIMIT * 4,
-        )
-    )
-    graph_expansion = build_memory_graph_expansion(
-        db,
-        query=sparse_query,
-        memories=candidates,
-        facts_by_memory=facts_by_memory,
-        limit=INTERNAL_CANDIDATE_LIMIT,
-    )
-    graph_signals = graph_signals_by_memory(graph_expansion)
-    rerank_candidate_limit = int(
-        getattr(settings, "retrieval_shadow_rerank_candidate_limit", 20) or 20
-    )
-    final_rerank_enabled = str(
-        getattr(settings, "retrieval_hybrid_mode", "off") or "off"
-    ).lower() in {"shadow", "active"}
-    retrieval_shadow = run_memory_surface_shadow_search(
-        db,
-        query=sparse_query,
-        candidate_memory_ids=[memory.id for memory in candidates],
         settings=settings,
-        limit=rerank_candidate_limit,
-        include_surface_rerank=not final_rerank_enabled,
     )
-    ranked_base = _rank_candidates(
-        candidates,
-        current_user_message=current_user_message.content,
-        recent_dialogue=recent_dialogue,
-        facts_by_memory=facts_by_memory,
-        sparse_matches=sparse_matches,
-        graph_signals=graph_signals,
-    )
-    recall_pool = build_memory_recall_pool(
-        candidates,
-        facts_by_memory=facts_by_memory,
-        routes={
-            "sparse": list(sparse_matches),
-            "dense": [
-                str(item["target_id"])
-                for item in retrieval_shadow.get("grouped_results", [])
-                if item.get("active_rank_eligible") is True
-                and isinstance(item.get("target_id"), str)
-            ],
-            "graph": list(graph_signals),
-            "lexical": [item.memory.id for item in ranked_base],
-        },
-        limit=rerank_candidate_limit,
-    )
-    rerank_plan = run_memory_relevance_rerank(
-        query=sparse_query,
-        candidates=recall_pool,
-        settings=settings,
-        selected_limit=MODEL_SELECTED_LIMIT,
-    )
-    retrieval_stages = (
-        [
-            "fts5_sparse_v1",
-            "dense_memory_surfaces_v1",
-            "networkx_graph_recall_v1",
-            "round_robin_recall_pool_v1",
-            FINAL_RERANK_POLICY,
-        ]
-        if rerank_plan.status.get("mode") != "off"
-        else ["fts5_sparse_v1", "lexical_guard_v1"]
-    )
-    if rerank_plan.active:
-        ranked = _context_candidates_from_final_rerank(
-            rerank_plan.entries,
-            base_ranked=ranked_base,
-        )
-    else:
-        ranked = ranked_base[:INTERNAL_CANDIDATE_LIMIT]
-    selected_ranked, near_miss_ranked, excluded_ranked = _classify_candidates(ranked)
-
-    near_miss = [
-        _candidate_payload(item, classification="near_miss")
-        | {
-            "facts": [
-                fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])
-            ]
-        }
-        for item in near_miss_ranked
-    ]
-    excluded = [
-        _candidate_payload(item, classification="excluded")
-        | {
-            "facts": [
-                fact_payload(fact) for fact in facts_by_memory.get(item.memory.id, [])
-            ]
-        }
-        for item in excluded_ranked
-    ]
-
-    selected: list[dict[str, Any]] = []
-    for item in selected_ranked[:MODEL_SELECTED_LIMIT]:
-        selected.append(
-            _candidate_payload(
-                item,
-                memory=item.memory,
-                classification="selected",
-                facts=facts_by_memory.get(item.memory.id, []),
-            )
-        )
-
-    conflicts = _detect_conflicts(selected)
     temporal_context = _temporal_context(timestamp, preferences)
     payload = {
         "operation": "memory.context",
         "searched": True,
         "turn_frame": turn_frame,
         "temporal_context": temporal_context,
-        "query_plan": {
-            "lexical_queries": lexical_queries,
-            "semantic_queries": [],
-            "sparse_query": _truncate(sparse_query, 1500),
-            "retrieval_stages": retrieval_stages,
-            "retrieval_readiness": retrieval_stage_manifest(),
-            "retrieval_graph": graph_expansion,
-            "retrieval_shadow": retrieval_shadow,
-            "retrieval_rerank": rerank_status_payload(rerank_plan),
-            # Compatibility key for evaluator clients written before V1.31.0.
-            "retrieval_hybrid": rerank_status_payload(rerank_plan),
-        },
-        "selected": selected,
-        "near_miss": near_miss,
-        "excluded": excluded,
-        "conflicts": conflicts,
-        "negative_evidence": _memory_negative_evidence(
-            selected=selected,
-            rerank_plan=rerank_plan,
-        ),
-        "candidate_count": len(candidates),
-        "ranked_candidate_count": len(ranked),
-        "selected_count": len(selected),
-        "budget": {
-            "internal_candidates": INTERNAL_CANDIDATE_LIMIT,
-            "model_selected": MODEL_SELECTED_LIMIT,
-        },
+        "query_plan": retrieval.query_plan(),
+        "selected": retrieval.selected,
+        "near_miss": retrieval.near_miss,
+        "excluded": retrieval.excluded,
+        "conflicts": retrieval.conflicts,
+        "negative_evidence": retrieval.negative_evidence,
+        "candidate_count": retrieval.candidate_count,
+        "ranked_candidate_count": retrieval.ranked_candidate_count,
+        "selected_count": len(retrieval.selected),
+        "budget": retrieval.budget(),
     }
     trace = repositories.add_trace(
         db,
@@ -307,12 +128,10 @@ def build_memory_context(
         kind="memory.context",
         payload=payload,
     )
-    for item in selected_ranked[:MODEL_SELECTED_LIMIT]:
-        if not (item.hybrid_signals or {}).get("rerank_signal"):
-            continue
+    for memory_id in retrieval.activity_memory_ids:
         repositories.add_memory_activity(
             db,
-            memory_id=item.memory.id,
+            memory_id=memory_id,
             activity_kind="automatic_reranked_context",
             source="automatic_context",
             profile_id=preferences.profile_id,
@@ -642,8 +461,8 @@ def _model_memory_context(memory_context: dict[str, Any]) -> dict[str, Any]:
             },
         },
         "selected": [_model_memory_packet(item) for item in memory_context["selected"]],
-        "near_miss": [_candidate_summary(item) for item in memory_context["near_miss"]],
-        "excluded": [_candidate_summary(item) for item in memory_context["excluded"]],
+        "near_miss": [candidate_summary(item) for item in memory_context["near_miss"]],
+        "excluded": [candidate_summary(item) for item in memory_context["excluded"]],
         "conflicts": memory_context["conflicts"],
         "negative_evidence": memory_context["negative_evidence"],
     }
@@ -1256,378 +1075,6 @@ def _previous_memory_context_from_events(
     return {}
 
 
-def _lexical_queries(
-    *,
-    current_user_message: str,
-    recent_dialogue: list[dict[str, Any]],
-) -> list[str]:
-    queries = [current_user_message]
-    recent_context = " ".join(
-        str(item["content"])
-        for item in recent_dialogue[-4:]
-        if item["content"] != current_user_message
-    )
-    if recent_context:
-        queries.append(f"{current_user_message} {recent_context}")
-    return [_truncate(query, 1500) for query in queries]
-
-
-def _rank_candidates(
-    memories: list[MemoryRecord],
-    *,
-    current_user_message: str,
-    recent_dialogue: list[dict[str, Any]],
-    facts_by_memory: dict[str, list[MemoryFact]],
-    sparse_matches: dict[str, Any] | None = None,
-    graph_signals: dict[str, Any] | None = None,
-) -> list[MemoryCandidateScore]:
-    current_text = _normalize_text(current_user_message)
-    current_tokens = set(_tokens(current_user_message))
-    entity_groups = entity_token_groups(current_user_message)
-    entity_tokens = set().union(*entity_groups) if entity_groups else set()
-    low_signal_tokens = _low_signal_query_tokens(
-        memories,
-        facts_by_memory=facts_by_memory,
-        query_tokens=current_tokens,
-    )
-    signal_tokens = (current_tokens - low_signal_tokens) | entity_tokens
-    context_text = " ".join(
-        str(item["content"])
-        for item in recent_dialogue
-        if item["content"] != current_user_message
-    )
-    context_tokens = set(_tokens(context_text))
-    scores: list[MemoryCandidateScore] = []
-    sparse_matches = sparse_matches or {}
-    graph_signals = graph_signals or {}
-
-    for memory in memories:
-        haystack = _memory_search_text(memory, facts=facts_by_memory.get(memory.id, []))
-        haystack_tokens = set(_tokens(haystack))
-        current_overlap = sorted(signal_tokens & haystack_tokens)
-        context_overlap = sorted(
-            (context_tokens & haystack_tokens)
-            - set(current_overlap)
-            - low_signal_tokens
-        )
-        generic_overlap = sorted(
-            (current_tokens & haystack_tokens) - set(current_overlap)
-        )
-        entity_supported = _supports_entity_group(
-            haystack_tokens,
-            memory.tags_json,
-            entity_groups=entity_groups,
-        )
-        tag_overlap = sorted(
-            tag
-            for tag in set(memory.tags_json)
-            if _tag_matches(tag, current_text)
-            and _tag_has_signal(
-                tag,
-                signal_tokens=signal_tokens,
-                entity_groups=entity_groups,
-            )
-        )
-
-        score = 0.0
-        reasons: list[str] = []
-        sparse_match = sparse_matches.get(memory.id)
-        sparse_score = sparse_match.score if sparse_match is not None else 0.0
-        graph_signal = graph_signals.get(memory.id)
-        graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
-        if sparse_match is not None:
-            score += sparse_score * 2.0
-            reasons.append(sparse_match.why_relevant)
-        if graph_signal is not None and graph_score > 0:
-            score += graph_score
-            reasons.append(getattr(graph_signal, "why_relevant", "graph expansion"))
-        if entity_supported:
-            score += 3.0
-            reasons.append("query entity support")
-        if current_overlap:
-            score += len(current_overlap) * 2.0
-            reasons.append(f"current token overlap: {', '.join(current_overlap)}")
-        if tag_overlap:
-            score += len(tag_overlap) * 2.5
-            reasons.append(f"tag match: {', '.join(tag_overlap)}")
-        if context_overlap:
-            score += len(context_overlap) * 0.4
-            reasons.append(f"recent dialogue overlap: {', '.join(context_overlap[:6])}")
-        if generic_overlap:
-            score += len(generic_overlap) * 0.2
-            reasons.append(f"generic overlap: {', '.join(generic_overlap)}")
-
-        if score <= 0:
-            continue
-
-        if entity_groups:
-            strong_signal = entity_supported
-        else:
-            strong_signal = (
-                len(current_overlap) >= 2
-                or bool(tag_overlap)
-                or graph_score >= 2.0
-                or (len(signal_tokens) <= 2 and bool(current_overlap))
-            )
-        scores.append(
-            MemoryCandidateScore(
-                memory=memory,
-                score=score,
-                why_relevant="; ".join(reasons),
-                sparse_score=sparse_score,
-                current_overlap=current_overlap,
-                context_overlap=context_overlap,
-                generic_overlap=generic_overlap,
-                tag_overlap=tag_overlap,
-                strong_signal=strong_signal,
-                graph_score=graph_score,
-                graph_signal=(
-                    {
-                        "score": round(graph_score, 6),
-                        "why_relevant": getattr(graph_signal, "why_relevant", ""),
-                        "domains": getattr(graph_signal, "domains", []),
-                        "paths": getattr(graph_signal, "paths", [])[:5],
-                    }
-                    if graph_signal is not None
-                    else None
-                ),
-            )
-        )
-
-    return sorted(
-        scores,
-        key=lambda item: (item.score, item.memory.created_at),
-        reverse=True,
-    )
-
-
-def _classify_candidates(
-    ranked: list[MemoryCandidateScore],
-) -> tuple[
-    list[MemoryCandidateScore],
-    list[MemoryCandidateScore],
-    list[MemoryCandidateScore],
-]:
-    selected: list[MemoryCandidateScore] = []
-    near_miss: list[MemoryCandidateScore] = []
-    excluded: list[MemoryCandidateScore] = []
-    has_user_associative_context = any(
-        item.memory.scope == "user" and item.graph_score >= 2.0 for item in ranked
-    )
-
-    for item in ranked:
-        final_signals = item.hybrid_signals or {}
-        if final_signals.get("final_arbiter") is True:
-            if final_signals.get("rerank_signal") is True:
-                selected.append(item)
-            elif final_signals.get("rerank_evaluated") is True:
-                near_miss.append(item)
-            else:
-                excluded.append(item)
-            continue
-        if (
-            has_user_associative_context
-            and item.graph_score <= 0
-            and not _has_confirmed_hybrid_signal(item)
-            and (item.memory.scope == "project" or item.score < 0.3)
-        ):
-            if item.score >= NEAR_MISS_MIN_SCORE:
-                near_miss.append(item)
-            else:
-                excluded.append(item)
-            continue
-        if item.strong_signal:
-            selected.append(item)
-        elif item.score >= NEAR_MISS_MIN_SCORE:
-            near_miss.append(item)
-        else:
-            excluded.append(item)
-    return selected, near_miss, excluded
-
-
-def _has_confirmed_hybrid_signal(item: MemoryCandidateScore) -> bool:
-    signals = item.hybrid_signals or {}
-    return bool(signals.get("dense_signal") or signals.get("rerank_signal"))
-
-
-def _context_candidates_from_final_rerank(
-    entries: list[MemoryRerankEntry],
-    *,
-    base_ranked: list[MemoryCandidateScore],
-) -> list[MemoryCandidateScore]:
-    base_by_id = {item.memory.id: item for item in base_ranked}
-    candidates: list[MemoryCandidateScore] = []
-    for entry in entries:
-        base = base_by_id.get(entry.memory_id)
-        signals = {
-            "ranking_policy": FINAL_RERANK_POLICY,
-            "mode": "active",
-            "final_arbiter": True,
-            "rerank_score": round(entry.score, 6),
-            "rerank_rank": entry.rank,
-            "rerank_signal": entry.accepted,
-            "rerank_evaluated": entry.evaluated,
-            "dense_signal": "dense" in entry.routes,
-            "recall_routes": list(entry.routes),
-            "route_ranks": entry.route_ranks,
-        }
-        reason = (
-            "Final memory-level reranker accepted this candidate."
-            if entry.accepted
-            else "Final memory-level reranker did not accept this candidate."
-        )
-        if base is not None:
-            candidates.append(
-                MemoryCandidateScore(
-                    memory=entry.memory,
-                    score=entry.score,
-                    why_relevant=reason,
-                    sparse_score=base.sparse_score,
-                    current_overlap=base.current_overlap,
-                    context_overlap=base.context_overlap,
-                    generic_overlap=base.generic_overlap,
-                    tag_overlap=base.tag_overlap,
-                    graph_score=base.graph_score,
-                    graph_signal=base.graph_signal,
-                    strong_signal=entry.accepted,
-                    hybrid_score=entry.score,
-                    hybrid_signals=signals,
-                )
-            )
-            continue
-        candidates.append(
-            MemoryCandidateScore(
-                memory=entry.memory,
-                score=entry.score,
-                why_relevant=reason,
-                sparse_score=0.0,
-                current_overlap=[],
-                context_overlap=[],
-                generic_overlap=[],
-                tag_overlap=[],
-                graph_score=0.0,
-                graph_signal=None,
-                strong_signal=entry.accepted,
-                hybrid_score=entry.score,
-                hybrid_signals=signals,
-            )
-        )
-    return candidates
-
-
-def _memory_negative_evidence(
-    *,
-    selected: list[dict[str, Any]],
-    rerank_plan: MemoryRerankPlan,
-) -> str:
-    if selected:
-        return "none"
-    if rerank_plan.active and not rerank_plan.completed:
-        return "final_rerank_unavailable"
-    return "no_relevant_memory_selected"
-
-
-def _candidate_payload(
-    item: MemoryCandidateScore,
-    *,
-    classification: str,
-    memory: MemoryRecord | None = None,
-    facts: list[MemoryFact] | None = None,
-) -> dict[str, Any]:
-    record = memory or item.memory
-    payload = {
-        "id": record.id,
-        "type": record.memory_type,
-        "scope": record.scope,
-        "status": record.status,
-        "content": record.content,
-        "reason_for_storage": record.reason_for_storage,
-        "expected_future_use": record.expected_future_use,
-        "source_session_id": record.source_session_id,
-        "source_turn_id": record.source_turn_id,
-        "source_message_id": record.source_message_id,
-        "tags": record.tags_json,
-        "metadata": record.metadata_json,
-        "usage_count": record.usage_count,
-        "created_at": _isoformat(record.created_at),
-        "updated_at": _isoformat(record.updated_at),
-        "last_used_at": _isoformat(record.last_used_at),
-        "score": round(item.score, 4),
-        "classification": classification,
-        "why_relevant": item.why_relevant,
-        "signals": {
-            "sparse_score": round(item.sparse_score, 4),
-            "graph_score": round(item.graph_score, 4),
-            "current_overlap": item.current_overlap,
-            "context_overlap": item.context_overlap,
-            "generic_overlap": item.generic_overlap,
-            "tag_overlap": item.tag_overlap,
-            "strong_signal": item.strong_signal,
-        },
-    }
-    if item.graph_signal is not None:
-        payload["signals"]["graph"] = item.graph_signal
-    if item.hybrid_signals is not None:
-        payload["signals"]["hybrid"] = item.hybrid_signals
-        payload["hybrid_score"] = round(item.hybrid_score or item.score, 4)
-    if facts is not None:
-        payload["facts"] = [fact_payload(fact) for fact in facts]
-    return payload
-
-
-def _candidate_summary(item: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "id": item["id"],
-        "type": item["type"],
-        "scope": item["scope"],
-        "score": item["score"],
-        "classification": item["classification"],
-        "why_relevant": item["why_relevant"],
-    }
-
-
-def _detect_conflicts(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    conflicts: list[dict[str, Any]] = []
-    facts_by_key: dict[
-        tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]
-    ] = {}
-    for memory in selected:
-        facts = memory.get("facts") if isinstance(memory.get("facts"), list) else []
-        for fact in facts:
-            if not isinstance(fact, dict) or fact.get("status") != "active":
-                continue
-            entity = str(fact.get("entity") or "")
-            predicate = str(fact.get("predicate") or "")
-            if not entity or not predicate:
-                continue
-            facts_by_key.setdefault((entity, predicate), []).append((memory, fact))
-
-    for (entity, predicate), items in facts_by_key.items():
-        memory_ids = sorted({str(memory.get("id")) for memory, _ in items})
-        values = {
-            repr(sorted((fact.get("value") or {}).items()))
-            for _, fact in items
-            if isinstance(fact.get("value"), dict)
-        }
-        if len(memory_ids) < 2 or len(values) < 2:
-            continue
-        conflicts.append(
-            {
-                "classification": "atomic_fact_conflict",
-                "basis": "atomic_fact",
-                "confidence": 0.95,
-                "entity": entity,
-                "predicate": predicate,
-                "memory_ids": memory_ids,
-                "reason": (
-                    "selected memories contain active facts with same entity "
-                    "and predicate but different values"
-                ),
-            }
-        )
-    return conflicts
-
-
 def _capability_state() -> dict[str, str]:
     capabilities: dict[str, str] = {
         "interface": "mind_shell",
@@ -1641,101 +1088,6 @@ def _capability_state() -> dict[str, str]:
         for action, spec in family.actions.items():
             capabilities[f"{namespace}.{action}"] = spec.status
     return capabilities
-
-
-def _memory_search_text(
-    memory: MemoryRecord,
-    *,
-    facts: list[MemoryFact] | None = None,
-) -> str:
-    return " ".join(
-        item
-        for item in [
-            memory.content,
-            memory.memory_type,
-            memory.scope,
-            " ".join(memory.tags_json),
-            fact_search_text(facts or []),
-        ]
-        if item
-    )
-
-
-def _low_signal_query_tokens(
-    memories: list[MemoryRecord],
-    *,
-    facts_by_memory: dict[str, list[MemoryFact]],
-    query_tokens: set[str],
-) -> set[str]:
-    if not memories or not query_tokens:
-        return set()
-    document_frequency = {token: 0 for token in query_tokens}
-    for memory in memories:
-        tokens = set(
-            _tokens(
-                _memory_search_text(
-                    memory,
-                    facts=facts_by_memory.get(memory.id, []),
-                )
-            )
-        )
-        for token in query_tokens:
-            if token in tokens:
-                document_frequency[token] += 1
-    threshold = max(3, int(len(memories) * 0.35))
-    return {token for token, count in document_frequency.items() if count >= threshold}
-
-
-def _supports_entity_group(
-    haystack_tokens: set[str],
-    tags: list[str],
-    *,
-    entity_groups: list[set[str]],
-) -> bool:
-    if not entity_groups:
-        return False
-    tag_token_sets = [
-        set(query_tokens(tag.replace("-", " ").replace("_", " "))) for tag in tags
-    ]
-    for group in entity_groups:
-        if group <= haystack_tokens:
-            return True
-        if any(group <= tag_tokens for tag_tokens in tag_token_sets):
-            return True
-    return False
-
-
-def _tag_has_signal(
-    tag: str,
-    *,
-    signal_tokens: set[str],
-    entity_groups: list[set[str]],
-) -> bool:
-    tag_tokens = set(query_tokens(tag.replace("-", " ").replace("_", " ")))
-    if not tag_tokens:
-        return False
-    if tag_tokens & signal_tokens:
-        return True
-    return any(group <= tag_tokens for group in entity_groups)
-
-
-def _subject_tokens(value: str) -> set[str]:
-    return {token for token in _tokens(value) if len(token) > 2}
-
-
-def _tag_matches(tag: str, current_text: str) -> bool:
-    normalized_tag = _normalize_text(tag)
-    if normalized_tag in current_text:
-        return True
-    return normalized_tag.replace("-", " ") in current_text
-
-
-def _tokens(value: str) -> list[str]:
-    return re.findall(r"\w+", value.casefold())
-
-
-def _normalize_text(value: str) -> str:
-    return " ".join(value.casefold().replace("-", " ").split())
 
 
 def _truncate(value: str, limit: int) -> str:

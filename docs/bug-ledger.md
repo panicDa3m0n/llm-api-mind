@@ -7,6 +7,45 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0093 - Frozen Automatic-Memory Gate Does Not Verify Model-Facing Delivery
+
+Date Found: 2026-07-18
+Status: open; tracked in Linear SCA-43
+
+Symptoms:
+
+The frozen `automatic_memory_retrieval` case passes when rich
+`memory.context.selected` contains the active Zero-Luce memory. A real MiniMax
+turn on the same untouched fixture nevertheless received an empty V2 memory
+packet and answered that no relevant memory was available.
+
+Root Cause:
+
+The frozen memory `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3` has source session
+and turn ids but no `source_message_id`. The V2 projector intentionally accepts
+only complete, resolvable source hooks, so selection and model delivery
+diverge. The gate asserts the former only.
+
+Evidence:
+
+The source turn contains exactly one user message,
+`msg_a3adf09c456246be92f91c774c9c25d0`, and the provenance maintainer classifies
+the link as `repairable_single_user_message`. On a disposable copy, exact
+repair made the memory source-complete; the repeated natural prompt then
+delivered the hook and Scarlet returned the correct four-block protocol.
+
+Required Fix:
+
+Add a new versioned or complementary gate with complete provenance that asserts
+the V2/model-request hook and inspects the resulting answer. Do not mutate the
+historical frozen V1 source or weaken the provenance gate.
+
+Related:
+
+- Linear SCA-43
+- Linear SCA-35
+- ADR-0100
+
 ## BUG-0092 - Stream Omitted Model-Context Trace Linkage
 
 Date Found: 2026-07-18

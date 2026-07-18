@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-18
-App baseline: V1.43.0 (deployed)
+App baseline: V1.46.0 candidate (V1.43.0 deployed)
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,

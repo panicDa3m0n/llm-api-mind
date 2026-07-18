@@ -7,6 +7,46 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0100 - Automatic Retrieval And Runtime Packet Assembly Have Separate Owners
+
+Date: 2026-07-18
+Status: accepted for V1.46.0
+
+Context:
+
+`app.mind.context` owned both model-runtime packet composition and the full
+automatic-memory retrieval pipeline. That mixed context policy with candidate
+pooling, ranking, final reranking, and diagnostic classification, making either
+responsibility harder to change and verify independently.
+
+Decision:
+
+- `app.mind.context_retrieval` owns automatic candidate collection, ranking,
+  selected/near-miss/excluded classification, final rerank projection,
+  conflicts, and negative evidence;
+- `app.mind.context` remains the stable facade for runtime packet assembly,
+  trace persistence, and cognitive activity recording;
+- ranking inputs, thresholds, candidate limits, payload semantics, and V2
+  projection policy do not change in this organizational slice; and
+- model-facing delivery must be verified independently from rich internal
+  retrieval selection because provenance gates can legitimately exclude a
+  selected candidate later in the pipeline.
+
+Consequences:
+
+Retrieval policy now has a cohesive typed owner without exposing a second
+public API. Future ranking work can be evaluated without reopening context
+assembly, while context routing can consume retrieval results through one
+explicit contract. Regression gates must distinguish selection from actual
+model delivery.
+
+Links:
+
+- Linear SCA-35
+- Linear SCA-43
+- BUG-0093
+- `docs/evaluations/v1.46-context-retrieval-separation.md`
+
 ## ADR-0099 - One Native Turn Lifecycle Behind The HTTP Facade
 
 Date: 2026-07-18

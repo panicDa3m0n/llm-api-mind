@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.45.0 candidate (V1.43.0 deployed)
+App baseline: V1.46.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -164,6 +164,11 @@ Current verification baseline:
   continuity in a directly inspected MiniMax probe. Stream now links its
   generated model-context trace consistently (BUG-0092). Deployment remains
   V1.43.0.
+- V1.46.0 candidate: SCA-35 frozen pre/post gates passed 9/9, focused
+  context/retrieval tests passed 101/101, and direct MiniMax inspection proved
+  automatic model-facing recall after exact source-provenance repair. The
+  frozen gate's delivery blind spot is isolated in BUG-0093/SCA-43. Deployment
+  remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -328,9 +333,10 @@ backend/app/mind/memory.py                   2921
 backend/app/plugins/gpt_bridge/router.py     1507
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
-backend/app/mind/context.py                  1809
 backend/app/api/chat_native_turn.py          1638
 backend/app/runtime/maintenance.py           1383
+backend/app/mind/context.py                  1161
+backend/app/mind/context_retrieval.py         731
 backend/app/api/chat.py                       218
 ```
 
@@ -344,9 +350,9 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in fourteen high-value typed modules while the measured
+- mypy blocks regressions in fifteen high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.45 backend suite passes 244 tests at 81.44% statement coverage;
+- the full V1.46 backend suite passes 244 tests at 81.50% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -432,11 +438,14 @@ behavior:
 
 ## 7. Current Best Next Step
 
-After SCA-33 closes native turn orchestration, the next approved atomic issue
-is SCA-35: separate automatic context candidate retrieval/ranking from runtime
-packet assembly without changing selected/near-miss/excluded semantics.
+SCA-35 now separates automatic context candidate retrieval/ranking from
+runtime packet assembly without changing selected/near-miss/excluded
+semantics. The next approved atomic issue is SCA-36: separate memory read
+surfaces behind the existing shell/dispatcher contracts.
 BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
 organization work.
+BUG-0093/SCA-43 separately tracks model-facing verification for the frozen
+automatic-memory reference.
 Long varied sessions should still monitor active compaction/degradation;
 duplicate/conflict adjudication remains a separate later discussion.
 

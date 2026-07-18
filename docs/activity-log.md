@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.46.0 Context Retrieval Separation (SCA-35)
+
+Moved automatic memory candidate collection, scoring, classification, final
+rerank projection, and negative evidence from `app.mind.context` into the typed
+`app.mind.context_retrieval` owner. The runtime-context builder remains the
+public facade and still owns packet assembly, trace persistence, and memory
+activity recording. `context.py` decreased from 1,809 to 1,161 lines; the new
+owner is 731 lines.
+
+The frozen pre/post gates
+`20260718_184350_preliminary-regression-v1` and
+`20260718_184927_preliminary-regression-v1` both pass 9/9. The automatic case
+kept the same active memory id, 33 candidates, and block types. Focused tests
+pass 101/101; all 244 backend tests pass at 81.50% coverage; Ruff and mypy
+across 15 guarded modules pass.
+
+Direct inspection found an evaluator blind spot. The frozen Zero-Luce memory
+is selected in rich `memory.context`, but lacks `source_message_id`, so the V2
+projector correctly omits it from the actual model packet. On a disposable
+copy, the deterministic provenance repair linked the one exact user message;
+the next natural MiniMax turn received the memory and correctly returned the
+four required blocks: Contesto, Evidenza, Rischio, and Prossima azione. This
+proves the current retrieval-to-model path under valid provenance, while
+BUG-0093/Linear SCA-43 tracks a complementary model-facing gate. The frozen V1
+case remains unchanged as historical evidence.
+
 ## 2026-07-18 - V1.45.0 Native Turn Orchestration (SCA-33)
 
 Moved the native sync/stream lifecycle from `app.api.chat` into the typed

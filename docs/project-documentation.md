@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.45.0 candidate (V1.43.0 deployed)
+App baseline: V1.46.0 candidate (V1.43.0 deployed)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -107,6 +107,9 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.45-native-turn-orchestration.md`: SCA-33 lifecycle
   boundary, sync/stream invariant evidence, direct continuity probe, trace
   parity fix, and qualitative variance classification.
+- `docs/evaluations/v1.46-context-retrieval-separation.md`: SCA-35 retrieval
+  ownership boundary, frozen equivalence, direct model-facing proof, and the
+  isolated provenance-fixture gap.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

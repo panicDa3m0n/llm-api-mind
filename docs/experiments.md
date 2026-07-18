@@ -9,6 +9,41 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0073 - Automatic Context Retrieval Separation Probe
+
+Status: bounded pre/post evidence accepted for the V1.46.0 candidate
+
+Hypothesis:
+
+Automatic memory retrieval can move behind a typed owner without changing
+candidate selection, classification, runtime packet assembly, shell
+navigation, or natural model behavior under valid source provenance.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after extraction;
+- run focused and complete deterministic suites;
+- inspect the automatic case's real memory id, candidate count, and block
+  types rather than accepting only its aggregate result;
+- send a natural Zero-Luce request to MiniMax on a disposable frozen copy; and
+- trace rich selection, V2 projection, provider request, model actions, and
+  final text directly.
+
+Result:
+
+Both gates passed 9/9 and selected the same active memory from 33 candidates.
+The first live probe exposed BUG-0093: the frozen memory was selected but
+excluded from V2 because its source message was absent. After exact provenance
+repair on the disposable copy, the repeated request required no manual tool
+and Scarlet correctly described all four ordered protocol blocks. The answer
+was semantically complete and grounded; it was not accepted from a score.
+
+Evidence:
+
+- pre gate `20260718_184350_preliminary-regression-v1`;
+- post gate `20260718_184927_preliminary-regression-v1`;
+- `docs/evaluations/v1.46-context-retrieval-separation.md`.
+
 ## EXP-0072 - Native Turn Orchestration Equivalence Probe
 
 Status: bounded pre/post evidence accepted for the V1.45.0 candidate

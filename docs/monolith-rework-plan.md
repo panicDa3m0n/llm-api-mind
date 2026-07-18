@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 and SCA-33 verified
-Runtime baseline: V1.43.0 deployed; V1.45.0 candidate in SCA-33
+Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34, SCA-33, and SCA-35 verified
+Runtime baseline: V1.43.0 deployed; V1.46.0 candidate in SCA-35
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -22,8 +22,9 @@ independently.
 
 ## Current Inventory
 
-The counts below were measured from the current V1.42-based worktree on
-2026-07-18. They are orientation values, not permanent thresholds.
+The initial counts were measured from the V1.42-based worktree on 2026-07-18;
+completed rows now show their post-slice values. They are orientation values,
+not permanent thresholds.
 
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
@@ -32,7 +33,8 @@ The counts below were measured from the current V1.42-based worktree on
 | `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
 | `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
-| `backend/app/mind/context.py` | 1,809 | automatic memory retrieval, runtime assembly, compatibility rendering, block construction, ranking/classification, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
+| `backend/app/mind/context.py` | 1,161 after SCA-35 | runtime assembly, compatibility rendering, block construction, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
+| `backend/app/mind/context_retrieval.py` | 731 | automatic candidate pooling, ranking, classification, final rerank, negative evidence | context facade, retrieval tests, preliminary gate | high: automatic memory evidence |
 | `backend/app/runtime/maintenance.py` | 1,383 | job scheduling/dispatch, summary repair, history compaction, idle summary, memory review and proposal resolution | app lifecycle, chat, bridge, maintenance API/tests | high: background mutation and summaries |
 | `frontend/src/App.tsx` | 4,474 | developer shell/state, chat flow, trace/model inspector, memory/events/settings panels, normalizers | desktop developer UI | medium: inspection and developer workflows |
 | `frontend/src/MobileApp.tsx` | 1,766 | mobile controller, chat/memory/actions/profile screens, activity state, flow normalization | consumer mobile UI | medium: user-facing conversation |
@@ -99,13 +101,15 @@ but did not link its model-context trace.
 
 ### 3. Context Retrieval Separation
 
-Issue: SCA-35.
+Issue: SCA-35, completed in the V1.46.0 candidate.
 
-Extract candidate pooling, ranking, classification, final-rerank projection,
-and negative evidence from `context.py`. Runtime block assembly and the public
-builders remain in the facade. This is organization only: candidate routes,
-thresholds, selected/near-miss/excluded semantics, V2 projection, and trace
-payloads cannot change.
+Candidate pooling, ranking, classification, final-rerank projection, conflicts,
+and negative evidence now live in typed `context_retrieval.py`. Runtime block
+assembly and public builders remain in `context.py`, reduced from 1,809 to
+1,161 lines. Frozen pre/post gates pass 9/9 and focused contracts pass 101/101.
+Direct inspection also separated rich selection from V2 delivery and opened
+SCA-43 for the historical gate's incomplete-provenance blind spot; retrieval
+policy itself did not change.
 
 ### 4. Memory Read Surface
 

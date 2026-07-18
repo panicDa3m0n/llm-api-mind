@@ -6,6 +6,34 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.46.0 - Automatic Context Retrieval Boundary
+
+#### Changed
+
+- Moved automatic memory candidate pooling, ranking, classification, final
+  rerank projection, and negative evidence into the typed
+  `app.mind.context_retrieval` owner.
+- Kept `app.mind.context` as the stable runtime-packet facade and preserved the
+  existing selected/near-miss/excluded payload, trace, and activity contracts.
+- Added the retrieval owner to the blocking mypy surface.
+
+#### Verification
+
+- Frozen SCA-35 pre/post gates pass 9/9 with the same active Zero-Luce memory,
+  33 candidates, and model-context block types.
+- Focused context/retrieval tests pass 101/101; the complete backend passes
+  244 tests at 81.50% coverage; Ruff and mypy pass.
+- A directly inspected MiniMax probe proved that the selected memory reaches
+  the model and produces the expected four-block answer after exact source
+  provenance is repaired on a disposable database.
+
+#### Known Issues
+
+- The frozen V1 gate checks rich automatic selection but not V2 model-facing
+  delivery. Its Zero-Luce fixture lacks `source_message_id`, so the projector
+  correctly excludes it. BUG-0093/Linear SCA-43 tracks a new complementary
+  gate without rewriting the historical baseline.
+
 ### V1.45.0 - Native Turn Orchestration Boundary
 
 #### Changed

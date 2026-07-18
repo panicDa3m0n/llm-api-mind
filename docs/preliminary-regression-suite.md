@@ -172,6 +172,15 @@ sync/stream orchestration and fixing stream model-context trace linkage, the
 identical post-change gate passed 9/9 in
 `20260718_183109_preliminary-regression-v1`.
 
+SCA-35 established its V1.45 pre-change baseline at 9/9 in
+`20260718_184350_preliminary-regression-v1`. After extracting automatic memory
+retrieval from runtime packet assembly, the identical post-change gate passed
+9/9 in `20260718_184927_preliminary-regression-v1` with the same active memory,
+33 candidates, and block types. Direct inspection showed that this historical
+case does not assert V2 model-facing delivery when source-message provenance is
+missing; BUG-0093/SCA-43 will add a complementary versioned case without
+rewriting V1.
+
 A post-rework change is admissible only when all of the following hold:
 
 1. the source SHA-256 and the three real references are unchanged;

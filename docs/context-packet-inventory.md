@@ -772,6 +772,7 @@ semantic duplication or conflict.
 ## Sources
 
 - `backend/app/mind/context.py`
+- `backend/app/mind/context_retrieval.py`
 - `backend/app/api/chat.py`
 - `backend/app/mind/shell.py`
 - `backend/app/mind/shell_presentation.py`
