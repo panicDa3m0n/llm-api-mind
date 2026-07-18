@@ -32,10 +32,11 @@ The source is the last published `backend/data/app.db` LFS object, not the
 mutable worktree database. The current worktree `app.db` may contain later
 live experiments and must never silently replace this baseline.
 
-Latest organizational equivalence evidence: SCA-38/V1.48.0 passed 9/9 before
-(`20260718_192112_preliminary-regression-v1`) and after
-(`20260718_193026_preliminary-regression-v1`) the memory mutation split, with
-stable source, retrieval, navigation, and lifecycle fields unchanged.
+Latest organizational equivalence evidence: SCA-37/V1.49.0 passed 9/9 before
+(`20260718_193905_preliminary-regression-v1`) and after
+(`20260718_194544_preliminary-regression-v1`) the maintenance-domain split,
+with stable source, retrieval, navigation, lifecycle, and maintenance-boundary
+fields unchanged.
 
 The runner makes two ignored local copies:
 

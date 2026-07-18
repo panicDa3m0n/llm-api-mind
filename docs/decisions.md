@@ -7,6 +7,44 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0103 - Maintenance Keeps One Runtime Facade With Three Domain Owners
+
+Date: 2026-07-18
+Status: accepted for V1.49.0
+
+Context:
+
+The maintenance runtime combined scheduling and worker lifecycle, episodic
+summary/history compaction, and semantic-memory review/proposal resolution.
+Those paths share a job ledger but have different evidence and mutation
+authority, making the monolith difficult to inspect without changing behavior.
+
+Decision:
+
+- `maintenance_scheduler` owns scheduling, due-job dispatch, worker lifecycle,
+  final job state, and event orchestration;
+- `maintenance_history` owns summary audit/repair, idle summaries, idle checks,
+  and history compaction execution;
+- `maintenance_memory` owns missed-memory review, proposal creation, cautious
+  resolution, prompts, and auto-apply guards;
+- `maintenance_shared` owns only job-kind constants and cross-domain types;
+- `maintenance.py` remains the stable public facade; and
+- this ownership split does not change job policy, prompts, thresholds, API
+  contracts, or expose maintenance as an additional model-facing surface.
+
+Consequences:
+
+Summary/history and memory policy can now be tested and evolved independently,
+while scheduling remains the single authority for state transitions. A
+successful job status remains technical evidence only; behavioral acceptance
+still requires direct inspection of summaries, memory decisions, actions, and
+persisted outcomes.
+
+Links:
+
+- Linear SCA-37
+- `docs/evaluations/v1.49-maintenance-domains.md`
+
 ## ADR-0102 - Memory Mutation Domains Share A Stable Facade, Not Policy
 
 Date: 2026-07-18

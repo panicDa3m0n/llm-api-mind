@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.48.0 candidate (V1.43.0 deployed)
+App baseline: V1.49.0 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,7 +43,7 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers twenty-one high-value modules that currently pass
+The blocking mypy gate covers twenty-five high-value modules that currently pass
 without suppressing their own errors:
 
 - native chat provider-history transformations;
@@ -62,6 +62,8 @@ without suppressing their own errors:
 - context accounting;
 - answer-obligation compilation and semantic verdict parsing;
 - chronological source mapping and shadow partition planning;
+- maintenance scheduling/dispatch, summary/history execution, memory review,
+  and shared job contracts;
 - database ownership boundaries.
 
 Imports are treated as external to this first slice so SQLModel repository
@@ -153,6 +155,12 @@ relations are at 88%, 60%, 75%, and 98%; shared contracts remain at 97%.
 Frozen pre/post gates pass 9/9 and focused mutation/maintenance/facade
 contracts pass 70/70. Direct shell, proposal, and natural Scarlet probes are
 reviewed qualitatively in addition to deterministic pass counters.
+
+V1.49.0 passes 247 tests at 81.63%. Maintenance history, memory review,
+scheduler, shared contracts, and facade are at 74%, 79%, 76%, 100%, and 100%.
+Frozen pre/post gates pass 9/9 and focused maintenance/history/facade contracts
+pass 32/32. Direct compaction and MiniMax idle-maintenance results were read and
+judged semantically in addition to their persisted technical evidence.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

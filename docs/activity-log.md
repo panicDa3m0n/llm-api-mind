@@ -4,6 +4,31 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.49.0 Maintenance Runtime Domains (SCA-37)
+
+Separated the 1,383-line maintenance runtime into a scheduling/dispatch owner,
+a summary/history owner, a memory-review/proposal owner, and a small shared
+contract module. `maintenance.py` is now an 18-line compatibility facade. Job
+kinds, persisted states, scheduling, retries, idempotency, idle verification,
+prompts, auto-apply thresholds, public imports, and worker behavior remain
+unchanged.
+
+The frozen pre gate `20260718_193905_preliminary-regression-v1` and post gate
+`20260718_194544_preliminary-regression-v1` both pass 9/9 with identical stable
+source, retrieval, navigation, lifecycle, and maintenance-boundary evidence.
+Focused contracts pass 32/32; all 247 backend tests pass at 81.63% coverage;
+Ruff and mypy across 25 guarded modules pass.
+
+A direct compaction probe verified one idempotent job, one provider call, exact
+source digest, expected summary coverage, unchanged canonical history, and the
+complete schedule/start/completed event chain. A natural MiniMax M3 idle job
+summarized a short pause accurately and returned zero memory candidates for a
+transient pacing remark. This was accepted by reading the actual summary,
+review rationale, actions, records, and events, not from completion status or
+numeric counters alone. Three earlier inspection failures used wrong helper or
+field names in disposable harness code; the real jobs had already completed
+and no application defect was involved.
+
 ## 2026-07-18 - V1.48.0 Memory Mutation And Evidence (SCA-38)
 
 Separated the remaining memory mutation surface into `memory_write` (write

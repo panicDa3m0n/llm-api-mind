@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-18
-System version assessed: V1.48.0 candidate
+System version assessed: V1.49.0 candidate
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -33,6 +33,9 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   il facade stabile. Similarita e conflitti restano evidenze, non decisioni
   automatiche. Uso diretto e MiniMax confermano write, dedup, supersessione,
   provenienza e risposta naturale coerenti.
+- V1.49.0 separa il worker/scheduler dai domini summary/history e memory review
+  senza cambiare prompt, soglie, proposal o stati persistiti. Un test naturale
+  conferma una summary fedele e il corretto rifiuto di una memoria transitoria.
 - V1.29.0 sostituisce il packet automatico ricco con tre liste di hook V2
   (`relevant`, `recent_user`, `recent_general`), deduplicate e navigabili.
 - `memory_activities` separa recenza cognitiva append-only da `updated_at`;

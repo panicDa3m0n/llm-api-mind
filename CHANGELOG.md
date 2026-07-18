@@ -6,6 +6,31 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.49.0 - Maintenance Runtime Domains
+
+#### Changed
+
+- Split maintenance scheduling/dispatch, summary-history work, and memory
+  review/proposal resolution into dedicated typed owners behind the unchanged
+  `app.runtime.maintenance` facade.
+- Preserved job kinds, scheduling, retry and idempotency behavior, idle checks,
+  prompts, auto-apply thresholds, worker lifecycle, API imports, and persisted
+  job/event contracts.
+- Extended the blocking mypy surface from 21 to 25 modules.
+
+#### Verification
+
+- Frozen SCA-37 pre/post gates pass 9/9 with identical stable evidence;
+  focused maintenance/history contracts pass 32/32 and the complete backend
+  passes 247 tests at 81.63% coverage.
+- Normalized pre/post OpenAPI is exactly equal at 39,251 bytes.
+- Direct history-compaction use preserved idempotency, canonical history, exact
+  source anchoring, and expected events on a disposable database.
+- A natural MiniMax M3 idle-maintenance probe produced a faithful session
+  summary and correctly declined to remember a transient pause. Actions,
+  persisted records, and answer quality were inspected directly rather than
+  accepted from status counters alone.
+
 ### V1.48.0 - Memory Mutation And Evidence Boundaries
 
 #### Changed

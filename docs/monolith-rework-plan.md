@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 through SCA-38 verified
-Runtime baseline: V1.43.0 deployed; V1.48.0 candidate in SCA-38
+Status: accepted execution map from SCA-10; SCA-22 and SCA-33 through SCA-38 verified
+Runtime baseline: V1.43.0 deployed; V1.49.0 candidate in SCA-37
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -29,19 +29,22 @@ not permanent thresholds.
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
 | `backend/app/mind/memory.py` | 38 after SCA-38 | compatibility facade for all memory commands | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | high: stable import contract |
-| `backend/app/mind/memory_read.py` | 975 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
+| `backend/app/mind/memory_read.py` | 996 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
 | `backend/app/mind/memory_write.py` | 616 | write contracts/policy, exact dedup, facts and backfill | facade, lifecycle, proposals, dispatcher | very high: semantic persistence |
 | `backend/app/mind/memory_lifecycle.py` | 462 | deprecate/supersede and fact lifecycle propagation | facade, dispatcher | very high: semantic state mutation |
 | `backend/app/mind/memory_proposals.py` | 555 | maintenance proposal preflight, ledger payload and apply | facade, maintenance runtime/API | high: background semantic candidates |
 | `backend/app/mind/memory_relations.py` | 274 | atomic conflicts and maintenance overlap evidence | facade, dispatcher | high: evidence authority |
-| `backend/app/mind/memory_shared.py` | 156 | shared fields, payload, normalization, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
+| `backend/app/mind/memory_shared.py` | 152 | shared fields, payload, normalization, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
 | `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
 | `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
-| `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
+| `backend/app/plugins/gpt_bridge/router.py` | 1,509 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
 | `backend/app/mind/context.py` | 1,161 after SCA-35 | runtime assembly, compatibility rendering, block construction, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
 | `backend/app/mind/context_retrieval.py` | 731 | automatic candidate pooling, ranking, classification, final rerank, negative evidence | context facade, retrieval tests, preliminary gate | high: automatic memory evidence |
-| `backend/app/runtime/maintenance.py` | 1,383 | job scheduling/dispatch, summary repair, history compaction, idle summary, memory review and proposal resolution | app lifecycle, chat, bridge, maintenance API/tests | high: background mutation and summaries |
+| `backend/app/runtime/maintenance_memory.py` | 746 after SCA-37 | memory review and proposal resolution | scheduler, proposal/memory owners, maintenance tests | high: background semantic mutation |
+| `backend/app/runtime/maintenance_scheduler.py` | 468 after SCA-37 | schedules, dispatch, worker and job completion | app lifecycle, chat, maintenance API/tests | high: background lifecycle authority |
+| `backend/app/runtime/maintenance_history.py` | 200 after SCA-37 | summary audit/repair, idle summary and history compaction | scheduler, episodic/history runtime, tests | high: episodic continuity |
+| `backend/app/runtime/maintenance.py` | 18 after SCA-37 | stable public facade | app lifecycle, chat, bridge, maintenance API/tests | low: compatibility only |
 | `frontend/src/App.tsx` | 4,474 | developer shell/state, chat flow, trace/model inspector, memory/events/settings panels, normalizers | desktop developer UI | medium: inspection and developer workflows |
 | `frontend/src/MobileApp.tsx` | 1,766 | mobile controller, chat/memory/actions/profile screens, activity state, flow normalization | consumer mobile UI | medium: user-facing conversation |
 
@@ -141,12 +144,15 @@ proposal, and natural Scarlet probes preserve mutation semantics and behavior.
 
 ### 6. Maintenance Domains
 
-Issue: SCA-37, unblocked by completed SCA-38.
+Issue: SCA-37, completed in the V1.49.0 candidate.
 
-Separate scheduler/dispatcher, summary-history work, and memory-review/proposal
-resolution. Preserve job kinds, persisted status, idempotency, retry behavior,
-idle checks, prompts, and auto-apply guards. The worker remains one runtime
-surface even if implementations live in domain modules.
+Scheduler/dispatcher, summary-history work, and memory-review/proposal
+resolution now have dedicated typed owners behind the 18-line maintenance
+facade. Job kinds, persisted status, idempotency, retry behavior, idle checks,
+prompts, auto-apply guards, and the single worker surface are preserved. Frozen
+pre/post gates pass 9/9, focused contracts pass 32/32, and direct compaction
+plus natural MiniMax maintenance probes preserve technical and semantic
+behavior.
 
 ### 7. GPT Actions Router
 

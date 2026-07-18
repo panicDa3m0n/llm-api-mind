@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.48.0 candidate (V1.43.0 deployed)
+App baseline: V1.49.0 candidate (V1.43.0 deployed)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -115,6 +115,9 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.48-memory-mutation-surface.md`: SCA-38 mutation-domain
   ownership, exact equivalence, direct lifecycle/proposal evidence, and a
   natural Scarlet persistence probe.
+- `docs/evaluations/v1.49-maintenance-domains.md`: SCA-37 maintenance-domain
+  ownership, exact equivalence, direct compaction evidence, and natural
+  summary/memory-review judgment.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

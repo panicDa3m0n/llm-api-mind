@@ -9,6 +9,45 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0076 - Maintenance Domain Equivalence And Semantic Probe
+
+Status: bounded pre/post and direct behavioral evidence accepted for V1.49.0
+
+Hypothesis:
+
+Maintenance scheduling, summary/history execution, and memory review can move
+to separate owners without changing job lifecycle, retry/idempotency behavior,
+prompts, proposal policy, history sources, or Scarlet's maintenance judgments.
+
+Method:
+
+- compare the frozen nine-case gate and focused maintenance/history tests
+  before and after extraction;
+- compare moved definitions, prompt text, thresholds, facade identities, and
+  the normalized OpenAPI document;
+- execute history compaction directly on a disposable database and inspect the
+  job, artifact, canonical history, provider calls, and events; and
+- run a natural MiniMax M3 conversation followed by the real idle worker, then
+  inspect Scarlet's answer, generated summary, memory-review rationale,
+  proposals, memories, and event trail.
+
+Result:
+
+Pre/post gates passed 9/9 with identical stable evidence and focused contracts
+passed 32/32. Direct compaction produced one idempotent completed job and one
+source-anchored artifact without mutating canonical history. MiniMax answered a
+natural pause proportionately; maintenance summarized the exchange accurately
+and correctly created no memory for the transient remark. Direct semantic
+judgment therefore agrees with the persisted technical evidence. Harness-only
+inspection mistakes were classified separately and do not indicate runtime or
+model defects.
+
+Evidence:
+
+- pre gate `20260718_193905_preliminary-regression-v1`;
+- post gate `20260718_194544_preliminary-regression-v1`;
+- `docs/evaluations/v1.49-maintenance-domains.md`.
+
 ## EXP-0075 - Memory Mutation Surface Equivalence Probe
 
 Status: bounded pre/post and direct behavioral evidence accepted for V1.48.0

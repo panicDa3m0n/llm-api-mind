@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.48.0 candidate (V1.43.0 deployed)
+App baseline: V1.49.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -178,6 +178,11 @@ Current verification baseline:
   proposal, and natural MiniMax probes preserved write, deduplication,
   lifecycle, evidence authority, provenance, and agent behavior. Deployment
   remains V1.43.0.
+- V1.49.0 candidate: SCA-37 frozen pre/post gates passed 9/9 with identical
+  stable evidence; focused contracts passed 32/32. Direct compaction and
+  natural idle-maintenance probes preserved scheduling, source anchoring,
+  canonical chronology, summary quality, and conservative memory judgment.
+  Deployment remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -338,32 +343,40 @@ The current largest modules are:
 
 ```txt
 frontend/src/App.tsx                         4474 lines
-backend/app/mind/memory.py                   1938
-backend/app/plugins/gpt_bridge/router.py     1507
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
 backend/app/api/chat_native_turn.py          1638
-backend/app/runtime/maintenance.py           1383
+backend/app/plugins/gpt_bridge/router.py     1509
 backend/app/mind/context.py                  1161
+backend/app/mind/memory_read.py               996
+backend/app/runtime/maintenance_memory.py     746
 backend/app/mind/context_retrieval.py         731
-backend/app/mind/memory_read.py               975
-backend/app/mind/memory_shared.py             152
+backend/app/mind/memory_write.py              616
+backend/app/mind/memory_proposals.py          555
+backend/app/runtime/maintenance_scheduler.py  468
+backend/app/mind/memory_lifecycle.py          462
+backend/app/mind/memory_relations.py          274
 backend/app/api/chat.py                       218
+backend/app/runtime/maintenance_history.py    200
+backend/app/mind/memory_shared.py             152
+backend/app/mind/memory.py                     38
+backend/app/runtime/maintenance.py             18
 ```
 
-These files are not automatically incorrect, but they concentrate unrelated
-responsibilities and raise regression cost. The same concentration appears in
-`test_mind_api.py` and `test_chat_api.py`. A future rework should split by
-contract and lifecycle while preserving facades and running the frozen 9-case
-gate before and after.
+The larger owner modules are not automatically incorrect, but they still carry
+meaningful regression cost. The small memory and maintenance facades are shown
+to make the completed ownership boundaries explicit; they are no longer
+structural debt themselves. Similar concentration remains in `test_mind_api.py`
+and `test_chat_api.py`. Future rework should continue by contract and lifecycle
+while preserving facades and running the frozen 9-case gate before and after.
 
 Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in seventeen high-value typed modules while the measured
+- mypy blocks regressions in twenty-five high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.47 backend suite passes 245 tests at 81.54% statement coverage;
+- the full V1.49 backend suite passes 247 tests at 81.63% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -449,11 +462,11 @@ behavior:
 
 ## 7. Current Best Next Step
 
-SCA-36 and SCA-38 now separate memory read, mutation, lifecycle, proposal, and
-relation-evidence domains behind the unchanged shell/dispatcher facade. The
-next dependent organizational issue is SCA-37: separate maintenance scheduling,
-summary/history work, and memory-review/proposal resolution without changing
-job lifecycle or auto-apply guards.
+SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
+facades. The next planned organizational slice is SCA-39, but the GPT Actions
+bridge remains an experimental external adapter: its cleanup must preserve the
+shared native context/shell architecture and must not displace higher-value
+native-system stability work.
 BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
 organization work.
 BUG-0093/SCA-43 separately tracks model-facing verification for the frozen
