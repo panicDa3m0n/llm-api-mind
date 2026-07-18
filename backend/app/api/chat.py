@@ -20,6 +20,7 @@ from app.llm.factory import (
 from app.llm.provider import (
     LLMExecutedToolCall,
     LLMConfigurationError,
+    LLMIncompleteResponseError,
     LLMMessage,
     LLMProvider,
     LLMRequestError,
@@ -367,7 +368,9 @@ def build_chat_router(
                     "model_context_profile": memory_context.model_context_profile,
                     "model_context_trace_id": memory_context.model_context_trace_id,
                     "context_accounting_trace_id": accounting_trace_id,
-                    "context_accounting": _context_accounting_summary(accounting_payload),
+                    "context_accounting": _context_accounting_summary(
+                        accounting_payload
+                    ),
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -444,6 +447,25 @@ def build_chat_router(
                     "recoverable": True,
                 },
             ) from exc
+        except LLMIncompleteResponseError as exc:
+            _record_failed_turn(
+                engine,
+                session_id=session_id,
+                turn_id=turn_id,
+                started=started,
+                code="llm.incomplete_response",
+                message=str(exc),
+                details=exc.details,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "code": "llm.incomplete_response",
+                    "message": str(exc),
+                    "recoverable": True,
+                    "details": exc.details,
+                },
+            ) from exc
         except LLMRequestError as exc:
             _record_failed_turn(
                 engine,
@@ -462,6 +484,28 @@ def build_chat_router(
                 },
             ) from exc
 
+        if not result.text.strip():
+            details = _incomplete_result_details(result)
+            message = "Provider ended without public text or a tool call."
+            _record_failed_turn(
+                engine,
+                session_id=session_id,
+                turn_id=turn_id,
+                started=started,
+                code="llm.incomplete_response",
+                message=message,
+                details=details,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail={
+                    "code": "llm.incomplete_response",
+                    "message": message,
+                    "recoverable": True,
+                    "details": details,
+                },
+            )
+
         latency_ms = int((time.perf_counter() - started) * 1000)
         with Session(engine) as db:
             assistant_message = repositories.add_message(
@@ -476,6 +520,7 @@ def build_chat_router(
                     "model": result.model,
                     "usage": result.usage,
                     "stop_reason": result.stop_reason,
+                    "completion_recovery": result.completion_recovery,
                 },
             )
             response_trace = repositories.add_trace(
@@ -495,6 +540,7 @@ def build_chat_router(
                         for tool_call in result.tool_calls
                     ],
                     "raw_provider_messages": result.raw_provider_messages,
+                    "completion_recovery": result.completion_recovery,
                 },
             )
             trace_ids.append(response_trace.id)
@@ -518,6 +564,7 @@ def build_chat_router(
                     "stop_reason": result.stop_reason,
                     "usage": result.usage,
                     "tool_call_count": len(result.tool_calls),
+                    "completion_recovery": result.completion_recovery,
                 },
                 source="llm",
                 actor="backend",
@@ -589,7 +636,7 @@ def build_chat_router(
                 model=result.model,
                 latency_ms=latency_ms,
                 usage=result.usage,
-        )
+            )
 
     @router.post("/sessions/{session_id}/turn/stream")
     def create_streaming_turn(
@@ -781,7 +828,9 @@ def build_chat_router(
                     ).get("model_facing", False),
                     "runtime_context_trace_id": memory_context.runtime_trace_id,
                     "context_accounting_trace_id": accounting_trace_id,
-                    "context_accounting": _context_accounting_summary(accounting_payload),
+                    "context_accounting": _context_accounting_summary(
+                        accounting_payload
+                    ),
                     "tool_loop_policy": "model_controlled_unbounded",
                     "provider_history_source": provider_history_source,
                     "provider_message_stats": provider_message_stats,
@@ -1087,6 +1136,27 @@ def _stream_turn_events(
             {"code": "llm.not_configured", "message": str(exc), "recoverable": True},
         )
         return
+    except LLMIncompleteResponseError as exc:
+        failed_event = _record_failed_turn(
+            engine,
+            session_id=session_id,
+            turn_id=turn_id,
+            started=started,
+            code="llm.incomplete_response",
+            message=str(exc),
+            details=exc.details,
+        )
+        yield emit_runtime_event(failed_event)
+        yield emit(
+            "error",
+            {
+                "code": "llm.incomplete_response",
+                "message": str(exc),
+                "recoverable": True,
+                "details": exc.details,
+            },
+        )
+        return
     except LLMRequestError as exc:
         failed_event = _record_failed_turn(
             engine,
@@ -1120,6 +1190,30 @@ def _stream_turn_events(
         )
         return
 
+    if not result.text.strip():
+        details = _incomplete_result_details(result)
+        message = "Provider ended without public text or a tool call."
+        failed_event = _record_failed_turn(
+            engine,
+            session_id=session_id,
+            turn_id=turn_id,
+            started=started,
+            code="llm.incomplete_response",
+            message=message,
+            details=details,
+        )
+        yield emit_runtime_event(failed_event)
+        yield emit(
+            "error",
+            {
+                "code": "llm.incomplete_response",
+                "message": message,
+                "recoverable": True,
+                "details": details,
+            },
+        )
+        return
+
     latency_ms = int((time.perf_counter() - started) * 1000)
     final_runtime_events: list[dict[str, Any]] = []
     with Session(engine) as db:
@@ -1135,6 +1229,7 @@ def _stream_turn_events(
                 "model": result.model,
                 "usage": result.usage,
                 "stop_reason": result.stop_reason,
+                "completion_recovery": result.completion_recovery,
             },
         )
         response_trace = repositories.add_trace(
@@ -1150,10 +1245,10 @@ def _stream_turn_events(
                 "stop_reason": result.stop_reason,
                 "raw_content": result.raw_content,
                 "tool_calls": [
-                    tool_call.model_dump(mode="json")
-                    for tool_call in result.tool_calls
+                    tool_call.model_dump(mode="json") for tool_call in result.tool_calls
                 ],
                 "raw_provider_messages": result.raw_provider_messages,
+                "completion_recovery": result.completion_recovery,
                 "stream": True,
             },
         )
@@ -1183,6 +1278,7 @@ def _stream_turn_events(
                         "stop_reason": result.stop_reason,
                         "usage": result.usage,
                         "tool_call_count": len(result.tool_calls),
+                        "completion_recovery": result.completion_recovery,
                         "stream": True,
                     },
                     source="llm",
@@ -1445,8 +1541,7 @@ def _updated_provider_history(
     result: LLMTextResult,
 ) -> ProviderHistory:
     history = [
-        _llm_message_to_provider_history_item(message)
-        for message in request_messages
+        _llm_message_to_provider_history_item(message) for message in request_messages
     ]
     history.extend(_provider_history_from_result(result))
     return history
@@ -1680,35 +1775,55 @@ def _record_failed_turn(
     started: float,
     code: str,
     message: str,
+    details: dict[str, Any] | None = None,
 ) -> CognitiveEvent:
     latency_ms = int((time.perf_counter() - started) * 1000)
+    error = {"code": code, "message": message}
+    if details:
+        error["details"] = details
     with Session(engine) as db:
         trace = repositories.add_trace(
             db,
             session_id=session_id,
             turn_id=turn_id,
             kind="llm.error",
-            payload={"code": code, "message": message},
+            payload=error,
         )
         completed = repositories.complete_turn(
             db,
             turn_id=turn_id,
             status="failed",
             latency_ms=latency_ms,
-            error={"code": code, "message": message},
+            error=error,
         )
         return record_event(
             db,
             session_id=session_id,
             turn_id=turn_id,
             event_type="turn.failed",
-            payload={"code": code, "message": message, "latency_ms": latency_ms},
+            payload={**error, "latency_ms": latency_ms},
             source="runtime",
             actor="backend",
             visibility="debug",
             status=completed.status,
             trace_id=trace.id,
         )
+
+
+def _incomplete_result_details(result: LLMTextResult) -> dict[str, Any]:
+    raw_types = [
+        block.get("type")
+        for block in _valid_content_blocks(result.raw_content)
+        if isinstance(block.get("type"), str)
+    ]
+    return {
+        "reason": "empty_terminal_result",
+        "stop_reason": result.stop_reason,
+        "provider_message_id": result.provider_message_id,
+        "raw_content_types": raw_types,
+        "tool_call_count": len(result.tool_calls),
+        "completion_recovery": result.completion_recovery,
+    }
 
 
 def _session_response(chat_session: ChatSession) -> ChatSessionResponse:

@@ -1,7 +1,7 @@
 # Quality Gates
 
-Last updated: 2026-07-14
-App baseline: V1.36.0
+Last updated: 2026-07-18
+App baseline: V1.36.1
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -84,6 +84,10 @@ V1.34.0 passes 182 tests at 80.19%. The behavioral evaluator support added in
 this release is exercised directly: objective evidence is at 93%, frozen DB
 guards at 87%, and the live-suite runner at 65% without excluding evaluator
 entry points from the denominator.
+
+V1.36.1 passes 198 tests at 80.22%. The thinking-only completion policy adds
+provider recovery/exhaustion coverage plus synchronous and streaming API
+guards without lowering the project floor.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

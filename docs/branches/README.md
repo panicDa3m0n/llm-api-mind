@@ -1,7 +1,7 @@
 # Agentic Branches
 
-Last updated: 2026-07-14
-App baseline: V1.36.0
+Last updated: 2026-07-18
+App baseline: V1.36.1
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -34,7 +34,7 @@ turns. Every branch document must state:
 
 | Branch | Level | Implementation | Runtime/behavior | Next gate |
 |---|---:|---|---|---|
-| Communication | L4 | Prompt, stream semantics, public notes, dev/mobile rendering, executable behavioral suite | active; good but not uniformly proportional | expand natural scenarios to notes, greetings and long work |
+| Communication | L4 | Prompt, stream semantics, public notes, completion invariant, dev/mobile rendering, executable behavioral suite | active; thinking-only finals recover once or fail explicitly; style is not uniformly proportional | expand natural scenarios to notes, greetings and long work |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
 | Perception and context | L4 | shared V2, accounting v2, exact chronology map, mode router | active routing; token-partition compaction shadow-only | recursive summary persistence and approved active derived router |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |

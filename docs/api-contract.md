@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-14
-App baseline: V1.36.0
+Last reviewed: 2026-07-18
+App baseline: V1.36.1
 
 ## Response Philosophy
 
@@ -1576,6 +1576,23 @@ assistant response, and store request/response traces.
 Provider execution policy: Anthropic-compatible model calls use provider
 streaming internally. This endpoint still returns one final response object; the
 stream is collected inside the backend.
+
+Completion invariant (V1.36.1): a successful user-facing turn must contain
+non-empty public assistant text after any model-controlled tool calls. When a
+provider returns only private thinking with `stop_reason=end_turn`, the
+Anthropic-compatible tool loop may request one bounded continuation, configured
+by `INCOMPLETE_FINAL_MAX_RETRIES` (default `1`). The incomplete attempt is kept
+in `completion_recovery` trace metadata but is not appended to canonical
+provider history. Private thinking is never promoted into public text, memory,
+or a tool call.
+
+If the continuation is exhausted, or an adapter returns any other empty final
+result, the endpoint returns HTTP `502` with code
+`llm.incomplete_response`. The turn is persisted as `failed`; no empty
+assistant message is created. Streaming turns emit a terminal `error` instead
+of `turn_complete`. A successful streamed recovery records
+`llm.completion.recovery.started`; both sync and stream response traces include
+the final `completion_recovery` object.
 
 The model-facing history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages

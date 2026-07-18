@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-14
-App baseline: V1.36.0
+Last updated: 2026-07-18
+App baseline: V1.36.1
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -76,6 +76,9 @@ Implemented and verified:
   maintenance, debug, and rollback, not exposed as a second native model tool;
 - GPT Actions bridge using mandatory bootstrap/action/finalize lifecycle and
   the same context compiler and shell dispatcher as native Scarlet;
+- one bounded provider continuation for a thinking-only `end_turn`, followed
+  by explicit `llm.incomplete_response` failure if no public answer or real
+  tool call emerges; incomplete attempts remain trace-only evidence;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   non-destructive `C/H/A` compaction planning;
@@ -86,7 +89,7 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 161 tests passed;
+- backend: 198 tests passed at 80.22% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;

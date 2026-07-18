@@ -8,6 +8,7 @@ from app.config import Settings
 from app.llm.provider import (
     LLMConfigurationError,
     LLMExecutedToolCall,
+    LLMIncompleteResponseError,
     LLMMessage,
     LLMRequestError,
     LLMStreamEvent,
@@ -29,6 +30,7 @@ class AnthropicCompatibleProvider:
         model: str,
         max_tokens: int,
         provider_name: str,
+        incomplete_final_max_retries: int = 1,
     ) -> None:
         if not api_key:
             raise LLMConfigurationError(f"{api_key_name} is not configured.")
@@ -37,6 +39,7 @@ class AnthropicCompatibleProvider:
         self._model = model
         self._max_tokens = max_tokens
         self._provider_name = provider_name
+        self._incomplete_final_max_retries = incomplete_final_max_retries
         self._client = anthropic.Anthropic(
             api_key=api_key,
             base_url=base_url,
@@ -159,6 +162,7 @@ class AnthropicCompatibleProvider:
         provider_messages = [self._to_anthropic_message(item) for item in messages]
         executed_tool_calls: list[LLMExecutedToolCall] = []
         raw_provider_messages: list[dict[str, Any]] = []
+        completion_recovery_attempts: list[dict[str, Any]] = []
         usage_totals: dict[str, Any] = {}
 
         try:
@@ -191,15 +195,13 @@ class AnthropicCompatibleProvider:
                 raw_content = self._extract_raw_content(message.content)
                 stop_reason = getattr(message, "stop_reason", None)
                 provider_message_id = getattr(message, "id", None)
-                raw_provider_messages.append(
-                    {
-                        "id": provider_message_id,
-                        "model": getattr(message, "model", self._model),
-                        "stop_reason": stop_reason,
-                        "content": raw_content,
-                        "usage": self._extract_usage(message),
-                    }
-                )
+                raw_message = {
+                    "id": provider_message_id,
+                    "model": getattr(message, "model", self._model),
+                    "stop_reason": stop_reason,
+                    "content": raw_content,
+                    "usage": self._extract_usage(message),
+                }
                 usage_totals = self._merge_usage(
                     usage_totals,
                     self._extract_usage(message),
@@ -213,6 +215,66 @@ class AnthropicCompatibleProvider:
                 ):
                     yield semantic_event
                 if not tool_uses:
+                    final_text = self._extract_text(message.content)
+                    if not final_text:
+                        recovery_attempt_count = sum(
+                            1
+                            for attempt in completion_recovery_attempts
+                            if attempt.get("recoverable") is True
+                        )
+                        recoverable = (
+                            stop_reason == "end_turn"
+                            and self._has_thinking_content(raw_content)
+                            and recovery_attempt_count
+                            < self._incomplete_final_max_retries
+                        )
+                        incomplete = {
+                            **raw_message,
+                            "reason": "thinking_only_end_turn"
+                            if self._has_thinking_content(raw_content)
+                            else "empty_terminal_message",
+                            "recoverable": recoverable,
+                        }
+                        completion_recovery_attempts.append(incomplete)
+                        if recoverable:
+                            yield LLMStreamEvent(
+                                type="completion_recovery",
+                                data={
+                                    "model_step": step,
+                                    "attempt": len(completion_recovery_attempts),
+                                    "reason": incomplete["reason"],
+                                    "provider_message_id": provider_message_id,
+                                    "stop_reason": stop_reason,
+                                },
+                            )
+                            provider_messages.extend(
+                                [
+                                    {"role": "assistant", "content": raw_content},
+                                    self._completion_continuation_message(),
+                                ]
+                            )
+                            continue
+                        raise LLMIncompleteResponseError(
+                            (
+                                f"{self._provider_name} ended without public text "
+                                "or a tool call."
+                            ),
+                            details={
+                                "reason": incomplete["reason"],
+                                "stop_reason": stop_reason,
+                                "provider_message_id": provider_message_id,
+                                "recovery_attempt_count": sum(
+                                    1
+                                    for attempt in completion_recovery_attempts
+                                    if attempt.get("recoverable") is True
+                                ),
+                                "terminal_message_count": len(
+                                    completion_recovery_attempts
+                                ),
+                                "recovery_limit": self._incomplete_final_max_retries,
+                            },
+                        )
+                    raw_provider_messages.append(raw_message)
                     yield LLMStreamEvent(
                         type="final_result",
                         data={
@@ -222,18 +284,25 @@ class AnthropicCompatibleProvider:
                                     "model",
                                     self._model,
                                 ),
-                                text=self._extract_text(message.content),
+                                text=final_text,
                                 usage=usage_totals,
                                 provider_message_id=getattr(message, "id", None),
                                 raw_content=raw_content,
                                 stop_reason=getattr(message, "stop_reason", None),
                                 tool_calls=executed_tool_calls,
                                 raw_provider_messages=raw_provider_messages,
+                                completion_recovery={
+                                    "attempted": bool(completion_recovery_attempts),
+                                    "recovered": bool(completion_recovery_attempts),
+                                    "attempt_count": len(completion_recovery_attempts),
+                                    "attempts": completion_recovery_attempts,
+                                },
                             ).model_dump(mode="json")
                         },
                     )
                     return
 
+                raw_provider_messages.append(raw_message)
                 provider_messages.append(
                     {
                         "role": "assistant",
@@ -290,6 +359,27 @@ class AnthropicCompatibleProvider:
         if self._model.startswith("MiniMax-M3"):
             return {"type": "adaptive"}
         return None
+
+    @staticmethod
+    def _has_thinking_content(raw_content: list[dict[str, Any]]) -> bool:
+        return any(block.get("type") == "thinking" for block in raw_content)
+
+    @staticmethod
+    def _completion_continuation_message() -> dict[str, Any]:
+        return {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": (
+                        "Your previous message ended without a public answer or "
+                        "a tool call. Continue the same turn now. Use a real tool "
+                        "call if one is required; otherwise provide the final public "
+                        "answer. Do not quote or expose private thinking."
+                    ),
+                }
+            ],
+        }
 
     @staticmethod
     def _extract_text(content_blocks: list[Any]) -> str:
@@ -439,7 +529,8 @@ class AnthropicCompatibleProvider:
                         "provider_message_id": provider_message_id,
                         "stop_reason": stop_reason,
                         "text": thinking if isinstance(thinking, str) else "",
-                        "has_text": isinstance(thinking, str) and bool(thinking.strip()),
+                        "has_text": isinstance(thinking, str)
+                        and bool(thinking.strip()),
                     },
                 )
             elif block_type == "text":
@@ -484,4 +575,5 @@ class MiniMaxProvider(AnthropicCompatibleProvider):
             model=settings.minimax_model,
             max_tokens=settings.minimax_max_tokens,
             provider_name="MiniMax",
+            incomplete_final_max_retries=settings.incomplete_final_max_retries,
         )

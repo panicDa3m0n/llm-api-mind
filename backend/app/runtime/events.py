@@ -19,6 +19,7 @@ STREAM_EVENT_TYPE_MAP = {
     "assistant_note": "assistant.note.emitted",
     "assistant_answer": "assistant.answer.completed",
     "model_stop": "llm.request.stopped",
+    "completion_recovery": "llm.completion.recovery.started",
 }
 
 DELTA_STREAM_EVENTS = {
@@ -242,7 +243,9 @@ def record_response_content_events(
                         turn_id=turn_id,
                         event_type="llm.thinking.captured",
                         payload={
-                            "text": thinking_text if isinstance(thinking_text, str) else "",
+                            "text": thinking_text
+                            if isinstance(thinking_text, str)
+                            else "",
                             "model_step": model_step,
                             "index": index,
                             "provider_message_id": provider_message.get("id"),
@@ -306,7 +309,12 @@ def compact_event_for_context(event: CognitiveEvent) -> dict[str, Any]:
 
 
 def _status_for_stream_event(stream_event: LLMStreamEvent) -> str:
-    if stream_event.type in {"model_request", "thinking_start", "tool_use_start"}:
+    if stream_event.type in {
+        "model_request",
+        "thinking_start",
+        "tool_use_start",
+        "completion_recovery",
+    }:
         return "active"
     status = stream_event.data.get("status")
     return status if isinstance(status, str) else "completed"

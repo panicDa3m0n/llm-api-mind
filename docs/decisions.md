@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0088 - Public Answer Is A Turn-Completion Invariant
+
+Date: 2026-07-18
+Status: accepted and implemented in V1.36.1
+
+Context:
+
+MiniMax M3 can occasionally end a user-facing tool-chat response with private
+thinking only, `stop_reason=end_turn`, no public text, and no tool call. The
+backend previously treated that provider message as a successful empty answer.
+This erased the distinction between a stochastic model omission and a valid
+Scarlet turn, and could also leave a recognized memory action unexecuted.
+
+Decision:
+
+- require non-empty public assistant text before a user-facing chat turn can
+  complete;
+- allow one configurable continuation only for thinking-only `end_turn`;
+- keep the continuation bounded and in the same provider sequence;
+- fail the turn explicitly when recovery is exhausted or the empty terminal
+  result is not eligible for recovery;
+- retain recovery attempts in trace metadata while excluding the incomplete
+  assistant block and synthetic continuation from canonical provider history;
+- never derive public text, memory, or tool intent from private thinking;
+- enforce the invariant again at the sync and streaming chat boundaries so an
+  alternate provider adapter cannot bypass it.
+
+Consequences:
+
+Normal turns pay no additional provider call. A genuine thinking-only omission
+can recover once without fabricating cognitive actions. Persistent provider
+failure becomes visible as `llm.incomplete_response` rather than a misleading
+HTTP 200 with an empty assistant message. The policy fixes systemic acceptance
+of invalid output; it does not claim to eliminate stochastic provider behavior.
+
+Links:
+
+- `backend/app/llm/minimax_client.py`
+- `backend/app/api/chat.py`
+- `docs/bug-ledger.md#bug-0067---minimax-can-end-a-turn-with-thinking-only`
+- Linear SCA-19
+
 ## ADR-0087 - Chronology Uses Token Areas And Complete-Turn Source Maps
 
 Date: 2026-07-14

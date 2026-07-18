@@ -6,10 +6,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.36.0 replaces fixed-turn chronological planning with source-labelled token
-partitions and a bounded full-vs-derived calibration. V1.32.0 remains the currently deployed
-HoneyLabs production runtime until later versions pass the protected database
-deployment boundary.
+V1.36.1 prevents thinking-only provider messages from becoming successful empty
+Scarlet turns. V1.36.0 remains the chronology-accounting baseline. V1.32.0
+remains the currently deployed HoneyLabs production runtime until later versions
+pass the protected database deployment boundary.
 
 ### Added
 
@@ -86,6 +86,13 @@ deployment boundary.
 
 ### Changed
 
+- Advanced backend, frontend, GPT Action schema, and canonical project metadata
+  to V1.36.1.
+- Added one configurable, bounded continuation for a MiniMax/Qwen tool-chat
+  response that ends with private thinking but no public text or tool call.
+  The incomplete attempt remains trace evidence and is excluded from canonical
+  provider history.
+
 - Upgraded model-input accounting to v2: policy, model-context packet,
   provider history, current message, Mind shell schema, bridge boundary, and
   request structure are explicit surfaces. Provider observations now include
@@ -154,6 +161,14 @@ deployment boundary.
   summarization, and Dream remain background processes.
 
 ### Fixed
+
+- Rejected semantically empty terminal chat results in both synchronous and
+  streaming routes. Repeated or non-recoverable empty results now fail the
+  turn explicitly as `llm.incomplete_response`, without persisting an empty
+  assistant message or deriving cognitive state from private thinking.
+- Added recovery metadata and `llm.completion.recovery.started` observability,
+  plus provider and API regression coverage for recovery, exhaustion, and
+  history isolation.
 
 - Prevented accounting v2 calibration from learning ratios produced by the
   incompatible cache-under-counting v1 observation contract.

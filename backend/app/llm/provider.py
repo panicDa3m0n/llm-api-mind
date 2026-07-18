@@ -16,6 +16,14 @@ class LLMRequestError(LLMProviderError):
     """Raised when the upstream LLM provider request fails."""
 
 
+class LLMIncompleteResponseError(LLMRequestError):
+    """Raised when the provider ends without public text or a real tool call."""
+
+    def __init__(self, message: str, *, details: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.details = details or {}
+
+
 class LLMTextResult(BaseModel):
     model: str
     text: str
@@ -25,6 +33,7 @@ class LLMTextResult(BaseModel):
     stop_reason: str | None = None
     tool_calls: list["LLMExecutedToolCall"] = Field(default_factory=list)
     raw_provider_messages: list[dict[str, Any]] = Field(default_factory=list)
+    completion_recovery: dict[str, Any] = Field(default_factory=dict)
 
 
 class LLMMessage(BaseModel):

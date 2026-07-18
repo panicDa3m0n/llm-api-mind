@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     qwen_model: str = "qwen3.7-max"
     qwen_max_tokens: int = Field(default=4096, ge=1)
 
+    incomplete_final_max_retries: int = Field(default=1, ge=0, le=1)
+
     agent_system_prompt: str | None = Field(default=None, repr=False)
     agent_system_prompt_path: str | None = None
 
@@ -69,9 +71,7 @@ class Settings(BaseSettings):
     retrieval_shadow_cloud_surface_limit: int = Field(default=50, ge=1, le=500)
     retrieval_shadow_http_timeout_seconds: float = Field(default=30.0, gt=0)
     retrieval_shadow_rerank_enabled: bool = False
-    retrieval_shadow_rerank_model: str = (
-        "nvidia/llama-nemotron-rerank-vl-1b-v2:free"
-    )
+    retrieval_shadow_rerank_model: str = "nvidia/llama-nemotron-rerank-vl-1b-v2:free"
     retrieval_shadow_rerank_candidate_limit: int = Field(default=20, ge=1, le=100)
     retrieval_shadow_rerank_top_n: int = Field(default=10, ge=1, le=50)
     retrieval_hybrid_mode: str = "off"
