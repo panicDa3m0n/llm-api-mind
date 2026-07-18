@@ -6,6 +6,19 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Atomic Monolith Rework Planning
+
+#### Added
+
+- Added the current module-responsibility inventory, stable-facade rules,
+  dependency order, nine atomic Linear implementation slices, and mandatory
+  frozen pre/post gate for future organization work.
+
+#### Evaluation
+
+- Revalidated the unchanged V1.42 assembled baseline at 9/9 before publishing
+  the plan. SCA-10 contains no runtime or database change.
+
 ### Memory Reranker Revalidation
 
 #### Added
