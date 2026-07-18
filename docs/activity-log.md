@@ -4,6 +4,22 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.43.0 Reranker Negative Calibration Checkpoint (SCA-31)
+
+Started SCA-31 from the deployed V1.42 baseline. Read-only inspection of the
+reported production trace confirmed a real false acceptance: the query for an
+unstored tea/mint preference evaluated ten of twenty rerank candidates and
+accepted the unrelated Context Router memory at `0.004101929257867252` against
+the `0.004` floor. Recall routes supplied the candidate but did not decide
+relevance.
+
+The V1.37 immutable 35-active-memory source remains the calibration baseline.
+Before any policy change, five realistic personal negatives were fixed beside
+the existing close positive controls. Production stays read-only; duplicate,
+conflict, provenance, and answer-obligation behavior remain out of scope.
+
+Checkpoint: `docs/evaluations/v1.43-memory-rerank-negative-calibration.md`.
+
 ## 2026-07-18 - V1.42.0 Traceable Agent Mode Routing (SCA-6)
 
 Implemented one ordered delivery receipt per automatic context block. The
