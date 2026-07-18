@@ -6,6 +6,26 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.47.0 - Memory Read Surface Boundary
+
+#### Changed
+
+- Moved manual memory search, read, facts, graph, request contracts, ranking,
+  temporal filtering, and graph presentation into `app.mind.memory_read`.
+- Added `app.mind.memory_shared` for the minimal payload, field, error, and
+  activity contracts shared by read and mutation handlers.
+- Kept `app.mind.memory` as a compatibility facade for dispatcher, shell,
+  maintenance, API, evaluator, and test imports.
+- Added both new owners to the blocking mypy surface.
+
+#### Verification
+
+- Frozen SCA-36 pre/post gates pass 9/9 with identical stable manual-shell and
+  automatic-retrieval evidence.
+- Focused memory/shell/V2 contracts pass 63/63; direct shell search/open/facts/
+  graph returned the expected real memory, fact, graph, provenance, and traces.
+- The complete backend passes 245 tests at 81.54% coverage; Ruff and mypy pass.
+
 ### V1.46.0 - Automatic Context Retrieval Boundary
 
 #### Changed

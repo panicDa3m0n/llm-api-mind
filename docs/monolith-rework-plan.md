@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34, SCA-33, and SCA-35 verified
-Runtime baseline: V1.43.0 deployed; V1.46.0 candidate in SCA-35
+Status: accepted execution map from SCA-10; SCA-22 deployed, SCA-34 through SCA-36 verified
+Runtime baseline: V1.43.0 deployed; V1.47.0 candidate in SCA-36
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -28,7 +28,9 @@ not permanent thresholds.
 
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
-| `backend/app/mind/memory.py` | 2,921 | command bodies, read/search, facts, graph, write policy, lifecycle, proposals, relation evidence, payloads | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
+| `backend/app/mind/memory.py` | 1,938 after SCA-36 | write policy, facts backfill, lifecycle, proposals, relation evidence, compatibility facade | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
+| `backend/app/mind/memory_read.py` | 975 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
+| `backend/app/mind/memory_shared.py` | 152 | shared fields, payload, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
 | `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
 | `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
 | `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
@@ -113,12 +115,14 @@ policy itself did not change.
 
 ### 4. Memory Read Surface
 
-Issue: SCA-36.
+Issue: SCA-36, completed in the V1.47.0 candidate.
 
-Move search, read, facts, graph, their request contracts, and their presentation
-helpers into a read-oriented module. Preserve command registry paths, parser
-contracts, dispatcher names, compact shell presentation, pagination, temporal
-filters, provenance links, and activity recording.
+Search, read, facts, graph, their request contracts, ranking, temporal filters,
+graph traversal, and presentation now live in `memory_read.py`; minimal shared
+contracts live in `memory_shared.py`. `memory.py` remains the compatible facade
+and decreases from 2,921 to 1,938 lines. Frozen pre/post gates pass 9/9,
+focused contracts pass 63/63, and direct shell inspection preserved content,
+provenance, facts, graph topology, and all four trace kinds.
 
 ### 5. Memory Mutation And Evidence
 

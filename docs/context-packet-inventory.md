@@ -773,6 +773,8 @@ semantic duplication or conflict.
 
 - `backend/app/mind/context.py`
 - `backend/app/mind/context_retrieval.py`
+- `backend/app/mind/memory_read.py`
+- `backend/app/mind/memory_shared.py`
 - `backend/app/api/chat.py`
 - `backend/app/mind/shell.py`
 - `backend/app/mind/shell_presentation.py`

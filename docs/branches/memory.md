@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-18
-System version assessed: V1.46.0 candidate
+System version assessed: V1.47.0 candidate
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -26,6 +26,9 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   La verifica diretta conferma che la memoria selezionata arriva al modello e
   viene usata quando la provenienza V2 e completa; BUG-0093/SCA-43 copre il
   limite del gate storico che osservava solo la selezione ricca.
+- V1.47.0 separa search, open, facts e graph manuali dalla mutazione, mantenendo
+  identici facade, shell, ranking, payload, provenienza, activity e trace.
+  L'uso diretto conferma una navigazione compatta e cognitivamente utile.
 - V1.29.0 sostituisce il packet automatico ricco con tre liste di hook V2
   (`relevant`, `recent_user`, `recent_general`), deduplicate e navigabili.
 - `memory_activities` separa recenza cognitiva append-only da `updated_at`;

@@ -7,6 +7,44 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0101 - Memory Read Commands Have A Dedicated Owner Behind The Facade
+
+Date: 2026-07-18
+Status: accepted for V1.47.0
+
+Context:
+
+`app.mind.memory` combined read-only retrieval/navigation with writes,
+lifecycle, maintenance proposals, and relation evidence. Search and graph also
+carry substantial ranking, temporal, provenance, and presentation behavior
+that can be tested independently from mutation policy.
+
+Decision:
+
+- `app.mind.memory_read` owns search, read, facts, graph, their request bodies,
+  retrieval helpers, temporal filtering, graph traversal, and read payloads;
+- `app.mind.memory_shared` owns only the field aliases, canonical payload,
+  common traced errors, and activity recorder required by both read and
+  mutation code;
+- `app.mind.memory` re-exports the existing public names and remains the stable
+  dispatcher/API/maintenance facade;
+- command registry, shell parser/presentation, routes, traces, ranking policy,
+  lifecycle, proposals, conflict evidence, and database schema remain
+  unchanged.
+
+Consequences:
+
+Manual cognition can evolve and be verified without editing mutation policy,
+while write/lifecycle work retains one compatibility boundary. The small
+shared owner prevents circular imports and duplicate payload contracts rather
+than becoming a second public model surface.
+
+Links:
+
+- Linear SCA-36
+- Linear SCA-38
+- `docs/evaluations/v1.47-memory-read-surface.md`
+
 ## ADR-0100 - Automatic Retrieval And Runtime Packet Assembly Have Separate Owners
 
 Date: 2026-07-18

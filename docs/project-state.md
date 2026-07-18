@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.46.0 candidate (V1.43.0 deployed)
+App baseline: V1.47.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -169,6 +169,10 @@ Current verification baseline:
   automatic model-facing recall after exact source-provenance repair. The
   frozen gate's delivery blind spot is isolated in BUG-0093/SCA-43. Deployment
   remains V1.43.0.
+- V1.47.0 candidate: SCA-36 frozen pre/post gates passed 9/9 with identical
+  stable read evidence; focused contracts passed 63/63 and direct shell use
+  preserved search, open, facts, graph, provenance, and traces. Deployment
+  remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -329,7 +333,7 @@ The current largest modules are:
 
 ```txt
 frontend/src/App.tsx                         4474 lines
-backend/app/mind/memory.py                   2921
+backend/app/mind/memory.py                   1938
 backend/app/plugins/gpt_bridge/router.py     1507
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
@@ -337,6 +341,8 @@ backend/app/api/chat_native_turn.py          1638
 backend/app/runtime/maintenance.py           1383
 backend/app/mind/context.py                  1161
 backend/app/mind/context_retrieval.py         731
+backend/app/mind/memory_read.py               975
+backend/app/mind/memory_shared.py             152
 backend/app/api/chat.py                       218
 ```
 
@@ -350,9 +356,9 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in fifteen high-value typed modules while the measured
+- mypy blocks regressions in seventeen high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.46 backend suite passes 244 tests at 81.50% statement coverage;
+- the full V1.47 backend suite passes 245 tests at 81.54% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -438,10 +444,10 @@ behavior:
 
 ## 7. Current Best Next Step
 
-SCA-35 now separates automatic context candidate retrieval/ranking from
-runtime packet assembly without changing selected/near-miss/excluded
-semantics. The next approved atomic issue is SCA-36: separate memory read
-surfaces behind the existing shell/dispatcher contracts.
+SCA-36 now separates memory search/read/facts/graph from mutation behind the
+unchanged shell/dispatcher facade. The next dependent organizational issue is
+SCA-38: separate write, lifecycle, proposal, and relation evidence without
+changing duplicate/conflict policy.
 BUG-0091 remains tracked separately in SCA-42 and must not be hidden inside
 organization work.
 BUG-0093/SCA-43 separately tracks model-facing verification for the frozen

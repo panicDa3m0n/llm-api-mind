@@ -4,6 +4,30 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.47.0 Memory Read Surface (SCA-36)
+
+Moved memory search, read, facts, graph, their Pydantic request contracts, read
+ranking/temporal filters, graph traversal, and output construction into
+`app.mind.memory_read`. A 152-line `memory_shared` owner holds only field
+aliases, common payloads, traced activity recording, and shared handler errors,
+avoiding circular imports. `memory.py` remains the stable facade and decreased
+from 2,921 to 1,938 lines; `memory_read.py` is 975 lines.
+
+The frozen pre gate `20260718_190504_preliminary-regression-v1` and post gate
+`20260718_191139_preliminary-regression-v1` both pass 9/9. Their manual shell
+case has identical stable search ids, fact id, graph target, source-session
+message count, and automatic-retrieval evidence. Focused shell/memory/V2 tests
+pass 63/63; all 245 backend tests pass at 81.54% coverage; Ruff and mypy across
+17 guarded modules pass.
+
+Direct use on a disposable frozen copy returned only the active Zero-Luce
+memory for the natural search, opened its status and provenance, exposed its
+active `response_format` fact, and navigated a four-node/three-edge graph. The
+four traces remained `mind.memory.search`, `read`, `facts`, and `graph`.
+Qualitatively, the payloads remained sourceable and useful for Scarlet; the
+known absent source-message id belongs to BUG-0093's historical fixture and is
+not a read-surface regression.
+
 ## 2026-07-18 - V1.46.0 Context Retrieval Separation (SCA-35)
 
 Moved automatic memory candidate collection, scoring, classification, final

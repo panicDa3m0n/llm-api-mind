@@ -9,6 +9,39 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0074 - Memory Read Surface Equivalence Probe
+
+Status: bounded pre/post evidence accepted for the V1.47.0 candidate
+
+Hypothesis:
+
+Manual memory search, open, facts, and graph can move behind a dedicated owner
+without changing shell commands, dispatcher routes, ranking, payloads, traces,
+provenance, or cognitive usefulness.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after extraction;
+- compare stable fields from manual shell navigation and automatic retrieval;
+- run focused shell/memory/V2 contracts; and
+- invoke all four commands directly on a disposable frozen copy, inspecting
+  content, ids, provenance, facts, graph topology, and stored trace kinds.
+
+Result:
+
+Both gates passed 9/9 with identical stable evidence. Direct search selected
+only the active Zero-Luce record; open returned its active lifecycle and source
+links; facts returned the active canonical `response_format`; graph returned a
+four-node/three-edge neighborhood rooted at the same memory. The exact four
+read trace kinds were stored. The outputs remained coherent under direct
+review, independent of pass counters.
+
+Evidence:
+
+- pre gate `20260718_190504_preliminary-regression-v1`;
+- post gate `20260718_191139_preliminary-regression-v1`;
+- `docs/evaluations/v1.47-memory-read-surface.md`.
+
 ## EXP-0073 - Automatic Context Retrieval Separation Probe
 
 Status: bounded pre/post evidence accepted for the V1.46.0 candidate
