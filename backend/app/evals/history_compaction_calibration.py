@@ -107,6 +107,7 @@ def run_calibration(
                 provider_history_tokens=int(
                     source_map.get("canonical_estimated_tokens") or 0
                 ),
+                trigger_tokens=settings.context_compaction_trigger_tokens,
                 operational_limit_tokens=(
                     settings.context_operational_input_limit_tokens
                 ),

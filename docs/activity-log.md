@@ -4,6 +4,54 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.39.0 Active Recursive History Compaction (SCA-32)
+
+Goal:
+
+Promote the accepted V1.36 token partition from measurement to guarded native
+routing without mutating canonical chronology.
+
+Changes:
+
+- Added append-only `history_compactions` with generation, prior-artifact,
+  source digest, covered turns/sources, model, and token metadata.
+- Added immediate idempotent maintenance generation using the previous summary
+  plus only newly compactable complete turns.
+- Added shared sync/stream routing for compacted system chronology, exact tail,
+  and current user message; request traces retain canonical and derived inputs.
+- Preserved canonical provider history on every completion and added explicit
+  canonical fallback for missing, invalid, or unmappable artifacts.
+- Added deterministic source manifests and removed provider-generated opaque
+  IDs absent from source input.
+- Corrected scheduling to measure the active next-turn view instead of
+  retriggering from ever-growing canonical history.
+- Corrected observed accounting so active requests are no longer labelled as
+  shadow-only in post-call traces.
+
+Verification:
+
+- Ruff passed on the changed backend/test surface.
+- Full backend suite passed 216 tests at 80.69% coverage.
+- A copied 350,187-token laboratory session generated two real recursive
+  MiniMax artifacts; generation 2 covered five turns and left zero unresolved
+  unverified IDs.
+- Direct Scarlet turn `turn_83ecd11869c44a42a7b6cdcab111c448`
+  recalled the earlier endpoint-to-CLI framing from the compacted prefix while
+  routing 21 canonical messages as 3 model-facing messages.
+- Canonical history prefix stayed exact, and a 27,701-token active estimate did
+  not schedule another job despite 352,887 canonical tokens.
+
+Separate Finding:
+
+A deliberately restricted 2,048-token probe exhausted output in private
+thinking and failed under the existing answer-completion boundary. This belongs
+to SCA-28/output-budget behavior, not history compaction.
+
+Evidence:
+
+- `docs/evaluations/v1.39-active-history-compaction.md`
+- ADR-0091, EXP-0067, BUG-0086, Linear SCA-32
+
 ## 2026-07-18 - V1.38.0 Historical Provenance Audit And Guarded Cleanup (SCA-20)
 
 Goal:

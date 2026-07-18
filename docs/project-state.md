@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.38.0
+App baseline: V1.39.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -145,16 +145,23 @@ outside automatic model input. Every `model.context` trace records the exact
 projection audit, and native MiniMax plus GPT bootstrap consume the same
 canonical V2 document.
 
-V1.36.0 adds a measured shadow budget for provider-native history. The normal
+V1.36.0 added a measured shadow budget for provider-native history. The normal
 500k partition reserves up to 100k for recursive summary, 100k for exact recent
 complete turns, 25k safety, and computes active growth from actual external
 overhead. Source-labelled full/derived evaluation supports this design, but it
-does not change active model input.
+did not change active model input.
+
+V1.39.0 activates that contract for native sync and stream turns. Append-only
+recursive artifacts carry exact source manifests, model-facing requests use
+`C + H + current`, and canonical provider history remains complete. Invalid or
+missing artifacts fall back visibly to canonical history. Scheduling follows
+the size of the derived next-turn view, so canonical growth alone cannot create
+a perpetual maintenance loop.
 
 Still open:
 
-- persist recursive compacted summaries and route the derived history only
-  after a multi-cycle evaluation and explicit approval;
+- monitor active recursive compaction on naturally long sessions and preserve
+  fallback/source-manifest evidence;
 - the first mode router is active for automatic runtime blocks; on-demand
   shell operations remain available independently;
 - no high-frequency perception or embodiment stream exists.
@@ -300,8 +307,8 @@ Current engineering baseline:
 - behavioral scenarios now have an executable 12-case cross-branch catalog,
   frozen references, real-provider runs, reasoned judgments, and objective-only
   automatic comparison;
-- provider-history growth is measured and shadow-planned but has no active
-  compaction/degradation policy.
+- provider-history growth has active recursive compaction for native turns;
+  native ChatGPT history remains outside backend accounting and compaction.
 
 ## 6. Priority Plan
 
@@ -315,11 +322,10 @@ Current engineering baseline:
 
 ### P1 - Validate And Activate Context Control
 
-1. Persist recursive source-labelled summary artifacts under the 100k `C` cap.
-2. Build the derived input router behind `shadow` without canonical mutation.
-3. Run a multi-cycle continuity/source/provenance comparison, including the
-   whole-turn exception.
-4. Promote active compaction only after explicit approval of that gate.
+1. Monitor recursive source-labelled summary artifacts under the 100k `C` cap.
+2. Extend long-session evidence without weakening canonical fallback.
+3. Add observability for artifact age, invalidation, and compaction latency.
+4. Keep GPT-native history limits explicit until ChatGPT exposes that context.
 
 ### P2 - Memory Integrity
 

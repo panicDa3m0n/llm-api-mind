@@ -7,6 +7,77 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0087 - Observed Accounting Always Labelled Compaction As Shadow
+
+Date Found: 2026-07-18
+Status: fixed in V1.39.0
+
+Symptoms:
+
+`context.accounting.observed` emitted
+`compaction_plan_was_shadow_only=true` unconditionally, including requests
+routed through active history compaction. Model input and canonical persistence
+were correct, but the post-call evidence misrepresented the operative mode.
+
+Root Cause:
+
+The V1.36 observation field was a fixed shadow-era constant and was not bound
+to the preflight plan when active routing was introduced.
+
+Fix And Regression Evidence:
+
+The observed trace now copies `compaction_plan_mode` and derives the legacy
+boolean from the exact preflight plan. Dedicated shadow and active assertions
+pass together with the context-accounting, history, and chat tests.
+
+Related Files:
+
+- `backend/app/runtime/context_accounting.py`
+- `backend/tests/test_context_accounting.py`
+- Linear SCA-32
+
+## BUG-0086 - Active Compaction Could Trust Altered Source IDs And Retrigger From Canonical Size
+
+Date Found: 2026-07-18
+Status: fixed in V1.39.0
+
+Symptoms:
+
+The first real MiniMax chronology artifact preserved the session meaning but
+altered one turn ID and shortened several memory/session IDs in summary prose.
+The initial scheduler also compared the trigger with full canonical history,
+which never shrinks and could therefore enqueue maintenance after every later
+turn even when the derived view was small.
+
+Root Cause:
+
+Opaque source identity was delegated to generated prose, and scheduling used
+the immutable source inventory as though it were the next model-facing input.
+
+Fix:
+
+The backend now removes opaque IDs absent from source input, injects an exact
+deterministic source manifest, and validates artifacts by turn/digest identity
+rather than mutable token estimates. Post-turn scheduling measures the active
+derived tail when an artifact is in use while retaining canonical history only
+as the recursive source snapshot.
+
+Regression Evidence:
+
+- changed token-estimation ratios no longer invalidate an unchanged source;
+- invalid source digests fall back to canonical history;
+- generation 2 contained zero unresolved unverified IDs;
+- 352,887 canonical tokens with a 2,701-token active tail did not schedule a
+  redundant job under a 300,000-token disposable trigger; and
+- sync/stream tests preserve the canonical provider-history prefix.
+
+Related Files:
+
+- `backend/app/runtime/history_runtime.py`
+- `backend/app/runtime/maintenance.py`
+- `docs/evaluations/v1.39-active-history-compaction.md`
+- Linear SCA-32
+
 ## BUG-0083 - Codex Evaluation Fixtures Entered Production Active Memory
 
 Date Found: 2026-07-18

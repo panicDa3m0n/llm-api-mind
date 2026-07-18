@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.38.0
+App baseline: V1.39.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -95,6 +95,12 @@ at 79% module coverage; it is not omitted from the project denominator.
 V1.38.0 passes 209 tests at 80.45%. Historical provenance maintenance adds
 94%-covered classification and guarded mutation logic; the unchanged frozen
 preliminary suite passes 9/9.
+
+V1.39.0 passes 216 tests at 80.69%. Active history routing is covered across
+synchronous and streaming turns, recursive/idempotent maintenance, canonical
+fallback, source-id sanitation, and post-compaction scheduling. The new history
+repository is at 94%, the active runtime router at 86%, and the partition
+planner at 88% module coverage.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

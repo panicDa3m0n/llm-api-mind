@@ -9,6 +9,50 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0067 - Recursive Active History Compaction
+
+Status: accepted for guarded native activation in V1.39.0
+
+Hypothesis:
+
+A recursive source-labelled summary plus an exact token-selected tail can
+preserve Scarlet's useful continuity while reducing active input, without
+mutating canonical provider history or trusting the model to reproduce source
+IDs.
+
+Method:
+
+- implement append-only artifacts, maintenance generation, and shared
+  sync/stream routing;
+- verify valid, stale, missing, recursive, idempotent, and whole-turn paths;
+- run the full backend suite;
+- copy the laboratory DB to an ignored disposable target;
+- generate two real MiniMax M3 compaction cycles on the measured 350k-token
+  session; and
+- ask Scarlet a natural recall question whose answer came from the compacted
+  prefix.
+
+Result:
+
+Generation 1 exposed shortened/hallucinated source IDs in otherwise useful
+summary prose. Deterministic source manifests and unverified-ID removal fixed
+that boundary. Generation 2 recursively covered five turns, reduced the exact
+active tail to about 2.7k tokens, and left zero unresolved unverified IDs.
+Scarlet accurately recalled the earlier endpoint-to-CLI framing from 21
+canonical messages using only 3 model-facing messages. Canonical prefix
+preservation passed. The complete backend suite passed 216 tests at 80.69%
+coverage.
+
+Decision:
+
+Activate for native MiniMax behind `HISTORY_COMPACTION_MODE=active`, retain
+canonical fallback, and monitor natural long-session drift. Keep GPT-native
+history explicitly outside the backend's observable compaction boundary.
+
+Evidence:
+
+`docs/evaluations/v1.39-active-history-compaction.md`
+
 ## EXP-0066 - Historical Provenance And Fixture Isolation
 
 Status: accepted and deployed in V1.38.0

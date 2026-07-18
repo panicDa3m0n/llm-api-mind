@@ -49,6 +49,7 @@ from app.runtime.events import (
     record_tool_call_started,
 )
 from app.runtime.maintenance import (
+    schedule_history_compaction,
     schedule_session_idle_maintenance,
     schedule_summary_repairs,
 )
@@ -56,6 +57,8 @@ from app.runtime.context_accounting import (
     build_context_accounting_observation,
     build_context_accounting_preflight,
 )
+from app.runtime.history_compaction import build_chronology_source_map
+from app.runtime.history_runtime import route_history_for_model
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
@@ -227,12 +230,13 @@ def build_chat_router(
             )
             user_message_response = _message_response(user_message)
             history = repositories.list_messages(db, session_id=session_id)
-            provider_history_source, llm_messages = _provider_messages_for_turn(
-                chat_session=chat_session,
-                history=history,
-                current_user_message=user_message,
+            provider_history_source, canonical_llm_messages = (
+                _provider_messages_for_turn(
+                    chat_session=chat_session,
+                    history=history,
+                    current_user_message=user_message,
+                )
             )
-            provider_message_stats = _provider_message_stats(llm_messages)
             max_tokens = request.max_tokens or active_provider_max_tokens(settings)
             try:
                 system_prompt = resolve_agent_system_prompt(
@@ -322,10 +326,41 @@ def build_chat_router(
                 visibility="debug",
                 trace_id=memory_context.runtime_trace_id,
             )
+            history_routing = route_history_for_model(
+                db,
+                session_id=session_id,
+                canonical_messages=canonical_llm_messages,
+                chars_per_token=float(settings.context_estimated_chars_per_token),
+                mode=str(settings.history_compaction_mode),
+            )
+            llm_messages = history_routing.model_messages
+            provider_message_stats = _provider_message_stats(llm_messages)
+            history_routing_trace_id: str | None = None
+            if settings.history_compaction_mode == "active":
+                history_routing_trace = repositories.add_trace(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    kind="history.routing",
+                    payload=history_routing.payload,
+                )
+                history_routing_trace_id = history_routing_trace.id
+                trace_ids.append(history_routing_trace_id)
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="history.routing.resolved",
+                    payload=history_routing.payload,
+                    source="runtime",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=history_routing_trace_id,
+                )
             effective_system = _compose_system_with_runtime_context(
                 system_prompt.content,
                 memory_context.runtime_context,
-            )
+            ) + history_routing.system_appendix
             accounting_trace, accounting_payload = _record_context_accounting_preflight(
                 db,
                 session_id=session_id,
@@ -336,6 +371,7 @@ def build_chat_router(
                 runtime_context=memory_context.runtime_context,
                 messages=llm_messages,
                 settings=settings,
+                compacted_chronology=history_routing.system_appendix,
             )
             accounting_trace_id = accounting_trace.id
             trace_ids.append(accounting_trace_id)
@@ -372,8 +408,20 @@ def build_chat_router(
                         accounting_payload
                     ),
                     "tool_loop_policy": "model_controlled_unbounded",
-                    "provider_history_source": provider_history_source,
+                    "provider_history_source": (
+                        "history_compaction_artifact"
+                        if history_routing.payload.get("status")
+                        == "derived_history_active"
+                        else provider_history_source
+                    ),
+                    "canonical_provider_history_source": provider_history_source,
+                    "history_routing_trace_id": history_routing_trace_id,
+                    "history_routing": history_routing.payload,
                     "provider_message_stats": provider_message_stats,
+                    "canonical_provider_messages": [
+                        message.model_dump(mode="json")
+                        for message in canonical_llm_messages
+                    ],
                     "provider_messages": [
                         message.model_dump(mode="json") for message in llm_messages
                     ],
@@ -398,7 +446,14 @@ def build_chat_router(
                 payload={
                     "model": active_provider_model(settings),
                     "max_tokens": max_tokens,
-                    "provider_history_source": provider_history_source,
+                    "provider_history_source": (
+                        "history_compaction_artifact"
+                        if history_routing.payload.get("status")
+                        == "derived_history_active"
+                        else provider_history_source
+                    ),
+                    "history_routing_status": history_routing.payload.get("status"),
+                    "history_routing_trace_id": history_routing_trace_id,
                     "provider_message_stats": provider_message_stats,
                     "context_accounting_trace_id": accounting_trace_id,
                     "estimated_input_tokens": accounting_payload["total"][
@@ -596,7 +651,10 @@ def build_chat_router(
             repositories.update_chat_session_provider_history(
                 db,
                 session_id=session_id,
-                provider_history=_updated_provider_history(llm_messages, result),
+                provider_history=_updated_provider_history(
+                    canonical_llm_messages,
+                    result,
+                ),
             )
             completed_turn = repositories.complete_turn(
                 db,
@@ -616,6 +674,46 @@ def build_chat_router(
                 actor="backend",
                 visibility="debug",
                 status=completed_turn.status,
+            )
+            chars_per_token = float(
+                accounting_payload.get("calibration", {}).get(
+                    "chars_per_token_used",
+                    settings.context_estimated_chars_per_token,
+                )
+            )
+            post_turn_source_map = build_chronology_source_map(
+                db,
+                session_id=session_id,
+                chars_per_token=chars_per_token,
+            )
+            provider_channel_tokens = int(
+                accounting_payload.get("channels", {})
+                .get("provider_history", {})
+                .get("estimated_tokens", 0)
+            )
+            external_context_tokens = max(
+                0,
+                int(
+                    accounting_payload.get("total", {}).get(
+                        "estimated_input_tokens",
+                        0,
+                    )
+                )
+                - provider_channel_tokens,
+            )
+            schedule_history_compaction(
+                db,
+                settings=settings,
+                session_id=session_id,
+                trigger_turn_id=turn_id,
+                trigger_event_id=turn_completed_event.id,
+                source_map=post_turn_source_map,
+                external_context_tokens=external_context_tokens,
+                chars_per_token=chars_per_token,
+                model_history_tokens=_post_turn_model_history_tokens(
+                    post_turn_source_map,
+                    history_routing.payload,
+                ),
             )
             if settings.maintenance_enabled:
                 schedule_session_idle_maintenance(
@@ -691,12 +789,13 @@ def build_chat_router(
             )
             user_message_response = _message_response(user_message)
             history = repositories.list_messages(db, session_id=session_id)
-            provider_history_source, llm_messages = _provider_messages_for_turn(
-                chat_session=chat_session,
-                history=history,
-                current_user_message=user_message,
+            provider_history_source, canonical_llm_messages = (
+                _provider_messages_for_turn(
+                    chat_session=chat_session,
+                    history=history,
+                    current_user_message=user_message,
+                )
             )
-            provider_message_stats = _provider_message_stats(llm_messages)
             max_tokens = request.max_tokens or active_provider_max_tokens(settings)
             try:
                 system_prompt = resolve_agent_system_prompt(
@@ -784,10 +883,41 @@ def build_chat_router(
                 visibility="debug",
                 trace_id=memory_context.runtime_trace_id,
             )
+            history_routing = route_history_for_model(
+                db,
+                session_id=session_id,
+                canonical_messages=canonical_llm_messages,
+                chars_per_token=float(settings.context_estimated_chars_per_token),
+                mode=str(settings.history_compaction_mode),
+            )
+            llm_messages = history_routing.model_messages
+            provider_message_stats = _provider_message_stats(llm_messages)
+            history_routing_trace_id: str | None = None
+            if settings.history_compaction_mode == "active":
+                history_routing_trace = repositories.add_trace(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    kind="history.routing",
+                    payload=history_routing.payload,
+                )
+                history_routing_trace_id = history_routing_trace.id
+                trace_ids.append(history_routing_trace_id)
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="history.routing.resolved",
+                    payload=history_routing.payload,
+                    source="runtime",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=history_routing_trace_id,
+                )
             effective_system = _compose_system_with_runtime_context(
                 system_prompt.content,
                 memory_context.runtime_context,
-            )
+            ) + history_routing.system_appendix
             accounting_trace, accounting_payload = _record_context_accounting_preflight(
                 db,
                 session_id=session_id,
@@ -798,6 +928,7 @@ def build_chat_router(
                 runtime_context=memory_context.runtime_context,
                 messages=llm_messages,
                 settings=settings,
+                compacted_chronology=history_routing.system_appendix,
             )
             accounting_trace_id = accounting_trace.id
             trace_ids.append(accounting_trace_id)
@@ -832,8 +963,20 @@ def build_chat_router(
                         accounting_payload
                     ),
                     "tool_loop_policy": "model_controlled_unbounded",
-                    "provider_history_source": provider_history_source,
+                    "provider_history_source": (
+                        "history_compaction_artifact"
+                        if history_routing.payload.get("status")
+                        == "derived_history_active"
+                        else provider_history_source
+                    ),
+                    "canonical_provider_history_source": provider_history_source,
+                    "history_routing_trace_id": history_routing_trace_id,
+                    "history_routing": history_routing.payload,
                     "provider_message_stats": provider_message_stats,
+                    "canonical_provider_messages": [
+                        message.model_dump(mode="json")
+                        for message in canonical_llm_messages
+                    ],
                     "provider_messages": [
                         message.model_dump(mode="json") for message in llm_messages
                     ],
@@ -859,7 +1002,14 @@ def build_chat_router(
                 payload={
                     "model": active_provider_model(settings),
                     "max_tokens": max_tokens,
-                    "provider_history_source": provider_history_source,
+                    "provider_history_source": (
+                        "history_compaction_artifact"
+                        if history_routing.payload.get("status")
+                        == "derived_history_active"
+                        else provider_history_source
+                    ),
+                    "history_routing_status": history_routing.payload.get("status"),
+                    "history_routing_trace_id": history_routing_trace_id,
                     "provider_message_stats": provider_message_stats,
                     "context_accounting_trace_id": accounting_trace_id,
                     "estimated_input_tokens": accounting_payload["total"][
@@ -885,6 +1035,7 @@ def build_chat_router(
                 trace_ids=trace_ids,
                 user_message_response=user_message_response,
                 llm_messages=llm_messages,
+                canonical_llm_messages=canonical_llm_messages,
                 system=effective_system,
                 max_tokens=max_tokens,
                 memory_context=memory_context.payload,
@@ -892,6 +1043,7 @@ def build_chat_router(
                 runtime_context=memory_context.runtime_payload,
                 accounting_trace_id=accounting_trace_id,
                 accounting_payload=accounting_payload,
+                history_routing_payload=history_routing.payload,
             ),
             media_type="application/x-ndjson",
         )
@@ -1016,6 +1168,7 @@ def _stream_turn_events(
     trace_ids: list[str],
     user_message_response: ChatMessageResponse,
     llm_messages: list[LLMMessage],
+    canonical_llm_messages: list[LLMMessage],
     system: str,
     max_tokens: int,
     memory_context: dict[str, Any],
@@ -1023,6 +1176,7 @@ def _stream_turn_events(
     runtime_context: dict[str, Any],
     accounting_trace_id: str,
     accounting_payload: dict[str, Any],
+    history_routing_payload: dict[str, Any],
 ) -> Iterator[str]:
     sequence = 0
     pending_runtime_events: list[CognitiveEvent] = []
@@ -1321,7 +1475,10 @@ def _stream_turn_events(
         repositories.update_chat_session_provider_history(
             db,
             session_id=session_id,
-            provider_history=_updated_provider_history(llm_messages, result),
+            provider_history=_updated_provider_history(
+                canonical_llm_messages,
+                result,
+            ),
         )
         completed_turn = repositories.complete_turn(
             db,
@@ -1344,6 +1501,49 @@ def _stream_turn_events(
             status=completed_turn.status,
         )
         final_runtime_events.append(_event_stream_payload(turn_completed_event))
+        chars_per_token = float(
+            accounting_payload.get("calibration", {}).get(
+                "chars_per_token_used",
+                settings.context_estimated_chars_per_token,
+            )
+        )
+        post_turn_source_map = build_chronology_source_map(
+            db,
+            session_id=session_id,
+            chars_per_token=chars_per_token,
+        )
+        provider_channel_tokens = int(
+            accounting_payload.get("channels", {})
+            .get("provider_history", {})
+            .get("estimated_tokens", 0)
+        )
+        external_context_tokens = max(
+            0,
+            int(
+                accounting_payload.get("total", {}).get(
+                    "estimated_input_tokens",
+                    0,
+                )
+            )
+            - provider_channel_tokens,
+        )
+        compaction_schedule = schedule_history_compaction(
+            db,
+            settings=settings,
+            session_id=session_id,
+            trigger_turn_id=turn_id,
+            trigger_event_id=turn_completed_event.id,
+            source_map=post_turn_source_map,
+            external_context_tokens=external_context_tokens,
+            chars_per_token=chars_per_token,
+            model_history_tokens=_post_turn_model_history_tokens(
+                post_turn_source_map,
+                history_routing_payload,
+            ),
+        )
+        if compaction_schedule is not None:
+            _, compaction_event = compaction_schedule
+            final_runtime_events.append(_event_stream_payload(compaction_event))
         if settings.maintenance_enabled:
             _, maintenance_event = schedule_session_idle_maintenance(
                 db,
@@ -1373,6 +1573,24 @@ def _stream_turn_events(
 
 def _ndjson(event_type: str, data: dict[str, Any]) -> str:
     return json.dumps({"type": event_type, "data": data}, ensure_ascii=True) + "\n"
+
+
+def _post_turn_model_history_tokens(
+    source_map: dict[str, Any],
+    history_routing_payload: dict[str, Any],
+) -> int:
+    canonical_tokens = int(source_map.get("canonical_estimated_tokens") or 0)
+    if history_routing_payload.get("status") != "derived_history_active":
+        return canonical_tokens
+    turns = source_map.get("turns")
+    covered_count = int(history_routing_payload.get("covered_turn_count") or 0)
+    if not isinstance(turns, list) or covered_count < 0 or covered_count > len(turns):
+        return canonical_tokens
+    return sum(
+        int(unit.get("estimated_tokens") or 0)
+        for unit in turns[covered_count:]
+        if isinstance(unit, dict)
+    )
 
 
 def _compose_system_with_runtime_context(
@@ -1693,6 +1911,7 @@ def _record_context_accounting_preflight(
     runtime_context: str,
     messages: list[LLMMessage],
     settings: Settings,
+    compacted_chronology: str = "",
     external_unobserved_context: list[str] | None = None,
 ) -> tuple[Trace, dict[str, Any]]:
     payload = build_context_accounting_preflight(
@@ -1706,6 +1925,7 @@ def _record_context_accounting_preflight(
         messages=messages,
         tools=[MIND_SHELL_TOOL_SCHEMA],
         settings=settings,
+        compacted_chronology=compacted_chronology,
         external_unobserved_context=external_unobserved_context,
     )
     trace = repositories.add_trace(

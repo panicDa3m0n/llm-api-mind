@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.38.0
+App baseline: V1.39.0
 
 ## Response Philosophy
 
@@ -281,7 +281,7 @@ State changes write an `agent.mode` trace and `agent.mode.changed` event.
 
 ### Context Accounting
 
-Status: accounting v2 and token-partition shadow planning in V1.36.0
+Status: accounting v2 in V1.36.0; guarded active compaction in V1.39.0
 
 Native chat writes:
 
@@ -301,19 +301,43 @@ The observed trace records every provider step. Effective input is
 provider reports those fields. It exposes first and maximum effective step plus
 cumulative tool-loop usage; only compatible accounting-v2 observations can
 calibrate later preflight estimates.
+It also reports `compaction_plan_mode` and derives
+`compaction_plan_was_shadow_only` from the exact preflight plan; the observed
+trace must not relabel active routing as shadow.
 
 GPT bootstrap writes only the preflight measure of the backend response packet.
 It explicitly lists manual GPT policy, native ChatGPT history, Actions
 serialization, request structure, and provider token usage as unobserved. It
 must not be interpreted as total ChatGPT model input.
 
-Compaction remains `shadow`. The plan divides the 500k operational input into
+Compaction supports `off`, `shadow`, and `active`. The plan divides the 500k operational input into
 measured external overhead `O`, compacted-summary maximum `C=100k`, exact
 complete-turn maximum `H=100k`, dynamic active growth `A`, and safety `M=25k`.
 Turns are selected by incremental token cost, never a fixed count. A turn that
 exceeds `H` but fits the physical 1M window remains whole and reduces `A`; a
 turn beyond 1M fails closed. No canonical message, transcript, trace, or
 provider-history record is mutated.
+
+In `active`, completed turns can schedule an immediate
+`session.history_compaction` maintenance job once the estimated model-facing
+next-turn input reaches `CONTEXT_COMPACTION_TRIGGER_TOKENS`. The trigger uses
+the derived history after a valid artifact exists; canonical size alone does
+not retrigger maintenance. Jobs persist append-only `history_compactions`
+generations and recursively summarize the previous artifact plus only newly
+evicted complete turns.
+
+Before each native call, `history.routing` resolves one of:
+
+- `derived_history_active`: compacted chronology plus exact tail;
+- `canonical_fallback_artifact_missing`;
+- `canonical_fallback_artifact_invalid`;
+- `canonical_fallback_source_map_unavailable`;
+- `canonical_fallback_current_message_invalid`.
+
+The compacted system appendix contains an exact deterministic source manifest.
+Provider-generated opaque IDs absent from the source payload are removed before
+persistence. Sync and stream share this routing and always update
+`sessions.provider_history_json` from the canonical request.
 
 ## Planned Chat And Debug API
 
@@ -1594,7 +1618,7 @@ of `turn_complete`. A successful streamed recovery records
 `llm.completion.recovery.started`; both sync and stream response traces include
 the final `completion_recovery` object.
 
-The model-facing history is built from `sessions.provider_history_json` when
+The canonical history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages
 with native content blocks such as `text`, `thinking`, `tool_use`, and
 `tool_result`. The normal `messages` table remains the human-readable chat
@@ -1602,6 +1626,12 @@ history used by the UI and episodic recall. For older sessions without provider
 history, the backend reconstructs a text-only provider history from persisted
 `user`/`assistant` messages once, then persists native provider history after
 the next completed turn.
+
+When `HISTORY_COMPACTION_MODE=active`, a validated derived request may replace
+the old canonical prefix with a source-labelled chronology summary while
+retaining the newest complete turns and current user message. This affects only
+provider input. Missing/stale artifacts fail back to the full canonical
+request; no history is silently dropped.
 
 Request:
 
@@ -1694,8 +1724,11 @@ When the model uses memory commands through `mind_shell`, the turn also creates:
 - `runtime_context`: the backend-generated runtime context block passed to the model
 - `memory_context_trace_id`: the associated `memory.context` trace row
 - `tool_loop_policy`: currently `model_controlled_unbounded`
-- `provider_history_source`: either `session.provider_history_json` or
-  `messages.text_reconstructed`
+- `provider_history_source`: `session.provider_history_json`,
+  `messages.text_reconstructed`, or `history_compaction_artifact`
+- `canonical_provider_history_source`: the source of the unmodified history
+- `history_routing_trace_id` and `history_routing`: active routing evidence
+- `canonical_provider_messages`: the exact request before derived routing
 - `provider_message_stats`: message count, content-block count, JSON character
   count, and an approximate token estimate for the model-facing history
 - `provider_messages`: the exact provider-facing messages sent to the selected

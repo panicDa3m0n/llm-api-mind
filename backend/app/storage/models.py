@@ -73,6 +73,56 @@ class SessionSummary(SQLModel, table=True):
     )
 
 
+class HistoryCompaction(SQLModel, table=True):
+    """Append-only, source-labelled chronology summary for derived model input."""
+
+    __tablename__ = "history_compactions"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "generation",
+            name="uq_history_compactions_session_generation",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("hist_cmp"), primary_key=True)
+    session_id: str = Field(foreign_key="sessions.id", index=True)
+    generation: int = Field(index=True)
+    status: str = Field(default="active", index=True)
+    summary: str
+    summary_sha256: str = Field(index=True)
+    source_history_sha256: str = Field(index=True)
+    covered_through_turn_id: str = Field(foreign_key="turns.id", index=True)
+    trigger_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    previous_compaction_id: str | None = Field(
+        default=None,
+        foreign_key="history_compactions.id",
+        index=True,
+    )
+    covered_turn_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    covered_sources_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_estimated_tokens: int = Field(default=0)
+    summary_estimated_tokens: int = Field(default=0)
+    model: str | None = Field(default=None, index=True)
+    provider_message_id: str | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
 class Turn(SQLModel, table=True):
     __tablename__ = "turns"
 

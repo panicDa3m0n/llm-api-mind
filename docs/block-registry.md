@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-14
-System version assessed: V1.38.0
+Last updated: 2026-07-18
+System version assessed: V1.39.0
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -14,7 +14,7 @@ These are required delivery surfaces, not dynamic context packs:
 | Surface | Native MiniMax | External GPT | Authority |
 |---|---|---|---|
 | Static system policy | repository Scarlet prompt | prompt pasted in GPT Builder | identity and operating policy |
-| Active-session history | provider-native session history | ChatGPT history plus compact bridge provider hints | same-session continuity |
+| Active-session history | canonical provider history, or a validated compacted chronology plus exact tail | ChatGPT history plus compact bridge provider hints | same-session continuity; canonical native history remains authoritative |
 | Cognitive tool schema | one `mind_shell` tool | three GPT Actions | callable transport |
 
 They have dedicated lifecycle and are not selected by the future dynamic
@@ -193,8 +193,9 @@ automatic context packets.
 
 ## 6. Current Risks
 
-1. Provider-native history is now measured and shadow-planned but still has no
-   active compaction/degradation policy.
+1. Native provider history now has guarded active compaction. Recursive
+   artifacts are append-only, model routing uses `compacted chronology + exact
+   tail + current`, and any invalid artifact falls back to canonical history.
 2. GPT total model input remains partly unobservable because ChatGPT owns its
    manual prompt, native history, Actions serialization, and token accounting.
 3. Future organ registry entries can look implemented unless code/tests/default
@@ -205,8 +206,8 @@ automatic context packets.
 ## 7. Next Registry Work
 
 - keep new optional organ families behind explicit field allowlists and audit;
-- persist recursive summary artifacts and validate the V1.36 token partition
-  across multiple compaction cycles;
+- monitor recursive summary quality and validate the V1.36 token partition
+  across additional compaction cycles;
 - populate natural behavioral scenarios for mode routing and continuity;
-- update this registry before promoting active compaction or hard-gating any
-  cognitive command by mode.
+- update this registry before changing active compaction budgets or hard-gating
+  any cognitive command by mode.

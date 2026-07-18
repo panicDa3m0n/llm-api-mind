@@ -20,7 +20,7 @@ from app.storage import repositories
 
 
 CHRONOLOGY_SOURCE_MAP_VERSION = "chronology-source-map-v1"
-HISTORY_PARTITION_PLAN_VERSION = "history-partition-shadow-v1"
+HISTORY_PARTITION_PLAN_VERSION = "history-partition-v2"
 
 
 def build_chronology_source_map(
@@ -64,8 +64,11 @@ def build_chronology_source_map(
                 reason="llm_request_trace_missing",
                 failed_turn_id=turn.id,
             )
+        request_payload = request_trace.payload_json
         provider_messages = _provider_messages(
-            request_trace.payload_json.get("provider_messages")
+            request_payload.get("canonical_provider_messages")
+            if "canonical_provider_messages" in request_payload
+            else request_payload.get("provider_messages")
         )
         if not provider_messages or provider_messages[-1].get("role") != "user":
             return _unavailable_source_map(
@@ -154,6 +157,7 @@ def build_chronology_source_map(
         ),
         "mapped_provider_message_count": len(mapped_messages),
         "legacy_prefix": {
+            "provider_messages": legacy_prefix,
             "provider_message_count": len(legacy_prefix),
             "json_chars": len(legacy_serialized) if legacy_prefix else 0,
             "estimated_tokens": (
@@ -175,6 +179,7 @@ def build_history_partition_plan(
     source_map: dict[str, Any],
     external_context_tokens: int,
     provider_history_tokens: int,
+    trigger_tokens: int,
     operational_limit_tokens: int,
     model_window_tokens: int,
     summary_max_tokens: int,
@@ -192,7 +197,8 @@ def build_history_partition_plan(
         0,
         conversation_capacity - summary_max_tokens - verbatim_max_tokens,
     )
-    would_trigger = provider_history_tokens >= conversation_capacity
+    total_estimated_input_tokens = external_context_tokens + provider_history_tokens
+    would_trigger = total_estimated_input_tokens >= trigger_tokens
     selected_reversed: list[dict[str, Any]] = []
     selected_tokens = 0
     single_turn_exception: dict[str, Any] | None = None
@@ -263,6 +269,8 @@ def build_history_partition_plan(
     status = "disabled" if mode == "off" else "below_partition_trigger"
     if mode == "shadow" and would_trigger:
         status = "would_recompact"
+    elif mode == "active" and would_trigger:
+        status = "requires_compaction"
     if source_map.get("status") != "complete":
         status = "source_map_unavailable"
     elif physical_window_failure is not None:
@@ -287,11 +295,13 @@ def build_history_partition_plan(
         "schema_version": HISTORY_PARTITION_PLAN_VERSION,
         "status": status,
         "shadow_only": mode == "shadow",
+        "mode": mode,
         "would_trigger": would_trigger,
         "trigger_basis": (
-            "provider_history_tokens_reach_operational_limit_minus_external_"
-            "context_and_safety"
+            "total_estimated_input_tokens_reach_configured_compaction_trigger"
         ),
+        "trigger_tokens": trigger_tokens,
+        "total_estimated_input_tokens": total_estimated_input_tokens,
         "areas": {
             "external_context": {
                 "estimated_tokens": external_context_tokens,

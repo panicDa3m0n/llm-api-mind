@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-18
-Backend baseline: V1.38.0
+Backend baseline: V1.39.0 (code; production deployment pending)
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -30,6 +30,11 @@ fixture deprecation requires a prior disposable-copy run, an online production
 backup reference, the current reviewed candidate digest, and an exact approval
 token. Summary reconciliation remains dry-run-first. None of these operations
 is a startup migration or an evaluator action against production.
+
+V1.39.0 adds `history_compactions` through normal schema initialization. These
+records are derived, append-only chronology artifacts; they never replace
+`sessions.provider_history_json` or canonical messages. Their absence or
+validation failure causes model routing to use full canonical history.
 
 `CODEX_TEST` remains the legacy, useful *copy-once isolation mechanism*. It is
 not a role. When true, it selects `CODEX_TEST_DATABASE_URL` and may create it
