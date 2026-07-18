@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.36.1
+App baseline: V1.37.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -88,6 +88,9 @@ entry points from the denominator.
 V1.36.1 passes 198 tests at 80.22%. The thinking-only completion policy adds
 provider recovery/exhaustion coverage plus synchronous and streaming API
 guards without lowering the project floor.
+
+V1.37.0 passes 207 tests at 80.21%. The frozen reranker evaluator is included
+at 79% module coverage; it is not omitted from the project denominator.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

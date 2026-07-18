@@ -6,12 +6,20 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.36.1 prevents thinking-only provider messages from becoming successful empty
-Scarlet turns. V1.36.0 remains the chronology-accounting baseline. V1.32.0
+V1.37.0 calibrates final memory relevance on frozen and live evidence. V1.36.1
+prevents thinking-only provider messages from becoming successful empty Scarlet
+turns. V1.36.0 remains the chronology-accounting baseline. V1.32.0
 remains the currently deployed HoneyLabs production runtime until later versions
 pass the protected database deployment boundary.
 
 ### Added
+
+- Added a ten-case immutable full-DB final-rerank calibration runner plus an
+  inherited wrong-entity regression covering
+  positives, negatives, paraphrases, entity overlap, two-fact recall, KG route
+  participation, trace ids, sourceable V2 delivery, latency, and direct Scarlet
+  semantic review.
+- Added final-reranker latency and effective acceptance-floor evidence.
 
 - Added exact canonical chronology maps linking complete provider slices to
   turn, message, tool-call, request-trace, and response-trace ids.
@@ -85,6 +93,13 @@ pass the protected database deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Advanced backend, frontend, GPT Action schema, and canonical project metadata
+  to V1.37.0.
+- Replaced the provisional fixed `0.01` final-rerank threshold with a calibrated
+  `max(0.004, best query score * 0.01)` policy. The reranker remains the sole
+  semantic arbiter; recall routes remain non-authoritative and active failure
+  remains fail-closed.
 
 - Advanced backend, frontend, GPT Action schema, and canonical project metadata
   to V1.36.1.

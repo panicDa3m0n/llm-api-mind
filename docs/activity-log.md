@@ -4,6 +4,43 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.37.0 Final Memory Rerank Calibration (SCA-3)
+
+Goal:
+
+Calibrate candidate coverage and final semantic acceptance on immutable real
+memory references, then verify V2 delivery and direct Scarlet behavior.
+
+Changes:
+
+- Added a reusable ten-case frozen calibration runner plus one inherited
+  wrong-entity regression, with per-case fresh DB copies, source hash/reference
+  guards, trace/V2 checks, latency capture, and a separate real-Scarlet mode.
+- Replaced the fixed `0.01` floor with an absolute `0.004` floor plus a `1%`
+  query-relative floor; the final reranker remains the only relevance arbiter.
+- Added effective-threshold and final-reranker latency evidence.
+- Advanced package and canonical documentation metadata to V1.37.0.
+
+Verification:
+
+- Pre-change frozen result: 18/20; both failures were the same two-fact
+  Vetro-Luna false negative, while every expected id reached the candidate pool.
+- Final post-change frozen result: 22/22; positive floor `0.007432`, negative
+  ceiling `0.003299`, median rerank 396.5 ms, source hash unchanged.
+- Direct MiniMax M3 result: 3/3 technical and semantic passes for mint-tea
+  paraphrase, body disambiguation, and unrelated jazz negative.
+- Full backend gate: 207 tests passed at 80.21% coverage.
+- Unchanged frozen preliminary regression: 9/9.
+- Ruff, blocking mypy, documentation integrity, and frontend production build
+  passed.
+
+Boundary:
+
+- No production or local laboratory database was used as a writable target.
+- `backend/data/app.db` remains an unrelated modified local file.
+- Background maintenance retry/resume and historical provenance remain SCA-20
+  or later work, not silently included in SCA-3.
+
 ## 2026-07-18 - V1.36.1 Thinking-Only Final Recovery (SCA-19)
 
 Goal:

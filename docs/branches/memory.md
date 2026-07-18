@@ -173,7 +173,22 @@ merge/deprecate automatici, Dream review, compaction, KG entity resolution,
 pesi emotivi, staleness scoring, enrichment maturo di tags/facts/metadata e
 privacy multiutente vera.
 
-Sistema valutato: V1.32.0.
+Sistema valutato: V1.37.0.
+
+Aggiornamento V1.37.0:
+
+- Dieci casi frozen scelti prima dell'esecuzione, piu una regressione
+  wrong-entity ereditata dal gate completo, coprono positivi, negativi,
+  parafrasi, entita sovrapposte, richiami multipli e percorso KG.
+- La soglia fissa `0.01` perdeva sistematicamente un secondo fatto necessario;
+  la policy finale usa ora il massimo tra pavimento assoluto `0.004` e `1%` del
+  miglior score reranker della query.
+- Solo il reranker decide rilevanza. Sparse, dense, graph e lessicale restano
+  route di recall, senza fallback o fusione deterministica.
+- Il confronto frozen finale passa 22/22 e tre turni MiniMax M3 passano verifica
+  tecnica e semantica, compreso un negativo con `memories.relevant` vuoto.
+- Trace e report espongono soglia effettiva e latenza del reranker. Il dettaglio
+  completo e in `docs/evaluations/v1.37-memory-rerank-calibration.md`.
 
 Aggiornamento V1.31.0:
 

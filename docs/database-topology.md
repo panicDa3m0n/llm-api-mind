@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-13
-Backend baseline: V1.36.1
+Backend baseline: V1.37.0
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in

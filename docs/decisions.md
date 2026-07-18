@@ -7,6 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0089 - Final Memory Relevance Uses A Query-Relative Reranker Floor
+
+Date: 2026-07-18
+Status: accepted and implemented in V1.37.0
+
+Context:
+
+The fixed final-reranker threshold `0.01` passed initial controls but rejected
+the second required fact in a frozen two-fact query. Lowering one global floor
+enough to recover it would admit tangential memories in queries whose leading
+candidate has a much stronger score. Sparse, dense, graph, lexical, stored
+confidence, and salience cannot resolve this because the owner explicitly
+requires the advanced semantic reranker, not hand-authored relevance fusion.
+
+Decision:
+
+- keep the memory-level reranker as the only final acceptance and ordering
+  authority;
+- require every accepted candidate to meet both a calibrated absolute floor
+  and a query-relative floor derived from the best reranker result;
+- configure the floors independently, initially `0.004` absolute and `1%`
+  relative, and expose the effective threshold in trace evidence;
+- retain round-robin sparse/dense/KG/lexical recall only for candidate coverage;
+- keep active mode fail-closed and do not add deterministic fallback or an
+  unobserved runtime retry loop;
+- recalibrate from immutable real references and semantic judgment whenever
+  the reranker model or material dataset characteristics change.
+
+Consequences:
+
+The policy handles query-local score scale without allowing recall-route scores
+to decide semantics. Frozen post-change controls pass 22/22, including a
+two-memory answer and a wrong-entity collision, while unrelated negatives
+remain empty. The calibration is strong project evidence, not a universal
+numeric proof; provider drift and
+larger candidate pools remain monitored.
+
+Links:
+
+- `backend/app/mind/relevance_rerank.py`
+- `backend/app/evals/memory_rerank_calibration.py`
+- `docs/evaluations/v1.37-memory-rerank-calibration.md`
+- Linear SCA-3
+
 ## ADR-0088 - Public Answer Is A Turn-Completion Invariant
 
 Date: 2026-07-18
