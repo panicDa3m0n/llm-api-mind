@@ -4,6 +4,238 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.50.0 Stabilization Baseline And Model-Facing Memory Gate (SCA-43)
+
+Added `model-facing-memory-gate-v2` as a complementary evaluator instead of
+rewriting the frozen preliminary V1 case. On the untouched frozen source, the
+real Zero-Luce memory is selected by rich retrieval but correctly excluded from
+V2 because its source-message hook is absent. The gate applies the existing
+digest-guarded exact provenance repair only to a disposable copy, then proves
+the same memory and exact session/message hooks reach V2, the persisted
+`llm.request`, and the system packet observed by the controlled provider.
+
+The controlled positive provider now satisfies the private native final-answer
+boundary. A separate negative provider intentionally fails it twice. The gate
+requires a completed turn, one persisted assistant message, `turn.completed`,
+no `llm.error`, and a stream `turn_complete`; the negative control therefore
+fails with `llm.incomplete_response`, persists no assistant message, and is
+recognized as rejected rather than becoming another false positive.
+
+The integrated report `20260718_220521_model-facing-memory-gate-v2` passes 5/5.
+The immutable baseline still hashes to
+`827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`.
+The unchanged V1 run `20260718_220559_preliminary-regression-v1` passes 9/9;
+43 focused context/maintenance/chat tests, 53 shell/organ contracts, and 6
+evaluator-oracle tests pass. The complete backend passes 263 tests at 81.86%
+coverage. Direct shell evidence opens memory/facts/graph/session, completes
+focus and volition lifecycles, reads affect, and records metacognition.
+
+Production had already been verified read-only with complete target provenance,
+so this issue requires no production data mutation. V1.50.0 remains a local
+candidate until protected push/deploy and parity checks complete.
+
+## 2026-07-18 - V1.49.1 Action Retry Evidence Reconciliation (SCA-42)
+
+Fixed the shared final-answer evidence defect where a failed API Mind action
+remained the only hard obligation even after Scarlet successfully corrected
+the same operation. Current-turn tool obligations are now rebuilt from the
+authoritative complete call list. Recoverable same-operation attempts are
+linked as candidates with commands, intents, results, tool-call ids, and trace
+ids; semantic equivalence remains an LLM-validator judgment rather than a
+deterministic string or score rule. Unrecovered, non-recoverable, and
+different-operation failures remain hard.
+
+The GPT Actions E2E test exposed a second facet of the same root defect:
+persisted bootstrap/action manifests deduplicated the old failed obligation
+and ignored a later successful call. Rebuilding only tool-derived obligations
+fixed this while preserving static conflict, source, and final-boundary rules.
+
+The frozen pre gate `20260718_195924_preliminary-regression-v1` and post gate
+`20260718_201150_preliminary-regression-v1` both pass 9/9. Focused shared
+answer-control tests pass 58/58; all 257 backend tests pass at 81.71% coverage.
+A natural MiniMax M3 probe then received a deliberately malformed first
+`memory write` at the runtime boundary, corrected it autonomously, stored one
+faithful `user_preference` with complete session/turn/message provenance, and
+answered proportionately without exposing irrelevant internal failure noise.
+The actual commands, results, obligation chain, validation reasons, persisted
+memory, and answer were inspected directly; the result was not accepted from
+the validator flag alone.
+
+## 2026-07-18 - V1.49.0 Maintenance Runtime Domains (SCA-37)
+
+Separated the 1,383-line maintenance runtime into a scheduling/dispatch owner,
+a summary/history owner, a memory-review/proposal owner, and a small shared
+contract module. `maintenance.py` is now an 18-line compatibility facade. Job
+kinds, persisted states, scheduling, retries, idempotency, idle verification,
+prompts, auto-apply thresholds, public imports, and worker behavior remain
+unchanged.
+
+The frozen pre gate `20260718_193905_preliminary-regression-v1` and post gate
+`20260718_194544_preliminary-regression-v1` both pass 9/9 with identical stable
+source, retrieval, navigation, lifecycle, and maintenance-boundary evidence.
+Focused contracts pass 32/32; all 247 backend tests pass at 81.63% coverage;
+Ruff and mypy across 25 guarded modules pass.
+
+A direct compaction probe verified one idempotent job, one provider call, exact
+source digest, expected summary coverage, unchanged canonical history, and the
+complete schedule/start/completed event chain. A natural MiniMax M3 idle job
+summarized a short pause accurately and returned zero memory candidates for a
+transient pacing remark. This was accepted by reading the actual summary,
+review rationale, actions, records, and events, not from completion status or
+numeric counters alone. Three earlier inspection failures used wrong helper or
+field names in disposable harness code; the real jobs had already completed
+and no application defect was involved.
+
+## 2026-07-18 - V1.48.0 Memory Mutation And Evidence (SCA-38)
+
+Separated the remaining memory mutation surface into `memory_write` (write
+contract, policy, exact dedup, facts and backfill), `memory_lifecycle`
+(deprecate/supersede), `memory_proposals` (maintenance preflight, ledger and
+apply), and `memory_relations` (atomic conflicts and overlap evidence).
+`memory.py` is now a 38-line compatibility facade rather than a 1,938-line
+mixed owner. The moved public objects remain identical through the facade.
+
+The frozen pre gate `20260718_192112_preliminary-regression-v1` and post gate
+`20260718_193026_preliminary-regression-v1` both pass 9/9. Stable source
+inventory, automatic selection, candidate count, manual search/facts and
+lifecycle results are identical. Focused mutation/maintenance tests pass
+70/70; all 246 backend tests pass at 81.59% coverage. Ruff and mypy pass across
+21 guarded modules, and normalized OpenAPI is byte-identical.
+
+Direct shell use on a disposable database stored two conflicting Zero-Luce
+formats, deduplicated an exact repeat, exposed one atomic-fact conflict, and
+cleared it by superseding the old memory. The old memory/fact became
+deprecated, the replacement stayed active, and write/review/supersede
+activities plus expected traces were present. A proposal probe kept a new
+candidate in the cautious lane, applied it with complete provenance, and
+classified a later equivalent candidate as `noop_duplicate` without creating
+a second memory.
+
+A natural MiniMax M3 turn received only a human-style preference statement.
+Scarlet consulted memory help, wrote one `user_preference` with complete
+session/turn/message provenance, and then accurately acknowledged the saved
+preference. Qualitatively the action and answer were proportionate; no
+systemic behavioral bug appeared. Two failed probe attempts were harness-only
+SQLAlchemy/repository mistakes before result inspection and did not exercise
+or change application behavior.
+
+## 2026-07-18 - V1.47.0 Memory Read Surface (SCA-36)
+
+Moved memory search, read, facts, graph, their Pydantic request contracts, read
+ranking/temporal filters, graph traversal, and output construction into
+`app.mind.memory_read`. A 152-line `memory_shared` owner holds only field
+aliases, common payloads, traced activity recording, and shared handler errors,
+avoiding circular imports. `memory.py` remains the stable facade and decreased
+from 2,921 to 1,938 lines; `memory_read.py` is 975 lines.
+
+The frozen pre gate `20260718_190504_preliminary-regression-v1` and post gate
+`20260718_191139_preliminary-regression-v1` both pass 9/9. Their manual shell
+case has identical stable search ids, fact id, graph target, source-session
+message count, and automatic-retrieval evidence. Focused shell/memory/V2 tests
+pass 63/63; all 245 backend tests pass at 81.54% coverage; Ruff and mypy across
+17 guarded modules pass.
+
+Direct use on a disposable frozen copy returned only the active Zero-Luce
+memory for the natural search, opened its status and provenance, exposed its
+active `response_format` fact, and navigated a four-node/three-edge graph. The
+four traces remained `mind.memory.search`, `read`, `facts`, and `graph`.
+Qualitatively, the payloads remained sourceable and useful for Scarlet; the
+known absent source-message id belongs to BUG-0093's historical fixture and is
+not a read-surface regression.
+
+## 2026-07-18 - V1.46.0 Context Retrieval Separation (SCA-35)
+
+Moved automatic memory candidate collection, scoring, classification, final
+rerank projection, and negative evidence from `app.mind.context` into the typed
+`app.mind.context_retrieval` owner. The runtime-context builder remains the
+public facade and still owns packet assembly, trace persistence, and memory
+activity recording. `context.py` decreased from 1,809 to 1,161 lines; the new
+owner is 731 lines.
+
+The frozen pre/post gates
+`20260718_184350_preliminary-regression-v1` and
+`20260718_184927_preliminary-regression-v1` both pass 9/9. The automatic case
+kept the same active memory id, 33 candidates, and block types. Focused tests
+pass 101/101; all 244 backend tests pass at 81.50% coverage; Ruff and mypy
+across 15 guarded modules pass.
+
+Direct inspection found an evaluator blind spot. The frozen Zero-Luce memory
+is selected in rich `memory.context`, but lacks `source_message_id`, so the V2
+projector correctly omits it from the actual model packet. On a disposable
+copy, the deterministic provenance repair linked the one exact user message;
+the next natural MiniMax turn received the memory and correctly returned the
+four required blocks: Contesto, Evidenza, Rischio, and Prossima azione. This
+proves the current retrieval-to-model path under valid provenance, while
+BUG-0093/Linear SCA-43 tracks a complementary model-facing gate. The frozen V1
+case remains unchanged as historical evidence.
+
+## 2026-07-18 - V1.45.0 Native Turn Orchestration (SCA-33)
+
+Moved the native sync/stream lifecycle from `app.api.chat` into the typed
+`app.api.chat_native_turn` owner. The shared preparation now creates user,
+memory/runtime/model context, history routing, obligations, accounting, and
+request evidence once; shared completion owns assistant persistence, response
+traces, provider history, completion events, and maintenance scheduling.
+Sync and stream retain their real transport differences. The FastAPI facade is
+now 218 lines rather than 2,197.
+
+The extraction exposed and fixed BUG-0092: stream created `model.context` but
+did not include its id/profile in `llm.request` or the final turn `trace_ids`.
+The new regression verifies the stream trace exists, is referenced by the
+request, and is returned by the completed turn.
+
+The frozen pre gate was
+`20260718_181621_preliminary-regression-v1`; the post gate is
+`20260718_183109_preliminary-regression-v1`, both 9/9. OpenAPI remains exactly
+equal at 26 paths. Focused tests pass 57/57; all 244 backend tests pass at
+81.44% coverage; Ruff and mypy across 14 guarded modules pass.
+
+The directly inspected post probe used session
+`ses_fedef0f9287b4846add12057caf9b93e`. Sync chose `quieta`; the next streamed
+turn received all three canonical messages and explained that exact word in
+one sentence. Its `model.context` trace
+`trace_930ef7997e104a798ecc2c5dab2b8efc` is now linked in both request and
+completion evidence. The recovery made one unnecessary `help` call after
+omitting the private final marker. The unchanged pre implementation showed
+different stochastic recovery outcomes under the same prompt, so this is
+classified as model variance rather than an orchestration regression.
+
+## 2026-07-18 - V1.44.0 Native Chat Support Extraction (SCA-34)
+
+Extracted provider-history conversion, response/event serialization, and
+context-accounting persistence/statistics from `backend/app/api/chat.py` into
+three cohesive typed support modules. The native chat module remains the
+public facade and turn orchestrator; the GPT Actions router now imports the
+owning support modules rather than private router helpers. `chat.py` decreased
+from 2,641 to 2,197 lines without changing HTTP schemas or turn policy.
+
+The frozen gate passed 9/9 before
+(`20260718_174427_preliminary-regression-v1`) and after
+(`20260718_175231_preliminary-regression-v1`). Normalized pre/post OpenAPI JSON
+is exactly equal at 26 paths and 29 schemas. Focused tests pass 57/57; the full
+backend passes 244 tests at 81.41% coverage; Ruff, mypy across 13 guarded
+modules, documentation integrity, database boundary, and frontend production
+build pass.
+
+A bounded two-turn MiniMax probe on a disposable DB was inspected directly,
+not accepted from status counters. Scarlet answered a one-sentence greeting,
+then received three canonical provider messages and correctly quoted `Che
+bello risentirti` from her prior answer. The slight service-like closing in the
+first reply and temporal gloss in the second were judged style variance, not
+provider-history loss.
+
+One earlier run with a 1,024-output-token override was rejected as invalid
+evidence because it did not match native Scarlet's configured budget. A
+separate valid probe exposed BUG-0091: a corrected memory-write retry succeeded
+but answer obligations kept only the first failed attempt and rejected a
+truthful final answer. The pre-existing defect is isolated in Linear SCA-42
+and was not changed inside SCA-34.
+
+The owner also fixed two durable boundaries: native project-selected providers
+remain the authoritative system while GPT Actions are an experimental adapter,
+and every behavioral test requires qualitative inspection of real actions and
+answers in addition to technical metrics.
+
 ## 2026-07-18 - V1.43.0 MCP Retirement (SCA-22)
 
 Removed the deprecated MCP/App connector implementation after the owner

@@ -6,6 +6,219 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.50.0 - Stabilization Baseline And Model-Facing Memory Gate
+
+#### Added
+
+- Add the complementary `model-facing-memory-gate-v2` without rewriting the
+  historical preliminary V1 suite. The gate proves rich retrieval, V2
+  projection, exact source hooks, persisted `llm.request`, provider-observed
+  input, completed turn, and assistant persistence as separate boundaries.
+- Add a negative-control provider that intentionally omits the final-answer
+  marker and prove the gate rejects its failed turn even when retrieval and
+  model-context traces exist.
+- Add focused contracts for the evaluator oracle, guarded provenance repair,
+  controlled-provider polarity, report output, and success/failure paths.
+
+#### Changed
+
+- Consolidate the locally verified V1.44.0 through V1.49.1 candidates as the
+  V1.50.0 release baseline. GPT Actions remains an experimental adapter; no
+  retrieval, context-projector, prompt, shell, or production-memory policy is
+  changed by this release.
+
+#### Verification
+
+- `model-facing-memory-gate-v2` passes 5/5 on a disposable copy of the frozen
+  database; the immutable source SHA remains unchanged.
+- The unchanged preliminary V1 gate passes 9/9, focused context/maintenance/
+  chat tests pass 43/43, shell and organ contracts pass 53/53, and evaluator
+  oracle contracts pass 6/6 at 89.74% module coverage.
+- The complete backend passes 263 tests at 81.86% coverage, improving the
+  V1.49.1 project baseline while keeping the 79.9% blocking floor.
+
+### V1.49.1 - Action Retry Evidence Reconciliation
+
+#### Fixed
+
+- Rebuild current-turn action obligations from the authoritative tool-call
+  chain so a recoverable failure can expose later same-operation attempts to
+  the semantic answer validator on native sync, native stream, and GPT
+  Actions.
+- Keep the initial failure and every linked trace visible while letting the
+  validator decide whether command, intent, and result prove a materially
+  equivalent recovery; different-operation, non-recoverable, and unrelated
+  retries remain hard failures.
+- Replace stale persisted GPT action/capability obligations with the latest
+  current-turn evidence instead of deduplicating away successful later calls.
+
+#### Verification
+
+- Frozen SCA-42 pre/post gates pass 9/9; focused answer-control, native chat,
+  and GPT bridge contracts pass 58/58; the complete backend passes 257 tests
+  at 81.71% coverage.
+- A directly inspected MiniMax M3 turn encountered an injected real shell
+  validation failure, corrected the same memory-write intent, persisted a
+  faithful source-linked preference, and answered naturally. The action
+  sequence, validator findings, memory, provenance, and final text were judged
+  directly rather than inferred from aggregate status or scores.
+
+### V1.49.0 - Maintenance Runtime Domains
+
+#### Changed
+
+- Split maintenance scheduling/dispatch, summary-history work, and memory
+  review/proposal resolution into dedicated typed owners behind the unchanged
+  `app.runtime.maintenance` facade.
+- Preserved job kinds, scheduling, retry and idempotency behavior, idle checks,
+  prompts, auto-apply thresholds, worker lifecycle, API imports, and persisted
+  job/event contracts.
+- Extended the blocking mypy surface from 21 to 25 modules.
+
+#### Verification
+
+- Frozen SCA-37 pre/post gates pass 9/9 with identical stable evidence;
+  focused maintenance/history contracts pass 32/32 and the complete backend
+  passes 247 tests at 81.63% coverage.
+- Normalized pre/post OpenAPI is exactly equal at 39,251 bytes.
+- Direct history-compaction use preserved idempotency, canonical history, exact
+  source anchoring, and expected events on a disposable database.
+- A natural MiniMax M3 idle-maintenance probe produced a faithful session
+  summary and correctly declined to remember a transient pause. Actions,
+  persisted records, and answer quality were inspected directly rather than
+  accepted from status counters alone.
+
+### V1.48.0 - Memory Mutation And Evidence Boundaries
+
+#### Changed
+
+- Split memory write/fact materialization, lifecycle, maintenance proposals,
+  and relation evidence into four dedicated owners behind `app.mind.memory`.
+- Reduced `app.mind.memory` from 1,938 lines to a 38-line compatibility facade
+  while preserving dispatcher, shell, API, maintenance, and evaluator imports.
+- Extended the blocking mypy surface from 17 to 21 modules and fixed two
+  proposal-flow type narrowings without changing their runtime decisions.
+
+#### Verification
+
+- Frozen SCA-38 pre/post gates pass 9/9 with identical source inventory,
+  retrieval ids, facts, search results, and lifecycle targets.
+- Focused mutation/maintenance contracts pass 70/70; the complete backend
+  passes 246 tests at 81.59% coverage; Ruff and mypy pass.
+- Direct shell use verified write, exact deduplication, atomic conflict
+  evidence, supersession, fact lifecycle, activities, and traces on an
+  isolated database.
+- A natural MiniMax M3 turn autonomously wrote one sourceable user preference
+  and answered consistently with the successful persistence result.
+
+### V1.47.0 - Memory Read Surface Boundary
+
+#### Changed
+
+- Moved manual memory search, read, facts, graph, request contracts, ranking,
+  temporal filtering, and graph presentation into `app.mind.memory_read`.
+- Added `app.mind.memory_shared` for the minimal payload, field, error, and
+  activity contracts shared by read and mutation handlers.
+- Kept `app.mind.memory` as a compatibility facade for dispatcher, shell,
+  maintenance, API, evaluator, and test imports.
+- Added both new owners to the blocking mypy surface.
+
+#### Verification
+
+- Frozen SCA-36 pre/post gates pass 9/9 with identical stable manual-shell and
+  automatic-retrieval evidence.
+- Focused memory/shell/V2 contracts pass 63/63; direct shell search/open/facts/
+  graph returned the expected real memory, fact, graph, provenance, and traces.
+- The complete backend passes 245 tests at 81.54% coverage; Ruff and mypy pass.
+
+### V1.46.0 - Automatic Context Retrieval Boundary
+
+#### Changed
+
+- Moved automatic memory candidate pooling, ranking, classification, final
+  rerank projection, and negative evidence into the typed
+  `app.mind.context_retrieval` owner.
+- Kept `app.mind.context` as the stable runtime-packet facade and preserved the
+  existing selected/near-miss/excluded payload, trace, and activity contracts.
+- Added the retrieval owner to the blocking mypy surface.
+
+#### Verification
+
+- Frozen SCA-35 pre/post gates pass 9/9 with the same active Zero-Luce memory,
+  33 candidates, and model-context block types.
+- Focused context/retrieval tests pass 101/101; the complete backend passes
+  244 tests at 81.50% coverage; Ruff and mypy pass.
+- A directly inspected MiniMax probe proved that the selected memory reaches
+  the model and produces the expected four-block answer after exact source
+  provenance is repaired on a disposable database.
+
+#### Known Issues
+
+- The frozen V1 gate checks rich automatic selection but not V2 model-facing
+  delivery. Its Zero-Luce fixture lacks `source_message_id`, so the projector
+  correctly excludes it. BUG-0093/Linear SCA-43 tracks a new complementary
+  gate without rewriting the historical baseline.
+
+### V1.45.0 - Native Turn Orchestration Boundary
+
+#### Changed
+
+- Moved native sync/stream preparation, provider execution, answer control,
+  failure recording, completion, and maintenance scheduling behind the typed
+  `app.api.chat_native_turn` service boundary.
+- Reduced `app.api.chat` to HTTP route registration, request validation,
+  response mapping, and debug-route ownership while preserving its public
+  facade and every existing endpoint schema.
+- Added `chat_native_turn.py` to the blocking mypy surface.
+
+#### Fixed
+
+- Stream turns now expose the generated `model.context` trace through both
+  `llm.request.model_context_trace_id` and final `trace_ids`, matching sync
+  observability (BUG-0092).
+
+#### Verification
+
+- Frozen SCA-33 pre/post gates pass 9/9; normalized OpenAPI remains identical
+  at 26 paths.
+- Focused native/GPT tests pass 57/57; the complete backend passes 244 tests at
+  81.44% coverage; Ruff and mypy pass.
+- A directly inspected two-turn MiniMax probe preserved exact same-session
+  continuity across sync then stream and proved the repaired model-context
+  trace linkage.
+
+### V1.44.0 - Native Chat Support Extraction
+
+#### Changed
+
+- Extracted provider-history transformations, response/event serialization,
+  and context-accounting helpers from the native chat router into three
+  cohesive typed modules behind the unchanged `app.api.chat` facade.
+- Updated the GPT Actions router to consume the owning support modules instead
+  of private chat-router helpers, without changing its OpenAPI contract.
+- Classified the native project-selected provider runtime as authoritative and
+  the Custom GPT bridge as an experimental external adapter.
+- Made direct qualitative inspection mandatory for behavioral probes; numeric
+  scores and deterministic flags remain supporting evidence rather than the
+  behavioral verdict.
+
+#### Verification
+
+- Frozen SCA-34 pre/post gates pass 9/9; normalized OpenAPI JSON is exactly
+  unchanged at 26 paths and 29 schemas.
+- Focused support/chat/bridge tests pass 57/57; the complete backend passes
+  244 tests at 81.41% coverage; Ruff, mypy, documentation integrity, database
+  boundary, and frontend production build pass.
+- A two-turn isolated MiniMax probe preserved canonical provider history and
+  produced a semantically correct same-session recall answer under direct
+  qualitative review.
+
+#### Known Issues
+
+- A separate isolated probe confirmed that answer obligations can retain a
+  failed action while ignoring its successful corrected retry (BUG-0091,
+  Linear SCA-42). The pre-existing defect is not changed by SCA-34.
+
 ### V1.43.0 - Actions-Only GPT Bridge
 
 #### Changed

@@ -9,6 +9,309 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0078 - Model-Facing Automatic-Memory Delivery Gate
+
+Status: deterministic integrated evidence accepted for V1.50.0
+
+Hypothesis:
+
+A valid automatic-memory gate can distinguish internal retrieval from actual
+model delivery and reject failed turns without changing retrieval semantics or
+the immutable historical fixture.
+
+Method:
+
+- run one natural Zero-Luce prompt before repair on the frozen disposable copy;
+- inspect rich selection, V2, `llm.request`, observed provider input, persisted
+  messages, traces, events, and final turn status;
+- apply existing exact provenance maintenance with the reviewed digest and an
+  immutable-baseline reference;
+- repeat the same prompt after repair; and
+- run a negative provider that omits the final boundary on both allowed
+  attempts.
+
+Result:
+
+Before repair, rich retrieval selected the target while V2 and the provider
+packet correctly omitted it. After repair, the target and exact source hooks
+crossed every model-facing boundary and the turn completed with one assistant
+message. The negative control retained valid retrieval/context traces but
+failed with `llm.incomplete_response`; the new gate rejected it. All five
+integrated cases and all six evaluator-oracle tests pass.
+
+Evidence:
+
+- `20260718_220521_model-facing-memory-gate-v2`;
+- `20260718_220559_preliminary-regression-v1`, unchanged V1, 9/9;
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`.
+
+## EXP-0077 - Recoverable Action Retry Evidence And Natural Recovery
+
+Status: deterministic and direct behavioral evidence accepted for V1.49.1
+
+Hypothesis:
+
+A corrected action can be represented as one inspectable attempt chain without
+deterministically declaring semantic equivalence, allowing truthful final
+answers while retaining real failures.
+
+Method:
+
+- reproduce the old failure on current code before the fix;
+- cover equivalent, unrelated, different-operation, non-recoverable,
+  out-of-order, capability, stale-manifest, native sync/stream, and GPT Actions
+  cases;
+- run the unchanged frozen preliminary gate before and after; and
+- give MiniMax M3 a natural durable preference while the harness corrupts only
+  its first memory-write command at the runtime boundary, then inspect the
+  complete model/tool/validator/persistence outcome.
+
+Result:
+
+Before the fix, the successful retry remained absent from the hard obligation.
+After the fix, all transports preserve the failure and expose the later call as
+a semantic candidate. In the real probe, Scarlet corrected the malformed
+command with the same intent, stored a faithful preference with complete
+provenance, and answered naturally. The semantic validator's pass agrees with
+the inspected evidence; it is not the basis of the qualitative judgment. The
+GPT lifecycle test additionally found and fixed stale dynamic-obligation
+deduplication.
+
+Evidence:
+
+- pre gate `20260718_195924_preliminary-regression-v1`;
+- post gate `20260718_201150_preliminary-regression-v1`;
+- `docs/evaluations/v1.49.1-action-retry-obligations.md`.
+
+## EXP-0076 - Maintenance Domain Equivalence And Semantic Probe
+
+Status: bounded pre/post and direct behavioral evidence accepted for V1.49.0
+
+Hypothesis:
+
+Maintenance scheduling, summary/history execution, and memory review can move
+to separate owners without changing job lifecycle, retry/idempotency behavior,
+prompts, proposal policy, history sources, or Scarlet's maintenance judgments.
+
+Method:
+
+- compare the frozen nine-case gate and focused maintenance/history tests
+  before and after extraction;
+- compare moved definitions, prompt text, thresholds, facade identities, and
+  the normalized OpenAPI document;
+- execute history compaction directly on a disposable database and inspect the
+  job, artifact, canonical history, provider calls, and events; and
+- run a natural MiniMax M3 conversation followed by the real idle worker, then
+  inspect Scarlet's answer, generated summary, memory-review rationale,
+  proposals, memories, and event trail.
+
+Result:
+
+Pre/post gates passed 9/9 with identical stable evidence and focused contracts
+passed 32/32. Direct compaction produced one idempotent completed job and one
+source-anchored artifact without mutating canonical history. MiniMax answered a
+natural pause proportionately; maintenance summarized the exchange accurately
+and correctly created no memory for the transient remark. Direct semantic
+judgment therefore agrees with the persisted technical evidence. Harness-only
+inspection mistakes were classified separately and do not indicate runtime or
+model defects.
+
+Evidence:
+
+- pre gate `20260718_193905_preliminary-regression-v1`;
+- post gate `20260718_194544_preliminary-regression-v1`;
+- `docs/evaluations/v1.49-maintenance-domains.md`.
+
+## EXP-0075 - Memory Mutation Surface Equivalence Probe
+
+Status: bounded pre/post and direct behavioral evidence accepted for V1.48.0
+
+Hypothesis:
+
+Write, lifecycle, proposal, and relation evidence can move to dedicated owners
+without changing shell/API contracts, persisted state, trace kinds, proposal
+decisions, conflict semantics, or Scarlet's natural memory behavior.
+
+Method:
+
+- run the frozen nine-case gate before and after extraction and compare stable
+  source, retrieval, navigation, and lifecycle fields;
+- run focused mutation, shell, maintenance, storage, and facade contracts;
+- exercise write, exact duplicate, fact conflict, supersede, and proposals on
+  disposable databases while inspecting records, facts, activities, traces,
+  and provenance; and
+- give MiniMax M3 a natural durable preference without asking for a tool, then
+  inspect its actions, stored memory, provenance, and final answer.
+
+Result:
+
+Both frozen gates passed 9/9 with identical stable evidence. Direct shell use
+created exactly two intended memories, rejected an exact repeat as a duplicate,
+reported only the real atomic-fact conflict, and removed it after explicit
+supersession. Proposal application preserved provenance and a later equivalent
+candidate became `noop_duplicate`. Scarlet autonomously wrote one faithful
+user preference with complete provenance and acknowledged it only after the
+successful tool result. Human/LLM judgment found the action sequence useful
+and proportionate rather than accepting aggregate scores alone.
+
+Evidence:
+
+- pre gate `20260718_192112_preliminary-regression-v1`;
+- post gate `20260718_193026_preliminary-regression-v1`;
+- `docs/evaluations/v1.48-memory-mutation-surface.md`.
+
+## EXP-0074 - Memory Read Surface Equivalence Probe
+
+Status: bounded pre/post evidence accepted for the V1.47.0 candidate
+
+Hypothesis:
+
+Manual memory search, open, facts, and graph can move behind a dedicated owner
+without changing shell commands, dispatcher routes, ranking, payloads, traces,
+provenance, or cognitive usefulness.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after extraction;
+- compare stable fields from manual shell navigation and automatic retrieval;
+- run focused shell/memory/V2 contracts; and
+- invoke all four commands directly on a disposable frozen copy, inspecting
+  content, ids, provenance, facts, graph topology, and stored trace kinds.
+
+Result:
+
+Both gates passed 9/9 with identical stable evidence. Direct search selected
+only the active Zero-Luce record; open returned its active lifecycle and source
+links; facts returned the active canonical `response_format`; graph returned a
+four-node/three-edge neighborhood rooted at the same memory. The exact four
+read trace kinds were stored. The outputs remained coherent under direct
+review, independent of pass counters.
+
+Evidence:
+
+- pre gate `20260718_190504_preliminary-regression-v1`;
+- post gate `20260718_191139_preliminary-regression-v1`;
+- `docs/evaluations/v1.47-memory-read-surface.md`.
+
+## EXP-0073 - Automatic Context Retrieval Separation Probe
+
+Status: bounded pre/post evidence accepted for the V1.46.0 candidate
+
+Hypothesis:
+
+Automatic memory retrieval can move behind a typed owner without changing
+candidate selection, classification, runtime packet assembly, shell
+navigation, or natural model behavior under valid source provenance.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after extraction;
+- run focused and complete deterministic suites;
+- inspect the automatic case's real memory id, candidate count, and block
+  types rather than accepting only its aggregate result;
+- send a natural Zero-Luce request to MiniMax on a disposable frozen copy; and
+- trace rich selection, V2 projection, provider request, model actions, and
+  final text directly.
+
+Result:
+
+Both gates passed 9/9 and selected the same active memory from 33 candidates.
+The first live probe exposed BUG-0093: the frozen memory was selected but
+excluded from V2 because its source message was absent. After exact provenance
+repair on the disposable copy, the repeated request required no manual tool
+and Scarlet correctly described all four ordered protocol blocks. The answer
+was semantically complete and grounded; it was not accepted from a score.
+
+Evidence:
+
+- pre gate `20260718_184350_preliminary-regression-v1`;
+- post gate `20260718_184927_preliminary-regression-v1`;
+- `docs/evaluations/v1.46-context-retrieval-separation.md`.
+
+## EXP-0072 - Native Turn Orchestration Equivalence Probe
+
+Status: bounded pre/post evidence accepted for the V1.45.0 candidate
+
+Hypothesis:
+
+Sync/stream native turn invariants can move behind one typed service without
+changing API, continuity, tool/answer ordering, persistence, or natural answer
+quality, while eliminating an observed trace-parity defect.
+
+Method:
+
+- run the unchanged frozen 9-case gate before and after;
+- compare normalized OpenAPI documents exactly;
+- run focused and complete deterministic suites;
+- send the same two natural prompts to pre/post disposable MiniMax runtimes;
+- inspect provider messages, model actions, stream events, traces, and final
+  text directly rather than accepting completion scores.
+
+Result:
+
+Both gates passed 9/9 and OpenAPI remained equal. The post sync turn chose
+`quieta`; the next stream received prior user, complete prior assistant
+content, and current user, then reused `quieta` correctly in one sentence.
+Stream model-context evidence is now linked consistently, fixing BUG-0092.
+
+The post recovery made an unnecessary `help` call after first omitting the
+private final marker. Pre-change runs under the same prompt ranged from two
+thinking-only failures to a clean successful correction without that call.
+Because recovery code and inputs were preserved and the outcomes vary by
+provider sample, the extra call is model variance, not an SCA-33 regression.
+
+Evidence:
+
+- pre gate `20260718_181621_preliminary-regression-v1`;
+- post gate `20260718_183109_preliminary-regression-v1`;
+- `docs/evaluations/v1.45-native-turn-orchestration.md`.
+
+## EXP-0071 - Native Chat Support Extraction Continuity Probe
+
+Status: bounded pre/post evidence accepted for the V1.44.0 candidate
+
+Hypothesis:
+
+Provider-history transformations, response/event projections, and context
+accounting can move out of `chat.py` without changing native continuity,
+public payloads, trace contracts, or GPT reuse.
+
+Method:
+
+- run the frozen 9-case gate before and after extraction;
+- compare pre/post OpenAPI JSON exactly;
+- exercise pure support contracts and the focused chat/bridge suites;
+- run two natural turns in one disposable native MiniMax session with the
+  production token budget; and
+- inspect the actual provider request, model actions, traces, and answers
+  qualitatively rather than relying on completion status alone.
+
+Result:
+
+The frozen gate remained 9/9 and OpenAPI JSON was byte-equivalent after JSON
+normalization. In session `ses_2a4fcb91e6f44ed6a0be6273b4fa027b`, Scarlet
+answered the first one-sentence greeting naturally. The second turn received
+three canonical provider messages, including the complete prior assistant
+content, and correctly identified and quoted `Che bello risentirti`. No tool
+call was needed. The answer-obligation layer requested one correction but the
+turn completed with semantically correct continuity.
+
+The qualitative result supports SCA-34: provider history survived the module
+move and was used in the next answer. The phrase about having met `dopo un po'
+di tempo` was a reasonable interpretation rather than stored evidence and is
+minor style variance, not a continuity regression.
+
+An earlier probe exposed BUG-0091 after a failed memory write was successfully
+retried. That defect was isolated in SCA-42 and not changed inside SCA-34. A
+separate attempt using a 1,024-output-token override was rejected as invalid
+evidence because it did not match native Scarlet's configured budget.
+
+Evidence:
+
+- pre gate `20260718_174427_preliminary-regression-v1`;
+- post gate `20260718_175231_preliminary-regression-v1`;
+- `docs/evaluations/v1.44-chat-support-extraction.md`.
+
 ## EXP-0069 - Shared Answer-Obligation Enforcement
 
 Status: focused implementation and direct probes accepted for V1.41.0

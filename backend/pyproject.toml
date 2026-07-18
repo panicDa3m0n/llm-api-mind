@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.43.0"
+version = "1.50.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -41,15 +41,30 @@ select = ["E4", "E7", "E9", "F"]
 [tool.mypy]
 python_version = "3.10"
 files = [
+    "app/api/chat_accounting.py",
+    "app/api/chat_native_turn.py",
+    "app/api/chat_provider_history.py",
+    "app/api/chat_serialization.py",
     "app/config.py",
     "app/mind/agent_modes.py",
     "app/mind/command_registry.py",
     "app/mind/context_preserved.py",
     "app/mind/context_projection.py",
+    "app/mind/context_retrieval.py",
+    "app/mind/memory_lifecycle.py",
+    "app/mind/memory_proposals.py",
+    "app/mind/memory_read.py",
+    "app/mind/memory_relations.py",
+    "app/mind/memory_shared.py",
+    "app/mind/memory_write.py",
     "app/mind/relevance_rerank.py",
     "app/runtime/context_accounting.py",
     "app/runtime/answer_obligations.py",
     "app/runtime/history_compaction.py",
+    "app/runtime/maintenance_history.py",
+    "app/runtime/maintenance_memory.py",
+    "app/runtime/maintenance_scheduler.py",
+    "app/runtime/maintenance_shared.py",
     "app/storage/database_boundary.py",
 ]
 follow_imports = "skip"

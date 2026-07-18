@@ -7,6 +7,353 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0105 - Evaluator Acceptance Requires Model Delivery And Completed Turns
+
+Date: 2026-07-18
+Status: accepted for V1.50.0
+
+Context:
+
+The frozen automatic-memory case observed rich retrieval selection but not the
+canonical V2 packet. It could also pass after the native turn failed because
+the controlled provider omitted the private final-answer boundary. Intermediate
+traces are valuable evidence, but neither selection nor request creation proves
+that Scarlet received usable context and produced a valid answer.
+
+Decision:
+
+- preserve historical evaluator versions after they become comparison
+  baselines;
+- add a complementary versioned gate when a new architectural boundary needs
+  stronger evidence;
+- verify automatic-memory delivery at rich selection, V2 projection,
+  `llm.request`, provider-observed input, and exact navigable provenance;
+- require completed persisted turn and assistant-answer evidence in every case
+  that claims successful agent behavior; and
+- include a negative control proving the gate rejects an incomplete turn even
+  when earlier traces look valid.
+
+Consequences:
+
+Retrieval and model delivery can no longer be conflated, and a failed provider
+turn cannot satisfy a behavioral gate through intermediate events. The frozen
+V1 source remains immutable. Exact provenance repair is test-only on a
+disposable copy and remains guarded by candidate digest and backup reference.
+
+Links:
+
+- Linear SCA-43
+- BUG-0093
+- EXP-0078
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`
+
+## ADR-0104 - Action Recovery Uses Deterministic Candidate Recall And Semantic Judgment
+
+Date: 2026-07-18
+Status: accepted for V1.49.1
+
+Context:
+
+One API Mind operation may fail because a model emits incomplete syntax and
+then succeed after correction. Treating each call independently makes a
+truthful final success impossible, while declaring every later call with the
+same command family equivalent would overwrite real failures and confuse
+semantically different actions.
+
+Decision:
+
+- rebuild tool-derived answer obligations from the complete authoritative
+  current-turn call sequence on native and GPT transports;
+- use the canonical shell operation only to recall bounded later candidates;
+- link candidates only for recoverable failures with a later successful
+  same-operation attempt;
+- preserve the initial failure, all call/trace references, commands, intents,
+  and results in the hard obligation; and
+- require the LLM answer validator to decide material equivalence and truthful
+  wording. No string, score, or operation-name match may itself declare the
+  action recovered.
+
+Consequences:
+
+Scarlet can truthfully describe final success after a real correction without
+erasing the failed attempt. Unrecovered, non-recoverable, different-operation,
+and semantically unrelated same-operation attempts remain visible and hard.
+Persisted GPT manifests cannot remain stale because dynamic tool obligations
+are reconstructed while static obligations are preserved.
+
+Links:
+
+- Linear SCA-42
+- BUG-0091
+- `docs/evaluations/v1.49.1-action-retry-obligations.md`
+
+## ADR-0103 - Maintenance Keeps One Runtime Facade With Three Domain Owners
+
+Date: 2026-07-18
+Status: accepted for V1.49.0
+
+Context:
+
+The maintenance runtime combined scheduling and worker lifecycle, episodic
+summary/history compaction, and semantic-memory review/proposal resolution.
+Those paths share a job ledger but have different evidence and mutation
+authority, making the monolith difficult to inspect without changing behavior.
+
+Decision:
+
+- `maintenance_scheduler` owns scheduling, due-job dispatch, worker lifecycle,
+  final job state, and event orchestration;
+- `maintenance_history` owns summary audit/repair, idle summaries, idle checks,
+  and history compaction execution;
+- `maintenance_memory` owns missed-memory review, proposal creation, cautious
+  resolution, prompts, and auto-apply guards;
+- `maintenance_shared` owns only job-kind constants and cross-domain types;
+- `maintenance.py` remains the stable public facade; and
+- this ownership split does not change job policy, prompts, thresholds, API
+  contracts, or expose maintenance as an additional model-facing surface.
+
+Consequences:
+
+Summary/history and memory policy can now be tested and evolved independently,
+while scheduling remains the single authority for state transitions. A
+successful job status remains technical evidence only; behavioral acceptance
+still requires direct inspection of summaries, memory decisions, actions, and
+persisted outcomes.
+
+Links:
+
+- Linear SCA-37
+- `docs/evaluations/v1.49-maintenance-domains.md`
+
+## ADR-0102 - Memory Mutation Domains Share A Stable Facade, Not Policy
+
+Date: 2026-07-18
+Status: accepted for V1.48.0
+
+Context:
+
+After read extraction, `app.mind.memory` still combined write policy, fact
+materialization, lifecycle, maintenance proposals, and relation evidence.
+These domains share persistence primitives but have different callers and
+different authority: relation similarity is evidence, while lifecycle is an
+explicit state mutation.
+
+Decision:
+
+- `memory_write` owns write validation, exact deduplication, traces, fact
+  materialization/backfill, and retrieval-artifact synchronization;
+- `memory_lifecycle` owns deprecate/supersede contracts and propagation to
+  memory facts;
+- `memory_proposals` owns maintenance candidate preflight, idempotent ledger
+  records, payloads, and explicit proposal application;
+- `memory_relations` owns atomic conflict and maintenance-overlap evidence;
+- `memory.py` remains the stable re-export facade; and
+- no similarity detector may auto-merge or auto-deprecate memory as a side
+  effect of this ownership split.
+
+Consequences:
+
+Mutation behavior can now be changed and tested by authority boundary. The
+proposal pipeline reuses write/fact primitives rather than copying them, and
+relation outputs remain inspectable evidence rather than deterministic truth.
+
+Links:
+
+- Linear SCA-38
+- `docs/evaluations/v1.48-memory-mutation-surface.md`
+
+## ADR-0101 - Memory Read Commands Have A Dedicated Owner Behind The Facade
+
+Date: 2026-07-18
+Status: accepted for V1.47.0
+
+Context:
+
+`app.mind.memory` combined read-only retrieval/navigation with writes,
+lifecycle, maintenance proposals, and relation evidence. Search and graph also
+carry substantial ranking, temporal, provenance, and presentation behavior
+that can be tested independently from mutation policy.
+
+Decision:
+
+- `app.mind.memory_read` owns search, read, facts, graph, their request bodies,
+  retrieval helpers, temporal filtering, graph traversal, and read payloads;
+- `app.mind.memory_shared` owns only the field aliases, canonical payload,
+  common traced errors, and activity recorder required by both read and
+  mutation code;
+- `app.mind.memory` re-exports the existing public names and remains the stable
+  dispatcher/API/maintenance facade;
+- command registry, shell parser/presentation, routes, traces, ranking policy,
+  lifecycle, proposals, conflict evidence, and database schema remain
+  unchanged.
+
+Consequences:
+
+Manual cognition can evolve and be verified without editing mutation policy,
+while write/lifecycle work retains one compatibility boundary. The small
+shared owner prevents circular imports and duplicate payload contracts rather
+than becoming a second public model surface.
+
+Links:
+
+- Linear SCA-36
+- Linear SCA-38
+- `docs/evaluations/v1.47-memory-read-surface.md`
+
+## ADR-0100 - Automatic Retrieval And Runtime Packet Assembly Have Separate Owners
+
+Date: 2026-07-18
+Status: accepted for V1.46.0
+
+Context:
+
+`app.mind.context` owned both model-runtime packet composition and the full
+automatic-memory retrieval pipeline. That mixed context policy with candidate
+pooling, ranking, final reranking, and diagnostic classification, making either
+responsibility harder to change and verify independently.
+
+Decision:
+
+- `app.mind.context_retrieval` owns automatic candidate collection, ranking,
+  selected/near-miss/excluded classification, final rerank projection,
+  conflicts, and negative evidence;
+- `app.mind.context` remains the stable facade for runtime packet assembly,
+  trace persistence, and cognitive activity recording;
+- ranking inputs, thresholds, candidate limits, payload semantics, and V2
+  projection policy do not change in this organizational slice; and
+- model-facing delivery must be verified independently from rich internal
+  retrieval selection because provenance gates can legitimately exclude a
+  selected candidate later in the pipeline.
+
+Consequences:
+
+Retrieval policy now has a cohesive typed owner without exposing a second
+public API. Future ranking work can be evaluated without reopening context
+assembly, while context routing can consume retrieval results through one
+explicit contract. Regression gates must distinguish selection from actual
+model delivery.
+
+Links:
+
+- Linear SCA-35
+- Linear SCA-43
+- BUG-0093
+- `docs/evaluations/v1.46-context-retrieval-separation.md`
+
+## ADR-0099 - One Native Turn Lifecycle Behind The HTTP Facade
+
+Date: 2026-07-18
+Status: accepted for V1.45.0
+
+Context:
+
+Native sync and stream routes duplicated context construction, history
+routing, trace assembly, answer control, persistence, and scheduling. The
+duplication had already caused stream to create a model-context trace without
+linking it into request or final-turn evidence.
+
+Decision:
+
+- `app.api.chat_native_turn` owns native turn preparation, execution, failure,
+  and completion;
+- `app.api.chat` remains the stable FastAPI and response-model facade;
+- shared invariants have one implementation, while entrypoint names,
+  accounting transport, NDJSON emission, stream flags, and post-open error
+  delivery remain explicit transport differences;
+- model-facing policy, tool semantics, provider history, and answer-obligation
+  behavior do not change as part of this organization slice; and
+- both transports must link every generated model-context trace into request
+  and completion evidence.
+
+Consequences:
+
+Future native lifecycle changes have one owner and can be tested without
+editing route registration. The service remains substantial because tool and
+answer-control ordering are one cohesive lifecycle; further separation needs
+its own evidence rather than another line-count-only move.
+
+Links:
+
+- Linear SCA-33
+- BUG-0092
+- `docs/evaluations/v1.45-native-turn-orchestration.md`
+
+## ADR-0098 - Behavioral Tests Require Direct Reasoned Inspection
+
+Date: 2026-07-18
+Status: accepted for all current and future behavioral verification
+
+Context:
+
+Technical counters and evaluator scores can prove structural facts, but they
+cannot establish whether Scarlet made a sensible cognitive choice, used
+evidence appropriately, or answered naturally. A numerically successful run
+can still be behaviorally poor, while a semantically valid answer can differ
+from a prepared string.
+
+Decision:
+
+- Codex directly reads every behavioral probe's starting state, prompt, model
+  actions, tool results, traces, final answer, and longitudinal consequence;
+- deterministic checks remain authoritative for IDs, state, commands,
+  persistence, and exact protocol boundaries;
+- cognitive choice and answer quality receive an explicit reasoned judgment;
+- scores, token counts, and latency remain diagnostics rather than verdicts;
+- a run with invalid starting conditions is rejected as evidence instead of
+  being averaged into the result; and
+- large behavioral campaigns remain owner-triggered, while bounded direct
+  probes retain this same qualitative standard.
+
+Consequences:
+
+Evaluation reports must expose enough raw evidence to support review and must
+not hide natural behavior behind one aggregate score. Codex may serve as the
+project-informed LLM-as-human judge, but must state its rubric and distinguish
+model variance, evaluator defects, implementation regressions, and unrelated
+pre-existing bugs.
+
+Links:
+
+- `docs/development-process.md`
+- `docs/evaluations/v1.34-natural-behavioral-suite.md`
+
+## ADR-0097 - Native Provider Runtime Is Authoritative
+
+Date: 2026-07-18
+Status: accepted
+
+Context:
+
+Custom GPT can expose a stronger external model, but Actions, hidden native
+history, confirmation behavior, and service-owned limits are outside project
+control. The long-term cognitive and embodiment system must remain operable on
+providers selected and integrated inside API Mind.
+
+Decision:
+
+- native Scarlet with project-selected providers such as MiniMax is the
+  authoritative runtime and architecture target;
+- GPT Actions remain an experimental external adapter to shared context,
+  shell, persistence, and answer-control contracts;
+- GPT parity is preserved where practical, but external limitations do not
+  justify extreme core complexity or become requirements for native Scarlet;
+- failures unique to the hosted GPT are classified separately from API Mind
+  defects; and
+- future provider abstractions preserve native observability, continuity, and
+  control before optional external integrations.
+
+Consequences:
+
+Roadmap priority, verification, and refactoring are judged first on native
+runtime behavior. The GPT bridge remains useful and maintained within its
+bounded contract, but it is not the principal system or a substitute for
+internal provider support.
+
+Links:
+
+- `backend/app/plugins/gpt_bridge/README.md`
+- Linear SCA-39
+
 ## ADR-0096 - Retire MCP And Keep GPT Actions As The Sole External Bridge
 
 Date: 2026-07-18

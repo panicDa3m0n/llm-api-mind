@@ -26,6 +26,40 @@ class FakeAnswerValidator:
         )
 
 
+def _shell_attempt(
+    *,
+    provider_id: str,
+    command: str,
+    intent: str,
+    ok: bool,
+    target: str | None = None,
+    recoverable: bool = True,
+) -> LLMExecutedToolCall:
+    result: dict = {
+        "ok": ok,
+        "result": {
+            "operation": "mind_shell.command",
+        },
+    }
+    if target is not None:
+        result["result"]["target"] = target
+    if not ok:
+        result["error"] = {
+            "code": "shell.invalid_command",
+            "message": "The command needs correction.",
+            "recoverable": recoverable,
+        }
+    return LLMExecutedToolCall(
+        provider_tool_use_id=provider_id,
+        tool_name="mind_shell",
+        arguments={"command": command, "intent": intent},
+        result=result,
+        status="completed" if ok else "error",
+        tool_call_id=f"call_{provider_id}",
+        trace_id=f"trace_{provider_id}",
+    )
+
+
 def test_native_manifest_compiles_structural_conflict_and_source_obligations() -> None:
     manifest = compile_answer_obligations(
         transport="native",
@@ -85,6 +119,272 @@ def test_tool_evidence_adds_failed_action_and_capability_obligations() -> None:
     ]
     assert required == []
     assert recommended == []
+
+
+def test_tool_evidence_links_later_same_operation_success_without_erasing_failure() -> None:
+    failed = _shell_attempt(
+        provider_id="failed_write",
+        command="memory write",
+        intent="Remember the user's evaluation preference.",
+        ok=False,
+    )
+    succeeded = _shell_attempt(
+        provider_id="successful_write",
+        command=(
+            'memory write --type user_preference --scope user '
+            '--content "Prefer observed behavior before scores" '
+            '--reason "Future evaluations"'
+        ),
+        intent="Remember the user's evaluation preference.",
+        ok=True,
+        target="memory.write",
+    )
+
+    augmented = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="native"),
+        [failed, succeeded],
+    )
+
+    assert [item.id for item in augmented.semantic] == [
+        "action.outcome.failed_write"
+    ]
+    obligation = augmented.semantic[0]
+    assert obligation.evidence_refs == [
+        "trace_failed_write",
+        "call_failed_write",
+        "trace_successful_write",
+        "call_successful_write",
+    ]
+    assert obligation.evidence["operation_key"] == "memory.write"
+    assert obligation.evidence["recovery_decision"] == (
+        "semantic_validator_required"
+    )
+    attempts = obligation.evidence["later_same_operation_attempts"]
+    assert len(attempts) == 1
+    assert attempts[0]["result_ok"] is True
+    assert "only a recovery candidate" in obligation.requirement
+
+
+def test_tool_evidence_rebuilds_stale_persisted_action_obligation() -> None:
+    failed = _shell_attempt(
+        provider_id="failed_write",
+        command="memory write",
+        intent="Remember a preference.",
+        ok=False,
+    )
+    succeeded = _shell_attempt(
+        provider_id="successful_write",
+        command=(
+            'memory write --type user_preference --content "X" '
+            '--reason "Y"'
+        ),
+        intent="Remember a preference.",
+        ok=True,
+        target="memory.write",
+    )
+    persisted_after_failure = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="gpt_bridge"),
+        [failed],
+    )
+    assert persisted_after_failure.semantic[0].evidence[
+        "recovery_decision"
+    ] == "no_recovery_candidate"
+
+    rebuilt = augment_with_tool_evidence(
+        persisted_after_failure,
+        [failed, succeeded],
+    )
+
+    assert len(rebuilt.semantic) == 1
+    assert rebuilt.semantic[0].evidence["recovery_decision"] == (
+        "semantic_validator_required"
+    )
+    assert rebuilt.semantic[0].evidence_refs[-2:] == [
+        "trace_successful_write",
+        "call_successful_write",
+    ]
+
+
+def test_tool_evidence_rebuild_preserves_static_obligations() -> None:
+    static = AnswerObligation(
+        id="memory.active_conflict_disclosure",
+        severity="hard",
+        validation_kind="semantic",
+        requirement="Disclose the active memory conflict.",
+        evidence_refs=["memory_conflict_1"],
+    )
+    failed = _shell_attempt(
+        provider_id="failed_write",
+        command="memory write",
+        intent="Remember a preference.",
+        ok=False,
+    )
+
+    rebuilt = augment_with_tool_evidence(
+        AnswerObligationManifest(
+            transport="gpt_bridge",
+            obligations=[static],
+        ),
+        [failed],
+    )
+
+    assert [item.id for item in rebuilt.semantic] == [
+        "memory.active_conflict_disclosure",
+        "action.outcome.failed_write",
+    ]
+    assert rebuilt.semantic[0] == static
+
+
+def test_tool_evidence_keeps_same_operation_retry_as_semantic_candidate_only() -> None:
+    failed = _shell_attempt(
+        provider_id="failed_user_memory",
+        command="memory write",
+        intent="Remember the user's food preference.",
+        ok=False,
+    )
+    different_intent = _shell_attempt(
+        provider_id="project_memory",
+        command=(
+            'memory write --type project_fact --scope project '
+            '--content "The API uses FastAPI" --reason "Project continuity"'
+        ),
+        intent="Remember a project implementation fact.",
+        ok=True,
+        target="memory.write",
+    )
+    manifest = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="native"),
+        [failed, different_intent],
+    )
+
+    obligation = manifest.semantic[0]
+    assert obligation.severity == "hard"
+    assert obligation.evidence["recovery_decision"] == (
+        "semantic_validator_required"
+    )
+    assert obligation.evidence["note"].startswith(
+        "Same operation is a deterministic candidate-recall boundary"
+    )
+
+    validation = validate_answer_semantics(
+        provider=FakeAnswerValidator(
+            [
+                {
+                    "obligation_id": obligation.id,
+                    "status": "fail",
+                    "reason": "The later project memory does not recover the user memory.",
+                }
+            ]
+        ),
+        manifest=manifest,
+        answer="La preferenza alimentare e stata salvata.",
+        max_tokens=1024,
+    )
+    assert validation.accepted is False
+
+
+def test_tool_evidence_does_not_link_different_or_nonrecoverable_attempts() -> None:
+    different_operation = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="native"),
+        [
+            _shell_attempt(
+                provider_id="failed_write",
+                command="memory write",
+                intent="Remember a preference.",
+                ok=False,
+            ),
+            _shell_attempt(
+                provider_id="search",
+                command='memory search "preference"',
+                intent="Search memory.",
+                ok=True,
+                target="memory.search",
+            ),
+        ],
+    )
+    assert different_operation.semantic[0].evidence["recovery_decision"] == (
+        "no_recovery_candidate"
+    )
+
+    nonrecoverable = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="native"),
+        [
+            _shell_attempt(
+                provider_id="denied_write",
+                command="memory write",
+                intent="Remember a preference.",
+                ok=False,
+                recoverable=False,
+            ),
+            _shell_attempt(
+                provider_id="later_write",
+                command=(
+                    'memory write --type user_preference --content "X" '
+                    '--reason "Y"'
+                ),
+                intent="Remember a preference.",
+                ok=True,
+                target="memory.write",
+            ),
+        ],
+    )
+    assert nonrecoverable.semantic[0].evidence["recovery_decision"] == (
+        "no_recovery_candidate"
+    )
+
+
+def test_tool_evidence_requires_success_after_failure() -> None:
+    manifest = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="native"),
+        [
+            _shell_attempt(
+                provider_id="early_success",
+                command=(
+                    'memory write --type project_fact --content "X" '
+                    '--reason "Y"'
+                ),
+                intent="Store X.",
+                ok=True,
+                target="memory.write",
+            ),
+            _shell_attempt(
+                provider_id="later_failure",
+                command="memory write",
+                intent="Store Y.",
+                ok=False,
+            ),
+        ],
+    )
+
+    assert manifest.semantic[0].evidence["recovery_decision"] == (
+        "no_recovery_candidate"
+    )
+
+
+def test_recovered_capability_check_uses_later_current_result() -> None:
+    manifest = augment_with_tool_evidence(
+        AnswerObligationManifest(transport="gpt_bridge"),
+        [
+            _shell_attempt(
+                provider_id="failed_help",
+                command="help memory",
+                intent="Inspect current memory commands.",
+                ok=False,
+            ),
+            _shell_attempt(
+                provider_id="successful_help",
+                command="help memory",
+                intent="Inspect current memory commands.",
+                ok=True,
+            ),
+        ],
+    )
+
+    assert [item.id for item in manifest.semantic] == [
+        "action.outcome.failed_help",
+        "capability.current_state.successful_help",
+    ]
+    assert manifest.semantic[0].evidence["operation_key"] == "help.memory"
 
 
 def test_semantic_validator_fails_closed_for_hard_unknown() -> None:

@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-14
-System version assessed: V1.34.0
+Last updated: 2026-07-18
+System version assessed: V1.50.0 candidate
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -21,6 +21,25 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   `source_message_id`.
 - Memoria episodica con session summary, transcript e ricerca sessioni.
 - Automatic memory context a inizio turno.
+- V1.50.0 adds a complementary frozen-data gate that separately proves rich
+  selection, navigable V2 projection, persisted/observed provider delivery,
+  completed answer persistence, and rejection of an incomplete negative
+  control. The historical V1 fixture remains immutable.
+- V1.46.0 separa il retrieval automatico in un owner tipizzato, lasciando
+  composizione runtime, trace e attivita cognitive nel facade di contesto.
+  La verifica diretta conferma che la memoria selezionata arriva al modello e
+  viene usata quando la provenienza V2 e completa; BUG-0093/SCA-43 copre il
+  limite del gate storico che osservava solo la selezione ricca.
+- V1.47.0 separa search, open, facts e graph manuali dalla mutazione, mantenendo
+  identici facade, shell, ranking, payload, provenienza, activity e trace.
+  L'uso diretto conferma una navigazione compatta e cognitivamente utile.
+- V1.48.0 separa write/fatti, lifecycle, proposal e relation evidence dietro
+  il facade stabile. Similarita e conflitti restano evidenze, non decisioni
+  automatiche. Uso diretto e MiniMax confermano write, dedup, supersessione,
+  provenienza e risposta naturale coerenti.
+- V1.49.0 separa il worker/scheduler dai domini summary/history e memory review
+  senza cambiare prompt, soglie, proposal o stati persistiti. Un test naturale
+  conferma una summary fedele e il corretto rifiuto di una memoria transitoria.
 - V1.29.0 sostituisce il packet automatico ricco con tre liste di hook V2
   (`relevant`, `recent_user`, `recent_general`), deduplicate e navigabili.
 - `memory_activities` separa recenza cognitiva append-only da `updated_at`;

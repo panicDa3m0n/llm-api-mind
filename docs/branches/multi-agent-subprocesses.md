@@ -1,7 +1,7 @@
 # Branch: Multi-Agente E Sub-Processi
 
-Last updated: 2026-07-13
-System version assessed: V1.29.1
+Last updated: 2026-07-18
+System version assessed: V1.50.0 candidate
 Status: planned branch
 
 ## Filosofia del ramo
@@ -31,7 +31,12 @@ Valutazione: L1/L2.
 Non esiste un sistema multi-agente. Esiste solo il primo processo background
 deterministico/LLM-assisted per summary e missed-memory review report-only.
 
-Sistema valutato: V1.29.1.
+V1.49.0 rende espliciti i confini interni senza cambiare questa classificazione:
+un unico scheduler/worker governa i job, mentre summary/history e memory review
+hanno owner separati. Il resolver LLM resta una fase bounded del processo
+backend, non una seconda identita agentica o un tool model-facing.
+
+Sistema valutato: V1.50.0 candidate.
 
 ## Sviluppi precedenti
 
@@ -54,6 +59,16 @@ Sistema valutato: V1.29.1.
 - Prossimo gate: misurare limiti del singolo agente e definire contratti
   bounded per reviewer/worker prima di introdurre identita o conversazioni
   multi-agente.
+
+## Verifica V1.49.0
+
+- Implementazione: scheduler, summary/history e memory review sono separati
+  dietro un unico facade e un unico lifecycle persistito dei job.
+- Test deterministici: frozen pre/post 9/9, focused 32/32, backend 247/247.
+- Evidenza diretta: compaction idempotente e source-anchored; un idle job reale
+  ha prodotto una summary fedele e nessuna memoria per un dettaglio transitorio.
+- Giudizio: la correttezza semantica e stata verificata leggendo output,
+  rationale, eventi e record, non dedotta dallo stato `completed`.
 
 ## Evolutive
 

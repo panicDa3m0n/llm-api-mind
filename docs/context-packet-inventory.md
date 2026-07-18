@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-18
-Code baseline reviewed: V1.39.0
+Code baseline reviewed: V1.50.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -22,6 +22,11 @@ V1.36.0 introduced accounting and the shadow provider-history plan without
 changing the V2 dynamic packet shape. V1.39.0 activates a separate derived
 history view for native MiniMax only when a valid compaction artifact exists;
 it still does not change the V2 dynamic packet fields inventoried here.
+V1.46.0 through V1.49.0 separate retrieval, read, mutation, and maintenance
+ownership without changing any automatic or manual model packet shape in this
+inventory. Maintenance jobs, proposal internals, and their diagnostic evidence
+remain backend/trace concerns unless a resulting active memory later qualifies
+for normal context delivery.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
@@ -772,6 +777,9 @@ semantic duplication or conflict.
 ## Sources
 
 - `backend/app/mind/context.py`
+- `backend/app/mind/context_retrieval.py`
+- `backend/app/mind/memory_read.py`
+- `backend/app/mind/memory_shared.py`
 - `backend/app/api/chat.py`
 - `backend/app/mind/shell.py`
 - `backend/app/mind/shell_presentation.py`

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.43.0 (deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -76,12 +76,18 @@ Implemented and verified:
   maintenance, debug, and rollback, not exposed as a second native model tool;
 - GPT Actions bridge using mandatory bootstrap/action/finalize lifecycle and
   the same context compiler and shell dispatcher as native Scarlet;
+- native chat support split into typed provider-history, serialization, and
+  accounting owners behind the unchanged router facade;
+- native sync/stream preparation, execution, answer control, failure, and
+  completion owned by one typed turn service behind the thin HTTP facade;
 - one bounded provider continuation for a thinking-only `end_turn`, followed
   by explicit `llm.incomplete_response` failure if no public answer or real
   tool call emerges; incomplete attempts remain trace-only evidence;
 - shared native/GPT answer obligations with hard, warning, and advisory
   severity; one bounded correction for structural or semantic hard failures;
-  and fail-closed validator handling without deterministic language matching;
+  fail-closed validator handling without deterministic language matching; and
+  V1.49.1 attempt-chain evidence that lets the validator recognize a
+  materially equivalent successful retry without erasing the failed call;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;
@@ -91,11 +97,12 @@ Implemented and verified:
 - V1.43.0 removes the deprecated MCP experiment and
   query-string authentication; the three GPT Actions remain the sole external
   model transport, while historical MCP-originated records are preserved.
+- native project-selected providers remain authoritative; GPT Actions are an
+  experimental external adapter and do not drive core architecture.
 
 Current verification baseline:
 
-- backend: 238 tests passed at 81.34% statement coverage; three MCP-only tests
-  were removed with their retired transport;
+- backend: 257 tests passed at 81.71% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -150,6 +157,46 @@ Current verification baseline:
   integrity, Nginx MCP-location removal, public `/mcp` 404, and authenticated
   GPT bootstrap/help/finalize smoke passed. All 34 historical `mcp_bridge`
   sessions remain unchanged.
+- V1.44.0 candidate: SCA-34 frozen pre/post gates passed 9/9, normalized
+  OpenAPI JSON remained exactly equal, focused support/chat/bridge tests passed
+  57/57, and a directly inspected two-turn native MiniMax probe preserved
+  canonical provider continuity. Deployment remains V1.43.0.
+- V1.45.0 candidate: SCA-33 frozen pre/post gates passed 9/9, OpenAPI remained
+  equal, and the shared native lifecycle preserved sync-to-stream provider
+  continuity in a directly inspected MiniMax probe. Stream now links its
+  generated model-context trace consistently (BUG-0092). Deployment remains
+  V1.43.0.
+- V1.46.0 candidate: SCA-35 frozen pre/post gates passed 9/9, focused
+  context/retrieval tests passed 101/101, and direct MiniMax inspection proved
+  automatic model-facing recall after exact source-provenance repair. The
+  frozen gate's delivery blind spot is isolated in BUG-0093/SCA-43. Deployment
+  remains V1.43.0.
+- V1.47.0 candidate: SCA-36 frozen pre/post gates passed 9/9 with identical
+  stable read evidence; focused contracts passed 63/63 and direct shell use
+  preserved search, open, facts, graph, provenance, and traces. Deployment
+  remains V1.43.0.
+- V1.48.0 candidate: SCA-38 frozen pre/post gates passed 9/9 with identical
+  stable mutation evidence; focused contracts passed 70/70. Direct shell,
+  proposal, and natural MiniMax probes preserved write, deduplication,
+  lifecycle, evidence authority, provenance, and agent behavior. Deployment
+  remains V1.43.0.
+- V1.49.0 candidate: SCA-37 frozen pre/post gates passed 9/9 with identical
+  stable evidence; focused contracts passed 32/32. Direct compaction and
+  natural idle-maintenance probes preserved scheduling, source anchoring,
+  canonical chronology, summary quality, and conservative memory judgment.
+  Deployment remains V1.43.0.
+- V1.49.1 candidate: SCA-42 frozen pre/post gates passed 9/9; focused shared
+  answer-control contracts passed 58/58. Native sync/stream and GPT Actions now
+  preserve recoverable action-attempt chains, and a directly inspected MiniMax
+  turn corrected and completed the same memory intent with truthful final
+  behavior. Deployment remains V1.43.0.
+- V1.50.0 candidate: SCA-43 adds a complementary 5-case model-facing memory
+  gate without changing the frozen V1 suite. It proves the real Zero-Luce
+  reference across rich selection, guarded disposable provenance repair, V2,
+  `llm.request`, provider-observed input, completed assistant persistence, and
+  an incomplete-turn negative control. The unchanged V1 gate passes 9/9,
+  shell/organ contracts pass 53/53, and the complete backend passes 263 tests
+  at 81.86% coverage. Deployment remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -310,28 +357,40 @@ The current largest modules are:
 
 ```txt
 frontend/src/App.tsx                         4474 lines
-backend/app/mind/memory.py                   2921
-backend/app/api/chat.py                      2641
-backend/app/plugins/gpt_bridge/router.py     2273
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
-backend/app/mind/context.py                  1809
-backend/app/runtime/maintenance.py           1383
+backend/app/api/chat_native_turn.py          1638
+backend/app/plugins/gpt_bridge/router.py     1509
+backend/app/mind/context.py                  1161
+backend/app/mind/memory_read.py               996
+backend/app/runtime/maintenance_memory.py     746
+backend/app/mind/context_retrieval.py         731
+backend/app/mind/memory_write.py              616
+backend/app/mind/memory_proposals.py          555
+backend/app/runtime/maintenance_scheduler.py  468
+backend/app/mind/memory_lifecycle.py          462
+backend/app/mind/memory_relations.py          274
+backend/app/api/chat.py                       218
+backend/app/runtime/maintenance_history.py    200
+backend/app/mind/memory_shared.py             152
+backend/app/mind/memory.py                     38
+backend/app/runtime/maintenance.py             18
 ```
 
-These files are not automatically incorrect, but they concentrate unrelated
-responsibilities and raise regression cost. The same concentration appears in
-`test_mind_api.py` and `test_chat_api.py`. A future rework should split by
-contract and lifecycle while preserving facades and running the frozen 9-case
-gate before and after.
+The larger owner modules are not automatically incorrect, but they still carry
+meaningful regression cost. The small memory and maintenance facades are shown
+to make the completed ownership boundaries explicit; they are no longer
+structural debt themselves. Similar concentration remains in `test_mind_api.py`
+and `test_chat_api.py`. Future rework should continue by contract and lifecycle
+while preserving facades and running the frozen 9-case gate before and after.
 
 Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in eight high-value typed modules while the measured
+- mypy blocks regressions in twenty-five high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.34 backend suite passes 182 tests at 80.19% statement coverage;
+- the full V1.49 backend suite passes 247 tests at 81.63% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -417,11 +476,15 @@ behavior:
 
 ## 7. Current Best Next Step
 
-After V1.42 deployment closes SCA-6, the next approved issue is SCA-31:
-calibrate the final reranker against negative and near-miss memory cases without
-deterministic relevance scoring. Long varied sessions should still monitor
-active compaction/degradation. Duplicate/conflict adjudication remains a
-separate later discussion.
+SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
+facades, SCA-42 closes successful-retry evidence, and SCA-43 closes the frozen
+gate's model-delivery/completion blind spot. SCA-39 remains deliberately
+deferred because GPT Actions is an experimental external adapter and must not
+displace native-system stability. The next concrete step is the protected
+V1.50.0 publication and production rollout, followed by parity, database,
+context V2, shell, compaction, and final-answer smoke evidence. Long varied
+sessions still need longitudinal compaction monitoring; duplicate/conflict
+adjudication remains a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

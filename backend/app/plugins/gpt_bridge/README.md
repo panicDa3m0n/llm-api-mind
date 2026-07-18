@@ -1,15 +1,21 @@
 # GPT Actions Bridge Plugin
 
-Status: V1.43.0 Actions-only bridge using shared
+Status: V1.50.0 Actions-only experimental adapter using shared
 `scarlet-model-context-v2` and the native `mind_shell` dispatcher.
 
 Purpose:
 
-Connect a ChatGPT-hosted Scarlet to the same API Mind runtime used by native
-Scarlet without replacing the local MiniMax flow. The bridge returns compact
+Connect a ChatGPT-hosted Scarlet experimentally to the same API Mind runtime
+used by native Scarlet without replacing or driving the local provider flow.
+The bridge returns compact
 bootstrap context, executes controlled cognitive commands, and persists the
 external model's final answer into canonical session history. Full diagnostics
 remain in backend traces.
+
+The native runtime with project-selected internal providers such as MiniMax is
+the authoritative architecture. Custom GPT is a best-effort external model
+adapter: it receives and returns what the service permits, but its proprietary
+limits must not add disproportionate complexity to the cognitive core.
 
 ## Active Surface
 

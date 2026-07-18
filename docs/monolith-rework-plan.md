@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
 Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 completed and deployed
-Runtime baseline: V1.43.0 deployed
+Status: accepted execution map from SCA-10; SCA-22 and SCA-33 through SCA-38 verified
+Runtime baseline: V1.43.0 deployed; V1.50.0 candidate after SCA-43
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -22,17 +22,29 @@ independently.
 
 ## Current Inventory
 
-The counts below were measured from the current V1.42-based worktree on
-2026-07-18. They are orientation values, not permanent thresholds.
+The initial counts were measured from the V1.42-based worktree on 2026-07-18;
+completed rows now show their post-slice values. They are orientation values,
+not permanent thresholds.
 
 | Surface | Lines | Concentrated responsibilities | Main consumers | Blast radius |
 |---|---:|---|---|---|
-| `backend/app/mind/memory.py` | 2,921 | command bodies, read/search, facts, graph, write policy, lifecycle, proposals, relation evidence, payloads | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | very high: semantic state and lifecycle |
-| `backend/app/api/chat.py` | 2,641 | HTTP models/router, sync and stream turn loops, shell runner, answer obligations, provider history, traces, accounting, response serialization | app factory, GPT bridge, chat tests | very high: every native turn |
-| `backend/app/plugins/gpt_bridge/router.py` | 1,506 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
+| `backend/app/mind/memory.py` | 38 after SCA-38 | compatibility facade for all memory commands | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | high: stable import contract |
+| `backend/app/mind/memory_read.py` | 996 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
+| `backend/app/mind/memory_write.py` | 616 | write contracts/policy, exact dedup, facts and backfill | facade, lifecycle, proposals, dispatcher | very high: semantic persistence |
+| `backend/app/mind/memory_lifecycle.py` | 462 | deprecate/supersede and fact lifecycle propagation | facade, dispatcher | very high: semantic state mutation |
+| `backend/app/mind/memory_proposals.py` | 555 | maintenance proposal preflight, ledger payload and apply | facade, maintenance runtime/API | high: background semantic candidates |
+| `backend/app/mind/memory_relations.py` | 274 | atomic conflicts and maintenance overlap evidence | facade, dispatcher | high: evidence authority |
+| `backend/app/mind/memory_shared.py` | 152 | shared fields, payload, normalization, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
+| `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
+| `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
+| `backend/app/plugins/gpt_bridge/router.py` | 1,509 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
-| `backend/app/mind/context.py` | 1,809 | automatic memory retrieval, runtime assembly, compatibility rendering, block construction, ranking/classification, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
-| `backend/app/runtime/maintenance.py` | 1,383 | job scheduling/dispatch, summary repair, history compaction, idle summary, memory review and proposal resolution | app lifecycle, chat, bridge, maintenance API/tests | high: background mutation and summaries |
+| `backend/app/mind/context.py` | 1,161 after SCA-35 | runtime assembly, compatibility rendering, block construction, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
+| `backend/app/mind/context_retrieval.py` | 731 | automatic candidate pooling, ranking, classification, final rerank, negative evidence | context facade, retrieval tests, preliminary gate | high: automatic memory evidence |
+| `backend/app/runtime/maintenance_memory.py` | 746 after SCA-37 | memory review and proposal resolution | scheduler, proposal/memory owners, maintenance tests | high: background semantic mutation |
+| `backend/app/runtime/maintenance_scheduler.py` | 468 after SCA-37 | schedules, dispatch, worker and job completion | app lifecycle, chat, maintenance API/tests | high: background lifecycle authority |
+| `backend/app/runtime/maintenance_history.py` | 200 after SCA-37 | summary audit/repair, idle summary and history compaction | scheduler, episodic/history runtime, tests | high: episodic continuity |
+| `backend/app/runtime/maintenance.py` | 18 after SCA-37 | stable public facade | app lifecycle, chat, bridge, maintenance API/tests | low: compatibility only |
 | `frontend/src/App.tsx` | 4,474 | developer shell/state, chat flow, trace/model inspector, memory/events/settings panels, normalizers | desktop developer UI | medium: inspection and developer workflows |
 | `frontend/src/MobileApp.tsx` | 1,766 | mobile controller, chat/memory/actions/profile screens, activity state, flow normalization | consumer mobile UI | medium: user-facing conversation |
 
@@ -75,57 +87,72 @@ remain intact in production.
 
 Issue: SCA-34.
 
-Extract provider-history conversion, response/event serialization, and context
-accounting helpers from `chat.py`. These are the lowest-risk seams because they
-already have narrow inputs and can be checked as pure contract transforms.
-Do not change turn orchestration in this slice.
+Completed in the V1.44.0 candidate. Provider-history conversion now lives in
+`chat_provider_history.py`, response/event models and projections in
+`chat_serialization.py`, and context-accounting persistence/statistics in
+`chat_accounting.py`. `chat.py` remains the stable facade for its public
+response models and owns turn orchestration. The GPT bridge imports the owning
+support modules instead of private router helpers. Exact OpenAPI JSON, frozen
+9/9 pre/post behavior, focused contracts, and a same-session native MiniMax
+continuity probe were preserved.
 
 ### 2. Native Turn Orchestration
 
-Issue: SCA-33, blocked by SCA-34.
+Issue: SCA-33, completed in the V1.45.0 candidate.
 
-Move the sync/stream agent turn lifecycle behind a service boundary while
-keeping FastAPI registration in `build_chat_router`. Preserve tool-loop order,
-thinking-only recovery, answer obligations, trace order, canonical provider
-history, and final persistence. Shared behavior must not be achieved by
-flattening real sync/stream transport differences.
+Native preflight, execution, failure, completion, and scheduling now live in
+`chat_native_turn.py`; `build_chat_router` is a thin HTTP facade. Tool-loop
+order, thinking-only recovery, answer obligations, canonical provider history,
+and transport differences are preserved. Frozen pre/post gates pass 9/9,
+OpenAPI is equal, and a directly inspected sync-to-stream MiniMax probe
+preserved continuity. The extraction also fixed BUG-0092, where stream created
+but did not link its model-context trace.
 
 ### 3. Context Retrieval Separation
 
-Issue: SCA-35.
+Issue: SCA-35, completed in the V1.46.0 candidate.
 
-Extract candidate pooling, ranking, classification, final-rerank projection,
-and negative evidence from `context.py`. Runtime block assembly and the public
-builders remain in the facade. This is organization only: candidate routes,
-thresholds, selected/near-miss/excluded semantics, V2 projection, and trace
-payloads cannot change.
+Candidate pooling, ranking, classification, final-rerank projection, conflicts,
+and negative evidence now live in typed `context_retrieval.py`. Runtime block
+assembly and public builders remain in `context.py`, reduced from 1,809 to
+1,161 lines. Frozen pre/post gates pass 9/9 and focused contracts pass 101/101.
+Direct inspection also separated rich selection from V2 delivery and opened
+SCA-43 for the historical gate's incomplete-provenance blind spot; retrieval
+policy itself did not change.
 
 ### 4. Memory Read Surface
 
-Issue: SCA-36.
+Issue: SCA-36, completed in the V1.47.0 candidate.
 
-Move search, read, facts, graph, their request contracts, and their presentation
-helpers into a read-oriented module. Preserve command registry paths, parser
-contracts, dispatcher names, compact shell presentation, pagination, temporal
-filters, provenance links, and activity recording.
+Search, read, facts, graph, their request contracts, ranking, temporal filters,
+graph traversal, and presentation now live in `memory_read.py`; minimal shared
+contracts live in `memory_shared.py`. `memory.py` remains the compatible facade
+and decreases from 2,921 to 1,938 lines. Frozen pre/post gates pass 9/9,
+focused contracts pass 63/63, and direct shell inspection preserved content,
+provenance, facts, graph topology, and all four trace kinds.
 
 ### 5. Memory Mutation And Evidence
 
-Issue: SCA-38, blocked by SCA-36.
+Issue: SCA-38, completed in the V1.48.0 candidate.
 
-Separate write policy, deprecate/supersede lifecycle, proposals, and
-relation/conflict evidence. Splitting code must not silently change duplicate
-or conflict policy: similarity remains evidence rather than deterministic
-truth, and no auto-merge or auto-deprecation is introduced.
+Write/fact materialization, deprecate/supersede lifecycle, maintenance
+proposals, and relation/conflict evidence now have dedicated owners behind the
+38-line `memory.py` facade. Similarity remains evidence rather than
+deterministic truth, and no auto-merge or auto-deprecation was introduced.
+Frozen pre/post gates pass 9/9; focused contracts pass 70/70; direct shell,
+proposal, and natural Scarlet probes preserve mutation semantics and behavior.
 
 ### 6. Maintenance Domains
 
-Issue: SCA-37, blocked by SCA-38.
+Issue: SCA-37, completed in the V1.49.0 candidate.
 
-Separate scheduler/dispatcher, summary-history work, and memory-review/proposal
-resolution. Preserve job kinds, persisted status, idempotency, retry behavior,
-idle checks, prompts, and auto-apply guards. The worker remains one runtime
-surface even if implementations live in domain modules.
+Scheduler/dispatcher, summary-history work, and memory-review/proposal
+resolution now have dedicated typed owners behind the 18-line maintenance
+facade. Job kinds, persisted status, idempotency, retry behavior, idle checks,
+prompts, auto-apply guards, and the single worker surface are preserved. Frozen
+pre/post gates pass 9/9, focused contracts pass 32/32, and direct compaction
+plus natural MiniMax maintenance probes preserve technical and semantic
+behavior.
 
 ### 7. GPT Actions Router
 

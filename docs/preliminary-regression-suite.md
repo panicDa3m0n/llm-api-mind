@@ -32,6 +32,25 @@ The source is the last published `backend/data/app.db` LFS object, not the
 mutable worktree database. The current worktree `app.db` may contain later
 live experiments and must never silently replace this baseline.
 
+Latest organizational equivalence evidence: SCA-37/V1.49.0 passed 9/9 before
+(`20260718_193905_preliminary-regression-v1`) and after
+(`20260718_194544_preliminary-regression-v1`) the maintenance-domain split,
+with stable source, retrieval, navigation, lifecycle, and maintenance-boundary
+fields unchanged.
+
+Latest shared-runtime fix evidence: SCA-42/V1.49.1 passed the same gate 9/9
+before (`20260718_195924_preliminary-regression-v1`) and after
+(`20260718_201150_preliminary-regression-v1`) action retry reconciliation.
+
+SCA-43/V1.50.0 deliberately leaves this V1 suite unchanged. The complementary
+`model-facing-memory-gate-v2` starts from the same immutable source, proves the
+known pre-repair selection/projection split, applies exact provenance repair
+only on its disposable copy, and then verifies V2, `llm.request`, provider
+input, completed turn, and assistant persistence. Its negative control proves
+that a failed turn cannot pass through intermediate traces. The accepted run
+is `20260718_220521_model-facing-memory-gate-v2`, 5/5; the simultaneous
+unchanged V1 run `20260718_220559_preliminary-regression-v1` passes 9/9.
+
 The runner makes two ignored local copies:
 
 ```txt
@@ -94,6 +113,19 @@ Run the gate before and after a major procedure:
 cd backend
 .venv/bin/python app/evals/preliminary_regression.py
 ```
+
+Run the complementary model-facing automatic-memory gate when changing memory
+retrieval, V2 projection, native request construction, provenance maintenance,
+or completion acceptance:
+
+```bash
+cd backend
+.venv/bin/python app/evals/model_facing_memory_gate.py
+```
+
+It creates only
+`data/preliminary-model-facing-memory-gate-v2-run.db`, which is recreated from
+the immutable source on every execution.
 
 The process exits non-zero if any case fails. A report with the source hash,
 actual runtime IDs, selected memories, trace IDs, bridge IDs, and case details
@@ -159,6 +191,34 @@ post-documentation gate 9/9 in
 `20260718_162350_preliminary-regression-v1`. No runtime code changed in the
 planning issue; every executable rework child must record its own fresh
 pre/post pair instead of treating this planning run as permanent approval.
+
+SCA-34 established its own V1.43 pre-change baseline at 9/9 in
+`20260718_174427_preliminary-regression-v1`. After extracting provider-history,
+serialization, and accounting support from the native chat router, the
+identical post-change gate passed 9/9 in
+`20260718_175231_preliminary-regression-v1`.
+
+SCA-33 established its V1.44 pre-change baseline at 9/9 in
+`20260718_181621_preliminary-regression-v1`. After extracting shared native
+sync/stream orchestration and fixing stream model-context trace linkage, the
+identical post-change gate passed 9/9 in
+`20260718_183109_preliminary-regression-v1`.
+
+SCA-35 established its V1.45 pre-change baseline at 9/9 in
+`20260718_184350_preliminary-regression-v1`. After extracting automatic memory
+retrieval from runtime packet assembly, the identical post-change gate passed
+9/9 in `20260718_184927_preliminary-regression-v1` with the same active memory,
+33 candidates, and block types. Direct inspection showed that this historical
+case does not assert V2 model-facing delivery when source-message provenance is
+missing; BUG-0093/SCA-43 will add a complementary versioned case without
+rewriting V1.
+
+SCA-36 established its V1.46 pre-change baseline at 9/9 in
+`20260718_190504_preliminary-regression-v1`. After extracting the memory read
+surface behind the existing facade, the identical post-change gate passed 9/9
+in `20260718_191139_preliminary-regression-v1`. Stable search ids, fact id,
+graph target, source-session message count, automatic selected id, candidate
+count, and block types are identical.
 
 A post-rework change is admissible only when all of the following hold:
 

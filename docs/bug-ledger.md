@@ -7,6 +7,146 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0093 - Frozen Automatic-Memory Gate Does Not Verify Model-Facing Delivery
+
+Date Found: 2026-07-18
+Status: fixed and regression-tested in V1.50.0
+
+Symptoms:
+
+The frozen `automatic_memory_retrieval` case passes when rich
+`memory.context.selected` contains the active Zero-Luce memory. A real MiniMax
+turn on the same untouched fixture nevertheless received an empty V2 memory
+packet and answered that no relevant memory was available.
+
+Root Cause:
+
+The frozen memory `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3` has source session
+and turn ids but no `source_message_id`. The V2 projector intentionally accepts
+only complete, resolvable source hooks, so selection and model delivery
+diverge. The gate asserts the former only.
+
+Evidence:
+
+The source turn contains exactly one user message,
+`msg_a3adf09c456246be92f91c774c9c25d0`, and the provenance maintainer classifies
+the link as `repairable_single_user_message`. On a disposable copy, exact
+repair made the memory source-complete; the repeated natural prompt then
+delivered the hook and Scarlet returned the correct four-block protocol.
+
+Required Fix:
+
+Add a new versioned or complementary gate with complete provenance that asserts
+the V2/model-request hook and inspects the resulting answer. Do not mutate the
+historical frozen V1 source or weaken the provenance gate.
+
+Fix:
+
+V1.50.0 adds `model-facing-memory-gate-v2`. It proves the pre-repair
+selection/projection split, applies exact digest-guarded repair only on a
+disposable copy, and then asserts the target in V2, `llm.request`, and the
+provider-observed system. Successful acceptance additionally requires a
+completed turn, one assistant message, no `llm.error`, and `turn_complete`.
+An intentionally incomplete provider proves the gate rejects the old false-
+positive shape. The integrated gate passes 5/5 and its own oracle contracts
+pass 6/6.
+
+Related:
+
+- Linear SCA-43
+- Linear SCA-35
+- ADR-0100
+- ADR-0105
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`
+
+## BUG-0092 - Stream Omitted Model-Context Trace Linkage
+
+Date Found: 2026-07-18
+Status: fixed and regression-tested in V1.45.0
+
+Symptoms:
+
+Native sync and stream turns both generated a `model.context` trace. Sync
+included its profile/id in `llm.request` and returned the id in final
+`trace_ids`; stream omitted all three references even though the trace existed.
+
+Root Cause:
+
+The two routes independently assembled the same preflight invariants. The
+stream copy did not carry newer model-context observability fields added to the
+sync path.
+
+Fix:
+
+Both transports now use `prepare_native_turn`, which links the projection
+profile and trace exactly once. The stream regression checks the request link
+and final turn reference against the actual stored trace.
+
+Direct Evidence:
+
+The post-change stream turn `turn_17b7c06281ad4aa9852047bd3d9e0e76`
+references `trace_930ef7997e104a798ecc2c5dab2b8efc` consistently in stored
+request and completed turn evidence.
+
+Related:
+
+- Linear SCA-33
+- ADR-0099
+
+## BUG-0091 - Successful Action Retry Is Missing From Answer Obligations
+
+Date Found: 2026-07-18
+Status: fixed and regression-tested in V1.49.1
+
+Symptoms:
+
+In an isolated native MiniMax turn, a malformed `memory write` failed and a
+materially corrected retry then stored the memory successfully. Final-answer
+validation nevertheless retained only the first failed action as evidence and
+rejected two truthful drafts describing the successful retry, including one
+that named the stored memory ID.
+
+Evidence:
+
+- session `ses_472db64bc051471999f95b9b43657e9d`;
+- turn `turn_26109ad9b5da4f819e5e3fe0db464468`;
+- failed trace `trace_0bac38fab3b74edcaa628a3423f0abb6`;
+- successful retry trace `trace_463d5096898d49c8a44ae9243b2aef5c`;
+- false-negative validation trace
+  `trace_c2a3ca2b50894bc0ae7760f3f496e434`.
+
+Classification:
+
+The initial over-eager memory choice and malformed alias were model behavior.
+The failure to reconcile a successful equivalent retry into the answer
+obligation evidence is a deterministic shared-runtime defect. It predates and
+is outside the SCA-34 support extraction.
+
+Fix:
+
+The shared obligation compiler now rebuilds tool-derived obligations from all
+authoritative current-turn calls. It preserves the failed attempt and links
+later recoverable same-operation attempts as semantic candidates. The answer
+validator, not a deterministic comparator, decides whether command, intent,
+and result materially recovered the same action. GPT action manifests are also
+rebuilt so persisted failure evidence cannot hide a later success.
+
+Direct Evidence:
+
+In session `ses_3d412c64a0ec4e29884a82b778f49b91`, MiniMax M3 retried an
+injected malformed `memory write`, stored
+`mem_4023cf8a8684439f81b7a20969235246` with complete provenance, and produced
+a natural final answer. The V2 obligation retained both action traces and the
+semantic validator explicitly accepted the recovered chain. Native sync,
+stream, and GPT lifecycle regressions cover the same rule.
+
+Related:
+
+- Linear SCA-42
+- Linear SCA-28
+- Linear SCA-34
+- ADR-0104
+
 ## BUG-0090 - Query-String Bridge Key Was Recorded In Proxy Logs
 
 Date Found: 2026-07-18

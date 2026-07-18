@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.43.0 (deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,9 +43,16 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers ten high-value modules that currently pass
+The blocking mypy gate covers twenty-five high-value modules that currently pass
 without suppressing their own errors:
 
+- native chat provider-history transformations;
+- native chat response/event serialization;
+- native chat context-accounting persistence and request statistics;
+- shared native sync/stream turn orchestration and completion;
+- automatic memory candidate retrieval, classification, and final reranking;
+- manual memory read/search/facts/graph, mutation/lifecycle/proposal/relation
+  owners, and shared memory contracts;
 - runtime configuration;
 - agent modes;
 - shell command registry;
@@ -55,6 +62,8 @@ without suppressing their own errors:
 - context accounting;
 - answer-obligation compilation and semantic verdict parsing;
 - chronological source mapping and shadow partition planning;
+- maintenance scheduling/dispatch, summary/history execution, memory review,
+  and shared job contracts;
 - database ownership boundaries.
 
 Imports are treated as external to this first slice so SQLModel repository
@@ -125,6 +134,45 @@ retired MCP transport. The Actions bridge retains explicit lifecycle,
 authentication, OpenAPI, answer-obligation, and shell coverage; query-only
 authentication and `/mcp` availability now have negative regressions. The
 unchanged frozen preliminary suite passes 9/9.
+
+V1.44.0 passes 244 tests at 81.41%. The extracted provider-history,
+serialization, and accounting modules are at 93%, 99%, and 97% coverage. Their
+focused contracts preserve facade identity, canonical and reconstructed
+history, tool exchanges, response/event projections, and accounting. The
+unchanged frozen preliminary suite passes 9/9 before and after SCA-34.
+
+V1.46.0 passes 244 tests at 81.50%. The typed native-turn service is at 90%
+coverage and the new automatic retrieval owner is at 87%. The unchanged
+frozen preliminary suite passes 9/9 before and after SCA-35; focused
+context/retrieval contracts pass 101/101.
+
+V1.47.0 passes 245 tests at 81.54%. The memory read owner is at 85% and shared
+memory contracts are at 97%. Frozen pre/post gates pass 9/9 and focused
+shell/memory/V2/structure contracts pass 63/63.
+
+V1.48.0 passes 246 tests at 81.59%. Memory write, lifecycle, proposals, and
+relations are at 88%, 60%, 75%, and 98%; shared contracts remain at 97%.
+Frozen pre/post gates pass 9/9 and focused mutation/maintenance/facade
+contracts pass 70/70. Direct shell, proposal, and natural Scarlet probes are
+reviewed qualitatively in addition to deterministic pass counters.
+
+V1.49.0 passes 247 tests at 81.63%. Maintenance history, memory review,
+scheduler, shared contracts, and facade are at 74%, 79%, 76%, 100%, and 100%.
+Frozen pre/post gates pass 9/9 and focused maintenance/history/facade contracts
+pass 32/32. Direct compaction and MiniMax idle-maintenance results were read and
+judged semantically in addition to their persisted technical evidence.
+
+V1.49.1 passes 257 tests at 81.71%. Shared action-attempt obligations are
+covered across equivalent and non-equivalent retries, recoverability, order,
+capability checks, stale GPT manifests, native sync/stream, and the GPT Actions
+lifecycle. Frozen pre/post gates pass 9/9. A direct MiniMax recovery was judged
+from its actual actions, results, persistence, validation reasons, and answer.
+
+V1.50.0 passes 263 tests at 81.86%. The complementary model-facing memory
+evaluator is 90% covered and its six oracle contracts distinguish rich
+selection, V2/provider delivery, completed turns, guarded repair, report
+persistence, and the incomplete-turn negative control. The integrated V2 gate
+passes 5/5 and the unchanged historical preliminary gate passes 9/9.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

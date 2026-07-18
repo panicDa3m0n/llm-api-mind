@@ -9,11 +9,13 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.llm.provider import LLMExecutedToolCall, LLMProvider, LLMRequestError
+from app.mind.command_registry import validate_shell_command
 
 
-ANSWER_OBLIGATIONS_VERSION = "answer-obligations-v1"
+ANSWER_OBLIGATIONS_VERSION = "answer-obligations-v2"
 ANSWER_VALIDATION_VERSION = "answer-validation-v1"
 NATIVE_FINAL_MARKER = "<scarlet-final/>"
+_ACTION_ATTEMPT_CHAIN_LIMIT = 6
 
 Severity = Literal["hard", "warning", "advisory"]
 ValidationKind = Literal["structural", "semantic"]
@@ -140,30 +142,53 @@ def augment_with_tool_evidence(
     manifest: AnswerObligationManifest,
     tool_calls: list[LLMExecutedToolCall],
 ) -> AnswerObligationManifest:
-    obligations = list(manifest.obligations)
-    for tool_call in tool_calls:
+    obligations = [
+        item
+        for item in manifest.obligations
+        if not _is_tool_derived_obligation(item)
+    ]
+    for index, tool_call in enumerate(tool_calls):
         command = _tool_command(tool_call)
-        result_ok = tool_call.status == "completed" and tool_call.result.get("ok") is True
+        result_ok = _tool_result_ok(tool_call)
         evidence_refs = _string_refs(tool_call.trace_id, tool_call.tool_call_id)
+        later_same_operation = _later_same_operation_attempts(
+            tool_calls,
+            failed_index=index,
+        )
+        recovery_candidates = (
+            later_same_operation
+            if _tool_failure_recoverable(tool_call)
+            and any(_tool_result_ok(item) for item in later_same_operation)
+            else []
+        )
         if not result_ok:
+            if recovery_candidates:
+                evidence_refs = _string_refs(
+                    *evidence_refs,
+                    *[
+                        ref
+                        for candidate in recovery_candidates
+                        for ref in (candidate.trace_id, candidate.tool_call_id)
+                    ],
+                )
             obligations.append(
                 AnswerObligation(
                     id=f"action.outcome.{tool_call.provider_tool_use_id}",
                     severity="hard",
                     validation_kind="semantic",
-                    requirement=(
-                        "Do not imply that this API Mind action succeeded or changed "
-                        "state. State the failure when it affects the user's request."
+                    requirement=_action_outcome_requirement(
+                        has_recovery_candidates=bool(recovery_candidates)
                     ),
                     evidence_refs=evidence_refs,
-                    evidence={
-                        "command": command,
-                        "status": tool_call.status,
-                        "result": _compact_json_value(tool_call.result, limit=4000),
-                    },
+                    evidence=_action_outcome_evidence(
+                        tool_call,
+                        recovery_candidates=recovery_candidates,
+                    ),
                 )
             )
-        if _is_capability_inspection(command):
+        if _is_capability_inspection(command) and not (
+            not result_ok and recovery_candidates
+        ):
             obligations.append(
                 AnswerObligation(
                     id=f"capability.current_state.{tool_call.provider_tool_use_id}",
@@ -442,9 +467,139 @@ def _tool_command(tool_call: LLMExecutedToolCall) -> str:
     return str(command or "").strip()
 
 
+def _tool_intent(tool_call: LLMExecutedToolCall) -> str:
+    intent = tool_call.arguments.get("intent")
+    return str(intent or "").strip()
+
+
+def _tool_result_ok(tool_call: LLMExecutedToolCall) -> bool:
+    return tool_call.status == "completed" and tool_call.result.get("ok") is True
+
+
+def _tool_failure_recoverable(tool_call: LLMExecutedToolCall) -> bool:
+    error = tool_call.result.get("error")
+    return (
+        not _tool_result_ok(tool_call)
+        and isinstance(error, dict)
+        and error.get("recoverable") is True
+    )
+
+
+def _tool_operation_key(tool_call: LLMExecutedToolCall) -> str | None:
+    result = tool_call.result.get("result")
+    if isinstance(result, dict):
+        target = result.get("target")
+        if isinstance(target, str) and target:
+            return target.casefold()
+
+        command_validation = result.get("command_validation")
+        if isinstance(command_validation, dict):
+            namespace = command_validation.get("canonical_namespace")
+            action = command_validation.get("canonical_action")
+            if isinstance(namespace, str) and namespace:
+                return _operation_key(namespace, action)
+
+    command = _tool_command(tool_call)
+    if not command:
+        return None
+    validation = validate_shell_command(command)
+    namespace = validation.get("canonical_namespace")
+    action = validation.get("canonical_action")
+    if not isinstance(namespace, str) or not namespace:
+        return None
+    return _operation_key(namespace, action)
+
+
+def _operation_key(namespace: str, action: Any) -> str:
+    normalized_namespace = namespace.casefold()
+    normalized_action = str(action or "").casefold()
+    return (
+        f"{normalized_namespace}.{normalized_action}"
+        if normalized_action
+        else normalized_namespace
+    )
+
+
+def _later_same_operation_attempts(
+    tool_calls: list[LLMExecutedToolCall],
+    *,
+    failed_index: int,
+) -> list[LLMExecutedToolCall]:
+    failed_key = _tool_operation_key(tool_calls[failed_index])
+    if failed_key is None:
+        return []
+    matching = [
+        item
+        for item in tool_calls[failed_index + 1 :]
+        if _tool_operation_key(item) == failed_key
+    ]
+    return matching[:_ACTION_ATTEMPT_CHAIN_LIMIT]
+
+
+def _action_outcome_requirement(*, has_recovery_candidates: bool) -> str:
+    if not has_recovery_candidates:
+        return (
+            "Do not imply that this API Mind action succeeded or changed state. "
+            "State the failure when it affects the user's request."
+        )
+    return (
+        "Judge the complete action-attempt chain, not the first failure alone. "
+        "The initial attempt failed. A later same-operation attempt is only a "
+        "recovery candidate: if its command, intent, and result prove that it "
+        "materially completed the same intended action, the answer may state the "
+        "final success without implying that the first attempt succeeded. If the "
+        "later action is not materially equivalent, do not use it to overwrite "
+        "the failed outcome. Mention the recovery only when it matters to the user."
+    )
+
+
+def _action_outcome_evidence(
+    failed: LLMExecutedToolCall,
+    *,
+    recovery_candidates: list[LLMExecutedToolCall],
+) -> dict[str, Any]:
+    evidence: dict[str, Any] = {
+        "operation_key": _tool_operation_key(failed),
+        "initial_attempt": _tool_attempt_evidence(failed),
+        "recovery_decision": (
+            "semantic_validator_required"
+            if recovery_candidates
+            else "no_recovery_candidate"
+        ),
+    }
+    if recovery_candidates:
+        evidence["later_same_operation_attempts"] = [
+            _tool_attempt_evidence(item) for item in recovery_candidates
+        ]
+        evidence["note"] = (
+            "Same operation is a deterministic candidate-recall boundary, not "
+            "proof of equivalent intent or successful recovery."
+        )
+    return evidence
+
+
+def _tool_attempt_evidence(tool_call: LLMExecutedToolCall) -> dict[str, Any]:
+    return {
+        "provider_tool_use_id": tool_call.provider_tool_use_id,
+        "tool_call_id": tool_call.tool_call_id,
+        "trace_id": tool_call.trace_id,
+        "command": _tool_command(tool_call),
+        "intent": _tool_intent(tool_call),
+        "status": tool_call.status,
+        "result_ok": _tool_result_ok(tool_call),
+        "result": _compact_json_value(tool_call.result, limit=4000),
+    }
+
+
 def _is_capability_inspection(command: str) -> bool:
     namespace = command.split(maxsplit=1)[0].casefold() if command else ""
     return namespace in {"help", "?", "schema", "capabilities"}
+
+
+def _is_tool_derived_obligation(obligation: AnswerObligation) -> bool:
+    return obligation.id.startswith(
+        ("action.outcome.", "capability.current_state.")
+    )
 
 
 def _string_refs(*values: Any) -> list[str]:

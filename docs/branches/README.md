@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-18
-App baseline: V1.43.0 (deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -34,11 +34,11 @@ turns. Every branch document must state:
 
 | Branch | Level | Implementation | Runtime/behavior | Next gate |
 |---|---:|---|---|---|
-| Communication | L4 | Prompt, stream semantics, public notes, completion and answer-obligation invariants, dev/mobile rendering, executable behavioral suite | active; thinking-only and progress-only finals recover once or fail explicitly; semantic hard constraints are traced | monitor validator quality and expand natural scenarios |
+| Communication | L4 | Prompt, stream semantics, public notes, completion and answer-obligation invariants, dev/mobile rendering, executable behavioral suite | active; incomplete finals recover once or fail explicitly; V1.49.1 preserves failed/corrected action chains for semantic judgment | monitor validator quality and expand natural scenarios |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
 | Perception and context | L4 | shared V2, accounting v2, exact chronology map, mode router, recursive compaction artifacts | active guarded derived routing with canonical fallback | monitor multi-cycle quality and calibrate token partitions |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
-| Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance | active and best-tested | duplicate/conflict and ownership maturity |
+| Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance; V1.50 verifies actual model delivery | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
 | Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; V1.42 mode receipts and two-session resume passed | retain separation before goal/task organ |

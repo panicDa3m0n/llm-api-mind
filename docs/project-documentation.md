@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.43.0 (deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -95,6 +95,35 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.42-agent-mode-routing.md`: per-block routing receipts,
   off/shadow/active delivery semantics, native/GPT parity, prompt selection
   calibration, and bounded two-session Scarlet evidence.
+- `docs/evaluations/v1.43-mcp-retirement.md`: deprecated connector removal,
+  transport authentication cleanup, production evidence preservation, and
+  deployment closure.
+- `docs/evaluations/v1.43-memory-rerank-negative-calibration.md`: frozen
+  unsupported-personal controls, direct reranker evidence, and the documented
+  decision to defer an unsafe threshold-only correction.
+- `docs/evaluations/v1.44-chat-support-extraction.md`: SCA-34 module boundary,
+  exact pre/post contracts, direct native provider-history probe, qualitative
+  judgment, and isolated residual bug.
+- `docs/evaluations/v1.45-native-turn-orchestration.md`: SCA-33 lifecycle
+  boundary, sync/stream invariant evidence, direct continuity probe, trace
+  parity fix, and qualitative variance classification.
+- `docs/evaluations/v1.46-context-retrieval-separation.md`: SCA-35 retrieval
+  ownership boundary, frozen equivalence, direct model-facing proof, and the
+  isolated provenance-fixture gap.
+- `docs/evaluations/v1.47-memory-read-surface.md`: SCA-36 facade/read ownership,
+  exact pre/post shell evidence, and direct search/open/facts/graph inspection.
+- `docs/evaluations/v1.48-memory-mutation-surface.md`: SCA-38 mutation-domain
+  ownership, exact equivalence, direct lifecycle/proposal evidence, and a
+  natural Scarlet persistence probe.
+- `docs/evaluations/v1.49-maintenance-domains.md`: SCA-37 maintenance-domain
+  ownership, exact equivalence, direct compaction evidence, and natural
+  summary/memory-review judgment.
+- `docs/evaluations/v1.49.1-action-retry-obligations.md`: shared native/GPT
+  retry-chain evidence, deterministic regressions, and directly inspected
+  MiniMax recovery behavior.
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`: complementary automatic-
+  memory delivery gate, guarded disposable provenance repair, provider-request
+  proof, and incomplete-turn negative control.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,
