@@ -120,6 +120,19 @@ USER_PRIVACY_SCOPE=local_single_user
 Persisted `/api/dashboard/settings` values override these defaults for future
 runtime-context turns.
 
+Final-answer obligations default to active enforcement:
+
+```txt
+ANSWER_OBLIGATIONS_MODE=active
+ANSWER_VALIDATION_MAX_TOKENS=4096
+```
+
+The native runtime requires a private final boundary and retries one rejected
+draft. Semantic validation is invoked only when a current hard obligation
+requires natural-language judgment. GPT bridge finalize returns a recoverable
+409 for the first hard rejection, fails the turn on the second, and never
+persists a rejected draft.
+
 Metacognitive context defaults to shadow mode:
 
 ```txt

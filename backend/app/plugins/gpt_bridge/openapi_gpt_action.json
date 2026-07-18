@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scarlet GPT Bridge",
-    "version": "1.40.0",
+    "version": "1.41.0",
     "description": "GPT Actions schema connecting ChatGPT-hosted Scarlet to API Mind context, cognitive commands, persistent sessions, and answer history."
   },
   "servers": [
@@ -115,6 +115,15 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "First hard-obligation rejection; correct and retry finalize once."
+          },
+          "422": {
+            "description": "Second hard-obligation rejection; the turn has failed."
+          },
+          "503": {
+            "description": "Answer validation unavailable; the active turn is not finalized."
           }
         }
       }
@@ -250,7 +259,20 @@
           "ok": { "type": "boolean" },
           "session_id": { "type": "string" },
           "turn_id": { "type": "string" },
-          "response": { "type": "object", "additionalProperties": true }
+          "response": { "type": "object", "additionalProperties": true },
+          "action_policy": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "Updated answer obligations after this cognitive action."
+          },
+          "required_actions": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          },
+          "recommended_actions": {
+            "type": "array",
+            "items": { "type": "object", "additionalProperties": true }
+          }
         }
       },
       "FinalizeResponse": {

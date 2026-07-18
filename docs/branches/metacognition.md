@@ -1,7 +1,7 @@
 # Branch: Metacognizione
 
 Last updated: 2026-07-18
-System version assessed: V1.40.0
+System version assessed: V1.41.0 release candidate
 Status: positive/negative invocation separated; efficiency remains experimental
 
 ## Filosofia del ramo
@@ -158,6 +158,14 @@ and wrote a low-value lesson. The shell step remains on demand and lesson
 context remains shadow by default; neither continuous review nor default
 lesson injection is accepted. Evidence:
 `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
+
+## Verifica V1.41.0
+
+Source-sensitive lessons may now compile a semantic answer obligation, but the
+answer judge is a shared runtime service rather than a new metacognition organ
+mode. Metacognition still supplies review evidence on demand; it is neither
+called on every turn nor treated as proof. Semantic validation is limited to
+turns with an actual obligation and remains separately traced.
 
 ## Evolutive
 

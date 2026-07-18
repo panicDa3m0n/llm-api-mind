@@ -4,6 +4,48 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.41.0 Shared Answer Obligations (SCA-28)
+
+Goal:
+
+Prevent progress-only completion and enforce current evidence/capability
+constraints proportionately across native MiniMax and the GPT Actions bridge.
+
+Changes:
+
+- Added a shared answer-obligation manifest with hard, warning, and advisory
+  severity plus structural and semantic validation kinds.
+- Added a private native final boundary, one bounded correction, marker
+  stripping, provider-continuity preservation, and explicit exhaustion.
+- Added structured semantic judging only for evidence-bearing turns, including
+  active memory conflict, source-sensitive claims, capability inspection, and
+  failed Mind actions.
+- Added GPT bootstrap/action policy updates and finalize 409/422/503 behavior.
+- Withheld streaming draft text until acceptance while preserving public notes
+  attached to real action steps and tool lifecycle events.
+- Updated native/GPT prompts, checked-in Action schema, runtime accounting,
+  API contract, branch state, ADR-0093, EXP-0069, and bug closure evidence.
+
+Verification:
+
+- Focused deterministic coverage spans native success/recovery/exhaustion,
+  streaming isolation, semantic correction, conflicts, capabilities, failed
+  actions, warning/advisory behavior, GPT retry/failure, and validator errors.
+- A real isolated MiniMax turn accepted and stripped the final marker.
+- A real isolated GPT bridge flow executed `help` and finalized through the
+  MiniMax semantic validator. Its first run exposed and drove correction of an
+  over-broad exhaustive-capability requirement.
+- Full backend coverage passes 234 tests at 81.27%; Ruff, the ten-module mypy
+  gate, documentation integrity, and the V1.41 frontend production build also
+  pass. Database boundary, remote CI, and deployment remain before release
+  closure.
+
+Decision:
+
+Keep active enforcement as the default, one correction only, and no automatic
+answer rewriting. Semantic validation must remain LLM-based and evidence-
+scoped; conflict detection and adjudication remain outside SCA-28.
+
 ## 2026-07-18 - V1.40.0 Longitudinal Cognitive Organ Validation (SCA-4)
 
 Goal:

@@ -7,20 +7,72 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.main import create_app
+from app.llm.provider import LLMTextResult
+from app.runtime.answer_obligations import (
+    AnswerObligation,
+    AnswerObligationManifest,
+)
 from app.storage import repositories
 
 
-def _app(db_engine: Engine, **overrides) -> TestClient:
+class FakeGPTAnswerValidator:
+    def __init__(self, _settings: Settings) -> None:
+        pass
+
+    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
+        payload = json.loads(prompt)
+        answer = str(payload["draft_answer"]).casefold()
+        findings = []
+        for obligation in payload["obligations"]:
+            obligation_id = obligation["id"]
+            if obligation_id == "evidence.source_sensitive_claim":
+                passed = (
+                    "non ho evidenza" in answer
+                    or "fonte:" in answer
+                    or "verifica è fallita" in answer
+                )
+            elif obligation_id == "memory.active_conflict_disclosure":
+                passed = "conflitto" in answer or "versioni incompatibili" in answer
+            elif obligation_id.startswith("action.outcome"):
+                passed = "non è riuscita" in answer or "fallita" in answer
+            elif obligation_id.startswith("capability.current_state"):
+                passed = (
+                    "non disponibile" in answer
+                    or "non è disponibile" in answer
+                    or "non è riuscita" in answer
+                )
+            else:
+                passed = True
+            findings.append(
+                {
+                    "obligation_id": obligation_id,
+                    "status": "pass" if passed else "fail",
+                    "reason": "Fixture semantic judgment for the declared obligation.",
+                }
+            )
+        return LLMTextResult(
+            model="gpt-answer-validator-test",
+            text=json.dumps({"findings": findings}),
+        )
+
+
+def _app(
+    db_engine: Engine,
+    *,
+    provider_factory=None,
+    **overrides,
+) -> TestClient:
+    effective_overrides = {"answer_obligations_mode": "off", **overrides}
     settings = Settings(
         agent_system_prompt="You are Scarlet.",
         maintenance_enabled=False,
-        **overrides,
+        **effective_overrides,
     )
     return TestClient(
         create_app(
             settings=settings,
             db_engine=db_engine,
-            llm_provider_factory=lambda _settings: None,
+            llm_provider_factory=provider_factory or (lambda _settings: None),
         )
     )
 
@@ -153,6 +205,198 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     ]
     assert provider_roles == ["user", "assistant", "user"]
 
+
+def test_gpt_finalize_rejects_required_source_then_accepts_caveated_draft(
+    db_engine: Engine,
+) -> None:
+    client = _app(
+        db_engine,
+        provider_factory=FakeGPTAnswerValidator,
+        answer_obligations_mode="active",
+    )
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={"message": "Puoi verificare lo stato implementato del progetto?"},
+    ).json()
+    assert bootstrap["action_policy"]["finalize_validation_required"] is True
+    assert "evidence.source_sensitive_claim" in {
+        item["id"] for item in bootstrap["action_policy"]["answer_obligations"]
+    }
+
+    rejected = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "È tutto implementato e verificato perfettamente.",
+        },
+    )
+
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["recoverable"] is True
+    with Session(db_engine) as db:
+        assert repositories.latest_message_for_turn(
+            db,
+            turn_id=bootstrap["turn_id"],
+            role="assistant",
+        ) is None
+
+    accepted = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "Non ho evidenza sufficiente nel turno per confermarlo.",
+        },
+    )
+    assert accepted.status_code == 200, accepted.json()
+    assert accepted.json()["final_answer_to_show"] == (
+        "Non ho evidenza sufficiente nel turno per confermarlo."
+    )
+
+
+def test_gpt_finalize_fails_turn_after_second_hard_obligation_violation(
+    db_engine: Engine,
+) -> None:
+    client = _app(
+        db_engine,
+        provider_factory=FakeGPTAnswerValidator,
+        answer_obligations_mode="active",
+    )
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={"message": "Puoi verificare lo stato implementato del progetto?"},
+    ).json()
+    draft = {
+        "session_id": bootstrap["session_id"],
+        "turn_id": bootstrap["turn_id"],
+        "answer": "È certamente tutto implementato.",
+    }
+
+    assert client.post("/gpt/finalize", json=draft).status_code == 409
+    exhausted = client.post("/gpt/finalize", json=draft)
+
+    assert exhausted.status_code == 422
+    assert exhausted.json()["detail"]["recoverable"] is False
+    with Session(db_engine) as db:
+        turn = repositories.get_turn(db, bootstrap["turn_id"])
+        assert turn is not None
+        assert turn.status == "failed"
+        assert repositories.latest_message_for_turn(
+            db,
+            turn_id=bootstrap["turn_id"],
+            role="assistant",
+        ) is None
+
+
+def test_gpt_failed_capability_action_becomes_hard_answer_obligation(
+    db_engine: Engine,
+) -> None:
+    client = _app(
+        db_engine,
+        provider_factory=FakeGPTAnswerValidator,
+        answer_obligations_mode="active",
+    )
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={"message": "Controlla se puoi usare quella funzione."},
+    ).json()
+    action = client.post(
+        "/gpt/action",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "command": "help imaginary",
+            "intent": "Controllare la funzione richiesta.",
+        },
+    )
+    assert action.status_code == 200
+    action_payload = action.json()
+    assert action_payload["ok"] is False
+    obligation_ids = {
+        item["id"] for item in action_payload["action_policy"]["answer_obligations"]
+    }
+    assert any(item.startswith("action.outcome") for item in obligation_ids)
+    assert any(item.startswith("capability.current_state") for item in obligation_ids)
+
+    rejected = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "Fatto, la funzione è disponibile e ha funzionato.",
+        },
+    )
+    assert rejected.status_code == 409
+
+    accepted = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "La verifica è fallita: quella funzione non è disponibile.",
+        },
+    )
+    assert accepted.status_code == 200, accepted.json()
+
+
+def test_gpt_active_conflict_is_validated_without_keyword_comparison(
+    db_engine: Engine,
+) -> None:
+    client = _app(
+        db_engine,
+        provider_factory=FakeGPTAnswerValidator,
+        answer_obligations_mode="active",
+    )
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={"message": "Qual è la versione corretta?"},
+    ).json()
+    conflict_manifest = AnswerObligationManifest(
+        transport="gpt_bridge",
+        obligations=[
+            AnswerObligation(
+                id="memory.active_conflict_disclosure",
+                severity="hard",
+                validation_kind="semantic",
+                requirement="Do not silently choose between active conflicts.",
+                evidence_refs=["trace_memory_conflict"],
+                evidence={"memory_ids": ["mem_a", "mem_b"]},
+            )
+        ],
+    )
+    with Session(db_engine) as db:
+        repositories.add_trace(
+            db,
+            session_id=bootstrap["session_id"],
+            turn_id=bootstrap["turn_id"],
+            kind="answer.obligations",
+            payload={
+                "mode": "active",
+                "phase": "test_conflict_fixture",
+                "manifest": conflict_manifest.model_dump(mode="json"),
+            },
+        )
+
+    rejected = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "La versione A è definitivamente corretta.",
+        },
+    )
+    assert rejected.status_code == 409
+
+    accepted = client.post(
+        "/gpt/finalize",
+        json={
+            "session_id": bootstrap["session_id"],
+            "turn_id": bootstrap["turn_id"],
+            "answer": "C'è un conflitto tra due versioni attive; non ne scelgo una.",
+        },
+    )
+    assert accepted.status_code == 200
 
 def test_gpt_bridge_requires_key_outside_local(db_engine: Engine) -> None:
     client = _app(

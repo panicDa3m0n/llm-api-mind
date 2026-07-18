@@ -1,6 +1,6 @@
 # GPT / MCP Bridge Plugin
 
-Status: V1.30.0 GPT Actions bridge active with shared
+Status: V1.41.0 GPT Actions bridge active with shared
 `scarlet-model-context-v2`. MCP/App bridge deprecated after
 platform testing showed it cannot currently be attached to the target custom
 GPT flow.
@@ -89,6 +89,13 @@ not optional tools for the user to request.
    volition, affect, agent mode, metacognition, or memory writes.
 3. `POST /gpt/finalize` is mandatory before the GPT shows the final answer to
    the user, even when no middle `/gpt/action` was needed.
+
+Bootstrap and every action response may expose
+`action_policy.answer_obligations`. These are final-answer constraints, not
+shell commands. A first hard-obligation failure at finalize returns recoverable
+HTTP 409 with semantic findings; the GPT may correct and retry once. A second
+failure returns HTTP 422 and fails the turn. Validator unavailability returns
+HTTP 503 and never silently accepts the draft.
 
 Skipping finalize means the backend would lose the assistant answer and future
 session/memory processing would be incomplete.

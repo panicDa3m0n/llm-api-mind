@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-18
-System version assessed: V1.40.0
+System version assessed: V1.41.0 release candidate
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -148,6 +148,8 @@ Destinations:
 | `memory.context` | only through compact V2 projection | yes | yes |
 | `runtime.context` | only preserved V2 projection | yes | yes |
 | `llm.request` | request itself | yes | yes |
+| `answer.obligations` | native appendix only in active mode; GPT policy object | yes | yes |
+| `answer.validation` | no; validates a draft | yes | yes |
 | raw KG/vector/rerank payloads | no | yes | yes |
 | maintenance jobs/proposals | no | evaluator UI/API | yes |
 
@@ -202,6 +204,8 @@ automatic context packets.
    activation are checked separately.
 4. Frontend renderers still contain compatibility support for old runtime
    blocks and must not be used as proof that those blocks reach the model.
+5. Semantic answer judgment is stochastic evidence. Active mode fails closed,
+   but validator latency and false positives require monitoring.
 
 ## 7. Next Registry Work
 
@@ -209,5 +213,6 @@ automatic context packets.
 - monitor recursive summary quality and validate the V1.36 token partition
   across additional compaction cycles;
 - populate natural behavioral scenarios for mode routing and continuity;
+- monitor answer-obligation validator quality and GPT correction behavior;
 - update this registry before changing active compaction budgets or hard-gating
   any cognitive command by mode.

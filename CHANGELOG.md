@@ -6,6 +6,32 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.41.0 - Shared Answer Obligations
+
+#### Added
+
+- Added shared native/GPT final-answer manifests with hard, warning, and
+  advisory severity, structural/semantic validation, and dedicated traces.
+- Added evidence-scoped semantic judgment for active memory conflicts,
+  source-sensitive claims, capability inspection, and failed cognitive actions.
+- Added GPT Action policy updates plus recoverable first rejection, explicit
+  second-rejection failure, and validator-unavailable handling.
+
+#### Changed
+
+- Native final answers now use a private structural boundary that is stripped
+  before persistence and public delivery.
+- Native sync/stream paths permit one bounded correction; streaming withholds
+  draft conclusion text until the accepted answer is available.
+- Prompts, Action schema, accounting, API contract, branch state, experiments,
+  decisions, and bug records now describe the same answer-control boundary.
+
+#### Fixed
+
+- Fixed completed turns containing only public work notes (BUG-0085).
+- Fixed the lack of enforcement when current conflict, capability, source, or
+  failed-action evidence materially constrains the final answer (BUG-0011).
+
 V1.40.0 longitudinally validates focus, volition, computational affect, and
 metacognition while retaining conservative independent defaults. V1.39.0 activates recursive source-labelled native history compaction without
 mutating canonical chronology. V1.38.0 separates historical provenance audit from guarded maintenance and

@@ -258,10 +258,12 @@ The active gate completed in V1.39 with:
    V1.36) plus a multi-cycle test;
 6. fail-safe fallback to full history when no valid active artifact exists.
 
-Ongoing monitoring still needs naturally longer multi-cycle sessions, provider
-summary drift review, and explicit answer-obligation work under SCA-28. The GPT
-bridge receives the same backend V2 packet, but backend compaction cannot see or
-rewrite native ChatGPT conversation history outside the bridge.
+Ongoing monitoring still needs naturally longer multi-cycle sessions and
+provider summary drift review. V1.41 adds answer obligations as a separate
+current-turn runtime contract after context compilation; they are measured and
+traced but are not another automatic V2 context pack. The GPT bridge receives
+the same backend V2 packet and obligation semantics, but backend compaction
+cannot see or rewrite native ChatGPT conversation history outside the bridge.
 
 New agent modes or mode-tag enforcement require branch-specific behavioral
 scenarios. Webhooks, sensors, scouting perception, motor actions, Dream, and

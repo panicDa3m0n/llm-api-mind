@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.40.0
+App baseline: V1.41.0 release candidate
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -43,7 +43,7 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers nine high-value modules that currently pass
+The blocking mypy gate covers ten high-value modules that currently pass
 without suppressing their own errors:
 
 - runtime configuration;
@@ -53,6 +53,7 @@ without suppressing their own errors:
 - canonical V2 context compilation;
 - final memory reranking;
 - context accounting;
+- answer-obligation compilation and semantic verdict parsing;
 - chronological source mapping and shadow partition planning;
 - database ownership boundaries.
 
@@ -106,6 +107,12 @@ V1.40.0 passes 219 tests at 80.89%. The behavioral evaluator now covers safe
 group runtime receipts and structured organ evidence, while explicit
 frustration-to-relief reappraisal has a direct persisted-state regression. The
 unchanged frozen preliminary suite passes 9/9.
+
+V1.41.0 passes 234 tests at 81.27%. The shared answer-obligation module is at
+89% coverage; native chat at 91%; and the GPT bridge at 81%. Coverage includes
+one-correction recovery, explicit exhaustion, semantic source/conflict/tool
+evidence, non-blocking severities, streaming draft isolation, and GPT
+409/422/503 policy.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

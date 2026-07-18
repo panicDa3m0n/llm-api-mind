@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-18
-System version assessed: V1.36.1
+System version assessed: V1.41.0 release candidate
 Status: active branch
 
 ## Filosofia del ramo
@@ -68,6 +68,9 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
   `end_turn` con solo thinking riceve una sola continuazione tracciata; se non
   produce testo o tool reali, il turno fallisce esplicitamente senza salvare
   una risposta vuota o trasformare il thinking privato in azione cognitiva.
+- V1.41.0 distingue strutturalmente nota pubblica e risposta conclusiva,
+  applica obblighi semantici solo quando esiste evidenza che li richiede e
+  consente una sola correzione prima del fallimento esplicito.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 
@@ -82,7 +85,7 @@ confrontare cio che l'utente vede con cio che MiniMax riceve realmente. Il ramo
 non e ancora L5 perche il comportamento agentico intermedio non e sempre
 naturale, coerente o proporzionato al lavoro in corso.
 
-Sistema valutato: V1.36.1.
+Sistema valutato: V1.41.0 release candidate.
 Aggiornamento V1.7.1: il ramo ora include una policy esplicita di
 proporzionalita. La qualita comunicativa non dipende solo da trasparenza e
 verifica, ma anche dalla capacita di non trasformare ogni risposta in un
@@ -107,6 +110,10 @@ la policy completa Public Work Notes/Long Reasoning Notes.
 Aggiornamento V1.36.1: il backend distingue finalmente omissione stocastica del
 provider e turno Scarlet valido. Il normale percorso resta invariato; recovery,
 esaurimento e isolamento della cronologia sono tracciati e testati.
+Aggiornamento V1.41.0: sync, stream e GPT bridge condividono manifest e
+validazione. Le bozze rifiutate non diventano messaggi canonici e lo streaming
+non rende visibile il testo conclusivo prima dell'accettazione; note operative
+legate a reali azioni restano visibili.
 
 ## Sviluppi precedenti
 
@@ -162,6 +169,17 @@ esaurimento e isolamento della cronologia sono tracciati e testati.
 - Framework V1.30.0: ogni scenario naturale separa esecuzione tecnica, scelta
   cognitiva, qualita della risposta ed effetto longitudinale, con condizioni
   iniziali, evidenze e ripetizioni dichiarate prima del test.
+
+## Verifica V1.41.0
+
+- Test deterministici coprono boundary valido, recovery, esaurimento, stream,
+  conflitto, fonte, capability, fallimento tool e severita non bloccanti.
+- Un probe MiniMax isolato ha prodotto e fatto rimuovere correttamente il
+  marker privato al primo tentativo.
+- Un probe GPT bridge ha rilevato un requisito semantico troppo ampio; dopo la
+  correzione, `help` e finalize sono stati accettati dal validatore reale.
+- Prossimo gate: monitorare naturalezza, latenza e falsi positivi in uso reale,
+  senza avviare una nuova campagna comportamentale completa per questa issue.
 
 ## Evolutive
 

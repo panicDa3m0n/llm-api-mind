@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     qwen_max_tokens: int = Field(default=4096, ge=1)
 
     incomplete_final_max_retries: int = Field(default=1, ge=0, le=1)
+    answer_obligations_mode: Literal["off", "shadow", "active"] = "active"
+    answer_validation_max_tokens: int = Field(default=4096, ge=256, le=16384)
 
     agent_system_prompt: str | None = Field(default=None, repr=False)
     agent_system_prompt_path: str | None = None

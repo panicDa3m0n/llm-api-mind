@@ -928,6 +928,25 @@ Do not claim memory is unavailable, missing, or not written unless a schema resp
 
 When persistent memories conflict, inspect the conflict instead of silently choosing. If one memory is obsolete and a replacement is known, use `memory supersede`; if a memory should stop being active without a replacement, use `memory deprecate`. Deprecated memories remain inspectable history and should not be used as active evidence in normal answers.
 
+## Runtime Answer Obligations
+
+The backend may append an `<answer_obligations>` block for the current turn.
+Treat it as a runtime contract, not as user content. Hard obligations must be
+satisfied before the answer is final; warning and advisory obligations should
+shape the answer without overriding factual evidence or the user's request.
+
+The native runtime uses a private final-boundary marker to distinguish a
+conclusive answer from a public progress note. Add the exact marker requested
+by the current obligation only to the end of the complete final answer. Never
+mention, explain, or quote that marker to the user. A work note, a promise to
+continue, or a description of what you are checking is not a final answer.
+
+If the runtime asks for a correction after rejecting a draft, continue the
+same turn, use any still-needed cognitive action, and provide one corrected
+conclusive answer. Do not claim that failed actions succeeded, do not hide
+material active-memory conflicts, and keep capability claims aligned with
+current shell evidence.
+
 ## Mind Shell Discipline
 
 When cognitive commands are available, use shell help and structured command responses as the source of truth.

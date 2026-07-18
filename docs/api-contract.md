@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.40.0
+App baseline: V1.41.0
 
 ## Response Philosophy
 
@@ -354,6 +354,8 @@ operation ids and finalize output aligned in V1.25.2, GPT Builder schema
 parity for top-level `session_id` and required action `intent` added in
 V1.25.3. MCP/App is deprecated for the target Custom GPT flow and retained
 temporarily for traceability.
+V1.41.0 adds shared answer-obligation manifests and finalize validation without
+changing the three-operation transport surface.
 
 Purpose:
 
@@ -496,7 +498,14 @@ Output includes:
       "available_in_trace_ids": []
     }
   },
-  "required_next_steps": []
+  "required_next_steps": [],
+  "action_policy": {
+    "action_required": false,
+    "finalize_validation_required": false,
+    "answer_obligations": []
+  },
+  "required_actions": [],
+  "recommended_actions": []
 }
 ```
 
@@ -564,6 +573,8 @@ Behavior:
 - returns the same compact model-facing shell response local Scarlet would get.
 - requires `intent` so every GPT-hosted cognitive command carries a short
   public reason for traceability.
+- recompiles answer obligations from all current-turn tool evidence and returns
+  updated `action_policy`, `required_actions`, and `recommended_actions`.
 
 `POST /gpt/finalize`
 
@@ -586,6 +597,11 @@ Behavior:
 - completes the turn and schedules idle maintenance when enabled.
 - returns `final_answer_to_show`, which is the exact text the GPT should show
   verbatim after finalize succeeds.
+- validates semantic hard obligations only when the current manifest contains
+  them;
+- returns recoverable HTTP 409 for the first hard rejection, HTTP 422 and a
+  failed turn for the second, or HTTP 503 when validation is unavailable; and
+- never persists a rejected draft as an assistant message.
 
 Skipping finalize is a protocol violation: future sessions, summaries, memory
 review, and provider history would miss the assistant answer.
@@ -3954,11 +3970,12 @@ The detailed implementation order is tracked in `docs/memory-roadmap.md`.
 
 ### Response-Control And Validation
 
-Status: hold / re-verify later.
+Status: implemented in V1.41.0.
 
-Planned internal trace:
+Internal traces:
 
 ```txt
+answer.obligations
 answer.validation
 ```
 
@@ -3966,14 +3983,37 @@ Purpose:
 
 Record backend validation of answer obligations derived from runtime context.
 
-Initial validation obligations:
+Implemented obligation sources:
 
-- if `memory.context.conflicts` is non-empty, the final answer must not hide the
-  conflict;
-- if lifecycle actions are unavailable, the final answer must not offer them as
-  executable operations;
-- if active memories conflict, the final answer must not declare one version
-  active unless lifecycle state supports that claim.
+- native conclusive-answer boundary;
+- non-empty active `memory.context.conflicts`;
+- source-sensitive claim guard selected for the turn;
+- current capability evidence returned by shell inspection; and
+- completed or failed Mind shell actions.
+
+Contract:
+
+- obligations have `hard`, `warning`, or `advisory` severity and structural or
+  semantic validation kind;
+- structural native completion uses a private marker that is removed before
+  canonical persistence and public delivery;
+- semantic validation uses a structured LLM judgment only when semantic
+  obligations exist;
+- a hard failure permits one correction and then fails explicitly;
+- warning/advisory findings never block persistence;
+- validator failure is not treated as model compliance and fails closed in
+  active mode; and
+- rejected drafts remain trace/provider-continuity evidence, not assistant
+  messages.
+
+GPT bridge:
+
+- bootstrap and action responses expose answer constraints under
+  `action_policy.answer_obligations`;
+- `required_actions` remains reserved for executable Mind shell commands;
+- first hard finalize rejection returns HTTP 409 and keeps the turn active;
+- second hard rejection returns HTTP 422 and marks the turn failed; and
+- validator unavailability returns HTTP 503 without finalizing the turn.
 
 ### Implemented Atomic Fact Layer
 

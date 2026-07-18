@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-18
-App baseline: V1.40.0
+App baseline: V1.41.0 release candidate
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -34,7 +34,7 @@ turns. Every branch document must state:
 
 | Branch | Level | Implementation | Runtime/behavior | Next gate |
 |---|---:|---|---|---|
-| Communication | L4 | Prompt, stream semantics, public notes, completion invariant, dev/mobile rendering, executable behavioral suite | active; thinking-only finals recover once or fail explicitly; style is not uniformly proportional | expand natural scenarios to notes, greetings and long work |
+| Communication | L4 | Prompt, stream semantics, public notes, completion and answer-obligation invariants, dev/mobile rendering, executable behavioral suite | active; thinking-only and progress-only finals recover once or fail explicitly; semantic hard constraints are traced | monitor validator quality and expand natural scenarios |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
 | Perception and context | L4 | shared V2, accounting v2, exact chronology map, mode router, recursive compaction artifacts | active guarded derived routing with canonical fallback | monitor multi-cycle quality and calibrate token partitions |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
@@ -42,7 +42,7 @@ turns. Every branch document must state:
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
 | Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; mode active and separate | validate mode routing before goal/task organ |
-| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register | one V1.40 cross-session chain passed; one stopped at progress note; no autonomous cycle | close SCA-28, then risk/receipt policy |
+| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register, final-answer obligations | V1.41 prevents progress-only completion; no autonomous cycle | validate mode routing, then risk/receipt policy |
 | External operativity | L1 | supporting traces/events only | no external-world action suite | permission/safety/rollback architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |
