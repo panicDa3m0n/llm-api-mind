@@ -124,7 +124,7 @@ Related Files:
 ## BUG-0085 - Completed Native Turn Contained Only A Public Work Note
 
 Date Found: 2026-07-18
-Status: fixed in V1.41.0; release verification pending
+Status: fixed and deployed in V1.41.0
 
 Symptoms:
 
@@ -2033,7 +2033,7 @@ classification for this slice.
 ## BUG-0011 - Runtime Context Conflicts And Capabilities Are Not Enforced In Answers
 
 Date Found: 2026-05-13
-Status: fixed for traced hard obligations in V1.41.0; semantic quality monitored
+Status: fixed and deployed for traced hard obligations in V1.41.0; semantic quality monitored
 
 Symptoms:
 

@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-18
-System version assessed: V1.41.0 release candidate
+System version assessed: V1.41.0 (deployed)
 Status: active branch
 
 ## Filosofia del ramo
@@ -85,7 +85,7 @@ confrontare cio che l'utente vede con cio che MiniMax riceve realmente. Il ramo
 non e ancora L5 perche il comportamento agentico intermedio non e sempre
 naturale, coerente o proporzionato al lavoro in corso.
 
-Sistema valutato: V1.41.0 release candidate.
+Sistema valutato: V1.41.0 (deployed).
 Aggiornamento V1.7.1: il ramo ora include una policy esplicita di
 proporzionalita. La qualita comunicativa non dipende solo da trasparenza e
 verifica, ma anche dalla capacita di non trasformare ogni risposta in un

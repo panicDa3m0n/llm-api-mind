@@ -1,7 +1,7 @@
 # Branch: Metacognizione
 
 Last updated: 2026-07-18
-System version assessed: V1.41.0 release candidate
+System version assessed: V1.41.0 (deployed)
 Status: positive/negative invocation separated; efficiency remains experimental
 
 ## Filosofia del ramo

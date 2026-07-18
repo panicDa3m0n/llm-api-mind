@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-18
-Backend baseline: V1.40.0 (deployed)
+Backend baseline: V1.41.0 (deployed)
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -50,7 +50,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.40.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.40.0 online backup is `/var/backups/scarlet-mobile-test/v1400-20260718T135943Z/app.db.pre-v1400` (SHA-256 `3c67f158f444b3a1c838566634683da2fed97fdf3029852d2128f24d1e90d1e4`). |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.41.0 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.41.0 online backup is `/var/backups/scarlet-mobile-test/v1410-20260718T150527Z/app.db.pre-v1410` (SHA-256 `33a7ec43853e51ed5b5a37df4929dd0537b354f503465e7d19fe4d30d34c4253`). |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; legacy Git LFS-tracked file | Published index pointer is SHA-256 `827bb...c1ed5`; the current worktree file is a later dirty LFS object `9b6e...0448f`. It is not production and must not be staged except for a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -161,10 +161,16 @@ trigger, and optional focus/volition/affect/temporal/Dream injection off.
 Production role and disabled broad summary reconciliation are deliberate
 deployment differences, not local/remote feature drift.
 
+V1.41.0 preserves the same data and maintenance boundary. It adds active
+shared answer obligations with `ANSWER_OBLIGATIONS_MODE=active` and a 4,096
+token semantic-validator output budget. These settings change answer control,
+not database ownership or canonical history.
+
 For every deployment:
 
 1. Make a timestamped remote backup of `/opt/scarlet-mobile-test/backend/data/app.db` before replacing code or restarting the container.
-2. Transfer code with exclusions for both `backend/data/` and `backend/.env`.
+2. Transfer code with exclusions for `backend/data/`, the deployment-root
+   `/opt/scarlet-mobile-test/.env`, and any source-tree `backend/.env`.
    An `rsync --delete` command without those exclusions is prohibited.
 3. Build the new image without restarting the existing container.
 4. Run the new image's read-only preflight against the existing mount with

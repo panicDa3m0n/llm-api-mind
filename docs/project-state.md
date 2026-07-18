@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.41.0 release candidate
+App baseline: V1.41.0 (deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -92,7 +92,7 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 216 tests passed at 80.69% statement coverage;
+- backend: 234 tests passed at 81.27% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -132,6 +132,10 @@ Current verification baseline:
   and OpenAPI version, DB integrity, logs, frontend hash parity, and one natural
   native smoke all passed. Production data counts changed only by the expected
   smoke session and messages.
+- V1.41.0 production rollout: both remote quality workflows, protected backup,
+  new-image production preflight, restart, integrity, frontend parity, native
+  structural-boundary smoke, and GPT capability/finalize smoke passed. The
+  post-smoke database remained production/direct with integrity `ok`.
 
 ### 3.2 Dynamic Context
 
@@ -391,7 +395,7 @@ behavior:
 
 ## 7. Current Best Next Step
 
-After V1.41 release closure, the next approved issue is SCA-6: validate
+With V1.41 released, the next approved issue is SCA-6: validate
 agent-mode routing against the classified standalone organ defaults. Long
 varied sessions should still monitor active compaction/degradation.
 Duplicate/conflict adjudication remains a separate later discussion.

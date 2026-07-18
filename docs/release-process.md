@@ -89,9 +89,10 @@ This refuses accidental inclusion of the mutable laboratory snapshot
 data release and must be recorded in the commit and changelog.
 
 Before a VPS deployment, follow `docs/database-topology.md`: back up the
-remote DB, exclude `backend/data/` and `backend/.env` from any transfer, then
-run the new image's read-only preflight with `--expect-role production` before
-restart. Git pushes do not deploy runtime data.
+remote DB, exclude `backend/data/`, the deployment-root `.env`, and any
+source-tree `backend/.env` from transfer, then run the new image's read-only
+preflight with `--expect-role production` before restart. Git pushes do not
+deploy runtime data.
 
 ## Documentation Mapping
 
@@ -204,3 +205,8 @@ tag `v1.39.0` points to that deployed runtime commit.
 V1.40.0 passed the protected backup, read-only production preflight, restart,
 integrity, frontend parity, and natural native smoke boundary at merge commit
 `db31398`; annotated tag `v1.40.0` points to that deployed runtime commit.
+V1.41.0 passed both remote quality workflows, protected backup, new-image
+preflight, restart, integrity, frontend parity, native answer-obligation smoke,
+and GPT bridge `help`/finalize smoke at merge commit
+`10ecfb0c0aeeb458a7896887aaebad55cbd85277`; annotated tag `v1.41.0` points
+to that deployed runtime commit.

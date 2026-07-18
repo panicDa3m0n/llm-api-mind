@@ -37,14 +37,39 @@ Verification:
   over-broad exhaustive-capability requirement.
 - Full backend coverage passes 234 tests at 81.27%; Ruff, the ten-module mypy
   gate, documentation integrity, and the V1.41 frontend production build also
-  pass. Database boundary, remote CI, and deployment remain before release
-  closure.
+  pass. The two remote GitHub quality runs also passed before merge.
 
 Decision:
 
 Keep active enforcement as the default, one correction only, and no automatic
 answer rewriting. Semantic validation must remain LLM-based and evidence-
 scoped; conflict detection and adjudication remain outside SCA-28.
+
+Production Closure:
+
+- Merged PR #11 at `10ecfb0c0aeeb458a7896887aaebad55cbd85277` after both
+  remote quality workflows passed, then deployed that exact runtime as
+  V1.41.0.
+- Created and verified online backup
+  `/var/backups/scarlet-mobile-test/v1410-20260718T150527Z/app.db.pre-v1410`
+  with SHA-256
+  `33a7ec43853e51ed5b5a37df4929dd0537b354f503465e7d19fe4d30d34c4253`,
+  plus environment, compose, code, and frontend archives.
+- The new image passed read-only production preflight before restart with
+  integrity `ok`, 29 tables, `DATABASE_ROLE=production`, `CODEX_TEST=false`,
+  and direct isolation. Post-smoke preflight remained `ok` with 308 memories,
+  237 facts, 232 sessions, 897 messages, 6,228 events, one focus, one
+  intention, and zero affect states.
+- Package and OpenAPI reported `1.41.0`; local and external health passed,
+  logs contained no application exception, and local/remote frontend hashes
+  matched at
+  `fcbfe5210203f294a244ef6cc0feb11c80145fb09c0903ed6a11c9a5d2287391`.
+- Native smoke turn `turn_459d9b30ea7140d1b2a7dd39bbfe563a`
+  completed on its first draft, emitted the private boundary, persisted a
+  clean answer, and recorded obligation/validation traces.
+- GPT bridge turn `turn_06cd339ba56649808a0a9f7060c56ad7` executed `help`,
+  gained a hard capability obligation, passed real MiniMax validation, and
+  finalized idempotently with the exact persisted answer.
 
 ## 2026-07-18 - V1.40.0 Longitudinal Cognitive Organ Validation (SCA-4)
 

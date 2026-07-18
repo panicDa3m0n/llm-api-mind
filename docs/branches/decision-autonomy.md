@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-18
-System version assessed: V1.41.0 release candidate
+System version assessed: V1.41.0 (deployed)
 Status: volition continuity works when invoked; autonomous persistence remains variable
 
 ## Filosofia del ramo
