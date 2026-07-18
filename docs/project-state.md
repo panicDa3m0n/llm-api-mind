@@ -81,7 +81,7 @@ Implemented and verified:
   tool call emerges; incomplete attempts remain trace-only evidence;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
-  non-destructive `C/H/A` compaction planning;
+  active non-destructive recursive `C/H/A` compaction with canonical fallback;
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
   context routing, persistent resumable posture, and `mode` shell commands;
 - deprecated MCP experiment retained temporarily but not part of the target
@@ -89,7 +89,7 @@ Implemented and verified:
 
 Current verification baseline:
 
-- backend: 209 tests passed at 80.45% statement coverage;
+- backend: 216 tests passed at 80.69% statement coverage;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -98,6 +98,9 @@ Current verification baseline:
   GPT bridge controls passed the fixture-isolation target, OpenRouter embedding
   and rerank completed after runtime config alignment, and DB integrity stayed
   `ok`.
+- V1.39.0 production rollout: recursive history compaction is active at the
+  guarded 400k trigger; backup, read-only preflight, schema/integrity checks,
+  frontend hash parity, and native canonical-fallback smoke passed.
 - V1.30.0 disposable MiniMax mode probe: explicit `mode set scouting`, persisted
   resumable posture, interactive override, and no-autonomous-runtime boundary
   all observed after iterative correction.
@@ -247,7 +250,7 @@ the canonical integrated read.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
-| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting and automatic mode router | measured active compaction design |
+| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting, active recursive compaction and automatic mode router | deployed guarded compaction; monitor multi-cycle quality |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |

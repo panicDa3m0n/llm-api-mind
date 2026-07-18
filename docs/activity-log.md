@@ -50,7 +50,29 @@ to SCA-28/output-budget behavior, not history compaction.
 Evidence:
 
 - `docs/evaluations/v1.39-active-history-compaction.md`
-- ADR-0091, EXP-0067, BUG-0086, Linear SCA-32
+- ADR-0091, EXP-0067, BUG-0086, BUG-0087, Linear SCA-32
+
+Production Closure:
+
+- Merged PR #9 at `cb400d2` and published annotated tag `v1.39.0` at that
+  exact deployed runtime commit.
+- Created online backup
+  `/var/backups/scarlet-mobile-test/v1390-20260718T124832Z/app.db.pre-v1390`
+  (SHA-256 `f8ecc8f173083b64d5288e2b0f912ba4ac4674e2063fd422a8559bd306960e86`),
+  plus pre-release code, environment, compose, and frontend archives.
+- New-image read-only production preflight reported integrity `ok`, 28 tables,
+  227 sessions, 889 messages, direct isolation, and active 400k/100k/100k/25k
+  compaction configuration before restart.
+- Post-restart OpenAPI reported `1.39.0`; schema initialization added only
+  `history_compactions` (29 tables total), DB integrity remained `ok`, mode was
+  `active`, and logs contained no application error.
+- Remote and local frontend `index.html` hashes matched at
+  `fcbfe5210203f294a244ef6cc0feb11c80145fb09c0903ed6a11c9a5d2287391`.
+- Natural online turn `turn_1c6064a1daca4e31a95551511ff243d1`
+  completed. Its new-session route explicitly used
+  `canonical_fallback_artifact_missing`; request counts were 1 canonical and 1
+  model-facing, while observed accounting reported `mode=active` and
+  `shadow_only=false`.
 
 ## 2026-07-18 - V1.38.0 Historical Provenance Audit And Guarded Cleanup (SCA-20)
 

@@ -198,3 +198,6 @@ its exact historical HoneyLabs runtime. V1.38.0 passed the protected VPS
 backup, preflight, restart, maintenance, and smoke procedure at merge commit
 `efe652e`; its release tag must point to that runtime commit rather than to a
 later documentation-only commit.
+V1.39.0 passed the same protected boundary plus active-compaction configuration,
+schema, and natural native routing checks at merge commit `cb400d2`; annotated
+tag `v1.39.0` points to that deployed runtime commit.

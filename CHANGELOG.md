@@ -11,7 +11,7 @@ mutating canonical chronology. V1.38.0 separates historical provenance audit fro
 classifies explicit Codex fixtures without semantic inference. V1.37.0
 calibrates final memory relevance on frozen and live evidence. V1.36.1
 prevents thinking-only provider messages from becoming successful empty Scarlet
-turns. V1.36.0 remains the chronology-accounting baseline. V1.38.0 is the
+turns. V1.36.0 remains the chronology-accounting baseline. V1.39.0 is the
 currently deployed HoneyLabs production runtime after passing the protected
 database deployment boundary.
 
@@ -114,6 +114,10 @@ database deployment boundary.
 
 ### Changed
 
+- Deployed V1.39.0 from merge `cb400d2` with release tag `v1.39.0` after an
+  online SQLite backup, read-only production preflight, active-compaction
+  configuration check, restart, schema/integrity verification, frontend hash
+  comparison, and a natural native Scarlet smoke.
 - Changed the compaction trigger to the configured total model-input threshold
   and, after activation, to the estimated derived next-turn view rather than
   immutable canonical-history size.
