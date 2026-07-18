@@ -7,6 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0092 - Cognitive Organs Keep Independent Conservative Defaults
+
+Date: 2026-07-18
+Status: accepted and implemented in V1.40.0
+
+Context:
+
+Focus, volition, computational affect, and metacognition all have executable
+storage or review surfaces, but implementation alone does not establish useful
+default behavior. The V1.34 baseline showed variable invocation and failed
+affect activation. SCA-4 added correlated lifecycle tests, independent
+controls, model/shadow comparison, and separate technical and qualitative
+judgments.
+
+Decision:
+
+- surface focus only when an active bounded focus exists and do not create it
+  automatically from ordinary topics;
+- keep volition persistent but on-demand, outside automatic chat injection and
+  without autonomous cycles;
+- keep affect in `shadow` by default and reserve `model` for controlled tests
+  until it shows causal answer benefit;
+- keep `metacognition step` model-invoked for proportionate high-risk claims
+  and keep lesson context shadow by default;
+- require traceable writes/reviews before the strongest durable-volition and
+  cross-system reliability claims; and
+- introduce no cross-organ coupling until each organ's invocation and answer
+  boundary are reliable independently.
+
+Consequences:
+
+The runtime retains useful organs without turning experimental state into
+always-on cognitive pressure. Focus has the strongest direct lifecycle
+evidence. Affect now transitions correctly but remains unproven as model-facing
+value. Volition continuity works when invoked, while SCA-28 still permits a
+turn to end before a selected mutation. Metacognition improves broad judgments
+but can overprocess. Future mode routing may select organ eligibility, but it
+must not override these evidence-based defaults.
+
+Links:
+
+- `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`
+- Linear SCA-4
+
 ## ADR-0091 - Active Chronology Is A Recursive Derived View With Deterministic Sources
 
 Date: 2026-07-18

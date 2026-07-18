@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.39.0
+App baseline: V1.40.0
 
 ## Response Philosophy
 

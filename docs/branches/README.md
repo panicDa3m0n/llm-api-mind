@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-18
-App baseline: V1.39.0
+App baseline: V1.40.0
 Status: canonical branch map
 
 An agentic branch is an operating domain of Scarlet: what she can perceive,
@@ -40,13 +40,13 @@ turns. Every branch document must state:
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
 | Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
-| Metacognition | L3 | one route, retrospective modes, shadow lessons, repeated broad-claim scenario | model-invoked; explicit review used 1/3 and skipped runs overgeneralized evidence | continuation and degradation policy |
-| Operational management | L2/L3 | focus organ, agent posture, events/maintenance | focus natural lifecycle variable; mode active | calibrate focus behavior before goal/task organ |
-| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register | natural volition persistence 1/3; no autonomous cycle | clarify autonomous persistence, then risk/receipt policy |
+| Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
+| Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; mode active and separate | validate mode routing before goal/task organ |
+| Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register | one V1.40 cross-session chain passed; one stopped at progress note; no autonomous cycle | close SCA-28, then risk/receipt policy |
 | External operativity | L1 | supporting traces/events only | no external-world action suite | permission/safety/rollback architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |
-| Computational affect | L3 | appraisal, persistence, read-only shell, optional block | explicit exasperation remained below threshold 3/3 | BUG-0082 shadow/model calibration |
+| Computational affect | L3/L4 | appraisal, persistence, read-only shell, optional block | V1.40 model/shadow/neutral 10/10 after recovery fix; shadow default | prove model-facing benefit before activation |
 | Multi-agent/subprocesses | L1/L2 | maintenance worker is bounded background processing | not a multi-agent system | prove one-agent limits before expansion |
 
 The integrated evidence and priority ordering live in

@@ -1,8 +1,8 @@
 # Branch: Metacognizione
 
-Last updated: 2026-07-14
-System version assessed: V1.34.0
-Status: prototype with repeated natural judgment evidence
+Last updated: 2026-07-18
+System version assessed: V1.40.0
+Status: positive/negative invocation separated; efficiency remains experimental
 
 ## Filosofia del ramo
 
@@ -144,6 +144,20 @@ organs were reliable for everyday use. The open problem is both reliable
 invocation/continuation and evidence discipline when review is skipped.
 
 Evidence: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
+## Verifica V1.40.0
+
+After making review mandatory only for broad all-organ and default-readiness
+claims, both independent positive scenarios executed `metacognition step` and
+rejected unsupported universal reliability. Both low-risk language-choice
+controls answered directly without review. This separates proportional
+invocation better than the V1.34 result.
+
+One positive run still performed many auxiliary reads, took materially longer,
+and wrote a low-value lesson. The shell step remains on demand and lesson
+context remains shadow by default; neither continuous review nor default
+lesson injection is accepted. Evidence:
+`docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
 
 ## Evolutive
 

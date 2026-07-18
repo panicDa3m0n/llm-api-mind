@@ -144,6 +144,10 @@ Evidence:
 
 - session `ses_02f95bf1a9874b0cb3fa5cd613377897`;
 - turn `turn_fc2045c3b17542b6812c1df8f1994279`;
+- SCA-4 repetition `volition-continuity-model-r1-BEH-0111` ended after a
+  public memory-check note even though provider thinking had selected
+  `volition create`; the correlated next session correctly found no persisted
+  intention;
 - Linear SCA-28.
 
 ## BUG-0084 - VPS Retrieval Configuration Drift Disabled Dense Embedding
@@ -173,7 +177,7 @@ survive code parity.
 ## BUG-0082 - Explicit Exasperation Does Not Activate Affective Context
 
 Date Found: 2026-07-14
-Status: open; isolated by V1.34.0 behavioral baseline
+Status: fixed and longitudinally verified in V1.40.0
 
 Symptoms:
 
@@ -191,12 +195,19 @@ prototype exceeded the activation threshold. This repeated 3/3 times. Some
 visible answers regulated tone reasonably, proving that conversational empathy
 and the affect organ are separate surfaces.
 
-Current Assessment:
+Root Cause:
 
-This is a real prototype sensitivity/calibration gap, not a shell, runner, DB,
-or qualitative-comparator failure. Do not lower thresholds or add one-off
-keywords inside SCA-2. Calibrate it with varied natural positive/negative
-controls under SCA-4 before changing the prototype.
+The substring `blocc` in explicit resolution language such as “il blocco e
+superato” was interpreted as fresh obstruction. Full carry from the preceding
+frustration state then outweighed the positive signal, so a real recovery
+message could not produce relief.
+
+Fix:
+
+Explicit obstruction-resolution evidence now suppresses contradictory current
+frustration cues, attenuates only previous-frustration carry, and contributes a
+traceable relief observation. Thresholds and unrelated prototypes remain
+unchanged.
 
 Regression Target:
 
@@ -207,11 +218,22 @@ Regression Target:
 - affect remains model-facing only and never mutates memory, focus, volition,
   or mode by itself.
 
+Regression And Live Evidence:
+
+- the direct frustration-to-resolution sequence produces persisted
+  `frustration`, then `relief`;
+- two independent model chains and two independent shadow chains passed both
+  state transitions after the fix;
+- two neutral controls remained without affect state; and
+- the model/shadow comparison did not yet prove enough answer-quality benefit
+  to change the default from `shadow`.
+
 Related Files:
 
 - `backend/app/mind/affect.py`
 - `backend/app/evals/scenarios/behavioral-v1/suite.json`
 - `docs/evaluations/v1.34-natural-behavioral-suite.md`
+- `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`
 - Linear SCA-4
 
 ## BUG-0080 - GPT Bridge Finalize Wording Created Long Silent Turns
