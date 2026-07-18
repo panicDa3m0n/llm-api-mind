@@ -194,5 +194,7 @@ gh pr create --base main --head feature/agent-modes-history-compaction --draft
 ```
 
 Release tags follow deployed truth. Annotated `v1.32.0` points to `298d668`,
-the code deployed on HoneyLabs. Do not create `v1.33.0` until that version has
-passed the protected VPS backup, preflight, restart, and smoke procedure.
+its exact historical HoneyLabs runtime. V1.38.0 passed the protected VPS
+backup, preflight, restart, maintenance, and smoke procedure at merge commit
+`efe652e`; its release tag must point to that runtime commit rather than to a
+later documentation-only commit.

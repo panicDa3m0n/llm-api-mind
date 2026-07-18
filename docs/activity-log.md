@@ -39,13 +39,34 @@ Evidence So Far:
   regression 9/9, Ruff, blocking mypy, documentation integrity, and frontend
   production build all passed.
 
-Boundary And Next Gate:
+Production Closure:
+
+- Merged PR #7 at `efe652e`, created the verified online backup
+  `/var/backups/scarlet-mobile-test/v1380-20260718T112717Z/app.db.pre-v1380`
+  (SHA-256 `367a8bbf4783d0a738fe90e42c721de3a926999545a6fa22e8add57a31bd77b7`),
+  and deployed V1.38.0 after read-only production preflight.
+- Applied the reviewed digest under the guarded route: all 242 explicit
+  fixtures are inactive, 241 maintenance activities were appended with zero
+  recent eligibility, and seed-session timestamps stayed unchanged.
+- Verified zero active fixture overlap and SQLite integrity `ok` independently
+  against both live and backup databases.
+- Corrected stale VPS retrieval configuration to the V1.37 adaptive floor and
+  Nvidia OpenRouter embedding/rerank models. A post-fix bridge control completed
+  both stages, returned zero ginger-infusion memories, and finalized normally.
+- Rebuilt and deployed frontend V1.38.0 to `/var/www/scarlet`; local and remote
+  `index.html` SHA-256 agree and the protected `/scarlet/` route returns the
+  expected authentication challenge.
+- Classified two unrelated live findings without expanding this issue: a
+  progress-note-only completed turn belongs to SCA-28, and an irrelevant
+  near-floor retrieval belongs to SCA-3 follow-up calibration.
+
+Boundary:
 
 - `backend/data/app.db` remains unrelated and unstaged.
-- No production mutation occurred during classification or implementation.
-- Run the new code against an online production copy, then merge, back up,
-  deploy, apply the reviewed candidate set, and verify retrieval plus a direct
-  Scarlet turn before closing SCA-20.
+- Production mutation occurred only through the approved guarded operation
+  after disposable-copy proof and fresh backup.
+- The seven uncertain real source links were not rewritten. SCA-20 is ready to
+  close; retrieval calibration and final-answer obligations remain separate.
 
 ## 2026-07-18 - V1.37.0 Final Memory Rerank Calibration (SCA-3)
 

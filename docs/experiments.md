@@ -11,7 +11,7 @@ rewritten.
 
 ## EXP-0066 - Historical Provenance And Fixture Isolation
 
-Status: local implementation accepted; production-copy/deployment gate pending
+Status: accepted and deployed in V1.38.0
 
 Hypothesis:
 
@@ -47,9 +47,13 @@ active-fixture candidates without changing its hash.
 
 Decision:
 
-Accept the classification and guarded workflow for the production-copy gate.
-Do not auto-repair the seven invalid links and do not broaden SCA-20 into
-duplicate/conflict adjudication.
+Accept the classification, guarded workflow, production cleanup, and direct
+fixture-isolation controls. The protected live apply deprecated all 242
+fixtures without changing seed-session timestamps or the seven review-only
+links. Post-config GPT bridge retrieval completed embedding and rerank and
+returned zero ginger-infusion memories. Do not auto-repair the seven invalid
+links and do not broaden SCA-20 into duplicate/conflict or reranker
+adjudication.
 
 Evidence:
 
