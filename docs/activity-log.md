@@ -4,6 +4,22 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.42.0 Agent Mode Routing Initial Checkpoint (SCA-6)
+
+Started SCA-6 from the deployed V1.41 baseline. The initial checkpoint
+separates real interactive behavior, persistent resume posture, deterministic
+idle/scouting routing, and the absent non-conversational agent runtime.
+
+Baseline tests pass 23/23. Direct receipt inspection found a systemic
+observability defect: `off` and `shadow` deliver ineligible blocks while the
+aggregate `included_block_types` field describes only policy eligibility.
+Receipts also lack per-block ids and reasons. The lower-level mode persistence
+primitive does not independently enforce the public non-resumable
+`interactive` invariant. The approved slice corrects these contracts without
+adding sensors, modes, or autonomous behavior.
+
+Checkpoint: `docs/evaluations/v1.42-agent-mode-routing.md`.
+
 ## 2026-07-18 - V1.41.0 Shared Answer Obligations (SCA-28)
 
 Goal:
