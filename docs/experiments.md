@@ -9,6 +9,42 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0078 - Model-Facing Automatic-Memory Delivery Gate
+
+Status: deterministic integrated evidence accepted for V1.50.0
+
+Hypothesis:
+
+A valid automatic-memory gate can distinguish internal retrieval from actual
+model delivery and reject failed turns without changing retrieval semantics or
+the immutable historical fixture.
+
+Method:
+
+- run one natural Zero-Luce prompt before repair on the frozen disposable copy;
+- inspect rich selection, V2, `llm.request`, observed provider input, persisted
+  messages, traces, events, and final turn status;
+- apply existing exact provenance maintenance with the reviewed digest and an
+  immutable-baseline reference;
+- repeat the same prompt after repair; and
+- run a negative provider that omits the final boundary on both allowed
+  attempts.
+
+Result:
+
+Before repair, rich retrieval selected the target while V2 and the provider
+packet correctly omitted it. After repair, the target and exact source hooks
+crossed every model-facing boundary and the turn completed with one assistant
+message. The negative control retained valid retrieval/context traces but
+failed with `llm.incomplete_response`; the new gate rejected it. All five
+integrated cases and all six evaluator-oracle tests pass.
+
+Evidence:
+
+- `20260718_220521_model-facing-memory-gate-v2`;
+- `20260718_220559_preliminary-regression-v1`, unchanged V1, 9/9;
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`.
+
 ## EXP-0077 - Recoverable Action Retry Evidence And Natural Recovery
 
 Status: deterministic and direct behavioral evidence accepted for V1.49.1

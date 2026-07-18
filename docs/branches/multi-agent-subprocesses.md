@@ -1,7 +1,7 @@
 # Branch: Multi-Agente E Sub-Processi
 
 Last updated: 2026-07-18
-System version assessed: V1.49.1 candidate
+System version assessed: V1.50.0 candidate
 Status: planned branch
 
 ## Filosofia del ramo
@@ -36,7 +36,7 @@ un unico scheduler/worker governa i job, mentre summary/history e memory review
 hanno owner separati. Il resolver LLM resta una fase bounded del processo
 backend, non una seconda identita agentica o un tool model-facing.
 
-Sistema valutato: V1.49.1 candidate.
+Sistema valutato: V1.50.0 candidate.
 
 ## Sviluppi precedenti
 

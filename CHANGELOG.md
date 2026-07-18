@@ -6,6 +6,37 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.50.0 - Stabilization Baseline And Model-Facing Memory Gate
+
+#### Added
+
+- Add the complementary `model-facing-memory-gate-v2` without rewriting the
+  historical preliminary V1 suite. The gate proves rich retrieval, V2
+  projection, exact source hooks, persisted `llm.request`, provider-observed
+  input, completed turn, and assistant persistence as separate boundaries.
+- Add a negative-control provider that intentionally omits the final-answer
+  marker and prove the gate rejects its failed turn even when retrieval and
+  model-context traces exist.
+- Add focused contracts for the evaluator oracle, guarded provenance repair,
+  controlled-provider polarity, report output, and success/failure paths.
+
+#### Changed
+
+- Consolidate the locally verified V1.44.0 through V1.49.1 candidates as the
+  V1.50.0 release baseline. GPT Actions remains an experimental adapter; no
+  retrieval, context-projector, prompt, shell, or production-memory policy is
+  changed by this release.
+
+#### Verification
+
+- `model-facing-memory-gate-v2` passes 5/5 on a disposable copy of the frozen
+  database; the immutable source SHA remains unchanged.
+- The unchanged preliminary V1 gate passes 9/9, focused context/maintenance/
+  chat tests pass 43/43, shell and organ contracts pass 53/53, and evaluator
+  oracle contracts pass 6/6 at 89.74% module coverage.
+- The complete backend passes 263 tests at 81.86% coverage, improving the
+  V1.49.1 project baseline while keeping the 79.9% blocking floor.
+
 ### V1.49.1 - Action Retry Evidence Reconciliation
 
 #### Fixed

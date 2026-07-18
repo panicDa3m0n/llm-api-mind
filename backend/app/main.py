@@ -45,7 +45,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.49.1",
+        version="1.50.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,

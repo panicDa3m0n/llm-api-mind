@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.49.1 candidate (V1.43.0 deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -121,6 +121,9 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.49.1-action-retry-obligations.md`: shared native/GPT
   retry-chain evidence, deterministic regressions, and directly inspected
   MiniMax recovery behavior.
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`: complementary automatic-
+  memory delivery gate, guarded disposable provenance repair, provider-request
+  proof, and incomplete-turn negative control.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

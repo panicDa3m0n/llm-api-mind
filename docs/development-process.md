@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.49.1 candidate (V1.43.0 deployed)
+Current app version: V1.50.0 candidate (V1.43.0 deployed)
 Process baseline: V1.0.1
 Status: accepted
 
@@ -194,7 +194,8 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.49.1 candidate extends the deployed V1.43.0 Actions-only GPT
+The current V1.50.0 candidate consolidates the V1.44.0 through V1.49.1 work on
+top of the deployed V1.43.0 Actions-only GPT
 bridge baseline and includes:
 
 - local MiniMax-based Scarlet runtime;
@@ -242,6 +243,9 @@ bridge baseline and includes:
 - a shared native/GPT answer-obligation contract with traced hard, warning,
   and advisory constraints, one correction, and semantic judgment only on
   evidence-bearing turns.
+- a complementary model-facing memory gate that verifies rich selection, V2
+  delivery, provider input, completed turns, and an incomplete-turn negative
+  control without rewriting the historical frozen V1 suite.
 - blocking Ruff checks for objective Python defects, an incremental mypy gate,
   a measured full-suite coverage floor, deterministic documentation integrity,
   and a GitHub Actions workflow that runs these checks with the frontend build.

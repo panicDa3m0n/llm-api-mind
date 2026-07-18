@@ -42,6 +42,15 @@ Latest shared-runtime fix evidence: SCA-42/V1.49.1 passed the same gate 9/9
 before (`20260718_195924_preliminary-regression-v1`) and after
 (`20260718_201150_preliminary-regression-v1`) action retry reconciliation.
 
+SCA-43/V1.50.0 deliberately leaves this V1 suite unchanged. The complementary
+`model-facing-memory-gate-v2` starts from the same immutable source, proves the
+known pre-repair selection/projection split, applies exact provenance repair
+only on its disposable copy, and then verifies V2, `llm.request`, provider
+input, completed turn, and assistant persistence. Its negative control proves
+that a failed turn cannot pass through intermediate traces. The accepted run
+is `20260718_220521_model-facing-memory-gate-v2`, 5/5; the simultaneous
+unchanged V1 run `20260718_220559_preliminary-regression-v1` passes 9/9.
+
 The runner makes two ignored local copies:
 
 ```txt
@@ -104,6 +113,19 @@ Run the gate before and after a major procedure:
 cd backend
 .venv/bin/python app/evals/preliminary_regression.py
 ```
+
+Run the complementary model-facing automatic-memory gate when changing memory
+retrieval, V2 projection, native request construction, provenance maintenance,
+or completion acceptance:
+
+```bash
+cd backend
+.venv/bin/python app/evals/model_facing_memory_gate.py
+```
+
+It creates only
+`data/preliminary-model-facing-memory-gate-v2-run.db`, which is recreated from
+the immutable source on every execution.
 
 The process exits non-zero if any case fails. A report with the source hash,
 actual runtime IDs, selected memories, trace IDs, bridge IDs, and case details

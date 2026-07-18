@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0093 - Frozen Automatic-Memory Gate Does Not Verify Model-Facing Delivery
 
 Date Found: 2026-07-18
-Status: open; tracked in Linear SCA-43
+Status: fixed and regression-tested in V1.50.0
 
 Symptoms:
 
@@ -40,11 +40,24 @@ Add a new versioned or complementary gate with complete provenance that asserts
 the V2/model-request hook and inspects the resulting answer. Do not mutate the
 historical frozen V1 source or weaken the provenance gate.
 
+Fix:
+
+V1.50.0 adds `model-facing-memory-gate-v2`. It proves the pre-repair
+selection/projection split, applies exact digest-guarded repair only on a
+disposable copy, and then asserts the target in V2, `llm.request`, and the
+provider-observed system. Successful acceptance additionally requires a
+completed turn, one assistant message, no `llm.error`, and `turn_complete`.
+An intentionally incomplete provider proves the gate rejects the old false-
+positive shape. The integrated gate passes 5/5 and its own oracle contracts
+pass 6/6.
+
 Related:
 
 - Linear SCA-43
 - Linear SCA-35
 - ADR-0100
+- ADR-0105
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`
 
 ## BUG-0092 - Stream Omitted Model-Context Trace Linkage
 

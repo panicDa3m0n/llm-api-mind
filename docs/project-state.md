@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.49.1 candidate (V1.43.0 deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -190,6 +190,13 @@ Current verification baseline:
   preserve recoverable action-attempt chains, and a directly inspected MiniMax
   turn corrected and completed the same memory intent with truthful final
   behavior. Deployment remains V1.43.0.
+- V1.50.0 candidate: SCA-43 adds a complementary 5-case model-facing memory
+  gate without changing the frozen V1 suite. It proves the real Zero-Luce
+  reference across rich selection, guarded disposable provenance repair, V2,
+  `llm.request`, provider-observed input, completed assistant persistence, and
+  an incomplete-turn negative control. The unchanged V1 gate passes 9/9,
+  shell/organ contracts pass 53/53, and the complete backend passes 263 tests
+  at 81.86% coverage. Deployment remains V1.43.0.
 
 ### 3.2 Dynamic Context
 
@@ -470,14 +477,14 @@ behavior:
 ## 7. Current Best Next Step
 
 SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
-facades, and SCA-42 closes the shared successful-retry evidence defect. SCA-39
-is deliberately deferred because the GPT Actions bridge is an experimental
-external adapter and its cleanup must not displace native-system stability.
-The next concrete gate is BUG-0093/SCA-43: add model-facing verification for
-the frozen automatic-memory reference without rewriting the historical V1
-fixture or weakening provenance.
-Long varied sessions should still monitor active compaction/degradation;
-duplicate/conflict adjudication remains a separate later discussion.
+facades, SCA-42 closes successful-retry evidence, and SCA-43 closes the frozen
+gate's model-delivery/completion blind spot. SCA-39 remains deliberately
+deferred because GPT Actions is an experimental external adapter and must not
+displace native-system stability. The next concrete step is the protected
+V1.50.0 publication and production rollout, followed by parity, database,
+context V2, shell, compaction, and final-answer smoke evidence. Long varied
+sessions still need longitudinal compaction monitoring; duplicate/conflict
+adjudication remains a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

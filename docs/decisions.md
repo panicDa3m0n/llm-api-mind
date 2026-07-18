@@ -7,6 +7,46 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0105 - Evaluator Acceptance Requires Model Delivery And Completed Turns
+
+Date: 2026-07-18
+Status: accepted for V1.50.0
+
+Context:
+
+The frozen automatic-memory case observed rich retrieval selection but not the
+canonical V2 packet. It could also pass after the native turn failed because
+the controlled provider omitted the private final-answer boundary. Intermediate
+traces are valuable evidence, but neither selection nor request creation proves
+that Scarlet received usable context and produced a valid answer.
+
+Decision:
+
+- preserve historical evaluator versions after they become comparison
+  baselines;
+- add a complementary versioned gate when a new architectural boundary needs
+  stronger evidence;
+- verify automatic-memory delivery at rich selection, V2 projection,
+  `llm.request`, provider-observed input, and exact navigable provenance;
+- require completed persisted turn and assistant-answer evidence in every case
+  that claims successful agent behavior; and
+- include a negative control proving the gate rejects an incomplete turn even
+  when earlier traces look valid.
+
+Consequences:
+
+Retrieval and model delivery can no longer be conflated, and a failed provider
+turn cannot satisfy a behavioral gate through intermediate events. The frozen
+V1 source remains immutable. Exact provenance repair is test-only on a
+disposable copy and remains guarded by candidate digest and backup reference.
+
+Links:
+
+- Linear SCA-43
+- BUG-0093
+- EXP-0078
+- `docs/evaluations/v1.50-model-facing-memory-gate.md`
+
 ## ADR-0104 - Action Recovery Uses Deterministic Candidate Recall And Semantic Judgment
 
 Date: 2026-07-18

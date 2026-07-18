@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-18
-System version assessed: V1.49.1 candidate (V1.43.0 deployed)
+System version assessed: V1.50.0 candidate (V1.43.0 deployed)
 Status: active branch
 
 ## Filosofia del ramo

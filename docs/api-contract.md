@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-18
-App baseline: V1.49.1 candidate (V1.43.0 deployed; public contract unchanged)
+App baseline: V1.50.0 candidate (V1.43.0 deployed; public contract unchanged)
 
 ## Response Philosophy
 

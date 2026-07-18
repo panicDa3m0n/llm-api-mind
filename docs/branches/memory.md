@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-18
-System version assessed: V1.49.1 candidate
+System version assessed: V1.50.0 candidate
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -21,6 +21,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   `source_message_id`.
 - Memoria episodica con session summary, transcript e ricerca sessioni.
 - Automatic memory context a inizio turno.
+- V1.50.0 adds a complementary frozen-data gate that separately proves rich
+  selection, navigable V2 projection, persisted/observed provider delivery,
+  completed answer persistence, and rejection of an incomplete negative
+  control. The historical V1 fixture remains immutable.
 - V1.46.0 separa il retrieval automatico in un owner tipizzato, lasciando
   composizione runtime, trace e attivita cognitive nel facade di contesto.
   La verifica diretta conferma che la memoria selezionata arriva al modello e

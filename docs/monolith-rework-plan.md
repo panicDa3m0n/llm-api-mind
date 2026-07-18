@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 Status: accepted execution map from SCA-10; SCA-22 and SCA-33 through SCA-38 verified
-Runtime baseline: V1.43.0 deployed; V1.49.1 candidate after SCA-42
+Runtime baseline: V1.43.0 deployed; V1.50.0 candidate after SCA-43
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`

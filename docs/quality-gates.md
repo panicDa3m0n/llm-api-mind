@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.49.1 candidate (V1.43.0 deployed)
+App baseline: V1.50.0 candidate (V1.43.0 deployed)
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -167,6 +167,12 @@ covered across equivalent and non-equivalent retries, recoverability, order,
 capability checks, stale GPT manifests, native sync/stream, and the GPT Actions
 lifecycle. Frozen pre/post gates pass 9/9. A direct MiniMax recovery was judged
 from its actual actions, results, persistence, validation reasons, and answer.
+
+V1.50.0 passes 263 tests at 81.86%. The complementary model-facing memory
+evaluator is 90% covered and its six oracle contracts distinguish rich
+selection, V2/provider delivery, completed turns, guarded repair, report
+persistence, and the incomplete-turn negative control. The integrated V2 gate
+passes 5/5 and the unchanged historical preliminary gate passes 9/9.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

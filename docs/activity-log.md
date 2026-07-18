@@ -4,6 +4,36 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.50.0 Stabilization Baseline And Model-Facing Memory Gate (SCA-43)
+
+Added `model-facing-memory-gate-v2` as a complementary evaluator instead of
+rewriting the frozen preliminary V1 case. On the untouched frozen source, the
+real Zero-Luce memory is selected by rich retrieval but correctly excluded from
+V2 because its source-message hook is absent. The gate applies the existing
+digest-guarded exact provenance repair only to a disposable copy, then proves
+the same memory and exact session/message hooks reach V2, the persisted
+`llm.request`, and the system packet observed by the controlled provider.
+
+The controlled positive provider now satisfies the private native final-answer
+boundary. A separate negative provider intentionally fails it twice. The gate
+requires a completed turn, one persisted assistant message, `turn.completed`,
+no `llm.error`, and a stream `turn_complete`; the negative control therefore
+fails with `llm.incomplete_response`, persists no assistant message, and is
+recognized as rejected rather than becoming another false positive.
+
+The integrated report `20260718_220521_model-facing-memory-gate-v2` passes 5/5.
+The immutable baseline still hashes to
+`827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5`.
+The unchanged V1 run `20260718_220559_preliminary-regression-v1` passes 9/9;
+43 focused context/maintenance/chat tests, 53 shell/organ contracts, and 6
+evaluator-oracle tests pass. The complete backend passes 263 tests at 81.86%
+coverage. Direct shell evidence opens memory/facts/graph/session, completes
+focus and volition lifecycles, reads affect, and records metacognition.
+
+Production had already been verified read-only with complete target provenance,
+so this issue requires no production data mutation. V1.50.0 remains a local
+candidate until protected push/deploy and parity checks complete.
+
 ## 2026-07-18 - V1.49.1 Action Retry Evidence Reconciliation (SCA-42)
 
 Fixed the shared final-answer evidence defect where a failed API Mind action
