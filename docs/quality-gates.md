@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-18
-App baseline: V1.39.0
+App baseline: V1.40.0
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -101,6 +101,11 @@ synchronous and streaming turns, recursive/idempotent maintenance, canonical
 fallback, source-id sanitation, and post-compaction scheduling. The new history
 repository is at 94%, the active runtime router at 86%, and the partition
 planner at 88% module coverage.
+
+V1.40.0 passes 219 tests at 80.89%. The behavioral evaluator now covers safe
+group runtime receipts and structured organ evidence, while explicit
+frustration-to-relief reappraisal has a direct persisted-state regression. The
+unchanged frozen preliminary suite passes 9/9.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

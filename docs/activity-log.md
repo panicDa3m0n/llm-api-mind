@@ -4,6 +4,54 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-18 - V1.40.0 Longitudinal Cognitive Organ Validation (SCA-4)
+
+Goal:
+
+Evaluate focus, volition, computational affect, and metacognition through
+correlated natural turns and independent controls before changing defaults or
+coupling organs.
+
+Changes:
+
+- Added a dedicated 13-scenario, two-repetition SCA-4 catalog over the frozen
+  preliminary database and made group runtime variants executable and
+  auditable through requested/effective configuration receipts.
+- Added structured shell-call and organ-trace extraction so technical state,
+  cognitive choice, answer quality, and longitudinal effect can be reviewed
+  separately.
+- Corrected explicit obstruction recovery so a resolved block transitions
+  prior frustration to relief instead of re-triggering frustration from the
+  word `blocco`.
+- Required verified volition persistence before durable self-direction claims
+  and a real metacognitive step before broad all-organ/default-readiness
+  judgments in both native and GPT prompts.
+
+Evidence:
+
+- 26 accepted current MiniMax M3 turns on independent disposable copies;
+  deterministic execution passed 24/26.
+- Focus lifecycle and negative controls passed 6/6.
+- Volition passed one complete cross-session chain and both ownership
+  controls; one other chain stopped at a public work note before mutation,
+  confirming the separate SCA-28 boundary.
+- Affect passed 10/10 post-fix model, shadow, and neutral turns, but model mode
+  did not yet show a clear answer-quality advantage over shadow.
+- Metacognition passed both broad-claim positives and both direct-answer
+  negatives; one positive run remained unnecessarily expensive.
+
+Decision:
+
+Keep focus bounded, volition on-demand and outside automatic chat injection,
+affect shadow by default, metacognition on-demand with lesson context shadow,
+and all cross-organ coupling out of V1.40. SCA-28 is the next issue because a
+progress-note-only final can still interrupt an otherwise correct organ action.
+
+Evidence report:
+
+- `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`
+- ADR-0092, EXP-0068, BUG-0082, BUG-0085, Linear SCA-4
+
 ## 2026-07-18 - V1.39.0 Active Recursive History Compaction (SCA-32)
 
 Goal:

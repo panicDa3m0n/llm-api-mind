@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-18
-App baseline: V1.39.0
+App baseline: V1.40.0
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -86,6 +86,10 @@ discussed before a new fix is attempted.
 - `docs/evaluations/v1.39-active-history-compaction.md`: recursive artifact
   generation, exact source anchoring, native sync/stream routing, canonical
   preservation, and direct MiniMax validation on a disposable database.
+- `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`: correlated focus,
+  volition, affect, and metacognition scenarios; runtime receipts; independent
+  controls; project-informed qualitative judgments; and conservative organ
+  default decisions.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

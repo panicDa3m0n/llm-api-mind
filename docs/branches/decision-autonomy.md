@@ -1,8 +1,8 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-07-14
-System version assessed: V1.34.0
-Status: volition shell verified; autonomous persistence remains variable
+Last updated: 2026-07-18
+System version assessed: V1.40.0
+Status: volition continuity works when invoked; autonomous persistence remains variable
 
 ## Filosofia del ramo
 
@@ -86,6 +86,22 @@ completed in 1/3 chains. One run collapsed capability honesty into `idle`; one
 set scouting but also converted the user-assigned posture into Scarlet's own
 volition and a durable memory. Evidence:
 `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
+## Verifica V1.40.0
+
+One of two independent natural chains persisted a genuine Scarlet-origin
+intention and recovered it accurately from a separate session. The other
+selected the correct type of self-direction but ended on a public work note
+before `volition create`; the next session correctly found no intention. Both
+user-assigned reminder controls avoided volition mutation, proving the
+ownership boundary, but their visible promises exceeded available autonomous
+delivery and are assigned to SCA-28.
+
+The register, provenance, and cross-session recall are sound when invoked.
+Autonomous invocation is not yet reliable enough for default injection or
+cycles. Volition remains persistent, manually inspectable, model-selected on
+demand, and outside automatic chat context. Evidence:
+`docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
 
 ## Evolutive
 

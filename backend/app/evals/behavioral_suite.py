@@ -24,6 +24,7 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.evals.behavioral_contracts import (
+    BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES,
     BehavioralJudgment,
     BehavioralRunRecord,
     BehavioralScenario,
@@ -250,6 +251,14 @@ def _run_group_repetition(
     settings = _evaluation_settings(
         base_settings,
         suite=suite,
+        group=group,
+        baseline_db=baseline_db,
+        run_db=run_db,
+    )
+    configuration_receipt = _runtime_configuration_receipt(
+        settings=settings,
+        suite=suite,
+        group=group,
         baseline_db=baseline_db,
         run_db=run_db,
     )
@@ -319,6 +328,7 @@ def _run_group_repetition(
                 ),
                 raw_trace_ids=evidence["trace_ids"],
                 observed_state_changes=describe_state_changes(state_before, state_after),
+                runtime_configuration=configuration_receipt,
             )
             evidence_path = output_dir / "evidence" / f"{record_id}.json"
             _write_json(
@@ -332,6 +342,7 @@ def _run_group_repetition(
                     "state_before": state_before,
                     "state_after": state_after,
                     "database": str(run_db),
+                    "runtime_configuration": configuration_receipt,
                 },
             )
             records.append(record)
@@ -353,10 +364,14 @@ def _evaluation_settings(
     base: Settings,
     *,
     suite: BehavioralSuite,
+    group: BehavioralScenarioGroup | None = None,
     baseline_db: Path,
     run_db: Path,
 ) -> Settings:
-    overrides: dict[str, Any] = {
+    runtime_overrides = dict(suite.configuration)
+    if group is not None:
+        runtime_overrides.update(group.runtime_configuration)
+    evaluator_overrides: dict[str, Any] = {
         "environment": "behavioral-evaluation",
         "database_url": f"sqlite:///{baseline_db}",
         "database_role": "preliminary",
@@ -366,8 +381,44 @@ def _evaluation_settings(
         "maintenance_enabled": False,
         "summary_reconcile_enabled": False,
     }
-    overrides.update(suite.configuration)
-    return Settings(**{**base.model_dump(), **overrides})
+    return Settings(
+        **{
+            **base.model_dump(),
+            **runtime_overrides,
+            **evaluator_overrides,
+        }
+    )
+
+
+def _runtime_configuration_receipt(
+    *,
+    settings: Settings,
+    suite: BehavioralSuite,
+    group: BehavioralScenarioGroup,
+    baseline_db: Path,
+    run_db: Path,
+) -> dict[str, Any]:
+    effective = {
+        key: getattr(settings, key)
+        for key in BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES
+    }
+    return {
+        "precedence": "base < suite < group < evaluator_safety_boundary",
+        "requested": {
+            "suite": dict(suite.configuration),
+            "group": dict(group.runtime_configuration),
+        },
+        "effective": effective,
+        "evaluator_boundary": {
+            "environment": settings.environment,
+            "database_role": settings.database_role,
+            "codex_test": settings.codex_test,
+            "maintenance_enabled": settings.maintenance_enabled,
+            "summary_reconcile_enabled": settings.summary_reconcile_enabled,
+            "baseline_database": str(baseline_db),
+            "disposable_database": str(run_db),
+        },
+    }
 
 
 def _verify_starting_condition(

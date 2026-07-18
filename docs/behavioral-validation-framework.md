@@ -1,7 +1,7 @@
 # Behavioral Validation Framework
 
-Last updated: 2026-07-14
-Status: accepted V1.34 executable baseline
+Last updated: 2026-07-18
+Status: accepted V1.40 executable baseline
 
 This framework evaluates whether an API Mind capability changes Scarlet's
 behavior usefully, not only whether an endpoint returns `200` or a shell parser
@@ -62,6 +62,12 @@ from different starting states as if they were repetitions.
 Each run records the DB fingerprint, session and turn IDs, exact response,
 trace IDs, observed mutations, and one result for each layer. Aggregate reports
 must include pass/fail/inconclusive counts and variation across repetitions.
+
+When a group needs a runtime variant, the evaluator must apply only a safe
+allowlist of non-secret settings and record both requested and effective
+configuration. Precedence is explicit: base environment, suite, group, then
+evaluator safety boundary. A model/shadow or on/off comparison without this
+execution receipt is not admissible evidence.
 
 The evaluator must summarize what Scarlet did, how she did it, what evidence
 she used, and where the visible answer diverged from the technical result.
@@ -124,3 +130,18 @@ system failure when the evidence is real.
 
 The full evidence and findings are in
 `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
+## Longitudinal Organ Application
+
+V1.40.0 adds the dedicated catalog
+`backend/app/evals/scenarios/sca4-organs-v1/suite.json`. It contains 13
+scenarios across nine groups with two independent repetitions, including
+correlated same-session focus/affect chains, separate-session volition
+continuity, metacognitive broad-claim review, and negative controls for every
+organ.
+
+The evaluator now emits safe requested/effective runtime receipts plus
+structured shell calls and organ traces. The accepted decision set contains 26
+current MiniMax M3 turns and preserves before-fix diagnostic runs separately.
+Its full four-layer review and organ default decisions are in
+`docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.

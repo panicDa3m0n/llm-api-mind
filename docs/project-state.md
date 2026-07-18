@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.39.0
+App baseline: V1.40.0
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -120,6 +120,11 @@ Current verification baseline:
   evaluator-oracle errors and session-identity leakage. Every authoritative
   turn has separate technical, cognitive-choice, answer-quality, and
   longitudinal judgments.
+- V1.40.0 organ validation: 26 accepted current MiniMax M3 turns passed 24/26
+  deterministic contracts. Focus passed 6/6, affect passed 10/10 post-fix,
+  metacognition passed 4/4 positive/negative controls, and volition proved one
+  complete cross-session chain plus both ownership controls. The remaining
+  failed chain ended on a public work note and is assigned to SCA-28.
 
 ### 3.2 Dynamic Context
 
@@ -231,10 +236,10 @@ Current limits:
 
 | Organ | Code state | Default/runtime state | Evidence | Current limit |
 |---|---|---|---|---|
-| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus V1.34 natural creation/resolution chains | focus creation used the organ 1/3 and explicit resolution 0/3; semantic memory is often substituted for foreground state |
-| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle test plus V1.34 separate-session continuity | persistence occurred in 1/3 natural runs; no autonomous cycle or execution |
-| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | config default `off`; shadow/model modes available | deterministic contracts plus V1.34 natural paired turns | explicit exasperation stayed below threshold 3/3; BUG-0082 requires calibration |
-| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding tests plus V1.34 broad-claim repetitions | explicit step was used 1/3; skipped reviews sometimes overgeneralized historical or isolated probe evidence |
+| Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus V1.40 natural lifecycle and controls | 6/6 technical passes; automatic focus creation remains deliberately unimplemented |
+| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle plus V1.40 separate-session continuity and ownership controls | one of two current chains completed; invocation can still be interrupted by SCA-28 and no autonomous cycle exists |
+| Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | `shadow` default; controlled `model` mode available | deterministic contracts plus V1.40 model/shadow/neutral transitions | 10/10 post-fix technical passes; model mode has not yet shown clear qualitative benefit over shadow |
+| Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding plus V1.40 broad-claim and direct-answer controls | 4/4 invocation controls passed; positive review can still overprocess and write low-value lessons |
 | Temporal experience | Registry/config reservation only | `off` | manifest tests only | no computation, persistence, shell, or behavioral experiment |
 | Dream/consolidation | Registry/config reservation plus maintenance terminology | `off` | no organ test beyond manifest | no dream cycle, continuity delta, or autonomous review organ |
 
@@ -254,13 +259,13 @@ the canonical integrated read.
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
-| Metacognition | L3 | One tested route, retrospective modes, command validation, shadow lessons; V1.34 repeated broad-claim evidence | prove answer improvement and enforce/degrade when required review is skipped |
-| Operational management | L2/L3 | Focus and mode stores are real; clean natural focus resolution passed 0/3 and clean scouting continuity 1/3 | calibrate organ choice/boundaries before goal/task expansion |
-| Decision autonomy | L2/L3 | Model-controlled shell use and volition register; persistence passes 1/3 natural chains | clarify autonomous persistence rules and validate before cycle design |
+| Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
+| Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 technical controls; mode store remains separate | retain proportional selection and validate mode routing before goal/task expansion |
+| Decision autonomy | L2/L3 | Model-controlled shell and volition register; one complete V1.40 cross-session chain and clean ownership controls | close answer obligations before autonomous cycle design |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |
-| Computational affect | L3 | Standalone organ implemented and tested, disabled by default; V1.34 found an explicit-threshold miss | calibrate BUG-0082 with varied shadow/model controls before integration research |
+| Computational affect | L3/L4 | Standalone appraisal transition passed V1.40 model/shadow/neutral controls; shadow remains default | prove causal answer benefit before model-default or integration research |
 | Multi-agent/subprocesses | L1/L2 | Maintenance is deterministic/LLM-assisted background work, not multi-agent | avoid agents until one-agent limits are measured; design bounded contracts first |
 
 ## 5. Code Health
@@ -341,11 +346,12 @@ Current engineering baseline:
    maintenance retries on frozen and live cases.
 5. Design authenticated user ownership before multi-user data exists.
 
-### P3 - Validate Existing Organs
+### P3 - Close Answer Obligations And Preserve Organ Separation
 
-- evaluate focus upkeep, volition use, affect shadow/model behavior, and
-  metacognitive improvement in correlated multi-session tests;
-- decide coupling only after standalone behavior is reliable;
+- implement SCA-28 so a progress note cannot satisfy a required final answer or
+  silently interrupt a selected cognitive mutation;
+- preserve SCA-4 conservative defaults and add no cross-organ coupling;
+- keep affect model exposure and metacognitive lesson injection experimental;
 - do not build temporal experience or Dream from registry placeholders.
 
 ### P4 - Code Reorganization
@@ -377,12 +383,12 @@ behavior:
 
 ## 7. Current Best Next Step
 
-The next approved issues should consume the new baseline rather than add
-another organ: complete context accounting/review work, then use SCA-4 to
-calibrate focus, volition, affect, and metacognition against the observed
-failures. Long varied sessions should still decide active
-compaction/degradation. Duplicate/conflict adjudication remains a separate
-later discussion.
+The next approved issue is SCA-28: distinguish public progress narration from a
+conclusive final answer and preserve required cognitive actions across that
+boundary. After it closes, SCA-6 can validate agent-mode routing against the
+now-classified standalone organ defaults. Long varied sessions should still
+monitor active compaction/degradation. Duplicate/conflict adjudication remains
+a separate later discussion.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

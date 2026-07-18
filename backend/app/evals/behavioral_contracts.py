@@ -11,11 +11,45 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 BEHAVIORAL_SCENARIO_VERSION = "behavioral-scenario-v1"
 BEHAVIORAL_SUITE_VERSION = "behavioral-suite-v1"
+
+BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES: dict[str, set[Any]] = {
+    "model_context_profile": {"legacy", "v2_shadow", "v2"},
+    "organ_focus_mode": {"off", "model"},
+    "organ_volition_mode": {"off", "manual", "model"},
+    "organ_affect_mode": {"off", "shadow", "model"},
+    "metacognitive_context_mode": {"off", "shadow", "inject"},
+    "metacognitive_context_max_lessons": {1, 2, 3, 4, 5},
+    "agent_mode_default": {"idle", "interactive", "scouting"},
+    "agent_mode_routing": {"off", "shadow", "active"},
+}
+
+
+def validate_behavioral_runtime_configuration(
+    configuration: dict[str, Any],
+) -> dict[str, Any]:
+    """Keep evaluation variants cognitive, explicit, and non-sensitive."""
+    unknown = sorted(set(configuration) - set(BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES))
+    if unknown:
+        raise ValueError(
+            "Behavioral runtime configuration contains unsafe or unsupported "
+            f"settings: {unknown}"
+        )
+    invalid = {
+        key: value
+        for key, value in configuration.items()
+        if value not in BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES[key]
+    }
+    if invalid:
+        raise ValueError(
+            "Behavioral runtime configuration contains invalid values: "
+            f"{invalid}"
+        )
+    return configuration
 
 
 class EvidenceReference(BaseModel):
@@ -75,6 +109,14 @@ class BehavioralScenarioGroup(BaseModel):
     scenario_ids: list[str] = Field(min_length=1)
     repetitions: int = Field(default=3, ge=1, le=20)
     independence_rule: str
+    runtime_configuration: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("runtime_configuration")
+    @classmethod
+    def validate_runtime_configuration(
+        cls, configuration: dict[str, Any]
+    ) -> dict[str, Any]:
+        return validate_behavioral_runtime_configuration(configuration)
 
 
 class BehavioralScenario(BaseModel):
@@ -125,6 +167,13 @@ class BehavioralSuite(BaseModel):
     comparison_policy: str
     groups: list[BehavioralScenarioGroup] = Field(min_length=1)
     scenarios: list[BehavioralScenario] = Field(min_length=1)
+
+    @field_validator("configuration")
+    @classmethod
+    def validate_runtime_configuration(
+        cls, configuration: dict[str, Any]
+    ) -> dict[str, Any]:
+        return validate_behavioral_runtime_configuration(configuration)
 
     @model_validator(mode="after")
     def validate_scenario_graph(self) -> "BehavioralSuite":
@@ -227,6 +276,7 @@ class BehavioralRunRecord(BaseModel):
     longitudinal_effect: EvaluationLayerResult
     raw_trace_ids: list[str] = Field(default_factory=list)
     observed_state_changes: list[str] = Field(default_factory=list)
+    runtime_configuration: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def accepted(self) -> bool:

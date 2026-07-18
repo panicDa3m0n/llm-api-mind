@@ -1,8 +1,8 @@
 # Branch: Gestione Operativa
 
-Last updated: 2026-07-14
-System version assessed: V1.34.0
-Status: focus shell verified; natural lifecycle remains variable
+Last updated: 2026-07-18
+System version assessed: V1.40.0
+Status: focus lifecycle longitudinally validated; conservative activation retained
 
 ## Filosofia del ramo
 
@@ -83,6 +83,19 @@ session in 1/3 repetitions while keeping active human turns `interactive`.
 Another run reached scouting but duplicated the user directive into memory and
 volition, so its organ boundaries failed even though mode persistence worked.
 Evidence: `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
+## Verifica V1.40.0
+
+Two independent natural same-session chains created one bounded focus and
+resolved the same state on explicit closure: 4/4 technical turns passed. Two
+independent casual-topic controls stayed direct and created no focus, volition,
+or mode state. Visible state claims agreed with persistence, although creation
+answers were sometimes more expansive than the user needed.
+
+Focus is therefore a validated controlled lifecycle, not an instruction to
+persist every conversational topic. It remains model-facing only when active;
+automatic focus selection and coupling to volition or modes are not accepted.
+Evidence: `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
 
 ## Evolutive
 

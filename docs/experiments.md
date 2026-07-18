@@ -9,6 +9,53 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0068 - Longitudinal Cognitive Organ Separation
+
+Status: completed for V1.40.0; conservative defaults retained
+
+Hypothesis:
+
+Focus, volition, affect, and metacognition can each show correct state,
+proportionate selection, useful answer influence, and longitudinal continuity
+without relying on another organ or polluting unrelated state.
+
+Method:
+
+- define 13 natural scenarios in nine groups with two independent repetitions;
+- run correlated same-session focus and affect transitions plus separate-
+  session volition continuity;
+- include focus, volition, affect, and metacognition negative controls;
+- compare affect `model` and `shadow` under explicit effective-configuration
+  receipts;
+- use deterministic comparison only for commands, traces, state, provenance,
+  and forbidden mutation; and
+- use project-informed LLM-as-human review for cognitive choice, answer
+  quality, and longitudinal value.
+
+Result:
+
+The accepted 26-turn evidence set passed 24/26 deterministic turn contracts.
+Focus passed 6/6. Affect passed all ten post-fix model/shadow/neutral contracts
+after explicit obstruction resolution was separated from obstruction itself.
+Metacognition passed two positive and two negative controls after the prompt
+made broad reliability review mandatory. Volition completed one of two
+positive cross-session chains and both negative controls; the failed chain
+ended after a public progress note before the chosen write, then correctly
+reported the missing intention in its next session.
+
+Decision:
+
+Accept the standalone lifecycle evidence and the affect correction. Retain
+conservative independent defaults and no organ coupling. Treat the residual
+volition miss as SCA-28 answer-obligation evidence, not a storage or recall
+failure. Keep affect shadow and metacognitive lesson injection shadow until
+controlled tests demonstrate user-value improvement rather than mere technical
+activity.
+
+Evidence:
+
+`docs/evaluations/v1.40-cognitive-organ-longitudinal.md`
+
 ## EXP-0067 - Recursive Active History Compaction
 
 Status: accepted for guarded native activation in V1.39.0

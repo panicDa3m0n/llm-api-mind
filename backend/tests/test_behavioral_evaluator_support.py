@@ -22,6 +22,7 @@ from app.evals.behavioral_suite import (
     _parse_args,
     _pending_layer,
     _provider_max_tokens,
+    _runtime_configuration_receipt,
     _resolve,
     _resolve_scenario_session,
     _scenario_digest,
@@ -71,10 +72,21 @@ def test_turn_evidence_extracts_only_structured_model_evidence() -> None:
         {
             "id": "trace_one",
             "kind": "mind.tool_call",
-            "payload": {"arguments": {"command": "  memory search zero  "}},
+            "payload": {
+                "tool_name": "mind_shell",
+                "arguments": {"command": "  memory search zero  "},
+                "result": {"ok": True},
+                "status": "completed",
+                "latency_ms": 17,
+            },
         },
         {"id": 4, "kind": "mind.tool_call", "payload": {"arguments": {}}},
         {"id": "trace_two", "kind": "llm.response", "payload": "bad"},
+        {
+            "id": "trace_affect",
+            "kind": "organ.affect",
+            "payload": {"mode": "shadow", "model_facing": False},
+        },
     ]
 
     evidence = extract_turn_evidence(events=events, traces=traces)
@@ -82,7 +94,23 @@ def test_turn_evidence_extracts_only_structured_model_evidence() -> None:
     assert evidence["memory"] == {"selected_ids": ["mem_one"], "candidate_count": 7}
     assert evidence["runtime"]["block_types"] == ["session_context"]
     assert evidence["shell_commands"] == ["memory search zero"]
-    assert evidence["trace_ids"] == ["trace_one", "trace_two"]
+    assert evidence["tool_calls"] == [
+        {
+            "trace_id": "trace_one",
+            "tool_name": "mind_shell",
+            "arguments": {"command": "  memory search zero  "},
+            "result": {"ok": True},
+            "status": "completed",
+            "latency_ms": 17,
+        }
+    ]
+    assert evidence["organ_traces"]["organ.affect"] == [
+        {
+            "trace_id": "trace_affect",
+            "payload": {"mode": "shadow", "model_facing": False},
+        }
+    ]
+    assert evidence["trace_ids"] == ["trace_one", "trace_two", "trace_affect"]
 
 
 def test_state_snapshot_and_change_description_cover_all_organs(tmp_path) -> None:
@@ -288,6 +316,30 @@ def test_suite_configuration_reference_checks_and_cli_validation(
     assert settings.environment == "behavioral-evaluation"
     assert settings.codex_test is True
     assert settings.maintenance_enabled is False
+
+    focus_group = next(group for group in suite.groups if group.id == "focus-lifecycle")
+    configured_group = focus_group.model_copy(
+        update={"runtime_configuration": {"organ_focus_mode": "off"}}
+    )
+    group_settings = _evaluation_settings(
+        base,
+        suite=suite,
+        group=configured_group,
+        baseline_db=baseline,
+        run_db=tmp_path / "behavioral-run.db",
+    )
+    assert group_settings.organ_focus_mode == "off"
+    receipt = _runtime_configuration_receipt(
+        settings=group_settings,
+        suite=suite,
+        group=configured_group,
+        baseline_db=baseline,
+        run_db=tmp_path / "behavioral-run.db",
+    )
+    assert receipt["requested"]["group"] == {"organ_focus_mode": "off"}
+    assert receipt["effective"]["organ_focus_mode"] == "off"
+    assert receipt["evaluator_boundary"]["codex_test"] is True
+    assert "api_key" not in json.dumps(receipt)
     assert _provider_max_tokens(settings) == settings.minimax_max_tokens
     qwen = Settings(**{**settings.model_dump(), "llm_provider": "qwen"})
     assert _provider_max_tokens(qwen) == qwen.qwen_max_tokens
@@ -308,6 +360,26 @@ def test_suite_configuration_reference_checks_and_cli_validation(
     assert main(["--catalog", str(catalog), "validate", "--backend-root", str(BACKEND_ROOT)]) == 0
     output = capsys.readouterr().out
     assert '"scenarios": 12' in output
+
+
+def test_behavioral_runtime_configuration_rejects_unsafe_keys_and_values() -> None:
+    payload = json.loads(CATALOG.read_text(encoding="utf-8"))
+    payload["configuration"]["database_url"] = "sqlite:///data/app.db"
+    with pytest.raises(ValueError, match="unsafe or unsupported"):
+        load_behavioral_suite_from_payload(payload)
+
+    payload = json.loads(CATALOG.read_text(encoding="utf-8"))
+    payload["groups"][0]["runtime_configuration"] = {
+        "organ_affect_mode": "unbounded"
+    }
+    with pytest.raises(ValueError, match="invalid values"):
+        load_behavioral_suite_from_payload(payload)
+
+
+def load_behavioral_suite_from_payload(payload: dict):
+    from app.evals.behavioral_contracts import BehavioralSuite
+
+    return BehavioralSuite.model_validate(payload)
 
 
 class _SessionResponse:

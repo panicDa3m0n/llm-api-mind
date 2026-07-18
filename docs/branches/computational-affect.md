@@ -1,8 +1,8 @@
 # Branch: Emotivita Computazionale
 
-Last updated: 2026-07-14
-System version assessed: V1.34.0
-Status: shell contract verified; natural appraisal calibration failed
+Last updated: 2026-07-18
+System version assessed: V1.40.0
+Status: natural appraisal transition validated; model-facing benefit still experimental
 
 ## Filosofia del ramo
 
@@ -93,6 +93,21 @@ Do not tune one keyword or threshold from this single phrase. SCA-4 must add
 varied emotional positives, neutral controls, and paired transitions before a
 prototype change. Evidence:
 `docs/evaluations/v1.34-natural-behavioral-suite.md`.
+
+## Verifica V1.40.0
+
+SCA-4 isolated the failed recovery transition: resolution wording still
+contained the obstruction substring and full prior frustration carry
+overwhelmed relief. Explicit resolution now suppresses contradictory current
+frustration evidence, attenuates only prior-frustration carry, and emits a
+traceable relief cause.
+
+Two model chains, two shadow chains, and two neutral controls passed all ten
+post-fix technical contracts. Model and shadow answers were both broadly
+appropriate, and model mode did not yet demonstrate a clear qualitative
+advantage. The default therefore remains `shadow`; `model` is restricted to
+controlled experiments and affect still cannot mutate another organ.
+Evidence: `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`.
 
 ## Evolutive
 

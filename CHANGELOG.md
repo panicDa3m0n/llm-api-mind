@@ -6,7 +6,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-V1.39.0 activates recursive source-labelled native history compaction without
+V1.40.0 longitudinally validates focus, volition, computational affect, and
+metacognition while retaining conservative independent defaults. V1.39.0 activates recursive source-labelled native history compaction without
 mutating canonical chronology. V1.38.0 separates historical provenance audit from guarded maintenance and
 classifies explicit Codex fixtures without semantic inference. V1.37.0
 calibrates final memory relevance on frozen and live evidence. V1.36.1
@@ -16,6 +17,14 @@ currently deployed HoneyLabs production runtime after passing the protected
 database deployment boundary.
 
 ### Added
+
+- Added a 13-scenario longitudinal cognitive-organ catalog with correlated
+  focus, volition, and affect chains; metacognition positives; independent
+  negative controls; frozen DB guards; and requested/effective runtime
+  configuration receipts.
+- Added structured shell-call and organ-trace evidence for project-informed
+  review of technical state, cognitive choice, answer outcome, and
+  longitudinal effect as separate dimensions.
 
 - Added append-only recursive chronology artifacts, immediate maintenance jobs,
   active sync/stream routing, deterministic source manifests, and explicit
@@ -113,6 +122,14 @@ database deployment boundary.
   longitudinal effect against declared real starting evidence.
 
 ### Changed
+
+- Advanced backend, frontend, GPT Action schema, prompts, and canonical project
+  metadata to V1.40.0.
+- Kept focus bounded, volition on-demand and outside automatic chat injection,
+  affect shadow by default, metacognitive lessons shadow by default, and
+  cross-organ coupling disabled after the SCA-4 evidence review.
+- Required a verified volition write before durable self-direction claims and
+  a real metacognitive step before broad all-organ or default-readiness claims.
 
 - Deployed V1.39.0 from merge `cb400d2` with release tag `v1.39.0` after an
   online SQLite backup, read-only production preflight, active-compaction
@@ -221,6 +238,10 @@ database deployment boundary.
   summarization, and Dream remain background processes.
 
 ### Fixed
+
+- Fixed explicit obstruction-resolution messages re-triggering frustration
+  through the substring `blocc` and full prior-state carry. Resolution now
+  produces traceable relief while neutral controls remain unaffected.
 
 - Fixed `context.accounting.observed` reporting every compaction plan as
   shadow-only even when the request used active derived history.
