@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App baseline: V1.50.1 deployed and release-accepted
+App target: V1.51.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1838,6 +1838,94 @@ V1.5.1 semantic block contract:
   `assistant_answer` and persisted `assistant.answer.completed`;
 - clients should render semantic block events rather than infer note/final
   roles from `text_delta` timing.
+
+This V1 transport remains implemented for compatibility. New Product UI
+clients use the provider-independent V2 endpoints below.
+
+### POST /api/chat/sessions/{session_id}/turn/stream-v2
+
+Status: implemented in V1.51.0
+
+Purpose:
+
+Run the same native turn while exposing only persisted, replayable
+`scarlet-stream-v2` events. Each NDJSON line is a direct event envelope with:
+
+```json
+{
+  "schema_version": "scarlet-stream-v2",
+  "event_id": "evt_...",
+  "seq": 42,
+  "session_id": "ses_...",
+  "turn_id": "turn_...",
+  "event_type": "assistant.answer.completed",
+  "phase": "completed",
+  "timestamp": "2026-07-19T12:00:00+00:00",
+  "visibility": "public",
+  "links": {
+    "parent_event_id": null,
+    "trace_id": "trace_...",
+    "tool_call_id": null,
+    "message_id": null
+  },
+  "payload": {"text": "Risposta conclusiva."}
+}
+```
+
+The response media type is `application/x-ndjson` and includes header
+`X-Scarlet-Stream-Schema: scarlet-stream-v2`. `seq` is the durable
+session-global event cursor; `event_id` is the idempotency key. Token deltas
+and partial provider blocks are deliberately absent because they cannot be
+replayed. Completed notes, answers, tool states, errors, persisted messages,
+and terminal turn state remain available.
+
+The projector is allowlist-based. Full tool result envelopes and full runtime
+context blocks remain available through linked tool/trace APIs rather than
+being copied into every Product UI event.
+
+Terminal events are `turn.completed` and `turn.failed`. Transport closure is
+not a successful terminal state.
+
+### GET /api/chat/sessions/{session_id}/events
+
+Status: implemented in V1.51.0
+
+Purpose:
+
+Replay canonical session events after an exclusive cursor for reconnect,
+deduplication, or gap repair.
+
+Query:
+
+```txt
+after_seq=0
+limit=500
+```
+
+Response:
+
+```json
+{
+  "schema_version": "scarlet-stream-v2",
+  "session_id": "ses_...",
+  "events": [],
+  "cursor": {
+    "requested_after_seq": 0,
+    "next_after_seq": 0,
+    "latest_seq": 0,
+    "has_more": false
+  }
+}
+```
+
+Clients repeat with `next_after_seq` until `has_more=false`. Message events
+include the canonical persisted message under `payload.message`; terminal
+events include the persisted turn snapshot under `payload.turn`. Full provider
+traces remain in debug APIs and do not become Product UI stream payloads.
+
+Ordering, duplicate handling, missing-event recovery, reducer state, normal,
+tool, error, and reconnect examples are canonical in
+`docs/stream-v2-contract.md`.
 
 ### GET /api/chat/sessions/{session_id}/messages
 

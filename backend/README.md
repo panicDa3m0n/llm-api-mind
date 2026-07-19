@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-App baseline: V1.50.1 deployed and release-accepted.
+Development target: V1.51.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -49,6 +49,8 @@ Current scope:
   resumable posture, and `mode` shell family;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
+- provider-independent `scarlet-stream-v2` live events plus session-global
+  cursor replay and an executable idempotent reducer contract;
 - per-session idle maintenance that schedules summary refresh, missed-memory
   review, pending memory proposal creation, cautious resolution, and auditable
   proposal ledger updates after completed turns;

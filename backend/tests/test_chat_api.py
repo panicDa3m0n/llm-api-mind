@@ -2321,6 +2321,142 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
     assert provider_history[2]["content"][0]["type"] == "tool_result"
 
 
+def test_stream_v2_emits_only_replayable_provider_independent_events(
+    db_engine: Engine,
+) -> None:
+    client = make_tool_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream-v2",
+        json={"message": "inspect schema first"},
+    ) as response:
+        assert response.status_code == 200
+        assert response.headers["x-scarlet-stream-schema"] == "scarlet-stream-v2"
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    required = {
+        "schema_version",
+        "event_id",
+        "seq",
+        "session_id",
+        "turn_id",
+        "event_type",
+        "phase",
+        "timestamp",
+        "visibility",
+        "links",
+        "payload",
+    }
+    assert events
+    assert all(set(event) == required for event in events)
+    assert {event["schema_version"] for event in events} == {"scarlet-stream-v2"}
+    assert len({event["event_id"] for event in events}) == len(events)
+    assert [event["seq"] for event in events] == sorted(
+        event["seq"] for event in events
+    )
+    event_types = [event["event_type"] for event in events]
+    assert "assistant.note.emitted" in event_types
+    assert "mind.tool_call.started" in event_types
+    assert "mind.tool_call.completed" in event_types
+    assert "assistant.answer.completed" in event_types
+    assert "message.assistant.persisted" in event_types
+    assert "turn.completed" in event_types
+    assert not {
+        "thinking_delta",
+        "text_delta",
+        "tool_input_delta",
+        "tool_call",
+        "tool_result",
+        "turn_complete",
+    }.intersection(event_types)
+
+    user_event = next(
+        event for event in events if event["event_type"] == "message.user.persisted"
+    )
+    assistant_event = next(
+        event
+        for event in events
+        if event["event_type"] == "message.assistant.persisted"
+    )
+    assert user_event["payload"]["message"]["content"] == "inspect schema first"
+    assert assistant_event["payload"]["message"]["content"] == "Schema inspected."
+    assert assistant_event["links"]["message_id"] == assistant_event["payload"][
+        "message"
+    ]["id"]
+    tool_event = next(
+        event for event in events if event["event_type"] == "mind.tool_call.completed"
+    )
+    assert tool_event["links"]["trace_id"].startswith("trace_")
+    assert tool_event["links"]["tool_call_id"].startswith("tool_")
+    returned_event = next(
+        event
+        for event in events
+        if event["event_type"] == "mind.tool_call.result_returned"
+    )
+    assert "result" not in returned_event["payload"]
+    runtime_context_event = next(
+        event for event in events if event["event_type"] == "runtime.context.built"
+    )
+    assert "blocks" not in runtime_context_event["payload"]
+    terminal = next(
+        event for event in events if event["event_type"] == "turn.completed"
+    )
+    assert terminal["payload"]["turn"]["status"] == "completed"
+
+    first_page = client.get(
+        f"/api/chat/sessions/{session['id']}/events",
+        params={"after_seq": 0, "limit": 3},
+    ).json()
+    assert first_page["schema_version"] == "scarlet-stream-v2"
+    assert first_page["cursor"]["has_more"] is True
+    second_page = client.get(
+        f"/api/chat/sessions/{session['id']}/events",
+        params={
+            "after_seq": first_page["cursor"]["next_after_seq"],
+            "limit": 1000,
+        },
+    ).json()
+    replayed = [*first_page["events"], *second_page["events"]]
+    assert [event["event_id"] for event in replayed] == [
+        event["event_id"] for event in events
+    ]
+    assert second_page["cursor"]["has_more"] is False
+    assert second_page["cursor"]["next_after_seq"] == second_page["cursor"][
+        "latest_seq"
+    ]
+
+
+def test_stream_v2_persists_a_replayable_terminal_error(db_engine: Engine) -> None:
+    client = make_thinking_only_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream-v2",
+        json={"message": "Dimmi cosa ne pensi."},
+    ) as response:
+        events = [json.loads(line) for line in response.iter_lines() if line]
+
+    assert events[-1]["event_type"] == "turn.failed"
+    assert events[-1]["phase"] == "failed"
+    assert events[-1]["payload"]["code"] == "llm.incomplete_response"
+    assert events[-1]["payload"]["turn"]["status"] == "failed"
+    assert not any(
+        event["event_type"] == "assistant.answer.completed" for event in events
+    )
+
+    replay = client.get(
+        f"/api/chat/sessions/{session['id']}/events",
+        params={"after_seq": events[-2]["seq"]},
+    ).json()
+    assert [event["event_id"] for event in replay["events"]] == [
+        events[-1]["event_id"]
+    ]
+    assert replay["cursor"]["has_more"] is False
+
+
 def test_chat_turn_returns_404_for_missing_session(db_engine: Engine) -> None:
     client = make_client(db_engine)
 

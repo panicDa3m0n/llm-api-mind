@@ -48,6 +48,8 @@ discussed before a new fix is attempted.
 - `docs/core-runtime-contract.md`: canonical Core Runtime, Product UI,
   External Adapter, and Agentic Module boundary, including owners and
   compatibility classes.
+- `docs/stream-v2-contract.md`: canonical Product UI stream, replay cursor,
+  provider-independent event envelope, and reference reducer contract.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

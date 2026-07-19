@@ -19,7 +19,8 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.50.1**, deployed and release-accepted.
+Current development target: **V1.51.0**. The closed, deployed Core baseline is
+**V1.50.1**.
 
 The project has a working local baseline runtime:
 
@@ -51,6 +52,8 @@ The project has a working local baseline runtime:
   context eligibility and shell inspection/selection;
 - runtime event control plane feeding the cockpit timeline and compact
   next-turn operational context;
+- provider-independent `scarlet-stream-v2` events with durable ids,
+  session-global replay cursors, and deterministic recovery semantics;
 - backend-owned per-session idle maintenance for session summary refresh,
   missed-memory review, memory proposal generation, and cautious proposal
   resolution;
@@ -78,6 +81,8 @@ The project has a working local baseline runtime:
   roadmap.
 - `docs/core-runtime-contract.md`: canonical Core/Product UI/external
   adapter/Agentic Module boundary and compatibility policy.
+- `docs/stream-v2-contract.md`: canonical Product UI event, replay, and
+  recovery contract.
 - `docs/project-blueprint.md`: main project blueprint.
 - `docs/activity-log.md`: continuity log.
 - `docs/decisions.md`: architectural decisions.
@@ -99,8 +104,9 @@ The project has a working local baseline runtime:
 ## V2 Roadmap
 
 ```txt
-1. Formalize and preserve the closed Core contract.
-2. Define scarlet-stream-v2 and deterministic client recovery.
+1. Formalize and preserve the closed Core contract. Completed in SCA-51.
+2. Define scarlet-stream-v2 and deterministic client recovery. Implemented in
+   SCA-47; release verification remains before acceptance.
 3. Approve a static mobile-first Product UI, then build one responsive web and
    Android client over the same Core contracts.
 4. Define Agentic Module contracts, host isolation, and the official SDK

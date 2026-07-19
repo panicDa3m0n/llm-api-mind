@@ -173,6 +173,37 @@ def list_events_for_turn(db: Session, *, turn_id: str) -> list[CognitiveEvent]:
     return list(db.exec(statement).all())
 
 
+def get_event(db: Session, event_id: str) -> CognitiveEvent | None:
+    return db.get(CognitiveEvent, event_id)
+
+
+def latest_event_seq(db: Session, *, session_id: str) -> int:
+    statement = select(func.max(CognitiveEvent.seq)).where(
+        CognitiveEvent.session_id == session_id
+    )
+    current = db.exec(statement).one()
+    return int(current or 0)
+
+
+def list_events_for_session_after_seq(
+    db: Session,
+    *,
+    session_id: str,
+    after_seq: int,
+    limit: int,
+) -> list[CognitiveEvent]:
+    statement = (
+        select(CognitiveEvent)
+        .where(
+            CognitiveEvent.session_id == session_id,
+            CognitiveEvent.seq > after_seq,
+        )
+        .order_by(CognitiveEvent.seq, CognitiveEvent.created_at, CognitiveEvent.id)
+        .limit(limit)
+    )
+    return list(db.exec(statement).all())
+
+
 def list_events_for_session(
     db: Session,
     *,

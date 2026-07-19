@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-19
-System version assessed: V1.50.1 deployed and release-accepted
+System version assessed: V1.51.0 development target over the V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -164,6 +164,11 @@ Destinations:
 
 ## 4. Stream And Historical UI Blocks
 
+`scarlet-stream-v2` is the Product UI event contract. Every V2 item projects
+one persisted `CognitiveEvent` with a durable event id and session-global
+sequence. Provider token/thinking/tool-input deltas remain transient V1/debug
+signals and are not replayable V2 blocks.
+
 The developer cockpit displays:
 
 - initial context and automatic memory activity;
@@ -183,8 +188,10 @@ Live lifecycle:
 created -> streaming -> captured/executing -> completed -> persisted
 ```
 
-Failed blocks remain inspectable. Historical replay reconstructs provider and
-tool blocks from persisted messages, traces, and events.
+Failed blocks remain inspectable. V2 replay reconstructs messages, public
+notes, tool lifecycle, final answers, and errors from canonical events. Full
+provider details remain available through traces for the developer lens; a
+Product UI does not infer semantics from provider-native blocks.
 
 ## 5. Manual Shell Results
 

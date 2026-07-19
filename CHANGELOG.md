@@ -6,6 +6,39 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.51.0 - Provider-Independent Stream And Recovery Contract
+
+#### Added
+
+- Add `scarlet-stream-v2` as a durable Product UI event envelope projected
+  from persisted runtime events rather than provider-native deltas.
+- Add a session-global replay endpoint with exclusive cursor, pagination, and
+  exact message/terminal enrichment for reconnect recovery.
+- Add an executable reference reducer for ordering, idempotent duplicate
+  handling, gap detection, and reconstruction of notes, tools, answers,
+  messages, errors, and terminal state.
+
+#### Changed
+
+- Keep the V1 NDJSON stream intact for compatibility while defining V2 as the
+  preferred port for new web and Android clients.
+- Advance backend and frontend development versions to V1.51.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+
+#### Verification
+
+- Focused stream/replay/reducer tests cover normal tool-bearing turns,
+  terminal errors, pagination, reconnect, out-of-order input, duplicate ids,
+  and sequence gaps.
+- Ruff and the 26-module incremental mypy gate pass; the complete backend
+  passes 271 tests at 82.08% coverage and the frontend production build passes.
+- Documentation integrity passes across 70 files and OpenAPI V1.51.0 exposes
+  30 operations including the two V2 ports. A direct isolated smoke emitted 17
+  canonical events, replayed the same ids, reconstructed note/tool/answer/
+  terminal state, and excluded full tool/runtime-context payloads.
+- Remote quality gates and deployment remain required before release
+  acceptance.
+
 ### V2 Architecture Baseline - Core Closure Contract
 
 #### Added

@@ -24,6 +24,11 @@ from app.api.chat_native_turn import (
     prepare_native_turn,
     stream_native_turn,
 )
+from app.api.chat_stream_v2 import (
+    StreamReplayResponse,
+    replay_session_events,
+    stream_v2_from_native_lines,
+)
 from app.config import Settings
 from app.llm.factory import (
     build_llm_provider,
@@ -149,6 +154,56 @@ def build_chat_router(
             ),
             media_type="application/x-ndjson",
         )
+
+    @router.post("/sessions/{session_id}/turn/stream-v2")
+    def create_streaming_turn_v2(
+        session_id: str,
+        request: ChatTurnRequest,
+    ) -> StreamingResponse:
+        try:
+            prepared = prepare_native_turn(
+                settings=settings,
+                engine=engine,
+                session_id=session_id,
+                message=request.message,
+                system_override=request.system,
+                requested_max_tokens=request.max_tokens,
+                stream=True,
+            )
+        except NativeTurnFailure as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=exc.detail,
+            ) from exc
+        native_lines = stream_native_turn(
+            settings=settings,
+            engine=engine,
+            provider_factory=provider_factory,
+            prepared=prepared,
+        )
+        return StreamingResponse(
+            stream_v2_from_native_lines(native_lines, engine=engine),
+            media_type="application/x-ndjson",
+            headers={"X-Scarlet-Stream-Schema": "scarlet-stream-v2"},
+        )
+
+    @router.get(
+        "/sessions/{session_id}/events",
+        response_model=StreamReplayResponse,
+    )
+    def replay_events(
+        session_id: str,
+        after_seq: int = Query(default=0, ge=0),
+        limit: int = Query(default=500, ge=1, le=1000),
+    ) -> StreamReplayResponse:
+        with Session(engine) as db:
+            _require_session(db, session_id)
+            return replay_session_events(
+                db,
+                session_id=session_id,
+                after_seq=after_seq,
+                limit=limit,
+            )
 
     return router
 
