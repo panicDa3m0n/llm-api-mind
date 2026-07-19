@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Scarlet Signal Product UI Redesign (SCA-48)
+
+The owner accepted the prototype's screens and functional structure but
+rejected the first visual direction as generic, overly cautious, and too close
+to common GPT-style products. The redesign preserved the isolated `/prototype`
+route, schema-realistic fixtures, states, and no-backend boundary while
+replacing the visual system end to end.
+
+Scarlet Signal now uses fuchsia, scarlet, and light blue as functional identity
+colors over cool neutral structure. A chromatic continuity line links the
+application rail, conversation, sessions, memories, runtime state, mobile
+navigation, and developer evidence. The chat no longer presents Scarlet as a
+stack of assistant cards: her answers are open editorial content, work notes
+are dark cognitive events, and the direct user channel has its own fuchsia
+surface. Sessions became numbered traces and memories remain compact,
+source-oriented repeated records. Variable Manrope and Space Grotesk fonts are
+self-hosted through npm dependencies.
+
+The frontend production build and npm audit pass with zero vulnerabilities.
+Browser inspection at 1440x1000 and 390x844 covered chat, sessions, memories,
+status, settings, developer lens, reconnect, drawer navigation, console, and
+horizontal overflow. No warning, error, clipping, or incoherent overlap was
+found. Nine updated screenshots are versioned under
+`docs/assets/product-ui-prototype/`. SCA-48 still requires explicit owner
+approval of this redesigned direction before integration.
+
 ## 2026-07-19 - Static Mobile-First Product UI Prototype (SCA-48)
 
 Created `/prototype` as an isolated, clickable Product UI approval artifact.

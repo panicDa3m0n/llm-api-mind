@@ -33,6 +33,13 @@ Decision:
   integration;
 - use Tailwind CSS 4 and temporary local component equivalents while Catalyst
   remains unavailable; and
+- after rejection of the generic first visual pass, use the Scarlet Signal
+  identity system: fuchsia for presence/direct interaction, scarlet for action
+  and continuity, light blue for cognition/provenance, and cool neutrals only
+  as structural support;
+- avoid the standard AI-chat composition by using an open editorial response
+  surface, numbered continuity traces, compact memory hooks, and one integrated
+  dark technical lens; and
 - prohibit SCA-49/SCA-50 integration from treating the prototype as accepted
   until explicit owner approval is recorded on SCA-48.
 

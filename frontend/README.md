@@ -19,7 +19,8 @@ Current scope:
 - separate `/mobile` consumer surface for chat, memory, profile, and settings;
 - isolated `/prototype` static V2 Product UI approval surface with no backend
   calls, schema-realistic fixtures, responsive flows, deterministic preview
-  states, and an integrated developer lens;
+  states, the fuchsia/scarlet/light-blue Scarlet Signal identity, self-hosted
+  variable typography, and an integrated developer lens;
 - Tailwind CSS 4 through the official Vite plugin, with raw JSON kept in
   technical detail views for the real cockpit.
 

@@ -471,8 +471,9 @@ technical invariants; Linear owns ordering and work state.
 ### P1 - Product UI And Android
 
 1. SCA-48 has produced an isolated, schema-realistic mobile-first prototype at
-   `/prototype`, with responsive browser evidence and an integrated developer
-   lens; explicit owner approval remains the final acceptance gate.
+   `/prototype`, with the revised Scarlet Signal visual system, responsive
+   browser evidence, and an integrated developer lens; explicit owner approval
+   remains the final acceptance gate.
 2. SCA-50 builds one responsive UI foundation and design system.
 3. SCA-49 connects the Product UI and developer lens to Core contracts.
 4. SCA-52 verifies the same client as an Android Capacitor application.

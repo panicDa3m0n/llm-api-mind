@@ -18,6 +18,12 @@ This project uses a practical changelog rather than a release-only log: each mea
   lens.
 - Add deterministic ready, empty, loading, streaming, reconnecting, and error
   preview states plus versioned desktop/mobile approval screenshots.
+- Replace the rejected generic visual pass with the Scarlet Signal identity:
+  fuchsia/scarlet/light-blue functional color roles, an application-wide
+  continuity line, open editorial responses, numbered session traces, compact
+  memory hooks, and a high-contrast evidence lens.
+- Add self-hosted Manrope and Space Grotesk variable typography and expanded
+  screenshot coverage for every principal Product UI surface.
 
 #### Changed
 
@@ -35,6 +41,9 @@ This project uses a practical changelog rather than a release-only log: each mea
   memory, developer lens, state switching, reconnect, responsive navigation,
   accessibility visibility, and page overflow with no console warnings or
   errors.
+- The redesigned pass additionally covers status, settings, mobile developer
+  evidence, mobile document-width equality, and the rejected-to-current visual
+  boundary without changing fixtures or backend behavior.
 - Owner approval remains required before SCA-48 can close or any real-data
   integration begins.
 

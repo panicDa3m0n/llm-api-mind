@@ -17,6 +17,13 @@ onto V1.54.0 after the Agentic Module contract, host, and SDK landed. This
 technical refresh did not change its visual or interaction direction and does
 not count as owner approval.
 
+The first technically complete visual pass was rejected by the owner because
+its dark SaaS sidebar, conventional cards, restrained palette, and familiar
+chat anatomy felt generic and too close to common AI products. The current
+pass replaces that direction with the project-specific **Scarlet Signal**
+system while preserving the approved information architecture and fixture
+boundary.
+
 The prototype tests one product boundary: ordinary users follow Scarlet
 through chat, compact public notes, continuity, memories, and operating state;
 the same application exposes technical evidence through an optional developer
@@ -70,11 +77,29 @@ activity:
 
 ## Visual Tokens
 
-The prototype uses restrained operational surfaces rather than a marketing
-composition. Cards and controls use a maximum 8px radius. The palette combines
-neutral white/ink surfaces, a Scarlet accent for identity and primary actions,
-teal for runtime/memory state, yellow for public work notes, and semantic
-warning/error colors.
+Scarlet Signal uses three identity colors with stable roles rather than a
+generic AI gradient:
+
+| Token | Role |
+|---|---|
+| Fuchsia `#ed008c` | Scarlet's presence, memory identity, active navigation, and direct user channel |
+| Scarlet `#ff304f` | Action, continuity, sequence emphasis, and critical focal points |
+| Light blue `#79d9ff` | Cognition, provenance, active runtime, and technical information |
+| Ink `#17141f` | Cognitive work notes, developer evidence, and strong contrast |
+| White/cool neutrals | Reading surfaces and structural space only |
+
+The visual signature is a chromatic continuity line that appears across the
+application as a top signal, conversation thread, state edge, event sequence,
+and mobile navigation marker. The main canvas uses a precise technical grid
+instead of decorative blobs. Scarlet responses are open editorial blocks;
+work notes form dark cognitive events; user messages use the direct fuchsia
+channel; sessions are numbered traces; memories are compact provenance hooks.
+Cards remain only where repeated records or framed controls require them and
+never exceed an 8px radius.
+
+Typography is self-hosted through the variable Manrope and Space Grotesk font
+packages. Motion is limited to signal bars, active-state transitions, streaming
+indicators, and the developer lens, with a complete reduced-motion fallback.
 
 The Tailwind pipeline is V4 through `@tailwindcss/vite`; existing Tailwind
 utility and `@apply` usage remains build-compatible. Catalyst is not present in
@@ -99,12 +124,22 @@ Verified in a real JavaScript browser at the agreed viewports:
 - production TypeScript/Vite build with Tailwind V4;
 - `npm audit` reports zero vulnerabilities.
 
+The Scarlet Signal pass additionally verified the session trace, memory grid,
+status surface, settings, developer lens, and reconnect state at the same
+desktop/mobile viewports. The mobile document remains exactly viewport width
+with no horizontal overflow.
+
 Screenshots:
 
 - [Desktop chat](assets/product-ui-prototype/desktop-chat.png)
 - [Desktop developer lens](assets/product-ui-prototype/desktop-developer-lens.png)
+- [Desktop sessions](assets/product-ui-prototype/desktop-sessions.png)
+- [Desktop memory](assets/product-ui-prototype/desktop-memory.png)
 - [Mobile chat](assets/product-ui-prototype/mobile-chat.png)
 - [Mobile sessions](assets/product-ui-prototype/mobile-sessions.png)
+- [Mobile status](assets/product-ui-prototype/mobile-status.png)
+- [Mobile settings](assets/product-ui-prototype/mobile-settings.png)
+- [Mobile developer lens](assets/product-ui-prototype/mobile-developer-lens.png)
 
 ## Approval Boundary
 

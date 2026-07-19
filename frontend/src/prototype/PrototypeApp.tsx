@@ -31,6 +31,9 @@ import {
 import type { FormEvent, ReactNode } from "react";
 import { useMemo, useState } from "react";
 
+import "@fontsource-variable/manrope";
+import "@fontsource-variable/space-grotesk";
+
 import {
   prototypeEvents,
   prototypeMemories,
@@ -99,14 +102,16 @@ export function PrototypeApp() {
 
   return (
     <main className="prototype-root">
+      <div className="prototype-chromatic-line" aria-hidden="true"><i /><i /><i /></div>
       <aside className={`prototype-sidebar ${mobileMenuOpen ? "is-open" : ""}`}>
         <div className="prototype-brand">
           <div className="prototype-brand-mark">
             <Sparkles size={20} aria-hidden="true" />
+            <i aria-hidden="true" />
           </div>
           <div>
             <strong>Scarlet</strong>
-            <span>API Mind</span>
+            <span>digital mind / 01</span>
           </div>
           <button
             aria-label="Chiudi menu"
@@ -121,7 +126,7 @@ export function PrototypeApp() {
 
         <button className="prototype-primary-button" onClick={startNewConversation} type="button">
           <Plus size={17} aria-hidden="true" />
-          Nuova conversazione
+          <span>Nuova</span>
         </button>
 
         <nav className="prototype-nav" aria-label="Navigazione principale">
@@ -141,10 +146,10 @@ export function PrototypeApp() {
         </nav>
 
         <div className="prototype-sidebar-footer">
-          <div className="prototype-runtime-dot" aria-hidden="true" />
+          <div className="prototype-runtime-signal" aria-hidden="true"><i /><i /><i /></div>
           <div>
-            <strong>Runtime locale</strong>
-            <span>Interactive · pronto</span>
+            <strong>Online</strong>
+            <span>Interactive</span>
           </div>
         </div>
       </aside>
@@ -174,6 +179,10 @@ export function PrototypeApp() {
             <h1>{viewTitle(view)}</h1>
           </div>
           <div className="prototype-topbar-actions">
+            <div className="prototype-signal-readout" aria-label="Continuita attiva">
+              <span><i /><i /><i /></span>
+              <b>continuita online</b>
+            </div>
             <span className="prototype-mode-chip">
               <i aria-hidden="true" />
               Interactive
@@ -293,8 +302,12 @@ function ChatView({
         {scenario === "loading" ? <ConversationLoading /> : null}
         {scenario !== "empty" && scenario !== "loading" ? (
           <>
-            <div className="prototype-day-divider"><span>Oggi</span></div>
+            <div className="prototype-thread-head">
+              <span>continuity / live</span>
+              <div className="prototype-day-divider"><span>Oggi</span></div>
+            </div>
             <article className="prototype-message user">
+              <span className="prototype-message-index">01 / tu</span>
               <div className="prototype-message-copy">
                 <p>
                   Vorrei capire come rendere piu semplice la nuova interfaccia, senza perdere la
@@ -307,6 +320,7 @@ function ChatView({
             <article className="prototype-work-note">
               <div className="prototype-note-icon"><BrainCircuit size={16} aria-hidden="true" /></div>
               <div>
+                <span className="prototype-note-kicker">processo cognitivo / 02</span>
                 <strong>Scarlet sta verificando il contesto</strong>
                 <p>
                   Riprendo il filo delle ultime decisioni e controllo quali parti appartengono
@@ -336,6 +350,7 @@ function ChatView({
                 </p>
                 <time>18:41</time>
               </div>
+              <span className="prototype-message-index">03 / scarlet</span>
             </article>
 
             {scenario === "streaming" ? (
@@ -346,6 +361,7 @@ function ChatView({
                   <p>Sto mettendo a confronto il flusso mobile con quello desktop</p>
                   <div className="prototype-typing" aria-label="Risposta in corso"><i /><i /><i /></div>
                 </div>
+                <span className="prototype-message-index">04 / live</span>
               </article>
             ) : null}
           </>
@@ -353,6 +369,7 @@ function ChatView({
       </div>
 
       <form className="prototype-composer" onSubmit={onSubmit}>
+        <span className="prototype-composer-kicker">canale diretto</span>
         <textarea
           aria-label="Messaggio"
           onChange={(event) => setPrompt(event.target.value)}
@@ -436,13 +453,14 @@ function SessionsView({
         count="3 sessioni"
       />
       <div className="prototype-session-list">
-        {prototypeSessions.map((session) => (
+        {prototypeSessions.map((session, index) => (
           <button
             className={selected.id === session.id ? "is-selected" : ""}
             key={session.id}
             onClick={() => setSelected(session)}
             type="button"
           >
+            <span className="prototype-session-number">{String(index + 1).padStart(2, "0")}</span>
             <div className="prototype-session-icon"><MessageCircle size={18} aria-hidden="true" /></div>
             <div className="prototype-session-copy">
               <div><strong>{session.title}</strong><time>{relativeDate(session.updated_at)}</time></div>
@@ -512,11 +530,12 @@ function MemoriesView({
 
 function MemoryCard({ memory }: { memory: PrototypeMemory }) {
   return (
-    <article className="prototype-memory-card">
+    <article className={`prototype-memory-card ${memory.scope}`}>
       <div className="prototype-memory-meta">
         <span>{memory.scope === "user" ? "Personale" : "Progetto"}</span>
         <time>{relativeDate(memory.updated_at)}</time>
       </div>
+      <code>{memory.id}</code>
       <p>{memory.content}</p>
       <div className="prototype-memory-footer">
         <span>{memory.type.replace(/_/g, " ")}</span>
@@ -539,7 +558,7 @@ function StatusView() {
     <section className="prototype-page">
       <PageIntro copy="Lo stato operativo corrente di Scarlet e dei suoi organi disponibili." count="Tutto operativo" />
       <div className="prototype-status-band">
-        <div className="prototype-status-orbit"><Sparkles size={25} aria-hidden="true" /></div>
+        <div className="prototype-status-orbit"><span aria-hidden="true"><i /><i /><i /></span><Sparkles size={25} aria-hidden="true" /></div>
         <div><span>Modalita agente</span><strong>Interactive</strong><p>Attenzione centrata sulla conversazione.</p></div>
         <span className="prototype-health"><i /> Pronta</span>
       </div>
@@ -595,7 +614,7 @@ function Toggle({ checked, label, onChange }: { checked: boolean; label: string;
 }
 
 function PageIntro({ copy, count }: { copy: string; count?: string }) {
-  return <div className="prototype-page-intro"><p>{copy}</p>{count ? <span>{count}</span> : null}</div>;
+  return <div className="prototype-page-intro"><div aria-hidden="true"><i /><i /><i /></div><p>{copy}</p>{count ? <span>{count}</span> : null}</div>;
 }
 
 function DeveloperLens({
