@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Agentic Module SDK And Conformance Kit (SCA-55)
+
+Implemented the public `scarlet-agentic-module-sdk` 1.0.0 package without
+creating a second contract implementation. Manifest and Core Port Pydantic
+models now live in the public SDK namespace; the host imports those exact
+classes and the old Core path remains a compatibility re-export.
+
+The SDK adds a conservative module-side JSONL runtime, scaffold CLI, localized
+manifest diagnostics, versioned JSON Schema export, and a standalone live
+conformance runner. Conformance covers permissions/modes, lifecycle, health,
+all declared context/prompt/command/event capabilities, capability-level
+limits, structured unknown-operation errors, correlation ids, durations, and
+stop. Its receipt list is development evidence and remains distinct from Core
+Trace/CognitiveEvent persistence.
+
+An SDK wheel built from `backend/sdk` was installed under `/tmp` without the
+backend package. From that isolated package, the CLI generated a fresh module
+and passed the complete conformance sequence without manual patches. The same
+generated scaffold also activated in the real SCA-54 host and returned valid
+context and command output. Focused tests pass 33/33; the complete backend and
+SDK pass 304 tests at 82.46% combined coverage. Ruff and mypy over 42 files
+pass. Frontend, documentation, OpenAPI, database boundary, and remote checks
+also pass locally: Vite builds V1.54.0, documentation integrity validates 73
+files, and isolated OpenAPI inspection remains at 30 operations. Database and
+remote checks are recorded at commit/publication time.
+
 ## 2026-07-19 - Agentic Module Host And Isolation (SCA-54)
 
 Implemented the opt-in host over the accepted SCA-53 contracts. Discovery now

@@ -24,7 +24,7 @@ jobs:
         run: python -m pip install -e './backend[dev]'
 
       - name: Ruff
-        run: python -m ruff check backend/app backend/tests scripts
+        run: python -m ruff check backend/app backend/scarlet_agentic_module_sdk backend/tests scripts
 
       - name: Mypy incremental gate
         working-directory: backend
@@ -35,7 +35,7 @@ jobs:
 
       - name: Backend tests and coverage
         working-directory: backend
-        run: python -m pytest -q --cov=app --cov-report=term
+        run: python -m pytest -q --cov=app --cov=scarlet_agentic_module_sdk --cov-report=term
 
       - name: Set up Node.js
         uses: actions/setup-node@v6

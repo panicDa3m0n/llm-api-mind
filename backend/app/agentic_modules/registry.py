@@ -10,7 +10,7 @@ from typing import Any, Literal
 
 from pydantic import ValidationError
 
-from app.agentic_modules.contracts import AgenticModuleManifest, ContractModel
+from scarlet_agentic_module_sdk.contracts import AgenticModuleManifest, ContractModel
 
 
 MODULE_MANIFEST_FILENAME = "agentic-module.json"

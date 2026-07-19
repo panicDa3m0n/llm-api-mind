@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-19
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.53.0
+Current additive contract target: V1.54.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -27,7 +27,7 @@ to operational work.
 | **API Mind Core Runtime** | Native turn lifecycle, provider abstraction, canonical history, context, cognitive shell, persistence, traces/events, answer control, maintenance, configuration, and database safety. | Closed V1 baseline; authoritative runtime. | Depends only on selected provider adapters and infrastructure libraries. |
 | **Product UI** | Human-facing web/Android experience and developer inspection over Core contracts. | V1 cockpit/mobile prototype exists; V2 product work is planned. | Consumes versioned Core HTTP/event contracts. It does not own cognition or persistence. |
 | **External Adapters** | Best-effort connection of externally hosted models to the same Core cognition. | GPT Actions bridge is implemented and experimental. | Adapts external transport to Core context, shell, persistence, and answer obligations. |
-| **Agentic Modules** | Optional capabilities loaded through declared ports, permissions, modes/tags, dependencies, and lifecycle. | Public V1 contract and opt-in operator-pinned host implemented; no product modules installed. | May consume typed Core Ports only. It must not reach Core internals or the database directly. |
+| **Agentic Modules** | Optional capabilities loaded through declared ports, permissions, modes/tags, dependencies, and lifecycle. | Public V1 contract, opt-in operator-pinned host, and SDK/conformance kit implemented; no product modules installed. | May consume typed Core Ports only. It must not reach Core internals or the database directly. |
 
 The dependency rule is inward toward the Core contract:
 
@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.53.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.54.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable additive envelope, replay cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; provider implementations remain replaceable. |
@@ -67,7 +67,7 @@ the native runtime.
 | Answer obligations | `backend/app/runtime/answer_obligations.py` | native turn and GPT finalize | obligations v2 / validation v1 | Shared semantic/structural finality contract. |
 | Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode. |
 | Runtime configuration | `backend/app/config.py` | application factory and domain owners | typed `Settings` | Additive compatibility by default; invalid safety combinations fail closed. |
-| Agentic Module contracts and host | `backend/app/agentic_modules/*`, `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md` | optional operator-installed modules and future SDK | manifest/port/lifecycle V1 plus host V1.53 | Opt-in approved-root process host; native Core path remains unchanged with zero modules. |
+| Agentic Module contracts, host, and SDK | `backend/scarlet_agentic_module_sdk/*`, `backend/app/agentic_modules/*`, `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md`, `docs/agentic-module-sdk.md` | optional operator-installed modules and module authors | manifest/port/lifecycle V1, host V1.53, SDK 1.0.0 | One public contract source, standalone authoring/conformance kit, and opt-in approved-root process host; native Core path remains unchanged with zero modules. |
 | Deployment boundary | `backend/Dockerfile`, release process, database preflight | VPS runtime | tagged app release plus remote environment | Runtime code may deploy; databases and secrets never travel with code. |
 
 The executable sources above outrank prose when they disagree. A discrepancy
@@ -188,8 +188,8 @@ The active sequence is tracked in Linear under SCA-46:
 1. SCA-51: this architecture and closure contract.
 2. SCA-47: `scarlet-stream-v2` and client recovery.
 3. SCA-48, SCA-50, SCA-49, SCA-52: Product UI and Android.
-4. SCA-53 and SCA-54 are complete; SCA-55 publishes the SDK and conformance kit
-   against the accepted contracts and host.
+4. SCA-53, SCA-54, and SCA-55 are complete: contracts, host, SDK, and
+   conformance kit share the accepted public schemas.
 5. SCA-56: migration, regression, deployment, and V2 release acceptance.
 
 Duplicate/conflict adjudication, authenticated multi-user ownership, new

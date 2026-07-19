@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App target: V1.53.0; V1.50.1 remains deployed and release-accepted
+App target: V1.54.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -4193,15 +4193,18 @@ POST /api/maintenance/jobs/{job_id}/run                         implemented
 ## Agentic Module Public Contracts
 
 Status: manifest and Core Port V1 contracts implemented in V1.52.0; opt-in
-Module Host implemented in V1.53.0; no product module or HTTP route installed.
+Module Host implemented in V1.53.0; standalone SDK/conformance kit implemented
+in V1.54.0; no product module or HTTP route installed.
 
 These are Python/JSON data contracts, not HTTP routes and not model-facing
 tools. Canonical definitions:
 
 ```txt
-backend/app/agentic_modules/contracts.py
+backend/scarlet_agentic_module_sdk/contracts.py
+backend/app/agentic_modules/contracts.py  compatibility re-export
 backend/app/agentic_modules/validation.py
 docs/agentic-modules-contract.md
+docs/agentic-module-sdk.md
 ```
 
 Version identities:
@@ -4238,6 +4241,11 @@ trust module code. The V1.53.0 host consumes this plan and adds approved-root
 discovery, digest pinning, bounded JSONL subprocesses, permission gates,
 composition, telemetry, and fail isolation. Canonical host details live in
 `docs/agentic-module-host.md`.
+
+The `scarlet-agentic-module-sdk` 1.0.0 distribution is not an HTTP API. It
+exports these same contract classes, a module-side JSONL runtime, scaffold,
+localized validation, schema generation, and executable conformance CLI. Its
+checks do not approve installation or grant runtime permissions.
 
 ## Future Mind API Annotations
 

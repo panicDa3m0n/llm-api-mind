@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
-from app.agentic_modules.contracts import (
+from scarlet_agentic_module_sdk.contracts import (
     DEFAULT_CORE_MODULE_CONTRACTS,
     CommandCapability,
     CommandPortResult,

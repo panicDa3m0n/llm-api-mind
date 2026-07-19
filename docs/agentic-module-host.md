@@ -1,7 +1,7 @@
 # Agentic Module Host
 
 Last updated: 2026-07-19
-App target: V1.53.0 over the release-accepted V1.50.1 Core
+App target: V1.54.0 over the release-accepted V1.50.1 Core
 Runtime status: implemented, opt-in, no product modules installed
 Linear issue: SCA-54
 
@@ -148,12 +148,13 @@ the unextended Core path.
 
 ## 8. Verification Fixture And Deferred Work
 
-`backend/tests/fixtures/agentic_modules/conformance_worker.py` is a real JSONL
-subprocess fixture. It supports normal context/prompt/command/event/health
-calls and deliberate timeout, invalid-output, and crash behavior. It is test
-material, not a product module or SDK.
+`backend/tests/fixtures/agentic_modules/conformance_worker.py` remains the
+host's deliberate failure fixture for timeout, invalid-output, and crash
+behavior. The V1.54.0 SDK additionally generates a neutral module from scratch
+and proves that the unmodified result passes both standalone conformance and
+this real host. Canonical authoring details live in
+`docs/agentic-module-sdk.md`.
 
-SCA-55 owns the distributable SDK, scaffold, protocol helpers, schema export,
-and conformance kit. Product modules, package signatures, hostile-code
-sandboxing, persistent module state, UI controls, and automatic chat wiring
-remain separate future work.
+Product modules, package signatures, hostile-code sandboxing, persistent
+module state, UI controls, and automatic chat wiring remain separate future
+work.

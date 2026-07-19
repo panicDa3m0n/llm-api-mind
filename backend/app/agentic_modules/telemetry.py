@@ -9,7 +9,7 @@ from pydantic import Field
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.agentic_modules.contracts import ContractModel
+from scarlet_agentic_module_sdk.contracts import ContractModel
 from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import new_id, utc_now
