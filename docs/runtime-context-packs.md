@@ -1,8 +1,8 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-18
-Status: V1.39.0 context projection and guarded token-partition compaction active
-App baseline: V1.39.0
+Last updated: 2026-07-19
+Status: Core V1 context projection and guarded token-partition compaction active
+App baseline: V1.50.1
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -31,7 +31,7 @@ because its size competes with dynamic context inside the same model window.
 The MiniMax model supports a context window up to 1,000,000 tokens. API Mind
 uses these configurable policy values:
 
-| Setting | V1 value | Meaning |
+| Setting | Core V1 value | Meaning |
 |---|---:|---|
 | `context_window_tokens` | 1,000,000 | Provider model window. |
 | `context_operational_input_limit_tokens` | 500,000 | Maximum input budget API Mind intends to use. |

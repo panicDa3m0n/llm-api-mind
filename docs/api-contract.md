@@ -82,6 +82,24 @@ The contract still needs per-route `agent_supplied_fields` and
 `backend_owned_fields` metadata in `/mind/schema`, plus sanitization for
 backend-owned fields if the model sends them inside free-form metadata.
 
+## Contract Classes And Compatibility
+
+The canonical ownership map is `docs/core-runtime-contract.md`. Concrete API
+entries in this file use the following classes:
+
+| Class | Current surfaces | Compatibility |
+|---|---|---|
+| Core operational | `/health`, startup/config/database checks | Stable and additive by default. |
+| Core client V1 | `/api/chat/*`, `/api/dashboard/*` | Preserved until SCA-47 and the Product UI issues provide an explicit V2 migration. |
+| Internal diagnostic/maintenance | `/api/debug/*`, `/api/maintenance/*`, `/mind/*` | May evolve behind stable Core facades; not a public model-facing API. |
+| Model-facing cognitive | `mind_shell(command, intent)`, `scarlet-model-context-v2` | Versioned Core contract; changes require behavioral and delivery evidence. |
+| Experimental external adapter | `/gpt/bootstrap`, `/gpt/action`, `/gpt/finalize` | Lifecycle and operation IDs stay stable while supported, but ChatGPT limitations do not drive Core architecture. |
+| Future annotation | entries explicitly marked planned/future | No implementation or release commitment until promoted to an approved issue. |
+
+The runtime OpenAPI and shell registry are executable truth for availability.
+This document owns semantics and audience. A route being reachable does not by
+itself make it a model tool or a public integration contract.
+
 ## Model-Facing API Mind Tool
 
 Status: implemented in V1.22.0, stabilized in V1.23.0, capability boundary
@@ -361,7 +379,9 @@ Provider-generated opaque IDs absent from the source payload are removed before
 persistence. Sync and stream share this routing and always update
 `sessions.provider_history_json` from the canonical request.
 
-## Planned Chat And Debug API
+## Future Chat And Debug Annotation
+
+Status: post-Core idea; not scheduled in the active V2 roadmap
 
 ```txt
 GET  /api/debug/state/{session_id}
@@ -3923,7 +3943,8 @@ Creates `mind.memory.supersede` and the model-facing `mind.tool_call`.
 
 ## Memory Robustness API Roadmap
 
-Status: partially implemented.
+Status: Core implementation recorded; remaining entries are future
+annotations and do not block V1 closure.
 
 Purpose:
 
@@ -4058,7 +4079,8 @@ Current extractor scope:
 
 ### Proposal And Compaction API
 
-Status: partially implemented
+Status: maintenance proposal inspection is implemented; direct model-facing
+propose/compact routes remain future annotations.
 
 Purpose:
 
@@ -4080,7 +4102,9 @@ GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
 
-## Planned Mind API
+## Future Mind API Annotations
+
+Status: not part of the closed Core or approved V2 execution sequence
 
 ```txt
 GET  /mind/state

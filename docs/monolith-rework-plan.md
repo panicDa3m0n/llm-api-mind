@@ -1,8 +1,8 @@
 # Monolith Rework Plan
 
-Date: 2026-07-18
-Status: accepted execution map from SCA-10; SCA-22 and SCA-33 through SCA-38 verified
-Runtime baseline: V1.43.0 deployed; V1.50.0 candidate after SCA-43
+Date: 2026-07-19
+Status: historical V1 rework record; completed slices retained, residual items archived
+Runtime baseline: V1.50.1 deployed and release-accepted
 Planning baseline: preliminary regression 9/9 in
 `20260718_162024_preliminary-regression-v1`; unchanged post-documentation gate
 9/9 in `20260718_162350_preliminary-regression-v1`
@@ -19,6 +19,11 @@ SCA-10 changes no runtime behavior. It defines the order, boundaries, and
 acceptance gate for the later code moves. Every execution issue must declare
 its own version, run the frozen gate before and after, and be accepted
 independently.
+
+Current authority now lives in `docs/core-runtime-contract.md` and Linear
+SCA-46. SCA-39, SCA-40, and SCA-41 were archived as Core annotations rather
+than silently carried into V2. Product UI work is redefined by SCA-48,
+SCA-50, SCA-49, and SCA-52; the GPT adapter remains experimental.
 
 ## Current Inventory
 
@@ -156,31 +161,29 @@ behavior.
 
 ### 7. GPT Actions Router
 
-Issue: SCA-39, blocked by SCA-22.
+Historical issue: SCA-39, archived after SCA-22 removed MCP.
 
-After MCP removal, separate request/response schemas, bridge lifecycle,
-compact-context projection, authentication, and answer validation. Preserve
-the exact Action operation IDs and bootstrap/action/finalize state machine.
-Native and GPT must continue to share the context compiler and shell
-dispatcher rather than developing transport-specific cognition.
+The proposed split remains a useful future refactor note, but no current Core
+or V2 issue authorizes it. Any later work must preserve the exact Action
+operation IDs and bootstrap/action/finalize state machine, and keep the shared
+context compiler and shell dispatcher.
 
 ### 8. Developer Cockpit
 
-Issue: SCA-40.
+Historical issue: SCA-40, superseded as an execution plan by Product UI V2.
 
-Split `App.tsx` by visible responsibility: application controller, conversation
-flow, model/context inspector, memory/events, settings/profile, and pure trace
-normalizers. Do not redesign the interface or duplicate parsing in individual
-components.
+Its component-boundary observations remain evidence for SCA-50, but V2 begins
+from the approved static prototype in SCA-48 rather than preserving the old
+interface as the product design.
 
 ### 9. Mobile Consumer Flow
 
-Issue: SCA-41.
+Historical issue: SCA-41, superseded as an execution plan by Product UI and
+Android V2.
 
-Split `MobileApp.tsx` into controller, chat, memory, actions, profile, input and
-navigation, with pure flow/activity normalizers. Preserve the current consumer
-experience; onboarding, authentication, and new user flows belong to their own
-issues.
+Its controller/view separation remains evidence for SCA-50 and SCA-52. The V2
+client must be one responsive codebase rather than a second independent mobile
+product.
 
 ## Deliberate Deferrals
 
@@ -225,8 +228,7 @@ the owner explicitly authorizes broader live evaluation periods.
 
 ## Completion Meaning
 
-SCA-10 is complete when this inventory, ordering, stable-facade rule, and the
-nine executable child issues exist and agree with the current code. It does
-not claim that the monoliths have already been split. Completion of the rework
-itself is the cumulative result of SCA-22 and SCA-33 through SCA-41 passing
-their own gates.
+SCA-10 is complete because its inventory and stable-facade rule produced the
+accepted V1 slices. The implemented rework is the cumulative result of SCA-22
+and SCA-33 through SCA-38. SCA-39 through SCA-41 remain archived observations
+and are not implied to have passed implementation gates.

@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Core V1 Closure Contract And V2 Architecture Boundary (SCA-51)
+
+Formalized the release-accepted V1.50.1 runtime as the closed API Mind Core
+and separated its four architectural layers: Core Runtime, Product UI,
+External Adapters, and future Agentic Modules. The new canonical contract maps
+owners, consumers, dependency direction, model-facing versus internal
+surfaces, all 28 HTTP operations by audience, compatibility rules, closure
+evidence, and the SCA-46 V2 execution sequence. ADR-0107 preserves the decision
+outside Linear.
+
+Repository entry points, project state, API/block/branch maps, memory and
+cognitive roadmaps, context packs, quality notes, and the historical monolith
+plan now distinguish accepted Core behavior from monitoring findings and
+future research annotations. GPT Actions remains an experimental adapter;
+native selected-provider behavior remains authoritative. No prompt, schema,
+database, provider, or runtime code changed.
+
+Documentation integrity passed across 69 files, 1,253 repository references,
+and 277 canonical identifiers. `git diff --check` passed, and a current-state
+scan found no stale V1 roadmap marker still presented as active work. A
+side-effect-free in-memory application inspection confirmed app V1.50.1,
+exactly 28 OpenAPI operations, command registry
+`2026-07-13.mind-shell-command-registry-v2`, and the unchanged eight shell
+families. The pre-existing mutable `backend/data/app.db` change was excluded
+from this issue.
+
 ## 2026-07-19 - V1.50.1 Stable Baseline Rollout And Acceptance
 
 PR #17 passed both remote Quality workflows and merged at

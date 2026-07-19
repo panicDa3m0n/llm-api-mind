@@ -1,8 +1,14 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-18
+Last updated: 2026-07-19
 App baseline: V1.50.1 deployed and release-accepted
-Status: canonical current-state map
+Status: Core V1 closed; canonical V2 current-state map
+
+The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
+does not claim that every research branch is mature; it means residual limits,
+monitoring findings, and unimplemented organs are future annotations unless
+explicitly promoted. Architecture ownership and compatibility are canonical in
+`docs/core-runtime-contract.md`.
 
 This document states what API Mind can do now, how strongly each capability is
 supported, and what work should happen next. Detailed contracts, experiments,
@@ -251,7 +257,7 @@ missing artifacts fall back visibly to canonical history. Scheduling follows
 the size of the derived next-turn view, so canonical growth alone cannot create
 a perpetual maintenance loop.
 
-Still open:
+Post-Core monitoring and future annotations:
 
 - monitor active recursive compaction on naturally long sessions and preserve
   fallback/source-manifest evidence;
@@ -334,7 +340,8 @@ It must not be read as proof that temporal experience or Dream is implemented.
 ## 4. Agentic Branch Assessment
 
 The branch documents contain the full evidence and evolutions. This table is
-the canonical integrated read.
+the canonical integrated read. A principal need describes future research or
+product opportunity, not an unfinished Core acceptance criterion.
 
 | Branch | Level | Effective technical state | Principal need |
 |---|---:|---|---|
@@ -403,7 +410,7 @@ Current engineering baseline:
   tests, and repository scripts;
 - mypy blocks regressions in twenty-five high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.49 backend suite passes 247 tests at 81.63% statement coverage;
+- the full V1.50.1 backend suite passes 266 tests at 81.89% statement coverage;
   the blocking floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
@@ -415,90 +422,46 @@ Current engineering baseline:
 - provider-history growth has active recursive compaction for native turns;
   native ChatGPT history remains outside backend accounting and compaction.
 
-## 6. Priority Plan
+## 6. Active V2 Plan
 
-### P0 - Preserve The Microscope
+The operational roadmap is Linear SCA-46. The repository describes its
+technical invariants; Linear owns ordering and work state.
 
-- keep V2, rich traces, shell registry, API contract, UI inspector, and docs in
-  lockstep;
-- preserve and progressively expand the V1.34.0 lint, type, coverage,
-  documentation, and CI baseline instead of weakening it during broad rework;
-- keep database role/preflight and frozen 9-case gate mandatory.
+### P0 - Architecture And Core Contract
 
-### P1 - Validate And Activate Context Control
+1. SCA-51 names Core Runtime, Product UI, External Adapters, and Agentic
+   Modules, with sources of truth and compatibility rules.
+2. SCA-47 defines `scarlet-stream-v2`, idempotent client state, replay, and
+   recovery without changing provider-native continuity.
 
-1. Monitor recursive source-labelled summary artifacts under the 100k `C` cap.
-2. Extend long-session evidence without weakening canonical fallback.
-3. Add observability for artifact age, invalidation, and compaction latency.
-4. Keep GPT-native history limits explicit until ChatGPT exposes that context.
+### P1 - Product UI And Android
 
-### P2 - Memory Integrity
+1. SCA-48 produces a static, schema-realistic mobile-first prototype and
+   requires owner approval before integration.
+2. SCA-50 builds one responsive UI foundation and design system.
+3. SCA-49 connects the Product UI and developer lens to Core contracts.
+4. SCA-52 verifies the same client as an Android Capacitor application.
 
-1. Design duplicate candidate detection as evidence, not deterministic truth.
-2. Keep conflict adjudication LLM/human-aware; do not infer conflicts from
-   similarity alone.
-3. Keep the seven unresolved historical source links review-only unless new
-   exact evidence appears; never synthesize provenance from similarity.
-4. Calibrate final-rerank candidate coverage/thresholds, KG recall, and
-   maintenance retries on frozen and live cases.
-5. Design authenticated user ownership before multi-user data exists.
+### P2 - Agentic Modules And SDK
 
-### P3 - Preserve Organ Separation After Answer-Obligation Closure
+1. SCA-53 defines manifest, Core Ports, modes/tags, permissions, dependencies,
+   and lifecycle.
+2. SCA-54 implements registry, host, observability, and failure isolation.
+3. SCA-55 publishes the SDK and a conformance fixture, not a product module.
 
-- V1.41 closes SCA-28 with a shared structural/semantic answer-control layer;
-- monitor validator latency, false positives, GPT correction compliance, and
-  natural conflict disclosure without widening this into conflict detection;
-- preserve SCA-4 conservative defaults and add no cross-organ coupling;
-- keep affect model exposure and metacognitive lesson injection experimental;
-- do not build temporal experience or Dream from registry placeholders.
+### P3 - Release Candidate
 
-### P4 - Code Reorganization
+SCA-56 proves migration from V1.50.1, Core regression, web/Android behavior,
+module conformance, protected deployment, and rollback before V2 acceptance.
 
-- split the context collector from retrieval scoring/orchestration;
-- split memory handlers by write/read/lifecycle/maintenance presentation;
-- split chat orchestration from trace/event/provider-history composition;
-- refactor the now Actions-only GPT bridge after the deprecated MCP transport
-  is removed by SCA-22;
-- componentize developer and mobile frontends;
-- preserve public facades and compare the exact preliminary suite before/after.
+## 7. Deferred Evidence And Ideas
 
-SCA-10 converts this priority into the ordered, independently gated issues
-SCA-22 and SCA-33 through SCA-41. SCA-22 removes MCP before GPT-router
-refactoring begins;
-declarative `mind/schema.py` is deferred until measured import pressure
-justifies a split. The canonical execution map is
-`docs/monolith-rework-plan.md`.
+Long-session compaction quality, reranker drift, duplicate/conflict
+adjudication, authenticated ownership, relationship/learning ledgers, new
+organs, external operativity, and embodiment remain documented and navigable.
+They are not current Core defects merely because further research is possible.
+Promote one only when new evidence or an owner decision gives it a bounded
+objective and acceptance gate.
 
-### P5 - Identity, Relationship, Learning, And Governance
-
-- create sourceable relational and adaptation ledgers only after privacy
-  ownership exists;
-- establish longitudinal behavioral metrics;
-- keep identity claims tied to observable digital functions;
-- define consent, deletion, correction, and external-action risk levels.
-
-### P6 - External And Embodied Architecture
-
-Only after P0-P5 supply reliable routing, ownership, permissions, and organ
-behavior:
-
-- add world perception as summarized, fresh, source-labelled packs;
-- separate sensory fact, inference, plan, and actuator receipt;
-- gate physical action with safety, authority, rollback, and current scene;
-- keep high-frequency raw streams outside the language-model context.
-
-## 7. Current Best Next Step
-
-SCA-36 through SCA-38 separate memory and maintenance domains behind stable
-facades, SCA-42 closes successful-retry evidence, SCA-43 closes the frozen
-gate's model-delivery/completion blind spot, and SCA-44 restores robust native
-finalization. V1.50.1 is now the verified stable baseline. The next work should
-use this baseline to audit branch maturity and select bounded productive work,
-prioritizing behavior-changing weaknesses over reranker micro-calibration.
-Long varied sessions still need longitudinal compaction monitoring; duplicate/
-conflict adjudication and authenticated multi-user ownership remain separately
-deferred discussions. GPT Actions stays an experimental adapter and must not
-drive native-system complexity.
-
-Do not add another organ before these surfaces make the current system easier
-to reason about than it is today.
+GPT Actions remains an experimental adapter. Native project-selected providers
+and the shared Core contracts remain authoritative.

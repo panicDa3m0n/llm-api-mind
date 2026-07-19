@@ -6,6 +6,34 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V2 Architecture Baseline - Core Closure Contract
+
+#### Added
+
+- Add the canonical Core Runtime contract with named Product UI, External
+  Adapter, and Agentic Module boundaries, sources of truth, dependency rules,
+  audiences, versions, and compatibility classes.
+- Record ADR-0107 so the V1.50.1 Core closure and V2 layer taxonomy remain a
+  durable decision rather than a Linear-only convention.
+
+#### Changed
+
+- Align the repository entry points, current-state roadmap, API contract,
+  block/branch maps, quality notes, and historical monolith plan with the
+  closed Core and active SCA-46 V2 sequence.
+- Reclassify unresolved research, mypy expansion, GPT router cleanup, and old
+  UI componentization as future annotations instead of active Core backlog.
+
+#### Verification
+
+- Documentation integrity passes across 69 files and 1,253 repository
+  references; `git diff --check` passes and the current-state scan finds no
+  stale V1 roadmap markers presented as active work.
+- An in-memory application inspection confirms runtime OpenAPI remains
+  V1.50.1 with 28 operations and the model-facing shell remains registry v2
+  with the same eight command families. No prompt, schema, database, provider,
+  or runtime code changes are included.
+
 ### V1.50.1 - Native Finality Semantic Recovery
 
 #### Fixed

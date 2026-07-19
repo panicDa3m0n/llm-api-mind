@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Version: 1.37.0
-Status: active experimental runtime
-Last updated: 2026-07-14
+Architecture baseline: Core V1.50.1 deployed and release-accepted
+Status: Core V1 closed; V2 product and module architecture active
+Last updated: 2026-07-19
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -51,6 +51,12 @@ The canonical integrated status and convergent roadmap now live in:
 
 ```txt
 docs/project-state.md
+```
+
+The canonical ownership, dependency, and compatibility boundary lives in:
+
+```txt
+docs/core-runtime-contract.md
 ```
 
 The canonical documentation index and branch map now live in:
@@ -1482,7 +1488,7 @@ MiniMax + specific cognitive module
 
 Avoid comparing a full improved system against a weak baseline without isolating which component caused the improvement.
 
-## 18. First Implementation Slice
+## 18. First Implementation Slice (Historical, Completed)
 
 The first useful implementation should be:
 
@@ -1527,17 +1533,17 @@ Avoid:
 
 ## 20. Current Next Steps
 
-Immediate next recommended steps:
+The Core V1 foundation described by the original implementation sequence is
+closed on V1.50.1. The active V2 sequence is:
 
 ```txt
-1. Close and monitor shared final-answer obligations across native and GPT transports.
-2. Validate the active context-mode router against independent organ defaults.
-3. Monitor recursive chronology quality, token partitions, and canonical fallback.
-4. Design evidence-first duplicate/conflict handling and deterministic user ownership.
-5. Define risk, authorization, reversibility, and receipts before autonomous actions.
-6. Reorganize the largest code monoliths behind the frozen pre/post regression gate.
+1. Preserve the named Core contracts and define scarlet-stream-v2 recovery.
+2. Build one approved mobile-first Product UI for web and Android.
+3. Define Agentic Module ports, permissions, lifecycle, host, and SDK.
+4. Accept V2 only after migration, regression, deployment, and rollback proof.
 ```
 
-The current milestone is an inspectable cognitive core whose existing organs
-can be measured and routed reliably before external action or embodiment adds
-high-frequency perception and safety requirements.
+The exact boundary is `docs/core-runtime-contract.md`; Linear SCA-46 owns the
+operational order. Monitoring findings and immature research branches remain
+sourceable future annotations. They do not reopen the Core without current
+evidence or an explicit owner decision.

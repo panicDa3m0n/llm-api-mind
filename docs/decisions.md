@@ -7,6 +7,57 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0107 - Close Core V1 And Separate V2 Product And Module Boundaries
+
+Date: 2026-07-19
+Status: accepted architecture contract for V2 planning
+
+Context:
+
+V1.50.1 is deployed, release-accepted, and supported by deterministic,
+behavioral, deployment, and database-boundary evidence. The repository already
+has stable runtime owners, but current-state documentation still mixed
+implemented Core contracts with old V1 priorities, future cognitive research,
+the experimental GPT adapter, UI rework notes, and not-yet-designed module
+architecture. That made a mature baseline look perpetually unfinished and
+left later V2 issues without named dependency boundaries.
+
+Decision:
+
+- declare V1.50.1 the closed API Mind Core baseline;
+- distinguish API Mind Core Runtime, Product UI, External Adapters, and
+  Agentic Modules as separate architecture layers;
+- keep native selected-provider execution authoritative;
+- classify the GPT Actions bridge as an optional experimental adapter to the
+  same Core, never an architectural driver;
+- preserve `mind_shell(command, intent)` and `scarlet-model-context-v2` as the
+  stable model-facing cognitive contracts;
+- retain `/mind/*`, debug, maintenance, repositories, and rich context as
+  internal implementation/diagnostic boundaries;
+- treat Product UI V1 endpoints as compatible until the explicit
+  `scarlet-stream-v2` migration defines the V2 client contract;
+- reserve Agentic Module terminology as planning vocabulary until SCA-53
+  accepts manifest and Core Port schemas; and
+- keep monitoring findings, branch limits, bugs, and ideas sourceable without
+  representing all of them as active Core work.
+
+Consequences:
+
+Core closure is a baseline statement, not a claim that every research branch
+is mature or that future fixes are forbidden. Breaking Core changes require an
+explicit migration and rollback plan. Product UI and Agentic Modules depend on
+named Core ports and may not duplicate cognition or access persistence
+internals directly. Historical plans remain evidence but point forward to the
+active V2 roadmap rather than silently authorizing work.
+
+Links:
+
+- Linear SCA-46
+- Linear SCA-51
+- `docs/core-runtime-contract.md`
+- `docs/project-state.md`
+- `docs/api-contract.md`
+
 ## ADR-0106 - Second Native Marker Miss Uses Semantic Finality, Not Auto-Acceptance
 
 Date: 2026-07-18
