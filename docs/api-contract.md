@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App target: V1.52.0; V1.50.1 remains deployed and release-accepted
+App target: V1.53.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -4192,8 +4192,8 @@ POST /api/maintenance/jobs/{job_id}/run                         implemented
 
 ## Agentic Module Public Contracts
 
-Status: manifest and Core Port V1 contracts implemented in V1.52.0; Module
-Host not implemented.
+Status: manifest and Core Port V1 contracts implemented in V1.52.0; opt-in
+Module Host implemented in V1.53.0; no product module or HTTP route installed.
 
 These are Python/JSON data contracts, not HTTP routes and not model-facing
 tools. Canonical definitions:
@@ -4234,7 +4234,10 @@ ModuleLifecycleEvent
 tags, dependency presence/version/cycles, and dependency eligibility for the
 single active agent mode. It returns deterministic active/inactive/blocked
 states and dependencies-first order. It does not import, load, execute, or
-trust module code. Runtime enforcement belongs to SCA-54.
+trust module code. The V1.53.0 host consumes this plan and adds approved-root
+discovery, digest pinning, bounded JSONL subprocesses, permission gates,
+composition, telemetry, and fail isolation. Canonical host details live in
+`docs/agentic-module-host.md`.
 
 ## Future Mind API Annotations
 

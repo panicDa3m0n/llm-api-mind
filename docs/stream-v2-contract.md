@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-19
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.52.0
+Contract introduced: V1.51.0; current app target: V1.53.0
 Linear issue: SCA-47
 
 ## 1. Purpose

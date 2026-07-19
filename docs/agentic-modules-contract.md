@@ -1,8 +1,8 @@
 # Agentic Modules Contract
 
 Last updated: 2026-07-19
-App target: V1.52.0 over the release-accepted V1.50.1 Core
-Contract status: accepted public V1 contract; host not implemented
+App target: V1.53.0 over the release-accepted V1.50.1 Core
+Contract status: accepted public V1 contract; opt-in host implemented
 Linear issue: SCA-53
 
 ## 1. Purpose
@@ -12,9 +12,10 @@ capabilities to Scarlet through versioned Core Ports. They are outside the
 closed Core Runtime and cannot import or access Core repositories, database
 sessions, secrets, provider clients, prompt internals, or maintenance owners.
 
-This contract defines what a module may declare and exchange. It deliberately
-does not discover, load, start, or sandbox module code. Those responsibilities
-belong to the host tracked by SCA-54.
+This contract defines what a module may declare and exchange. The opt-in host
+implements discovery, lifecycle, typed calls, telemetry, and failure isolation
+in V1.53.0. It does not sandbox hostile code or wire product modules into chat.
+Its canonical operational contract is `docs/agentic-module-host.md`.
 
 Canonical executable sources:
 
@@ -133,9 +134,9 @@ discover -> validate -> load -> start -> health -> stop
 or `skipped`. A manifest chooses eager/lazy startup and never/on-failure
 restart within bounded retries. It cannot add hidden lifecycle phases.
 
-Discovery and validation do not execute module code. Loading and later phases
-are SCA-54 responsibilities. Untrusted-code sandbox guarantees remain outside
-V2 scope; only operator-installed modules may be considered by the first host.
+Discovery and validation do not execute module code. The V1.53.0 host owns the
+later phases for operator-approved, manifest-digest-pinned modules. Untrusted-
+code sandbox guarantees remain outside V2 scope.
 
 ## 7. Deterministic Activation
 
@@ -161,8 +162,8 @@ Rules:
 7. `maintenance` and `dream` are rejected as agent-mode tags. Background
    system processes use separate scheduling and lifecycle contracts.
 
-This planner does not load code. SCA-54 must consume this exact plan or an
-explicitly versioned successor rather than reimplementing the rules ad hoc.
+This planner does not load code. The V1.53.0 host consumes this exact plan
+rather than reimplementing compatibility and dependency rules ad hoc.
 
 ## 8. Invalid Examples
 
@@ -206,10 +207,11 @@ changes a required dependency into optional behavior.
 - Core canonical history, cognition, persistence, and policy remain valid when
   every optional module is absent.
 
-## 10. Deferred Host Work
+## 10. Host And Deferred Work
 
-SCA-54 owns discovery roots, signature/trust policy, process supervision,
-transport framing, enforcement, contribution composition, health state,
-failure isolation, receipts, and shutdown. SCA-55 owns the SDK, scaffold, and
-conformance kit. Neither issue may broaden module permissions by importing
-Core internals around this contract.
+SCA-54 implements approved-root discovery, manifest digest pinning, process
+supervision, JSONL framing, permission gates, contribution composition, health,
+failure isolation, receipts, and shutdown. SCA-55 owns the distributable SDK,
+scaffold, and conformance kit. Product modules, hostile-code sandboxing,
+package signatures, persistent module state, UI controls, and chat integration
+remain deferred. None may broaden permissions by importing Core internals.

@@ -53,6 +53,9 @@ discussed before a new fix is attempted.
 - `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
   permission/dependency model, lifecycle, activation rules, and compatibility
   boundary for optional V2 Agentic Modules.
+- `docs/agentic-module-host.md`: approved-root discovery, process transport,
+  lifecycle supervision, port composition, telemetry, and failure-isolation
+  contract for the opt-in V2 Module Host.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

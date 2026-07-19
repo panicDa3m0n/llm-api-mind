@@ -6,6 +6,34 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.53.0 - Agentic Module Host
+
+#### Added
+
+- Add deterministic discovery for operator-approved module roots with strict
+  manifest validation and SHA-256 policy pinning.
+- Add bounded persistent `stdio-json-v1` subprocess transport, opt-in Module
+  Host lifecycle, typed port routing/composition, runtime dependency
+  quarantine, and in-memory/repository telemetry receipts.
+- Add a real subprocess conformance fixture covering all V1 ports plus timeout,
+  crash, malformed output, disable, trust, ordering, and trace behavior.
+- Add the canonical Module Host contract and ADR-0111.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.53.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Promote SCA-54 host mechanics from planned to implemented without installing
+  product modules or changing the native chat path.
+
+#### Verification
+
+- Focused Agentic Module contract/host tests pass 26/26 with real subprocesses.
+- Ruff and the expanded 33-module mypy gate pass.
+- The complete backend passes 297 tests at 82.40% coverage; frontend build,
+  72-file documentation integrity, 34-module mypy, Ruff, and direct host smoke
+  pass. OpenAPI remains at 30 operations; remote quality is checked after push.
+
 ### V1.52.0 - Agentic Module Contract Baseline
 
 #### Added
