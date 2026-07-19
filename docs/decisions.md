@@ -7,6 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0111 - Module Host Is Opt-In, Out-Of-Process, And Operator-Pinned
+
+Date: 2026-07-19
+Status: accepted for V1.53.0
+
+Context:
+
+SCA-53 defined what optional modules may declare but deliberately did not load
+code. A host must add useful extension mechanics without making optional code a
+new owner of Core state, leaking secrets through process inheritance, or
+claiming security properties that a local subprocess cannot provide.
+
+Decision:
+
+- discover only direct child installs under explicit operator roots;
+- require both approved module id and exact manifest SHA-256 before execution;
+- use the SCA-53 planner unchanged for compatibility, modes, and dependencies;
+- execute one persistent `stdio-json-v1` subprocess per active module without a
+  shell, with an allowlisted environment, serialized calls, bounded framing,
+  timeouts, process-group termination, and supported OS resource limits;
+- validate typed and capability-level output before composition;
+- quarantine a failed module and its required runtime dependents while allowing
+  unrelated modules and the Core to continue;
+- persist session-owned receipts through existing traces/events, with no new
+  canonical state table; and
+- keep the host opt-in and disconnected from native chat until a product module
+  has its own approved integration issue.
+
+Consequences:
+
+Disabling or omitting every module restores the unchanged Core path. Digest
+pinning protects the manifest declaration but is not package signing. Linux
+receives hard address-space/file-descriptor limits; portable CPU-percentage
+enforcement and hostile-code sandboxing remain future deployment work. SCA-55
+can now build an SDK against a real protocol and fixture rather than inventing
+host behavior.
+
+Links:
+
+- Linear SCA-54
+- `docs/agentic-module-host.md`
+- `backend/app/agentic_modules/host.py`
+- `backend/app/agentic_modules/transport.py`
+
 ## ADR-0110 - Agentic Modules Use Strict Manifests And Typed Core Ports
 
 Date: 2026-07-19

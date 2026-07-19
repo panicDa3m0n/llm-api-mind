@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 deployed; V1.52.0 module contract target in development
+Architecture baseline: Core V1.50.1 deployed; V1.53.0 module host target in development
 Status: Core V1 closed; V2 product and module architecture active
 Last updated: 2026-07-19
 Primary human: project owner, evaluator, direction, validation  
@@ -63,6 +63,7 @@ The accepted public contract for optional Agentic Modules lives in:
 
 ```txt
 docs/agentic-modules-contract.md
+docs/agentic-module-host.md
 ```
 
 The canonical documentation index and branch map now live in:

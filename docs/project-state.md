@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-19
-App target: V1.52.0; V1.50.1 remains deployed and release-accepted
+App target: V1.53.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -106,8 +106,10 @@ Implemented and verified:
 - native project-selected providers remain authoritative; GPT Actions are an
   experimental external adapter and do not drive core architecture.
 - strict Agentic Module manifest and Core Port V1 contracts are accepted as an
-  additive architecture surface; no module discovery, host, or execution is
-  active yet.
+  additive architecture surface;
+- an opt-in Module Host now discovers only operator-approved, digest-pinned
+  modules and isolates their typed subprocess calls; no product module is
+  installed and native chat behavior is unchanged.
 
 Current verification baseline:
 
@@ -348,11 +350,12 @@ data contracts. They define compatibility, mode tags, capabilities,
 permissions, dependencies, process/resource declarations, typed exchanges,
 and deterministic activation planning.
 
-No Module Host exists yet. The Core does not discover or execute manifests,
-and no product organ has become a module. SCA-54 owns discovery, supervision,
-runtime permission enforcement, contribution composition, health, failure
-isolation, and receipts. Direct database, secret, provider, prompt-owner, or
-Core-internal access remains outside the module permission vocabulary.
+V1.53.0 adds the opt-in Module Host for approved-root discovery, process
+supervision, runtime permission enforcement, contribution composition, health,
+failure isolation, and receipts. No product organ has become a module and the
+native Core does not instantiate the host automatically. Direct database,
+secret, provider, prompt-owner, or Core-internal access remains outside the
+module permission vocabulary.
 
 ## 4. Agentic Branch Assessment
 
@@ -425,12 +428,13 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in twenty-eight high-value typed modules while the measured
+- mypy blocks regressions in thirty-four high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
 - the closed V1.50.1 backend suite passes 266 tests at 81.89% statement
   coverage; the V1.51.0 stream target passes 271 tests at 82.08%; the V1.52.0
-  module-contract target passes 286 tests at 82.47%; the blocking floor
-  remains 79.9% against the V1.33 baseline;
+  module-contract target passes 286 tests at 82.47%; the V1.53.0 module-host
+  target passes 297 tests at 82.40%; the blocking floor remains 79.9% against
+  the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
 - GitHub Actions executes these gates and the frontend production build on
@@ -467,8 +471,9 @@ technical invariants; Linear owns ordering and work state.
 1. SCA-53 is complete: strict manifest, typed Core Ports, modes/tags,
    permissions, dependencies, lifecycle, compatibility, and deterministic
    activation planning are accepted without loading code.
-2. SCA-54 implements registry, host, observability, and failure isolation.
-3. SCA-55 publishes the SDK and a conformance fixture, not a product module.
+2. SCA-54 is complete: registry, host, observability, and failure isolation are
+   implemented as an opt-in operator-trust boundary.
+3. SCA-55 publishes the SDK and distributable conformance kit, not a product module.
 
 ### P3 - Release Candidate
 

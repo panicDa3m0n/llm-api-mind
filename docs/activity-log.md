@@ -4,6 +4,34 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Agentic Module Host And Isolation (SCA-54)
+
+Implemented the opt-in host over the accepted SCA-53 contracts. Discovery now
+scans only direct children of approved roots, rejects symlinks and malformed or
+oversized manifests, and requires an operator-approved module id plus exact
+manifest SHA-256. The existing activation planner remains authoritative for
+Core/port compatibility, mode selection, dependencies, and stable order.
+
+The persistent `stdio-json-v1` transport launches without a shell, strips the
+environment to an allowlist, bounds framing/stderr/time, terminates process
+groups on failure, and adds Linux memory/file-descriptor limits. The host owns
+discover/validate/load/start/health/stop/failure receipts, context/prompt/
+command/event routing, permission gates, bounded deterministic composition,
+disable/re-enable, and required-dependent quarantine. Independent modules and
+the Core remain available after timeout, crash, malformed output, or invalid
+contract output.
+
+Receipts can remain in memory or project into the existing Trace and
+CognitiveEvent stores with session/turn anchors; no DB schema changed. A real
+subprocess fixture exercises normal ports and deliberate failures. Product
+modules, automatic chat wiring, SDK, package signatures, UI, persistent module
+state, and hostile-code sandboxing remain out of scope. Focused tests pass
+26/26; the complete backend passes 297 tests at 82.40% coverage. Ruff, the
+34-module mypy gate, frontend production build, and 72-file documentation gate
+pass. A direct process smoke completed discovery through stop with one context
+contribution and one command result. OpenAPI remains at 30 operations; remote
+quality evidence is appended after push.
+
 ## 2026-07-19 - Agentic Module Manifest And Core Port Contract (SCA-53)
 
 Defined the first executable public contract for optional Agentic Modules
