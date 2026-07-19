@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 deployed; V1.52.0 Product UI prototype awaiting approval
+Architecture baseline: Core V1.50.1 deployed; V1.54.0 module SDK implemented; Product UI prototype awaiting approval
 Status: Core V1 closed; V2 product and module architecture active
 Last updated: 2026-07-19
 Primary human: project owner, evaluator, direction, validation  
@@ -57,6 +57,14 @@ The canonical ownership, dependency, and compatibility boundary lives in:
 
 ```txt
 docs/core-runtime-contract.md
+```
+
+The accepted public contract for optional Agentic Modules lives in:
+
+```txt
+docs/agentic-modules-contract.md
+docs/agentic-module-host.md
+docs/agentic-module-sdk.md
 ```
 
 The canonical documentation index and branch map now live in:

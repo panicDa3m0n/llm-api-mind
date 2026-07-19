@@ -53,6 +53,15 @@ discussed before a new fix is attempted.
 - `docs/product-ui-prototype.md`: SCA-48 static Product UI information
   architecture, fixture boundary, preview states, visual tokens, component
   equivalence notes, browser evidence, screenshots, and approval gate.
+- `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
+  permission/dependency model, lifecycle, activation rules, and compatibility
+  boundary for optional V2 Agentic Modules.
+- `docs/agentic-module-host.md`: approved-root discovery, process transport,
+  lifecycle supervision, port composition, telemetry, and failure-isolation
+  contract for the opt-in V2 Module Host.
+- `docs/agentic-module-sdk.md`: standalone SDK install/build, canonical public
+  contracts, module-side runtime, scaffold, schema export, conformance, and
+  operator handoff.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

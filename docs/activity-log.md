@@ -30,6 +30,91 @@ overlap. Four final screenshots are versioned under
 `docs/assets/product-ui-prototype/`. SCA-48 remains open pending explicit owner
 approval, and no runtime/database data entered the prototype.
 
+The branch was subsequently refreshed onto the V1.54.0 Agentic Module SDK
+baseline. Merge conflicts were limited to shared version and documentation
+surfaces; the prototype interaction and visual implementation stayed unchanged,
+and the explicit owner-approval gate remains active.
+
+## 2026-07-19 - Agentic Module SDK And Conformance Kit (SCA-55)
+
+Implemented the public `scarlet-agentic-module-sdk` 1.0.0 package without
+creating a second contract implementation. Manifest and Core Port Pydantic
+models now live in the public SDK namespace; the host imports those exact
+classes and the old Core path remains a compatibility re-export.
+
+The SDK adds a conservative module-side JSONL runtime, scaffold CLI, localized
+manifest diagnostics, versioned JSON Schema export, and a standalone live
+conformance runner. Conformance covers permissions/modes, lifecycle, health,
+all declared context/prompt/command/event capabilities, capability-level
+limits, structured unknown-operation errors, correlation ids, durations, and
+stop. Its receipt list is development evidence and remains distinct from Core
+Trace/CognitiveEvent persistence.
+
+An SDK wheel built from `backend/sdk` was installed under `/tmp` without the
+backend package. From that isolated package, the CLI generated a fresh module
+and passed the complete conformance sequence without manual patches. The same
+generated scaffold also activated in the real SCA-54 host and returned valid
+context and command output. Focused tests pass 33/33; the complete backend and
+SDK pass 304 tests at 82.46% combined coverage. Ruff and mypy over 42 files
+pass. Frontend, documentation, OpenAPI, database boundary, and remote checks
+also pass locally: Vite builds V1.54.0, documentation integrity validates 73
+files, and isolated OpenAPI inspection remains at 30 operations. Database and
+remote checks are recorded at commit/publication time.
+
+## 2026-07-19 - Agentic Module Host And Isolation (SCA-54)
+
+Implemented the opt-in host over the accepted SCA-53 contracts. Discovery now
+scans only direct children of approved roots, rejects symlinks and malformed or
+oversized manifests, and requires an operator-approved module id plus exact
+manifest SHA-256. The existing activation planner remains authoritative for
+Core/port compatibility, mode selection, dependencies, and stable order.
+
+The persistent `stdio-json-v1` transport launches without a shell, strips the
+environment to an allowlist, bounds framing/stderr/time, terminates process
+groups on failure, and adds Linux memory/file-descriptor limits. The host owns
+discover/validate/load/start/health/stop/failure receipts, context/prompt/
+command/event routing, permission gates, bounded deterministic composition,
+disable/re-enable, and required-dependent quarantine. Independent modules and
+the Core remain available after timeout, crash, malformed output, or invalid
+contract output.
+
+Receipts can remain in memory or project into the existing Trace and
+CognitiveEvent stores with session/turn anchors; no DB schema changed. A real
+subprocess fixture exercises normal ports and deliberate failures. Product
+modules, automatic chat wiring, SDK, package signatures, UI, persistent module
+state, and hostile-code sandboxing remain out of scope. Focused tests pass
+26/26; the complete backend passes 297 tests at 82.40% coverage. Ruff, the
+34-module mypy gate, frontend production build, and 72-file documentation gate
+pass. A direct process smoke completed discovery through stop with one context
+contribution and one command result. OpenAPI remains at 30 operations; remote
+quality evidence is appended after push.
+
+## 2026-07-19 - Agentic Module Manifest And Core Port Contract (SCA-53)
+
+Defined the first executable public contract for optional Agentic Modules
+without implementing a host. Strict Pydantic models now cover identity,
+SemVer/Core compatibility, exact contract versions, agent-mode tags, typed
+context/prompt/command/event capabilities, a closed permission allowlist,
+required/optional dependencies, process transport declaration, bounded
+resources/timeouts/health, lifecycle policy, and typed port envelopes.
+
+The deterministic activation planner rejects duplicate ids, unknown mode
+tags, incompatible Core or port versions, missing/incompatible required
+dependencies, required cycles, and dependencies unavailable in the selected
+agent mode. Optional dependency failures remain warnings, unrelated valid
+modules remain plannable, and required dependencies are ordered first. Direct
+DB/secrets/Core-internal permissions are not expressible.
+
+ADR-0110 and `docs/agentic-modules-contract.md` distinguish agent mode, organ,
+system process, module, capability, and permission. Valid and invalid JSON
+fixtures are executable documentation. Focused contract/mode/organ tests pass
+31/31; Ruff and the 28-module mypy gate pass. The complete backend passes 286
+tests at 82.47% coverage, the frontend production build passes after a clean
+`npm ci`, documentation integrity passes across 71 files, and isolated OpenAPI
+inspection remains at 30 operations. No discovery, host execution, DB, prompt,
+provider, or runtime behavior changed. SCA-54 remains the owner of enforcement
+and isolation.
+
 ## 2026-07-19 - Scarlet Stream V2 And Deterministic Client Recovery (SCA-47)
 
 Added the additive `scarlet-stream-v2` Product UI port over the unchanged

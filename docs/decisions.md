@@ -50,6 +50,140 @@ Links:
 - `frontend/src/prototype/prototypeData.ts`
 - `docs/product-ui-prototype.md`
 
+## ADR-0112 - The SDK Owns One Public Contract Source And Executable Conformance
+
+Date: 2026-07-19
+Status: accepted for V1.54.0
+
+Context:
+
+SCA-53 and SCA-54 established strict contracts and a real host, but the model
+classes still lived under an internal Core namespace and the only subprocess
+fixture was handwritten. Copying models into a nominal SDK would let host and
+module validation drift, while documentation-only examples would not prove
+that an independently created module actually speaks the protocol.
+
+Decision:
+
+- publish `scarlet_agentic_module_sdk` as the canonical owner of manifest and
+  Port V1 models imported by both module authors and the host;
+- retain the old Core contract module only as a compatibility re-export;
+- distribute the SDK as a standalone Pydantic-only wheel while also including
+  it in the backend build;
+- provide a conservative module-side JSONL server rather than exposing any
+  Core repository, database, provider, secret, or prompt owner;
+- make scaffold output executable and require the unmodified output to pass
+  both standalone conformance and the real host;
+- validate manifest relationships, modes, lifecycle, every declared port,
+  capability limits, structured errors, and correlated request evidence; and
+- include the public package in lint, typing, test, and coverage gates.
+
+Consequences:
+
+SDK 1.0.0, app V1.54.0, and protocol V1 are separate version identities. A
+passing conformance report proves protocol compatibility, not semantic quality,
+operator approval, package integrity, hostile-code safety, or chat integration.
+The operator must still pin the exact manifest digest before host execution.
+
+Links:
+
+- Linear SCA-55
+- `docs/agentic-module-sdk.md`
+- `backend/scarlet_agentic_module_sdk/`
+- `backend/sdk/pyproject.toml`
+
+## ADR-0111 - Module Host Is Opt-In, Out-Of-Process, And Operator-Pinned
+
+Date: 2026-07-19
+Status: accepted for V1.53.0
+
+Context:
+
+SCA-53 defined what optional modules may declare but deliberately did not load
+code. A host must add useful extension mechanics without making optional code a
+new owner of Core state, leaking secrets through process inheritance, or
+claiming security properties that a local subprocess cannot provide.
+
+Decision:
+
+- discover only direct child installs under explicit operator roots;
+- require both approved module id and exact manifest SHA-256 before execution;
+- use the SCA-53 planner unchanged for compatibility, modes, and dependencies;
+- execute one persistent `stdio-json-v1` subprocess per active module without a
+  shell, with an allowlisted environment, serialized calls, bounded framing,
+  timeouts, process-group termination, and supported OS resource limits;
+- validate typed and capability-level output before composition;
+- quarantine a failed module and its required runtime dependents while allowing
+  unrelated modules and the Core to continue;
+- persist session-owned receipts through existing traces/events, with no new
+  canonical state table; and
+- keep the host opt-in and disconnected from native chat until a product module
+  has its own approved integration issue.
+
+Consequences:
+
+Disabling or omitting every module restores the unchanged Core path. Digest
+pinning protects the manifest declaration but is not package signing. Linux
+receives hard address-space/file-descriptor limits; portable CPU-percentage
+enforcement and hostile-code sandboxing remain future deployment work. SCA-55
+can now build an SDK against a real protocol and fixture rather than inventing
+host behavior.
+
+Links:
+
+- Linear SCA-54
+- `docs/agentic-module-host.md`
+- `backend/app/agentic_modules/host.py`
+- `backend/app/agentic_modules/transport.py`
+
+## ADR-0110 - Agentic Modules Use Strict Manifests And Typed Core Ports
+
+Date: 2026-07-19
+Status: accepted for V1.52.0 before Module Host implementation
+
+Context:
+
+The closed Core must support future perception, action, and cognitive
+capabilities without letting optional code import persistence, prompt,
+provider, or runtime owners directly. The existing organ registry describes
+internal Core capabilities and cannot serve as a plugin manifest. Agent modes
+also describe Scarlet's foreground posture; maintenance and future Dream work
+are background processes and must not become modes for routing convenience.
+
+Decision:
+
+- introduce strict `agentic-module-manifest-v1` Pydantic contracts;
+- require stable module identity, SemVer, Core and exact port compatibility,
+  agent-mode tags, typed capabilities, allowlisted permissions, explicit
+  dependencies, bounded resources/timeouts/health, and lifecycle policy;
+- expose only versioned context, prompt, command, event, health, and lifecycle
+  envelopes as future Core Ports;
+- reject direct database, secret, provider, repository, prompt-owner, and Core
+  internal access by making those permissions inexpressible;
+- select modules from one active agent-mode tag, require compatible dependency
+  closure, order dependencies first, and keep missing optional dependencies as
+  warnings rather than hidden fallbacks;
+- keep system processes separate from agent modes; and
+- leave discovery, execution, supervision, enforcement, and isolation to
+  SCA-54, with no untrusted-code sandbox guarantee in this contract.
+
+Consequences:
+
+SCA-54 has an executable input contract and cannot invent another permission
+or dependency model inside the host. Modules remain optional: the Core and its
+canonical state are valid when none are installed. Strict schemas increase
+upfront compatibility work, but make drift and unsupported access explicit.
+The first host must be restricted to operator-installed modules and enforce
+every declared boundary at runtime; validation alone is not process isolation.
+
+Links:
+
+- Linear SCA-53
+- `docs/agentic-modules-contract.md`
+- `backend/scarlet_agentic_module_sdk/contracts.py`
+- `backend/app/agentic_modules/contracts.py` (compatibility re-export)
+- `backend/app/agentic_modules/validation.py`
+
 ## ADR-0108 - Product Clients Reduce Durable Runtime Events, Not Provider Deltas
 
 Date: 2026-07-19

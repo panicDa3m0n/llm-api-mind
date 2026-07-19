@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.52.0. Closed deployed Core baseline: V1.50.1.
+Development target: V1.54.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -34,6 +34,13 @@ Current scope:
 - executable command-registry/help conformance, truthful collection
   pagination, explicit targeted misses, and lifecycle-tested session, focus,
   volition, affect, mode, and metacognition families;
+- strict, host-independent Agentic Module manifest and typed Core Port V1
+  contracts with deterministic permission/dependency/mode validation;
+- opt-in Agentic Module registry/host with approved manifest digests, bounded
+  subprocess transport, typed composition, lifecycle receipts, and failure
+  isolation outside the unchanged Core chat path;
+- standalone Agentic Module SDK package with canonical shared contracts,
+  module runtime helpers, scaffold, schema export, and conformance CLI;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
 - semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede
@@ -70,6 +77,16 @@ source .venv/bin/activate
 python3 -m pip install -e ".[dev]"
 cp .env.example .env
 ```
+
+Build or install only the public Agentic Module SDK:
+
+```bash
+python -m pip install ./sdk
+scarlet-agentic-module --help
+```
+
+The standalone package depends only on Pydantic. See
+`../docs/agentic-module-sdk.md` for module development and conformance.
 
 Add your MiniMax key to `backend/.env` for the default provider:
 

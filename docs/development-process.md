@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app target: V1.52.0; V1.50.1 remains deployed and release-accepted
+Current app target: V1.54.0; V1.50.1 remains deployed and release-accepted
 Process baseline: V1.0.1
 Status: accepted
 
@@ -252,3 +252,6 @@ line includes:
 - blocking Ruff checks for objective Python defects, an incremental mypy gate,
   a measured full-suite coverage floor, deterministic documentation integrity,
   and a GitHub Actions workflow that runs these checks with the frontend build.
+- strict Agentic Module contracts, an opt-in isolated host, and a standalone
+  SDK/conformance kit over one canonical public schema source, with no product
+  module or native chat integration installed.

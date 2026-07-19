@@ -19,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current development target: **V1.52.0**. The closed, deployed Core baseline is
+Current development target: **V1.54.0**. The closed, deployed Core baseline is
 **V1.50.1**.
 
 The project has a working local baseline runtime:
@@ -56,6 +56,12 @@ The project has a working local baseline runtime:
   session-global replay cursors, and deterministic recovery semantics;
 - an isolated `/prototype` Product UI approval surface with schema-realistic
   V2 fixtures, mobile-first responsive flows, and a developer evidence lens;
+- strict Agentic Module manifest and typed Core Port V1 contracts with
+  deterministic compatibility, permission, dependency, and mode planning;
+- an opt-in, operator-pinned Agentic Module Host with bounded out-of-process
+  JSONL calls, lifecycle, composition, telemetry, and failure isolation;
+- a standalone Agentic Module SDK with shared contracts, scaffold, module-side
+  JSONL runtime, schema export, and executable conformance checks;
 - backend-owned per-session idle maintenance for session summary refresh,
   missed-memory review, memory proposal generation, and cautious proposal
   resolution;
@@ -85,6 +91,8 @@ The project has a working local baseline runtime:
   adapter/Agentic Module boundary and compatibility policy.
 - `docs/stream-v2-contract.md`: canonical Product UI event, replay, and
   recovery contract.
+- `docs/agentic-module-sdk.md`: public module development, protocol runtime,
+  scaffold, schema, conformance, and host-installation guide.
 - `docs/project-blueprint.md`: main project blueprint.
 - `docs/activity-log.md`: continuity log.
 - `docs/decisions.md`: architectural decisions.
@@ -111,8 +119,8 @@ The project has a working local baseline runtime:
    SCA-47; release verification remains before acceptance.
 3. Approve a static mobile-first Product UI, then build one responsive web and
    Android client over the same Core contracts.
-4. Define Agentic Module contracts, host isolation, and the official SDK
-   without adding product modules prematurely.
+4. Agentic Module contracts, host isolation, and the official SDK are
+   implemented without adding product modules prematurely.
 5. Validate migration, Core regression, UI/Android behavior, module
    conformance, deployment, and rollback before accepting V2.0.0.
 ```

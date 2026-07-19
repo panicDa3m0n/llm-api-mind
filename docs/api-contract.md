@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App target: V1.51.0; V1.50.1 remains deployed and release-accepted
+App target: V1.54.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -4189,6 +4189,63 @@ POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
+
+## Agentic Module Public Contracts
+
+Status: manifest and Core Port V1 contracts implemented in V1.52.0; opt-in
+Module Host implemented in V1.53.0; standalone SDK/conformance kit implemented
+in V1.54.0; no product module or HTTP route installed.
+
+These are Python/JSON data contracts, not HTTP routes and not model-facing
+tools. Canonical definitions:
+
+```txt
+backend/scarlet_agentic_module_sdk/contracts.py
+backend/app/agentic_modules/contracts.py  compatibility re-export
+backend/app/agentic_modules/validation.py
+docs/agentic-modules-contract.md
+docs/agentic-module-sdk.md
+```
+
+Version identities:
+
+```txt
+agentic-module-manifest-v1
+agentic-module-port-v1
+agentic-module-lifecycle-v1
+```
+
+The strict manifest declares module identity and SemVer, Core compatibility,
+exact required Core contracts, one or more registered agent-mode tags, typed
+capabilities, allowlisted permissions, required/optional dependencies,
+declarative process transport, resource budgets, timeouts, health, and
+lifecycle policy. Unknown fields and unknown permissions fail validation.
+
+Typed Core Port envelopes cover:
+
+```txt
+ContextPortRequest -> ContextPortResult
+PromptPortRequest  -> PromptPortResult
+CommandPortRequest -> CommandPortResult
+CommandCatalogResult
+EventPortRequest   -> EventPortResult
+HealthPortRequest  -> HealthPortResult
+ModuleLifecycleEvent
+```
+
+`build_activation_plan()` validates Core/contract compatibility, known mode
+tags, dependency presence/version/cycles, and dependency eligibility for the
+single active agent mode. It returns deterministic active/inactive/blocked
+states and dependencies-first order. It does not import, load, execute, or
+trust module code. The V1.53.0 host consumes this plan and adds approved-root
+discovery, digest pinning, bounded JSONL subprocesses, permission gates,
+composition, telemetry, and fail isolation. Canonical host details live in
+`docs/agentic-module-host.md`.
+
+The `scarlet-agentic-module-sdk` 1.0.0 distribution is not an HTTP API. It
+exports these same contract classes, a module-side JSONL runtime, scaffold,
+localized validation, schema generation, and executable conformance CLI. Its
+checks do not approve installation or grant runtime permissions.
 
 ## Future Mind API Annotations
 

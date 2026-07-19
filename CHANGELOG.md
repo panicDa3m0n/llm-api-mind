@@ -6,7 +6,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-### V1.52.0 - Static Product UI Approval Prototype
+### Static Product UI Approval Prototype (SCA-48)
 
 #### Added
 
@@ -23,8 +23,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Move the frontend build pipeline to Tailwind CSS 4 through the official Vite
   plugin while preserving the existing client build.
-- Advance the development target to V1.52.0; V1.50.1 remains the deployed,
-  release-accepted Core and V1.51.0 remains the merged stream contract.
+- Build the prototype initially on the V1.52 development branch and refresh it
+  onto V1.54.0 without assigning a Product UI release version before owner
+  approval; V1.50.1 remains the deployed, release-accepted Core.
 
 #### Verification
 
@@ -36,6 +37,102 @@ This project uses a practical changelog rather than a release-only log: each mea
   errors.
 - Owner approval remains required before SCA-48 can close or any real-data
   integration begins.
+
+### V1.54.0 - Agentic Module SDK And Conformance Kit
+
+#### Added
+
+- Add the standalone `scarlet-agentic-module-sdk` 1.0.0 package with the exact
+  manifest and Core Port models used by the host.
+- Add module-side JSONL runtime helpers, deterministic scaffold generation,
+  localized manifest validation, versioned schema export, and a live
+  lifecycle/port/error conformance runner.
+- Add focused tests proving that an unmodified generated fixture passes the
+  standalone kit and the real Core host, plus the canonical SDK guide and
+  ADR-0112.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.54.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Make the public SDK package the canonical contract source and retain
+  `app.agentic_modules.contracts` as a compatibility re-export.
+- Extend Ruff, mypy, and coverage gates to include SDK source rather than
+  allowing public package code to sit outside measured quality boundaries.
+
+#### Verification
+
+- Focused Agentic Module contract/host/SDK tests pass 33/33.
+- The complete backend and SDK pass 304 tests at 82.46% combined coverage;
+  Ruff and mypy over 42 typed files pass.
+- A separately built SDK wheel installs outside the repository, generates a
+  module, and completes manifest, lifecycle, health, every declared port,
+  structured-error, and stop checks without patching the scaffold.
+- The frontend production build and 73-file documentation integrity gate pass;
+  isolated OpenAPI inspection remains unchanged at 30 operations.
+
+### V1.53.0 - Agentic Module Host
+
+#### Added
+
+- Add deterministic discovery for operator-approved module roots with strict
+  manifest validation and SHA-256 policy pinning.
+- Add bounded persistent `stdio-json-v1` subprocess transport, opt-in Module
+  Host lifecycle, typed port routing/composition, runtime dependency
+  quarantine, and in-memory/repository telemetry receipts.
+- Add a real subprocess conformance fixture covering all V1 ports plus timeout,
+  crash, malformed output, disable, trust, ordering, and trace behavior.
+- Add the canonical Module Host contract and ADR-0111.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.53.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Promote SCA-54 host mechanics from planned to implemented without installing
+  product modules or changing the native chat path.
+
+#### Verification
+
+- Focused Agentic Module contract/host tests pass 26/26 with real subprocesses.
+- Ruff and the expanded 34-module mypy gate pass.
+- The complete backend passes 297 tests at 82.40% coverage; frontend build,
+  72-file documentation integrity, 34-module mypy, Ruff, and direct host smoke
+  pass. OpenAPI remains at 30 operations; remote quality is checked after push.
+
+### V1.52.0 - Agentic Module Contract Baseline
+
+#### Added
+
+- Add strict `agentic-module-manifest-v1` models for identity, compatibility,
+  mode tags, capabilities, permissions, dependencies, resources, timeouts,
+  health, lifecycle, and declarative process transport.
+- Add typed V1 Core Port envelopes for context, prompt, command, event, health,
+  lifecycle, errors, budgets, and contributions.
+- Add a deterministic activation planner with dependency ordering, optional
+  dependency warnings, fail-closed compatibility checks, and per-module
+  blocked/inactive/active state.
+- Add tested valid and invalid manifest fixtures plus the canonical Agentic
+  Module contract and ADR-0110.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.52.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Promote Agentic Module names, manifests, permissions, modes/tags, and Core
+  Ports from planning vocabulary to an accepted public contract. Discovery,
+  host execution, enforcement, and sandboxing remain unimplemented.
+
+#### Verification
+
+- Focused Agentic Module, mode, and organ contracts pass 31/31; the complete
+  backend passes 286 tests at 82.47% coverage.
+- Ruff and the expanded 28-module mypy gate pass; the frontend production
+  build and 71-file documentation integrity gate pass.
+- JSON Schema generation, direct-database permission rejection, Core/port
+  compatibility, mode selection, missing required/optional dependencies,
+  dependency ordering, and cycle rejection are covered deterministically.
+- Isolated OpenAPI inspection reports V1.52.0 with the unchanged 30 HTTP
+  operations, confirming that SCA-53 adds contracts rather than a hidden host.
 
 ### V1.51.0 - Provider-Independent Stream And Recovery Contract
 

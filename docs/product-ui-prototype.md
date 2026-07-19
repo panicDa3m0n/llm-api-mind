@@ -1,7 +1,7 @@
 # Product UI Static Prototype
 
 Last updated: 2026-07-19
-Target: V1.52.0
+Current app target: V1.54.0; prototype remains an unversioned approval artifact
 Linear issue: SCA-48
 Status: implemented and awaiting explicit owner approval
 
@@ -11,6 +11,11 @@ The `/prototype` route is the approval artifact for the V2 Product UI. It is a
 static, mobile-first React application with schema-realistic fixtures. It does
 not call the backend and does not alter the existing `/` cockpit or `/mobile`
 consumer.
+
+The artifact was created on the parallel V1.52 development branch and refreshed
+onto V1.54.0 after the Agentic Module contract, host, and SDK landed. This
+technical refresh did not change its visual or interaction direction and does
+not count as owner approval.
 
 The prototype tests one product boundary: ordinary users follow Scarlet
 through chat, compact public notes, continuity, memories, and operating state;

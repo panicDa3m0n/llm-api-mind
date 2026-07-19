@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-Development target: V1.52.0. Deployed Core baseline: V1.50.1.
+Development target: V1.54.0. Deployed Core baseline: V1.50.1.
 
 Current scope:
 
