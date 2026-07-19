@@ -4,6 +4,12 @@ Last updated: 2026-07-19
 App baseline: V1.50.1 deployed and release-accepted
 Status: canonical branch map
 
+The V1.50.1 Core is closed and release-accepted. Branch maturity remains a
+research map: a `Next gate` is a future acceptance idea, not evidence that the
+Core is unfinished. Promote branch work only through the active V2 roadmap or
+an explicit owner decision. Architecture boundaries live in
+`docs/core-runtime-contract.md`.
+
 An agentic branch is an operating domain of Scarlet: what she can perceive,
 remember, regulate, communicate, decide, or do. Tests, traces, providers,
 schemas, storage, and UI are support infrastructure and must be mapped to the

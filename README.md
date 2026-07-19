@@ -1,7 +1,9 @@
 # LLM API Mind
 
-Experimental laboratory for building and evaluating the external cognitive
-architecture of Scarlet, a digital individual in development.
+Research and product laboratory for building and evaluating the external
+cognitive architecture of Scarlet, a digital individual in development. The
+V1 cognitive Core is a closed, release-accepted foundation; research branches
+and the V2 product architecture continue from that baseline.
 
 The project starts with a simple principle:
 
@@ -17,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current app baseline: **V1.39.0**.
+Current app baseline: **V1.50.1**, deployed and release-accepted.
 
 The project has a working local baseline runtime:
 
@@ -62,7 +64,8 @@ The project has a working local baseline runtime:
   preliminary whole-system regression experiments;
 - a declared database boundary between production, mutable laboratory state,
   disposable tests, and frozen preliminary regression runs.
-- active memory robustness roadmap for response-control, lifecycle, atomic facts, retrieval quality, compaction, CLI/API inspection, and evals.
+- a closed Core baseline with memory, context, shell, trace, maintenance, and
+  final-answer contracts preserved as the foundation for V2.
 
 ## Key Documents
 
@@ -73,6 +76,8 @@ The project has a working local baseline runtime:
 - `docs/branches/README.md`: canonical agentic branch index.
 - `docs/project-state.md`: current integrated system map and convergent
   roadmap.
+- `docs/core-runtime-contract.md`: canonical Core/Product UI/external
+  adapter/Agentic Module boundary and compatibility policy.
 - `docs/project-blueprint.md`: main project blueprint.
 - `docs/activity-log.md`: continuity log.
 - `docs/decisions.md`: architectural decisions.
@@ -91,24 +96,23 @@ The project has a working local baseline runtime:
 - `docs/release-process.md`: commit, changelog, and release discipline.
 - `CHANGELOG.md`: concrete history of meaningful changes.
 
-## Immediate Roadmap
+## V2 Roadmap
 
 ```txt
-1. Monitor active recursive history compaction across naturally long sessions
-   while preserving full canonical history and source navigation.
-2. Expand natural behavioral scenarios for context, communication, focus,
-   volition, affect, metacognition, identity, and memory.
-3. Validate those existing organs and behaviors before coupling organs or
-   adding autonomous cycles.
-4. Keep duplicate/conflict automation and authenticated ownership as separate
-   later workstreams; design ownership before personal data or
-   external/embodied operation expands.
-5. Reduce code monoliths behind the frozen regression gate.
+1. Formalize and preserve the closed Core contract.
+2. Define scarlet-stream-v2 and deterministic client recovery.
+3. Approve a static mobile-first Product UI, then build one responsive web and
+   Android client over the same Core contracts.
+4. Define Agentic Module contracts, host isolation, and the official SDK
+   without adding product modules prematurely.
+5. Validate migration, Core regression, UI/Android behavior, module
+   conformance, deployment, and rollback before accepting V2.0.0.
 ```
 
 See `docs/project-state.md` for the integrated current-state map and the
-priority rationale. The older response-control M1 remains intentionally on hold
-until retrieval, maintenance, and evidence receipts are stronger.
+priority rationale. Duplicate/conflict adjudication, authenticated ownership,
+new organs, external action, and embodiment remain future annotations rather
+than hidden Core blockers.
 
 ## Local Run
 

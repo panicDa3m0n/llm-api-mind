@@ -44,7 +44,7 @@ Current scope:
 - automatic rich retrieval/runtime traces plus the compact
   `scarlet-model-context-v2` document shared by native MiniMax and GPT Actions;
 - exact character/byte context accounting, provider token observations, and
-  shadow-only history compaction planning;
+  guarded derived-history compaction with `off`, `shadow`, and `active` modes;
 - agent-mode registry, per-block automatic-routing receipts, persistent
   resumable posture, and `mode` shell family;
 - runtime event control plane for UI activity blocks, next-turn context, and

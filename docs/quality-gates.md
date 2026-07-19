@@ -188,8 +188,9 @@ The configured blocking mypy slice passes across 25 files. A separate full-app
 measurement reports 201 pre-existing errors across 24 files; this is explicit
 non-blocking type debt, not evidence that the configured gate passed the whole
 application.
-Linear SCA-45 tracks incremental expansion of that gate by coherent owner
-slice; it is backlog engineering debt and does not block V1.50.1.
+Linear SCA-45 preserves incremental mypy expansion as a future engineering
+annotation. It is not active backlog and does not block the closed V1.50.1
+Core.
 
 Evaluator entry points are included in the denominator and currently account
 for a substantial uncovered surface. They are not omitted merely to inflate

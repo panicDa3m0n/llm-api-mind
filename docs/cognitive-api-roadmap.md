@@ -1,8 +1,8 @@
 # Cognitive API Roadmap
 
-Status: active experiment
-Last updated: 2026-07-13
-App baseline: V1.30.0
+Status: Core V1 cognitive API baseline closed; extension remains experimental
+Last updated: 2026-07-19
+App baseline: V1.50.1
 
 This document tracks the non-memory cognitive API work: schema discipline and
 Scarlet's internal metacognition.
@@ -51,12 +51,10 @@ Implemented:
 - Invalid top-level `mind_shell` commands return structured shell guidance.
 - Unknown routes return schema metadata and implemented route summaries.
 
-Current registry/schema versions:
+Current model-facing command registry version:
 
 ```txt
-2026-07-13.agent-modes-v1
-2026-07-13.agent-modes-v1
-2026-07-08.mind-shell-command-registry-v1
+2026-07-13.mind-shell-command-registry-v2
 ```
 
 This version also exposes the memory-side episodic recall routes. The
@@ -127,7 +125,7 @@ It should verify:
 - a `mind.metacognition.step` trace is persisted;
 - Scarlet does not call removed parallel cognitive routes.
 
-Next required evidence:
+Future evidence annotations, to promote only through a dedicated issue:
 
 - adaptive live conversation where the user asks naturally for a careful answer
   without naming the endpoint;

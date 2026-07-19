@@ -45,6 +45,9 @@ discussed before a new fix is attempted.
 - `AGENTS.md`: always-read operating guide for Codex/Scarlet.
 - `docs/project-blueprint.md`: durable philosophy and architecture principles.
 - `docs/project-state.md`: current implementation map and convergent roadmap.
+- `docs/core-runtime-contract.md`: canonical Core Runtime, Product UI,
+  External Adapter, and Agentic Module boundary, including owners and
+  compatibility classes.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

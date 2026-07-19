@@ -1,8 +1,8 @@
 # Memory Robustness Roadmap
 
-Status: active planning  
-Last updated: 2026-07-14
-App baseline: V1.39.0
+Status: Core V1 memory baseline closed; residual work is future research
+Last updated: 2026-07-19
+App baseline: V1.50.1
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -804,9 +804,12 @@ Acceptance:
 - Adaptive live sessions remain the primary behavioral signal.
 - Each evaluation records traces and human notes.
 
-## 7. Updated Immediate Roadmap
+## 7. Future Research Annotations
 
-Recommended next implementation order:
+The following items preserve evidence and design questions discovered during
+V1. They are not unfinished Core requirements and are not automatically part
+of the active V2 delivery sequence. Promote one into a dedicated issue only
+when observed behavior or a planned research branch justifies the work.
 
 ```txt
 1. Design duplicate-candidate evidence separately from conflict adjudication.
@@ -823,7 +826,7 @@ Recommended next implementation order:
    reliable at larger memory counts.
 ```
 
-Reason:
+Historical rationale:
 
 Lifecycle resolved the actual persistent-state conflict and gave Scarlet a real
 repair path. Atomic facts now give retrieval and lifecycle a canonical
@@ -832,7 +835,7 @@ entity aliases instead of papering over ambiguous narrative memory. Response
 control remains important, but the owner has parked it until the memory system
 has stronger conflict-management evidence.
 
-## 8. Non-Goals For The Next Slice
+## 8. Non-Goals Without A Dedicated Future Slice
 
 Do not add yet:
 
