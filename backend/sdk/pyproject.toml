@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scarlet-agentic-module-sdk"
+version = "1.0.0"
+description = "Public contracts, runtime helpers, scaffold, and conformance kit for Scarlet Agentic Modules."
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2.0,<3.0"]
+
+[project.scripts]
+scarlet-agentic-module = "scarlet_agentic_module_sdk.cli:main"
+
+[tool.setuptools]
+packages = ["scarlet_agentic_module_sdk"]
+package-dir = { scarlet_agentic_module_sdk = "../scarlet_agentic_module_sdk" }
+
+[tool.setuptools.package-data]
+scarlet_agentic_module_sdk = ["py.typed"]

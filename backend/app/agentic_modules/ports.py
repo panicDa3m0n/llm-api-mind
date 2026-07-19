@@ -6,7 +6,7 @@ from typing import Any, Callable, Protocol
 
 from pydantic import Field
 
-from app.agentic_modules.contracts import (
+from scarlet_agentic_module_sdk.contracts import (
     CommandCapability,
     CommandPortRequest,
     CommandPortResult,
@@ -32,6 +32,11 @@ from app.agentic_modules.contracts import (
 )
 from app.agentic_modules.registry import RegisteredModule
 from app.agentic_modules.telemetry import ModuleReceipt
+from scarlet_agentic_module_sdk.validation import (
+    validate_context_result,
+    validate_event_result,
+    validate_prompt_result,
+)
 
 
 class HostedContextContribution(ContractModel):
@@ -366,36 +371,3 @@ async def dispatch_event(
 
 def capabilities(values: list[Any], model: type[Any]) -> list[Any]:
     return [item for item in values if isinstance(item, model)]
-
-
-def validate_context_result(
-    result: ContextPortResult,
-    capability: ContextCapability,
-) -> None:
-    if len(result.contributions) > capability.max_contributions:
-        raise ValueError("module returned more context contributions than declared")
-    allowed = set(capability.produces_block_types)
-    if any(item.block_type not in allowed for item in result.contributions):
-        raise ValueError("module returned an undeclared context block type")
-
-
-def validate_prompt_result(
-    result: PromptPortResult,
-    *,
-    allowed_slots: list[str],
-    max_characters: int,
-) -> None:
-    allowed = set(allowed_slots)
-    if any(item.slot not in allowed for item in result.contributions):
-        raise ValueError("module returned a prompt contribution for a disallowed slot")
-    if sum(len(item.text) for item in result.contributions) > max_characters:
-        raise ValueError("module exceeded the prompt character budget")
-
-
-def validate_event_result(
-    result: EventPortResult,
-    capability: EventCapability,
-) -> None:
-    allowed = set(capability.publishes)
-    if any(item.event_type not in allowed for item in result.publications):
-        raise ValueError("module published an undeclared event type")

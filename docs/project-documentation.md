@@ -56,6 +56,9 @@ discussed before a new fix is attempted.
 - `docs/agentic-module-host.md`: approved-root discovery, process transport,
   lifecycle supervision, port composition, telemetry, and failure-isolation
   contract for the opt-in V2 Module Host.
+- `docs/agentic-module-sdk.md`: standalone SDK install/build, canonical public
+  contracts, module-side runtime, scaffold, schema export, conformance, and
+  operator handoff.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

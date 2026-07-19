@@ -1,9 +1,9 @@
 # Agentic Modules Contract
 
 Last updated: 2026-07-19
-App target: V1.53.0 over the release-accepted V1.50.1 Core
-Contract status: accepted public V1 contract; opt-in host implemented
-Linear issue: SCA-53
+App target: V1.54.0 over the release-accepted V1.50.1 Core
+Contract status: accepted public V1 contract; opt-in host and SDK implemented
+Linear issues: SCA-53, SCA-54, SCA-55
 
 ## 1. Purpose
 
@@ -16,12 +16,16 @@ This contract defines what a module may declare and exchange. The opt-in host
 implements discovery, lifecycle, typed calls, telemetry, and failure isolation
 in V1.53.0. It does not sandbox hostile code or wire product modules into chat.
 Its canonical operational contract is `docs/agentic-module-host.md`.
+The module-authoring and conformance contract is
+`docs/agentic-module-sdk.md`.
 
 Canonical executable sources:
 
-- `backend/app/agentic_modules/contracts.py`;
+- `backend/scarlet_agentic_module_sdk/contracts.py`;
+- `backend/app/agentic_modules/contracts.py` (compatibility re-export);
 - `backend/app/agentic_modules/validation.py`;
-- `backend/tests/test_agentic_module_contracts.py`.
+- `backend/tests/test_agentic_module_contracts.py`;
+- `backend/tests/test_agentic_module_sdk.py`.
 
 ## 2. Vocabulary And Ownership
 
@@ -207,11 +211,13 @@ changes a required dependency into optional behavior.
 - Core canonical history, cognition, persistence, and policy remain valid when
   every optional module is absent.
 
-## 10. Host And Deferred Work
+## 10. Host, SDK, And Deferred Work
 
 SCA-54 implements approved-root discovery, manifest digest pinning, process
 supervision, JSONL framing, permission gates, contribution composition, health,
-failure isolation, receipts, and shutdown. SCA-55 owns the distributable SDK,
-scaffold, and conformance kit. Product modules, hostile-code sandboxing,
-package signatures, persistent module state, UI controls, and chat integration
-remain deferred. None may broaden permissions by importing Core internals.
+failure isolation, receipts, and shutdown. SCA-55 implements the standalone
+Pydantic-only SDK 1.0.0, module-side JSONL runtime, scaffold, schema export,
+localized validation, and executable conformance kit over the same canonical
+models imported by the host. Product modules, hostile-code sandboxing, package
+signatures, persistent module state, UI controls, and chat integration remain
+deferred. None may broaden permissions by importing Core internals.

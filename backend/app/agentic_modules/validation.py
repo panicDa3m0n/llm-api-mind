@@ -7,7 +7,7 @@ from typing import Literal
 
 from pydantic import Field
 
-from app.agentic_modules.contracts import (
+from scarlet_agentic_module_sdk.contracts import (
     DEFAULT_CORE_MODULE_CONTRACTS,
     AgenticModuleManifest,
     ContractModel,

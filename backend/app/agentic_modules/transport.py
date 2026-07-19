@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from app.agentic_modules.contracts import AGENTIC_MODULE_PORT_VERSION
 from app.agentic_modules.registry import RegisteredModule
+from scarlet_agentic_module_sdk.contracts import AGENTIC_MODULE_PORT_VERSION
 
 
 class ModuleTransportError(RuntimeError):

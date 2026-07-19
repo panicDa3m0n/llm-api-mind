@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0112 - The SDK Owns One Public Contract Source And Executable Conformance
+
+Date: 2026-07-19
+Status: accepted for V1.54.0
+
+Context:
+
+SCA-53 and SCA-54 established strict contracts and a real host, but the model
+classes still lived under an internal Core namespace and the only subprocess
+fixture was handwritten. Copying models into a nominal SDK would let host and
+module validation drift, while documentation-only examples would not prove
+that an independently created module actually speaks the protocol.
+
+Decision:
+
+- publish `scarlet_agentic_module_sdk` as the canonical owner of manifest and
+  Port V1 models imported by both module authors and the host;
+- retain the old Core contract module only as a compatibility re-export;
+- distribute the SDK as a standalone Pydantic-only wheel while also including
+  it in the backend build;
+- provide a conservative module-side JSONL server rather than exposing any
+  Core repository, database, provider, secret, or prompt owner;
+- make scaffold output executable and require the unmodified output to pass
+  both standalone conformance and the real host;
+- validate manifest relationships, modes, lifecycle, every declared port,
+  capability limits, structured errors, and correlated request evidence; and
+- include the public package in lint, typing, test, and coverage gates.
+
+Consequences:
+
+SDK 1.0.0, app V1.54.0, and protocol V1 are separate version identities. A
+passing conformance report proves protocol compatibility, not semantic quality,
+operator approval, package integrity, hostile-code safety, or chat integration.
+The operator must still pin the exact manifest digest before host execution.
+
+Links:
+
+- Linear SCA-55
+- `docs/agentic-module-sdk.md`
+- `backend/scarlet_agentic_module_sdk/`
+- `backend/sdk/pyproject.toml`
+
 ## ADR-0111 - Module Host Is Opt-In, Out-Of-Process, And Operator-Pinned
 
 Date: 2026-07-19
@@ -95,7 +137,8 @@ Links:
 
 - Linear SCA-53
 - `docs/agentic-modules-contract.md`
-- `backend/app/agentic_modules/contracts.py`
+- `backend/scarlet_agentic_module_sdk/contracts.py`
+- `backend/app/agentic_modules/contracts.py` (compatibility re-export)
 - `backend/app/agentic_modules/validation.py`
 
 ## ADR-0108 - Product Clients Reduce Durable Runtime Events, Not Provider Deltas

@@ -6,6 +6,39 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.54.0 - Agentic Module SDK And Conformance Kit
+
+#### Added
+
+- Add the standalone `scarlet-agentic-module-sdk` 1.0.0 package with the exact
+  manifest and Core Port models used by the host.
+- Add module-side JSONL runtime helpers, deterministic scaffold generation,
+  localized manifest validation, versioned schema export, and a live
+  lifecycle/port/error conformance runner.
+- Add focused tests proving that an unmodified generated fixture passes the
+  standalone kit and the real Core host, plus the canonical SDK guide and
+  ADR-0112.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.54.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Make the public SDK package the canonical contract source and retain
+  `app.agentic_modules.contracts` as a compatibility re-export.
+- Extend Ruff, mypy, and coverage gates to include SDK source rather than
+  allowing public package code to sit outside measured quality boundaries.
+
+#### Verification
+
+- Focused Agentic Module contract/host/SDK tests pass 33/33.
+- The complete backend and SDK pass 304 tests at 82.46% combined coverage;
+  Ruff and mypy over 42 typed files pass.
+- A separately built SDK wheel installs outside the repository, generates a
+  module, and completes manifest, lifecycle, health, every declared port,
+  structured-error, and stop checks without patching the scaffold.
+- The frontend production build and 73-file documentation integrity gate pass;
+  isolated OpenAPI inspection remains unchanged at 30 operations.
+
 ### V1.53.0 - Agentic Module Host
 
 #### Added
@@ -29,7 +62,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 #### Verification
 
 - Focused Agentic Module contract/host tests pass 26/26 with real subprocesses.
-- Ruff and the expanded 33-module mypy gate pass.
+- Ruff and the expanded 34-module mypy gate pass.
 - The complete backend passes 297 tests at 82.40% coverage; frontend build,
   72-file documentation integrity, 34-module mypy, Ruff, and direct host smoke
   pass. OpenAPI remains at 30 operations; remote quality is checked after push.

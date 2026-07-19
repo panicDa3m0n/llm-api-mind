@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.53.0"
+version = "1.54.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -27,6 +27,9 @@ dev = [
 retrieval = [
     "pymilvus[milvus-lite]>=2.5,<4.0",
 ]
+
+[project.scripts]
+scarlet-agentic-module = "scarlet_agentic_module_sdk.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -75,6 +78,14 @@ files = [
     "app/runtime/maintenance_scheduler.py",
     "app/runtime/maintenance_shared.py",
     "app/storage/database_boundary.py",
+    "scarlet_agentic_module_sdk/cli.py",
+    "scarlet_agentic_module_sdk/client.py",
+    "scarlet_agentic_module_sdk/conformance.py",
+    "scarlet_agentic_module_sdk/contracts.py",
+    "scarlet_agentic_module_sdk/runtime.py",
+    "scarlet_agentic_module_sdk/scaffold.py",
+    "scarlet_agentic_module_sdk/schema.py",
+    "scarlet_agentic_module_sdk/validation.py",
 ]
 follow_imports = "skip"
 ignore_missing_imports = true
@@ -83,11 +94,14 @@ warn_unused_configs = true
 show_error_codes = true
 
 [tool.coverage.run]
-source = ["app"]
+source = ["app", "scarlet_agentic_module_sdk"]
 
 [tool.coverage.report]
 fail_under = 79.9
 show_missing = true
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "scarlet_agentic_module_sdk*"]
+
+[tool.setuptools.package-data]
+scarlet_agentic_module_sdk = ["py.typed"]
