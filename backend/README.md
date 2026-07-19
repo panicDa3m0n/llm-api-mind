@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.51.0. Closed deployed Core baseline: V1.50.1.
+Development target: V1.52.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -34,6 +34,8 @@ Current scope:
 - executable command-registry/help conformance, truthful collection
   pagination, explicit targeted misses, and lifecycle-tested session, focus,
   volition, affect, mode, and metacognition families;
+- strict, host-independent Agentic Module manifest and typed Core Port V1
+  contracts with deterministic permission/dependency/mode validation;
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
 - semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede

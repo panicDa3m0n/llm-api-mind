@@ -1,0 +1,79 @@
+{
+  "schema_version": "agentic-module-manifest-v1",
+  "module_id": "cloud.honeylabs.context-observer",
+  "display_name": "Context Observer",
+  "description": "Contributes a compact scene observation through a typed Core Port.",
+  "module_version": "1.2.0",
+  "core_compatibility": {
+    "minimum_core_version": "1.52.0",
+    "maximum_core_version_exclusive": "2.0.0",
+    "required_contracts": {
+      "agentic-module-port": "agentic-module-port-v1"
+    }
+  },
+  "mode_tags": [
+    "interactive",
+    "scouting"
+  ],
+  "capabilities": [
+    {
+      "kind": "context",
+      "capability_id": "scene.context",
+      "port_version": "agentic-module-port-v1",
+      "produces_block_types": [
+        "scene.observation"
+      ],
+      "max_contributions": 3
+    },
+    {
+      "kind": "event",
+      "capability_id": "scene.events",
+      "port_version": "agentic-module-port-v1",
+      "subscribes_to": [
+        "turn.started"
+      ],
+      "publishes": [
+        "module.scene.observed"
+      ]
+    }
+  ],
+  "permissions": [
+    "context.read",
+    "context.contribute",
+    "event.subscribe",
+    "event.publish"
+  ],
+  "dependencies": [],
+  "runtime": {
+    "transport": "stdio-json-v1",
+    "entrypoint": [
+      "python",
+      "-m",
+      "scarlet_context_observer"
+    ]
+  },
+  "resources": {
+    "max_memory_mb": 256,
+    "max_cpu_percent": 50,
+    "max_concurrent_calls": 1,
+    "max_request_bytes": 1000000,
+    "max_response_bytes": 1000000
+  },
+  "timeouts": {
+    "startup_seconds": 10.0,
+    "call_seconds": 30.0,
+    "health_seconds": 5.0,
+    "shutdown_seconds": 10.0
+  },
+  "health": {
+    "interval_seconds": 30.0,
+    "failure_threshold": 3,
+    "recovery_threshold": 1
+  },
+  "lifecycle": {
+    "protocol_version": "agentic-module-lifecycle-v1",
+    "startup": "lazy",
+    "restart": "on_failure",
+    "max_restarts": 3
+  }
+}

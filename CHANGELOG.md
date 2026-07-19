@@ -6,6 +6,41 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.52.0 - Agentic Module Contract Baseline
+
+#### Added
+
+- Add strict `agentic-module-manifest-v1` models for identity, compatibility,
+  mode tags, capabilities, permissions, dependencies, resources, timeouts,
+  health, lifecycle, and declarative process transport.
+- Add typed V1 Core Port envelopes for context, prompt, command, event, health,
+  lifecycle, errors, budgets, and contributions.
+- Add a deterministic activation planner with dependency ordering, optional
+  dependency warnings, fail-closed compatibility checks, and per-module
+  blocked/inactive/active state.
+- Add tested valid and invalid manifest fixtures plus the canonical Agentic
+  Module contract and ADR-0110.
+
+#### Changed
+
+- Advance backend and frontend development versions to V1.52.0 while keeping
+  V1.50.1 as the deployed, release-accepted Core baseline.
+- Promote Agentic Module names, manifests, permissions, modes/tags, and Core
+  Ports from planning vocabulary to an accepted public contract. Discovery,
+  host execution, enforcement, and sandboxing remain unimplemented.
+
+#### Verification
+
+- Focused Agentic Module, mode, and organ contracts pass 31/31; the complete
+  backend passes 286 tests at 82.47% coverage.
+- Ruff and the expanded 28-module mypy gate pass; the frontend production
+  build and 71-file documentation integrity gate pass.
+- JSON Schema generation, direct-database permission rejection, Core/port
+  compatibility, mode selection, missing required/optional dependencies,
+  dependency ordering, and cycle rejection are covered deterministically.
+- Isolated OpenAPI inspection reports V1.52.0 with the unchanged 30 HTTP
+  operations, confirming that SCA-53 adds contracts rather than a hidden host.
+
 ### V1.51.0 - Provider-Independent Stream And Recovery Contract
 
 #### Added

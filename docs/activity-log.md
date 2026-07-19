@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Agentic Module Manifest And Core Port Contract (SCA-53)
+
+Defined the first executable public contract for optional Agentic Modules
+without implementing a host. Strict Pydantic models now cover identity,
+SemVer/Core compatibility, exact contract versions, agent-mode tags, typed
+context/prompt/command/event capabilities, a closed permission allowlist,
+required/optional dependencies, process transport declaration, bounded
+resources/timeouts/health, lifecycle policy, and typed port envelopes.
+
+The deterministic activation planner rejects duplicate ids, unknown mode
+tags, incompatible Core or port versions, missing/incompatible required
+dependencies, required cycles, and dependencies unavailable in the selected
+agent mode. Optional dependency failures remain warnings, unrelated valid
+modules remain plannable, and required dependencies are ordered first. Direct
+DB/secrets/Core-internal permissions are not expressible.
+
+ADR-0110 and `docs/agentic-modules-contract.md` distinguish agent mode, organ,
+system process, module, capability, and permission. Valid and invalid JSON
+fixtures are executable documentation. Focused contract/mode/organ tests pass
+31/31; Ruff and the 28-module mypy gate pass. The complete backend passes 286
+tests at 82.47% coverage, the frontend production build passes after a clean
+`npm ci`, documentation integrity passes across 71 files, and isolated OpenAPI
+inspection remains at 30 operations. No discovery, host execution, DB, prompt,
+provider, or runtime behavior changed. SCA-54 remains the owner of enforcement
+and isolation.
+
 ## 2026-07-19 - Scarlet Stream V2 And Deterministic Client Recovery (SCA-47)
 
 Added the additive `scarlet-stream-v2` Product UI port over the unchanged

@@ -1,0 +1,33 @@
+{
+  "schema_version": "agentic-module-manifest-v1",
+  "module_id": "cloud.honeylabs.invalid-maintenance-mode",
+  "display_name": "Invalid Maintenance Mode",
+  "description": "Schema-valid manifest rejected by planning because maintenance is not an agent mode.",
+  "module_version": "1.0.0",
+  "core_compatibility": {
+    "minimum_core_version": "1.52.0"
+  },
+  "mode_tags": [
+    "maintenance"
+  ],
+  "capabilities": [
+    {
+      "kind": "event",
+      "capability_id": "invalid.events",
+      "subscribes_to": [
+        "maintenance.started"
+      ],
+      "publishes": []
+    }
+  ],
+  "permissions": [
+    "event.subscribe"
+  ],
+  "runtime": {
+    "entrypoint": [
+      "python",
+      "-m",
+      "invalid_maintenance_mode"
+    ]
+  }
+}
