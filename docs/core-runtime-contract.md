@@ -1,7 +1,8 @@
 # API Mind Core Runtime Contract
 
 Last updated: 2026-07-19
-Runtime baseline: V1.50.1 deployed and release-accepted
+Core runtime baseline: V1.50.1 deployed and release-accepted
+Current additive Product UI contract target: V1.51.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -50,8 +51,9 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.50.1 | Stable factory and ASGI entrypoint. |
-| Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | app/OpenAPI V1.50.1 | V1-compatible until the explicit V2 client migration. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.51.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
+| Product UI event port | `backend/app/api/chat_stream_v2.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable additive envelope, replay cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; provider implementations remain replaceable. |
 | Static Scarlet policy | `backend/app/prompts/scarlet_system.md`, `backend/app/prompts/system.py` | native selected provider | repository prompt plus resolved source | Stable policy surface; prompt changes are behavior changes. |
 | Provider-native continuity | `backend/app/api/chat_provider_history.py` and canonical session history | native selected provider | canonical provider messages | Stable authority; compaction never deletes canonical history. |
@@ -73,8 +75,10 @@ contract change, never by silently choosing whichever description is newer.
 
 ## 4. HTTP Surface Classification
 
-The V1.50.1 OpenAPI contains 28 operations. Their prefixes have different
-audiences and therefore different compatibility promises.
+The closed V1.50.1 Core OpenAPI contains 28 operations. V1.51.0 adds two
+Product UI operations for V2 live events and replay, bringing the current
+development target to 30. Their prefixes have different audiences and
+therefore different compatibility promises.
 
 | Surface | Audience | Classification | Compatibility policy |
 |---|---|---|---|

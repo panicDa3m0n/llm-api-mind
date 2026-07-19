@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-19
-App baseline: V1.50.1 deployed and release-accepted
+App target: V1.51.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -408,10 +408,11 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in twenty-five high-value typed modules while the measured
+- mypy blocks regressions in twenty-six high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
-- the full V1.50.1 backend suite passes 266 tests at 81.89% statement coverage;
-  the blocking floor remains 79.9% against the V1.33 baseline;
+- the closed V1.50.1 backend suite passes 266 tests at 81.89% statement
+  coverage; the V1.51.0 stream target passes 271 tests at 82.08%; the blocking
+  floor remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
 - GitHub Actions executes these gates and the frontend production build on
@@ -429,10 +430,11 @@ technical invariants; Linear owns ordering and work state.
 
 ### P0 - Architecture And Core Contract
 
-1. SCA-51 names Core Runtime, Product UI, External Adapters, and Agentic
-   Modules, with sources of truth and compatibility rules.
-2. SCA-47 defines `scarlet-stream-v2`, idempotent client state, replay, and
-   recovery without changing provider-native continuity.
+1. SCA-51 is complete: Core Runtime, Product UI, External Adapters, and Agentic
+   Modules have named sources of truth and compatibility rules.
+2. SCA-47 implements `scarlet-stream-v2`, idempotent client state, replay, and
+   recovery without changing provider-native continuity; release verification
+   remains before acceptance.
 
 ### P1 - Product UI And Android
 

@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0108 - Product Clients Reduce Durable Runtime Events, Not Provider Deltas
+
+Date: 2026-07-19
+Status: accepted for V1.51.0
+
+Context:
+
+The V1 native stream mixed transient provider deltas with copies of persisted
+runtime events. That supported a live debug cockpit but left clients coupled
+to provider block names, a connection-local sequence, and no replay cursor.
+Web and future Android clients need to reconstruct the same turn after a
+disconnect without copying provider protocol logic.
+
+Decision:
+
+- add the provider-independent `scarlet-stream-v2` Product UI port;
+- project only persisted `CognitiveEvent` rows into V2;
+- use the persisted event id as the idempotency key and the session-global
+  sequence as the reconnect cursor;
+- enrich persisted message and terminal events at projection time instead of
+  duplicating message text into the event table;
+- provide session replay after an exclusive sequence cursor;
+- make `turn.completed` and `turn.failed` the only terminal signals;
+- publish an executable reducer that orders, deduplicates, detects gaps, and
+  reconstructs messages, notes, tools, answers, and errors; and
+- retain the V1 stream during client migration.
+
+Consequences:
+
+Product clients no longer need MiniMax/Anthropic block semantics. Provider
+deltas remain useful for V1 diagnostics but are deliberately absent from the
+replayable contract. Reconnect recovers persisted state; it does not promise
+to resume a provider generation canceled by transport loss. Full traces stay
+available to the developer lens without bloating the Product UI event stream.
+
+Links:
+
+- Linear SCA-47
+- `backend/app/api/chat_stream_v2.py`
+- `docs/stream-v2-contract.md`
+- `docs/api-contract.md`
+
 ## ADR-0107 - Close Core V1 And Separate V2 Product And Module Boundaries
 
 Date: 2026-07-19

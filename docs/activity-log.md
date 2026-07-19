@@ -4,6 +4,33 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Scarlet Stream V2 And Deterministic Client Recovery (SCA-47)
+
+Added the additive `scarlet-stream-v2` Product UI port over the unchanged
+native turn lifecycle. Live V2 lines now project only persisted runtime events
+with durable ids, session-global sequence cursors, provider-independent event
+types, phases, visibility, compact trace/tool/message links, and allowlisted
+payloads. A replay endpoint pages every session event after an exclusive
+cursor. Message events are enriched from canonical messages and terminal
+events from canonical turns without duplicating source data in the event
+table. The V1 provider-oriented stream remains available during migration.
+
+The executable reference reducer orders and deduplicates events, detects
+conflicting ids and missing sequence ranges, holds events beyond a gap, and
+reconstructs user/assistant messages, public notes, tool lifecycle, final
+answers, errors, and terminal state. ADR-0108 and the dedicated stream contract
+document the rule that replay restores persisted state but does not pretend to
+resume a provider generation canceled by transport loss.
+
+Focused stream, replay, storage, and reducer tests pass 50/50. Ruff and the
+26-module incremental mypy gate pass. The complete backend passes 271 tests at
+82.08% coverage; the frontend production build, documentation integrity, and
+diff checks pass. OpenAPI V1.51.0 contains 30 operations. A direct isolated
+tool-bearing turn emitted 17 V2 events, replayed the same ids, reconstructed
+one note, one tool, the answer, and `turn.completed`, while excluding the full
+tool result and full runtime-context blocks from Product UI payloads. The
+pre-existing mutable `backend/data/app.db` change remained outside the work.
+
 ## 2026-07-19 - Core V1 Closure Contract And V2 Architecture Boundary (SCA-51)
 
 Formalized the release-accepted V1.50.1 runtime as the closed API Mind Core
