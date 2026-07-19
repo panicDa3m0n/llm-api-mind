@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-18
-Current app version: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
+Current app version: V1.50.1 deployed and release-accepted
 Process baseline: V1.0.1
 Status: accepted
 
@@ -194,10 +194,11 @@ Scarlet's actual behavior.
 
 ## 9. Current Baseline
 
-The current V1.50.1 candidate consolidates the V1.44.0 through V1.50.0 work.
+The current V1.50.1 baseline consolidates the V1.44.0 through V1.50.0 work.
 V1.50.0 reached the VPS but was not release-accepted because focused native
 smoke reproduced two final-marker omissions; V1.50.1 adds the bounded semantic
-finality recovery required before the baseline can be frozen. The consolidated
+finality recovery and passed the protected release boundary at merge
+`676e560`. The consolidated
 line includes:
 
 - local MiniMax-based Scarlet runtime;

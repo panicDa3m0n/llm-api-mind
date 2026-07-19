@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-18
-App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
+App baseline: V1.50.1 deployed and release-accepted
 Status: canonical current-state map
 
 This document states what API Mind can do now, how strongly each capability is
@@ -160,36 +160,37 @@ Current verification baseline:
 - V1.44.0 candidate: SCA-34 frozen pre/post gates passed 9/9, normalized
   OpenAPI JSON remained exactly equal, focused support/chat/bridge tests passed
   57/57, and a directly inspected two-turn native MiniMax probe preserved
-  canonical provider continuity. Deployment remains V1.43.0.
+  canonical provider continuity. At that candidate checkpoint, production
+  remained V1.43.0.
 - V1.45.0 candidate: SCA-33 frozen pre/post gates passed 9/9, OpenAPI remained
   equal, and the shared native lifecycle preserved sync-to-stream provider
   continuity in a directly inspected MiniMax probe. Stream now links its
-  generated model-context trace consistently (BUG-0092). Deployment remains
-  V1.43.0.
+  generated model-context trace consistently (BUG-0092). At that candidate
+  checkpoint, production remained V1.43.0.
 - V1.46.0 candidate: SCA-35 frozen pre/post gates passed 9/9, focused
   context/retrieval tests passed 101/101, and direct MiniMax inspection proved
   automatic model-facing recall after exact source-provenance repair. The
-  frozen gate's delivery blind spot is isolated in BUG-0093/SCA-43. Deployment
-  remains V1.43.0.
+  frozen gate's delivery blind spot is isolated in BUG-0093/SCA-43. At that
+  candidate checkpoint, production remained V1.43.0.
 - V1.47.0 candidate: SCA-36 frozen pre/post gates passed 9/9 with identical
   stable read evidence; focused contracts passed 63/63 and direct shell use
-  preserved search, open, facts, graph, provenance, and traces. Deployment
-  remains V1.43.0.
+  preserved search, open, facts, graph, provenance, and traces. At that
+  candidate checkpoint, production remained V1.43.0.
 - V1.48.0 candidate: SCA-38 frozen pre/post gates passed 9/9 with identical
   stable mutation evidence; focused contracts passed 70/70. Direct shell,
   proposal, and natural MiniMax probes preserved write, deduplication,
-  lifecycle, evidence authority, provenance, and agent behavior. Deployment
-  remains V1.43.0.
+  lifecycle, evidence authority, provenance, and agent behavior. At that
+  candidate checkpoint, production remained V1.43.0.
 - V1.49.0 candidate: SCA-37 frozen pre/post gates passed 9/9 with identical
   stable evidence; focused contracts passed 32/32. Direct compaction and
   natural idle-maintenance probes preserved scheduling, source anchoring,
   canonical chronology, summary quality, and conservative memory judgment.
-  Deployment remains V1.43.0.
+  At that candidate checkpoint, production remained V1.43.0.
 - V1.49.1 candidate: SCA-42 frozen pre/post gates passed 9/9; focused shared
   answer-control contracts passed 58/58. Native sync/stream and GPT Actions now
   preserve recoverable action-attempt chains, and a directly inspected MiniMax
   turn corrected and completed the same memory intent with truthful final
-  behavior. Deployment remains V1.43.0.
+  behavior. At that candidate checkpoint, production remained V1.43.0.
 - V1.50.0 candidate: SCA-43 adds a complementary 5-case model-facing memory
   gate without changing the frozen V1 suite. It proves the real Zero-Luce
   reference across rich selection, guarded disposable provenance repair, V2,
@@ -199,13 +200,16 @@ Current verification baseline:
   at 81.86% coverage. It was deployed as merge `7ef3a9b`, but two focused
   native smokes both failed because MiniMax omitted the private final marker;
   V1.50.0 was therefore not accepted as the stable release baseline.
-- V1.50.1 candidate: SCA-44 retains the private marker as the primary native
+- V1.50.1 stable baseline: SCA-44 retains the private marker as the primary native
   boundary and one bounded correction, then uses a fail-closed LLM finality
   judgment only when the corrected draft still omits the marker. Complete
   standalone answers may recover without automatic rewriting; progress notes,
   fragments, empty drafts, and unavailable judgment remain rejected. Focused
   patch contracts pass 52/52 and the complete backend passes 266 tests at
-  81.89% coverage.
+  81.89% coverage. PR #17 merged at `676e560`; protected deployment, native
+  Zero-Luce delivery/final-answer smoke, GPT bootstrap/help/finalize, DB
+  integrity, context accounting, and frontend parity all passed. Annotated tag
+  `v1.50.1` points to that deployed runtime.
 
 ### 3.2 Dynamic Context
 
@@ -485,16 +489,16 @@ behavior:
 
 ## 7. Current Best Next Step
 
-SCA-36 through SCA-38 now separate memory and maintenance domains behind stable
-facades, SCA-42 closes successful-retry evidence, and SCA-43 closes the frozen
-gate's model-delivery/completion blind spot. SCA-39 remains deliberately
-deferred because GPT Actions is an experimental external adapter and must not
-displace native-system stability. The V1.50.0 rollout reached production but
-its native smoke exposed repeated final-marker omission. The next concrete
-step is therefore protected V1.50.1 publication and rollout, followed by fresh
-parity, database, context V2, shell, compaction, and final-answer evidence. Long
-varied sessions still need longitudinal compaction monitoring; duplicate/
-conflict adjudication remains a separate later discussion.
+SCA-36 through SCA-38 separate memory and maintenance domains behind stable
+facades, SCA-42 closes successful-retry evidence, SCA-43 closes the frozen
+gate's model-delivery/completion blind spot, and SCA-44 restores robust native
+finalization. V1.50.1 is now the verified stable baseline. The next work should
+use this baseline to audit branch maturity and select bounded productive work,
+prioritizing behavior-changing weaknesses over reranker micro-calibration.
+Long varied sessions still need longitudinal compaction monitoring; duplicate/
+conflict adjudication and authenticated multi-user ownership remain separately
+deferred discussions. GPT Actions stays an experimental adapter and must not
+drive native-system complexity.
 
 Do not add another organ before these surfaces make the current system easier
 to reason about than it is today.

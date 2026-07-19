@@ -42,6 +42,10 @@ it does not weaken incomplete-response rejection or rewrite Scarlet's voice.
 The fallback adds one validator call only on the rare second-miss path and is
 fully traceable in `answer.validation`.
 
+V1.50.1 deployed this decision at merge `676e560`. The first protected native
+repeat completed through the unchanged primary marker path; controlled tests
+retain explicit evidence for both semantic-recovery polarities.
+
 Links:
 
 - Linear SCA-44

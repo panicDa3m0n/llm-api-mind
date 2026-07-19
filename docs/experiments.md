@@ -11,7 +11,7 @@ rewritten.
 
 ## EXP-0079 - Native Markerless Finality Recovery
 
-Status: focused deterministic evidence accepted; production repeat pending
+Status: accepted and deployed in V1.50.1
 
 Hypothesis:
 
@@ -45,7 +45,15 @@ model-facing gate oracles passes 52/52. The positive corrected draft is
 persisted unchanged after explicit semantic acceptance; the negative second
 progress note and empty corrected draft remain rejected with no assistant
 message. A real native repeat is required after protected deployment before
-release acceptance.
+release acceptance; that repeat is recorded below.
+
+The protected production repeat completed as HTTP 200 in turn
+`turn_a8a990e5ce7a4fbd9dd15cd99437836d`, persisted the public answer, and used
+the unchanged primary marker path. This does not manufacture a stochastic
+second marker miss merely to exercise the fallback in production; the
+controlled polarity tests remain authoritative for that branch. Together the
+real ordinary path and deterministic fallback controls satisfy release
+acceptance.
 
 ## EXP-0078 - Model-Facing Automatic-Memory Delivery Gate
 

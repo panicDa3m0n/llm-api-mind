@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0094 - Repeated Native Final-Marker Omission Discards Conclusive Answers
 
 Date Found: 2026-07-18
-Status: fixed locally in V1.50.1; production verification pending
+Status: fixed, deployed, and directly verified in V1.50.1
 
 Symptoms:
 
@@ -44,6 +44,16 @@ Regression Coverage:
 - second progress-only draft remains HTTP 502;
 - judge failure and truly empty provider output remain fail-closed boundaries;
 - no private marker is persisted or exposed publicly.
+
+Production Verification:
+
+The protected V1.50.1 runtime at merge `676e560` completed native turn
+`turn_a8a990e5ce7a4fbd9dd15cd99437836d` with HTTP 200 and persisted one
+conclusive assistant message. That provider response used the primary marked
+path on its first attempt, proving the ordinary boundary still works after the
+fix. Deterministic positive and negative providers remain the evidence for the
+rare second-miss semantic fallback. Post-smoke SQLite integrity was `ok` and
+the container log contained no runtime error.
 
 Related:
 

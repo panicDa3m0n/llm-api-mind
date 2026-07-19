@@ -4,6 +4,40 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - V1.50.1 Stable Baseline Rollout And Acceptance
+
+PR #17 passed both remote Quality workflows and merged at
+`676e560a713610ff884631f70bbe6d9e6d8bc375`. Before deployment, the VPS
+created online backup
+`/var/backups/scarlet-mobile-test/v1501-20260719T124726Z/app.db.pre-v1501`
+with SHA-256
+`52840c206862ea9a781338d73c0d273de2e307847c79cfeb5155bde3620dda3f`;
+SQLite integrity was `ok` across 29 tables. Code and frontend artifacts were
+synced without `backend/data` or `.env`. The new image passed a read-only
+production preflight before restart, then `/health`, OpenAPI `1.50.1`, deployed
+commit marker, and frontend asset hashes matched the local build.
+
+The single native release repeat used session
+`ses_9d0548ffee264ae2a91e2e73873604d3` and turn
+`turn_a8a990e5ce7a4fbd9dd15cd99437836d`. Automatic retrieval selected the real
+Zero-Luce memory `mem_1bbd0dc1ef4f47e787ec2fa1c521e1d3`; it reached
+`scarlet-model-context-v2`, persisted `llm.request`, and MiniMax provider input.
+Scarlet returned the correct four-step explanation and the turn completed HTTP
+200 with one assistant message. MiniMax emitted the private marker on attempt
+one in this run, so deterministic controlled providers remain the evidence for
+the V1.50.1 second-miss semantic fallback.
+
+The authenticated GPT bridge smoke used session
+`ses_02000931fef541bb9d85b92bb4dbfc21` and turn
+`turn_5a2f6afbe7714e308206bb14976be42e`: bootstrap, shell `help`, and finalize
+all succeeded, and the exact final answer was persisted. Post-smoke preflight
+reported role `production`, `codex_test=false`, direct isolation, integrity
+`ok`, 308 memories, 237 facts, 239 sessions, 909 messages, and 6,356 events.
+Container logs showed only successful requests. Annotated tag `v1.50.1` now
+points to the deployed runtime merge. Linear SCA-44 is Done. SCA-45 records the
+separate non-blocking full-app mypy debt instead of conflating it with this
+runtime release.
+
 ## 2026-07-18 - V1.50.1 Native Finality Semantic Recovery (SCA-44)
 
 The protected V1.50.0 rollout passed both remote Quality workflows, online DB

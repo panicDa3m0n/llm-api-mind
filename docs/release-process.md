@@ -221,3 +221,12 @@ preflight, restart, integrity, MCP proxy retirement, and authenticated GPT
 bootstrap/help/finalize smoke at merge commit
 `29c2852f9f34be8d888ab3921d15405094b9cb59`; annotated tag `v1.43.0` points
 to that deployed runtime commit. Historical `mcp_bridge` rows remain canonical.
+V1.50.0 reached the VPS at merge `7ef3a9b` but was deliberately not tagged or
+release-accepted after two native smokes exposed repeated final-marker
+omission. V1.50.1 passed both remote Quality workflows, protected online
+backup, new-image and post-restart preflights, frontend parity, real native
+memory/final-answer smoke, authenticated GPT bootstrap/help/finalize, and
+post-smoke DB integrity at merge
+`676e560a713610ff884631f70bbe6d9e6d8bc375`. Annotated tag `v1.50.1` points
+to that exact deployed runtime commit; later documentation-only commits do not
+move it.

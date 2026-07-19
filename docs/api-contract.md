@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-18
-App baseline: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
+Last reviewed: 2026-07-19
+App baseline: V1.50.1 deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1590,6 +1590,12 @@ hard semantic obligations pass. A progress note, fragment, `unknown`/`fail`
 finding, or unavailable validator remains HTTP 502 and creates no assistant
 message. `answer.validation.structural_final_boundary` records whether semantic
 recovery was attempted and accepted.
+
+Production acceptance at merge `676e560` verified the unchanged primary path:
+MiniMax emitted the marker on its first attempt, the runtime stripped it, and
+the native turn persisted a conclusive answer. The controlled V1.50.1 tests
+remain the evidence for second-miss semantic acceptance and rejection because
+the runtime does not force a provider failure in production.
 
 The canonical history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages

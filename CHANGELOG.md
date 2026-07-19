@@ -28,6 +28,11 @@ This project uses a practical changelog rather than a release-only log: each mea
   oracles the patch surface passes 52/52, including positive markerless
   semantic recovery, a negative second-progress-note control, and an empty-
   draft guard. The complete backend passes 266 tests at 81.89% coverage.
+- PR #17 passed both remote Quality workflows and merged at `676e560`. The
+  protected V1.50.1 rollout passed new-image and post-restart production
+  preflights, frontend parity, a real native Zero-Luce turn, and an
+  authenticated GPT bootstrap/help/finalize cycle. The annotated `v1.50.1`
+  tag points to the exact deployed runtime commit.
 
 ### V1.50.0 - Stabilization Baseline And Model-Facing Memory Gate
 
