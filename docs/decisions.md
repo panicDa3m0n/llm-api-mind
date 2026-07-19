@@ -7,6 +7,49 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0109 - Approve Product Shape Before Connecting It To Core
+
+Date: 2026-07-19
+Status: proposed implementation; owner approval pending on SCA-48
+
+Context:
+
+The V1 cockpit and mobile consumer grew directly around runtime and provider
+diagnostics. V2 now has a provider-independent stream contract, but connecting
+a new UI before its information hierarchy is accepted would combine product
+design, stream migration, component extraction, and backend integration in one
+high-risk change. The owner requires a static mobile-first prototype first.
+
+Decision:
+
+- implement `/prototype` as an isolated React route with no backend calls;
+- use fixtures conforming to `scarlet-stream-v2` and current compact memory and
+  session contracts;
+- keep chat primary and make continuity, memory, state, and settings nearby
+  product surfaces;
+- expose diagnostics through a developer lens in the same application rather
+  than duplicating the UI or placing raw payloads in ordinary conversation;
+- represent loading, streaming, reconnect, error, and empty states before
+  integration;
+- use Tailwind CSS 4 and temporary local component equivalents while Catalyst
+  remains unavailable; and
+- prohibit SCA-49/SCA-50 integration from treating the prototype as accepted
+  until explicit owner approval is recorded on SCA-48.
+
+Consequences:
+
+Visual and interaction decisions can be inspected independently from runtime
+behavior. Existing clients remain compatible, fixture data cannot mutate the
+Core, and later implementation has a concrete approval target. The temporary
+prototype components are not yet the shared Product UI design system.
+
+Links:
+
+- Linear SCA-48
+- `frontend/src/prototype/PrototypeApp.tsx`
+- `frontend/src/prototype/prototypeData.ts`
+- `docs/product-ui-prototype.md`
+
 ## ADR-0108 - Product Clients Reduce Durable Runtime Events, Not Provider Deltas
 
 Date: 2026-07-19

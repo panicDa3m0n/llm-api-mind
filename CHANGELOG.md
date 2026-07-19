@@ -6,6 +6,37 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.52.0 - Static Product UI Approval Prototype
+
+#### Added
+
+- Add an isolated `/prototype` route with schema-realistic V2 sessions,
+  memories, and durable event fixtures; it performs no backend calls and does
+  not change the existing cockpit or mobile consumer.
+- Add one clickable mobile-first Product UI for chat, episodic continuity,
+  semantic memory, operating state, settings, and an integrated developer
+  lens.
+- Add deterministic ready, empty, loading, streaming, reconnecting, and error
+  preview states plus versioned desktop/mobile approval screenshots.
+
+#### Changed
+
+- Move the frontend build pipeline to Tailwind CSS 4 through the official Vite
+  plugin while preserving the existing client build.
+- Advance the development target to V1.52.0; V1.50.1 remains the deployed,
+  release-accepted Core and V1.51.0 remains the merged stream contract.
+
+#### Verification
+
+- TypeScript/Vite production build passes on Tailwind V4 and `npm audit`
+  reports zero vulnerabilities.
+- Real-browser inspection at 1440x1000 and 390x844 covers chat, sessions,
+  memory, developer lens, state switching, reconnect, responsive navigation,
+  accessibility visibility, and page overflow with no console warnings or
+  errors.
+- Owner approval remains required before SCA-48 can close or any real-data
+  integration begins.
+
 ### V1.51.0 - Provider-Independent Stream And Recovery Contract
 
 #### Added

@@ -50,6 +50,9 @@ discussed before a new fix is attempted.
   compatibility classes.
 - `docs/stream-v2-contract.md`: canonical Product UI stream, replay cursor,
   provider-independent event envelope, and reference reducer contract.
+- `docs/product-ui-prototype.md`: SCA-48 static Product UI information
+  architecture, fixture boundary, preview states, visual tokens, component
+  equivalence notes, browser evidence, screenshots, and approval gate.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-19
-App target: V1.51.0; V1.50.1 remains deployed and release-accepted
+App target: V1.52.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -433,13 +433,14 @@ technical invariants; Linear owns ordering and work state.
 1. SCA-51 is complete: Core Runtime, Product UI, External Adapters, and Agentic
    Modules have named sources of truth and compatibility rules.
 2. SCA-47 implements `scarlet-stream-v2`, idempotent client state, replay, and
-   recovery without changing provider-native continuity; release verification
-   remains before acceptance.
+   recovery without changing provider-native continuity and is merged with
+   local and remote verification complete.
 
 ### P1 - Product UI And Android
 
-1. SCA-48 produces a static, schema-realistic mobile-first prototype and
-   requires owner approval before integration.
+1. SCA-48 has produced an isolated, schema-realistic mobile-first prototype at
+   `/prototype`, with responsive browser evidence and an integrated developer
+   lens; explicit owner approval remains the final acceptance gate.
 2. SCA-50 builds one responsive UI foundation and design system.
 3. SCA-49 connects the Product UI and developer lens to Core contracts.
 4. SCA-52 verifies the same client as an Android Capacitor application.

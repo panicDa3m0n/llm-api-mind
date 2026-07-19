@@ -1,8 +1,8 @@
 # Branch: Gestione Flussi Utente
 
-Last updated: 2026-07-13
-System version assessed: V1.29.1
-Status: active prototype branch
+Last updated: 2026-07-19
+System version assessed: V1.52.0 candidate
+Status: static Product UI approval gate active
 
 ## Filosofia del ramo
 
@@ -34,17 +34,25 @@ identita, tempo, luogo, lingua, privacy e continuita.
 - V1.14.5 riduce la latenza percepita della chat mobile con stati dinamici
   transitori in coda al flusso, sostituiti dai blocchi reali appena arrivano
   stream, tool result o risposta finale.
+- V1.52.0 aggiunge la superficie isolata `/prototype`: un solo albero Product
+  UI responsive per mobile e desktop, cognizione pubblica compatta, sessioni,
+  memorie, stato, impostazioni, recovery e lente sviluppatore alimentati
+  esclusivamente da fixture V2 realistiche.
 
 ## Stato attuale
 
-Valutazione: L2/L3.
+Valutazione: L3 per il prototipo statico; i client reali restano L2/L3.
 
 Esistono ora due superfici distinte: cockpit tecnico per sviluppo e app mobile
 consumer per uso normale. La mobile app abilita chat, memoria visibile, profilo
 e settings reali, ma non ha ancora onboarding, multiutente, session close
 esplicito, revisione guidata memoria o workflow privacy avanzati.
 
-Sistema valutato: V1.29.1.
+Il prototipo V1.52.0 e verificato in browser ma deliberatamente scollegato dai
+dati runtime. L'approvazione del proprietario e obbligatoria prima che SCA-50
+estragga le primitive responsive o SCA-49 lo connetta al Core.
+
+Sistema valutato: V1.52.0 candidate.
 
 ## Sviluppi precedenti
 
@@ -63,8 +71,10 @@ Sistema valutato: V1.29.1.
 - V1.14.5: blocco mobile `activity` per richiesta in corso, contesto,
   retrieval memoria, salvataggio ricordi, tool waits, errori recuperabili e
   metacognizione.
+- V1.52.0: route Product UI statica, pipeline Tailwind CSS 4, anteprima a sei
+  stati e screenshot desktop/mobile versionati.
 
-## Verifica V1.29.1
+## Verifica V1.52.0
 
 - Implementazione: cockpit tecnico completo e mobile consumer funzionante su
   chat/sessioni/memoria/profilo/settings.
@@ -74,8 +84,12 @@ Sistema valutato: V1.29.1.
   avanzati assenti.
 - Integrazione runtime: attiva, ma i file `App.tsx` e `MobileApp.tsx` sono
   monoliti rispettivamente di circa 4.5k e 1.8k righe.
-- Prossimo gate: componentizzazione dietro regressione visiva/E2E, poi
-  onboarding, session lifecycle e controllo dati personali.
+- Browser reale: 1440x1000 e 390x844, screenshot, interazioni, assenza di
+  overflow orizzontale e console pulita.
+- Build: produzione TypeScript/Vite e audit npm senza vulnerabilita.
+- Confine: nessuna chiamata API e nessuna modifica ai consumer stream reali.
+- Prossimo gate: approvazione esplicita, poi componentizzazione SCA-50 e
+  integrazione Core SCA-49.
 
 ## Evolutive
 

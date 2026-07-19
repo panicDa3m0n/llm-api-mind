@@ -19,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current development target: **V1.51.0**. The closed, deployed Core baseline is
+Current development target: **V1.52.0**. The closed, deployed Core baseline is
 **V1.50.1**.
 
 The project has a working local baseline runtime:
@@ -54,6 +54,8 @@ The project has a working local baseline runtime:
   next-turn operational context;
 - provider-independent `scarlet-stream-v2` events with durable ids,
   session-global replay cursors, and deterministic recovery semantics;
+- an isolated `/prototype` Product UI approval surface with schema-realistic
+  V2 fixtures, mobile-first responsive flows, and a developer evidence lens;
 - backend-owned per-session idle maintenance for session summary refresh,
   missed-memory review, memory proposal generation, and cautious proposal
   resolution;

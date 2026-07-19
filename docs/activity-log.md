@@ -4,6 +4,32 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-19 - Static Mobile-First Product UI Prototype (SCA-48)
+
+Created `/prototype` as an isolated, clickable Product UI approval artifact.
+It uses no API calls and leaves the real `/` cockpit and `/mobile` client
+unchanged. Schema-realistic fixtures cover sessions, memory provenance, and
+the required `scarlet-stream-v2` envelope. The same responsive component tree
+exposes chat, continuity, memory, operating state, settings, and a developer
+lens rather than creating separate user and diagnostic applications.
+
+The developer lens can deterministically preview ready, empty, loading,
+streaming, reconnecting, and error states. The frontend pipeline moved from
+Tailwind 3/PostCSS to Tailwind CSS 4 through the official Vite plugin. Catalyst
+was unavailable in the repository/workspace, so local equivalent primitives
+are documented as temporary references for SCA-50 rather than a new shared
+design system.
+
+The production frontend build passed and `npm audit` reported zero
+vulnerabilities. Real-browser inspection at 1440x1000 and 390x844 exercised
+chat, session navigation, memory, the developer lens, scenario selection, and
+reconnect. It found and corrected one low-contrast user-message rule and one
+hidden mobile-menu accessibility issue. Final checks found no page overflow,
+console warning, console error, clipped primary control, or incoherent
+overlap. Four final screenshots are versioned under
+`docs/assets/product-ui-prototype/`. SCA-48 remains open pending explicit owner
+approval, and no runtime/database data entered the prototype.
+
 ## 2026-07-19 - Scarlet Stream V2 And Deterministic Client Recovery (SCA-47)
 
 Added the additive `scarlet-stream-v2` Product UI port over the unchanged
