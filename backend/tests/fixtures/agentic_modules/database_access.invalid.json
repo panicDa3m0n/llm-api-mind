@@ -1,0 +1,33 @@
+{
+  "schema_version": "agentic-module-manifest-v1",
+  "module_id": "cloud.honeylabs.invalid-db-reader",
+  "display_name": "Invalid DB Reader",
+  "description": "Invalid because modules cannot request direct database access.",
+  "module_version": "1.0.0",
+  "core_compatibility": {
+    "minimum_core_version": "1.52.0"
+  },
+  "mode_tags": [
+    "interactive"
+  ],
+  "capabilities": [
+    {
+      "kind": "context",
+      "capability_id": "invalid.context",
+      "produces_block_types": [
+        "invalid.context"
+      ]
+    }
+  ],
+  "permissions": [
+    "context.contribute",
+    "database.read"
+  ],
+  "runtime": {
+    "entrypoint": [
+      "python",
+      "-m",
+      "invalid_module"
+    ]
+  }
+}

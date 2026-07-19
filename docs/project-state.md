@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-19
-App target: V1.51.0; V1.50.1 remains deployed and release-accepted
+App target: V1.52.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -105,6 +105,9 @@ Implemented and verified:
   model transport, while historical MCP-originated records are preserved.
 - native project-selected providers remain authoritative; GPT Actions are an
   experimental external adapter and do not drive core architecture.
+- strict Agentic Module manifest and Core Port V1 contracts are accepted as an
+  additive architecture surface; no module discovery, host, or execution is
+  active yet.
 
 Current verification baseline:
 
@@ -337,6 +340,20 @@ Current limits:
 The organ registry is a capability reservation and shared metadata substrate.
 It must not be read as proof that temporal experience or Dream is implemented.
 
+### 3.6 Agentic Module Contract
+
+V1.52.0 accepts `agentic-module-manifest-v1`,
+`agentic-module-port-v1`, and `agentic-module-lifecycle-v1` as strict public
+data contracts. They define compatibility, mode tags, capabilities,
+permissions, dependencies, process/resource declarations, typed exchanges,
+and deterministic activation planning.
+
+No Module Host exists yet. The Core does not discover or execute manifests,
+and no product organ has become a module. SCA-54 owns discovery, supervision,
+runtime permission enforcement, contribution composition, health, failure
+isolation, and receipts. Direct database, secret, provider, prompt-owner, or
+Core-internal access remains outside the module permission vocabulary.
+
 ## 4. Agentic Branch Assessment
 
 The branch documents contain the full evidence and evolutions. This table is
@@ -379,7 +396,7 @@ The current largest modules are:
 frontend/src/App.tsx                         4474 lines
 backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
-backend/app/api/chat_native_turn.py          1638
+backend/app/api/chat_native_turn.py          1659
 backend/app/plugins/gpt_bridge/router.py     1509
 backend/app/mind/context.py                  1161
 backend/app/mind/memory_read.py               996
@@ -408,11 +425,12 @@ Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in twenty-six high-value typed modules while the measured
+- mypy blocks regressions in twenty-eight high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
 - the closed V1.50.1 backend suite passes 266 tests at 81.89% statement
-  coverage; the V1.51.0 stream target passes 271 tests at 82.08%; the blocking
-  floor remains 79.9% against the V1.33 baseline;
+  coverage; the V1.51.0 stream target passes 271 tests at 82.08%; the V1.52.0
+  module-contract target passes 286 tests at 82.47%; the blocking floor
+  remains 79.9% against the V1.33 baseline;
 - deterministic documentation checks validate local links, repository
   references, and canonical ADR/BUG/EXP identifier uniqueness;
 - GitHub Actions executes these gates and the frontend production build on
@@ -446,8 +464,9 @@ technical invariants; Linear owns ordering and work state.
 
 ### P2 - Agentic Modules And SDK
 
-1. SCA-53 defines manifest, Core Ports, modes/tags, permissions, dependencies,
-   and lifecycle.
+1. SCA-53 is complete: strict manifest, typed Core Ports, modes/tags,
+   permissions, dependencies, lifecycle, compatibility, and deterministic
+   activation planning are accepted without loading code.
 2. SCA-54 implements registry, host, observability, and failure isolation.
 3. SCA-55 publishes the SDK and a conformance fixture, not a product module.
 

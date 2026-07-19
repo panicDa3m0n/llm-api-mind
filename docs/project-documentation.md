@@ -50,6 +50,9 @@ discussed before a new fix is attempted.
   compatibility classes.
 - `docs/stream-v2-contract.md`: canonical Product UI stream, replay cursor,
   provider-independent event envelope, and reference reducer contract.
+- `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
+  permission/dependency model, lifecycle, activation rules, and compatibility
+  boundary for optional V2 Agentic Modules.
 - `docs/branches/README.md`: compact branch maturity and technical evidence
   matrix for the current release.
 - `docs/activity-log.md`: chronological work log.

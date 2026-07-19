@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App target: V1.51.0; V1.50.1 remains deployed and release-accepted
+App target: V1.52.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -4189,6 +4189,52 @@ POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
+
+## Agentic Module Public Contracts
+
+Status: manifest and Core Port V1 contracts implemented in V1.52.0; Module
+Host not implemented.
+
+These are Python/JSON data contracts, not HTTP routes and not model-facing
+tools. Canonical definitions:
+
+```txt
+backend/app/agentic_modules/contracts.py
+backend/app/agentic_modules/validation.py
+docs/agentic-modules-contract.md
+```
+
+Version identities:
+
+```txt
+agentic-module-manifest-v1
+agentic-module-port-v1
+agentic-module-lifecycle-v1
+```
+
+The strict manifest declares module identity and SemVer, Core compatibility,
+exact required Core contracts, one or more registered agent-mode tags, typed
+capabilities, allowlisted permissions, required/optional dependencies,
+declarative process transport, resource budgets, timeouts, health, and
+lifecycle policy. Unknown fields and unknown permissions fail validation.
+
+Typed Core Port envelopes cover:
+
+```txt
+ContextPortRequest -> ContextPortResult
+PromptPortRequest  -> PromptPortResult
+CommandPortRequest -> CommandPortResult
+CommandCatalogResult
+EventPortRequest   -> EventPortResult
+HealthPortRequest  -> HealthPortResult
+ModuleLifecycleEvent
+```
+
+`build_activation_plan()` validates Core/contract compatibility, known mode
+tags, dependency presence/version/cycles, and dependency eligibility for the
+single active agent mode. It returns deterministic active/inactive/blocked
+states and dependencies-first order. It does not import, load, execute, or
+trust module code. Runtime enforcement belongs to SCA-54.
 
 ## Future Mind API Annotations
 

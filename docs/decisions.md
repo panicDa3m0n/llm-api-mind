@@ -7,6 +7,53 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0110 - Agentic Modules Use Strict Manifests And Typed Core Ports
+
+Date: 2026-07-19
+Status: accepted for V1.52.0 before Module Host implementation
+
+Context:
+
+The closed Core must support future perception, action, and cognitive
+capabilities without letting optional code import persistence, prompt,
+provider, or runtime owners directly. The existing organ registry describes
+internal Core capabilities and cannot serve as a plugin manifest. Agent modes
+also describe Scarlet's foreground posture; maintenance and future Dream work
+are background processes and must not become modes for routing convenience.
+
+Decision:
+
+- introduce strict `agentic-module-manifest-v1` Pydantic contracts;
+- require stable module identity, SemVer, Core and exact port compatibility,
+  agent-mode tags, typed capabilities, allowlisted permissions, explicit
+  dependencies, bounded resources/timeouts/health, and lifecycle policy;
+- expose only versioned context, prompt, command, event, health, and lifecycle
+  envelopes as future Core Ports;
+- reject direct database, secret, provider, repository, prompt-owner, and Core
+  internal access by making those permissions inexpressible;
+- select modules from one active agent-mode tag, require compatible dependency
+  closure, order dependencies first, and keep missing optional dependencies as
+  warnings rather than hidden fallbacks;
+- keep system processes separate from agent modes; and
+- leave discovery, execution, supervision, enforcement, and isolation to
+  SCA-54, with no untrusted-code sandbox guarantee in this contract.
+
+Consequences:
+
+SCA-54 has an executable input contract and cannot invent another permission
+or dependency model inside the host. Modules remain optional: the Core and its
+canonical state are valid when none are installed. Strict schemas increase
+upfront compatibility work, but make drift and unsupported access explicit.
+The first host must be restricted to operator-installed modules and enforce
+every declared boundary at runtime; validation alone is not process isolation.
+
+Links:
+
+- Linear SCA-53
+- `docs/agentic-modules-contract.md`
+- `backend/app/agentic_modules/contracts.py`
+- `backend/app/agentic_modules/validation.py`
+
 ## ADR-0108 - Product Clients Reduce Durable Runtime Events, Not Provider Deltas
 
 Date: 2026-07-19
