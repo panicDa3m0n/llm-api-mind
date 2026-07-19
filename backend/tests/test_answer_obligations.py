@@ -3,6 +3,7 @@ import json
 from app.llm.provider import LLMExecutedToolCall, LLMTextResult
 from app.runtime.answer_obligations import (
     NATIVE_FINAL_MARKER,
+    NATIVE_FINALITY_RECOVERY_ID,
     AnswerObligationManifest,
     AnswerObligation,
     augment_with_tool_evidence,
@@ -11,6 +12,7 @@ from app.runtime.answer_obligations import (
     gpt_action_policy,
     strip_native_final_marker,
     validate_answer_semantics,
+    with_native_finality_recovery,
 )
 
 
@@ -460,6 +462,22 @@ def test_native_final_marker_is_stripped_only_at_the_final_boundary() -> None:
     )
     assert accepted is False
     assert unchanged.endswith("continuo a scrivere.")
+
+
+def test_native_finality_recovery_is_hard_semantic_and_deduplicated() -> None:
+    manifest = AnswerObligationManifest(transport="native")
+
+    recovered = with_native_finality_recovery(manifest)
+    recovered_twice = with_native_finality_recovery(recovered)
+
+    obligation = recovered.obligations[0]
+    assert obligation.id == NATIVE_FINALITY_RECOVERY_ID
+    assert obligation.severity == "hard"
+    assert obligation.validation_kind == "semantic"
+    assert obligation.evidence["automatic_rewrite"] is False
+    assert [item.id for item in recovered_twice.obligations] == [
+        NATIVE_FINALITY_RECOVERY_ID
+    ]
 
 
 def test_warning_and_advisory_findings_are_traced_without_blocking() -> None:

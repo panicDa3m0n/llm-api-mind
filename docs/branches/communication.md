@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-18
-System version assessed: V1.50.0 candidate (V1.43.0 deployed)
+System version assessed: V1.50.1 candidate (V1.50.0 deployed but not release-accepted)
 Status: active branch
 
 ## Filosofia del ramo
@@ -71,6 +71,9 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.41.0 distingue strutturalmente nota pubblica e risposta conclusiva,
   applica obblighi semantici solo quando esiste evidenza che li richiede e
   consente una sola correzione prima del fallimento esplicito.
+- V1.50.1 mantiene il marker privato come confine primario ma, dopo la sola
+  correzione consentita, usa un giudice LLM fail-closed per distinguere una
+  risposta completa senza marker da una seconda nota di avanzamento.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 

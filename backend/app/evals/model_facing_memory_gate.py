@@ -34,6 +34,7 @@ from app.evals.frozen_baseline import (
 )
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
+from app.runtime.answer_obligations import NATIVE_FINALITY_RECOVERY_ID
 from app.runtime.memory_provenance import (
     memory_provenance_audit,
     repair_exact_source_messages,
@@ -173,6 +174,43 @@ class IncompleteGateProvider(ModelFacingGateProvider):
 
     observed_systems: ClassVar[list[str]] = []
     include_final_marker: ClassVar[bool] = False
+
+    def generate_text(
+        self,
+        *,
+        prompt: str,
+        system: str | None = None,
+        max_tokens: int | None = None,
+    ) -> LLMTextResult:
+        if system and "runtime answer-obligation judge" in system:
+            payload = json.loads(prompt)
+            findings = [
+                {
+                    "obligation_id": obligation["id"],
+                    "status": (
+                        "fail"
+                        if obligation["id"] == NATIVE_FINALITY_RECOVERY_ID
+                        else "pass"
+                    ),
+                    "reason": (
+                        "The negative-control draft is intentionally incomplete."
+                        if obligation["id"] == NATIVE_FINALITY_RECOVERY_ID
+                        else "Controlled non-finality obligation passed."
+                    ),
+                }
+                for obligation in payload.get("obligations", [])
+            ]
+            return LLMTextResult(
+                model="model-facing-gate-controlled",
+                text=json.dumps({"findings": findings}),
+                usage={"input_tokens": 1, "output_tokens": 1},
+                stop_reason="end_turn",
+            )
+        return super().generate_text(
+            prompt=prompt,
+            system=system,
+            max_tokens=max_tokens,
+        )
 
 
 def main() -> int:

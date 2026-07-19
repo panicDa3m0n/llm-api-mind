@@ -6,6 +6,29 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.50.1 - Native Finality Semantic Recovery
+
+#### Fixed
+
+- Keep the private native final marker as the primary boundary and the single
+  bounded correction as the first recovery path.
+- When the corrected second draft still omits the marker, require an explicit
+  hard LLM judgment that the text is a complete, standalone, conclusive answer
+  rather than a progress note, promise, fragment, or dependency on rejected
+  public text.
+- Fail closed when that finality judge is unavailable or rejects the draft;
+  no text is rewritten and empty/incomplete provider output remains rejected.
+
+#### Verification
+
+- Two focused production turns exposed the repeated marker omission while
+  proving DB health, V2 memory delivery, shell execution, and complete provider
+  drafts. The release was not accepted from HTTP status alone.
+- Focused answer-control/chat tests pass 46/46; with the model-facing gate
+  oracles the patch surface passes 52/52, including positive markerless
+  semantic recovery, a negative second-progress-note control, and an empty-
+  draft guard. The complete backend passes 266 tests at 81.89% coverage.
+
 ### V1.50.0 - Stabilization Baseline And Model-Facing Memory Gate
 
 #### Added

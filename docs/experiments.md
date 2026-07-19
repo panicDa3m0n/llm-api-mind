@@ -9,6 +9,44 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0079 - Native Markerless Finality Recovery
+
+Status: focused deterministic evidence accepted; production repeat pending
+
+Hypothesis:
+
+After the one bounded correction, an LLM judge can distinguish a complete
+markerless final answer from a progress note without keyword/string scoring,
+automatic rewriting, or weakening the provider's empty-response boundary.
+
+Starting Evidence:
+
+- production turn `turn_a35981d139214ceeb0d135f2732ec8b9` delivered the exact
+  Zero-Luce memory and completed `memory graph`, but two markerless drafts led
+  to HTTP 502;
+- a second simple natural turn in session
+  `ses_513c1cb2482440a49bdbadfebe51a6f6` reproduced the same structural miss;
+- DB integrity, V2 projection, shell result, provider text, and runtime traces
+  separated the defect from retrieval, deployment, and provider emptiness.
+
+Method:
+
+- keep the existing first marker rejection and correction;
+- on the second miss only, validate one synthetic hard finality obligation
+  together with any current semantic obligations;
+- use controlled positive and negative providers to prove both polarities;
+- inspect persisted answer, trace manifest, judge finding, turn status, and
+  absence of marker leakage.
+
+Result:
+
+Focused answer-control and chat contracts pass 46/46; the patch surface plus
+model-facing gate oracles passes 52/52. The positive corrected draft is
+persisted unchanged after explicit semantic acceptance; the negative second
+progress note and empty corrected draft remain rejected with no assistant
+message. A real native repeat is required after protected deployment before
+release acceptance.
+
 ## EXP-0078 - Model-Facing Automatic-Memory Delivery Gate
 
 Status: deterministic integrated evidence accepted for V1.50.0

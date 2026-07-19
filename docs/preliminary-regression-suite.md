@@ -48,8 +48,8 @@ known pre-repair selection/projection split, applies exact provenance repair
 only on its disposable copy, and then verifies V2, `llm.request`, provider
 input, completed turn, and assistant persistence. Its negative control proves
 that a failed turn cannot pass through intermediate traces. The accepted run
-is `20260718_220521_model-facing-memory-gate-v2`, 5/5; the simultaneous
-unchanged V1 run `20260718_220559_preliminary-regression-v1` passes 9/9.
+is `20260718_223840_model-facing-memory-gate-v2`, 5/5; the accompanying
+unchanged V1 run `20260718_223740_preliminary-regression-v1` passes 9/9.
 
 The runner makes two ignored local copies:
 
