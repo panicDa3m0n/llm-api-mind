@@ -7,6 +7,337 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0102 - Generated Anatomy Was Treated As Automatically Registerable
+
+Date Found: 2026-07-21
+Status: fixed at workflow level; owner placement pending
+
+Symptoms:
+
+Automatic attempts to size and position generated anatomy against the portrait
+were slow, inconsistent, and less precise than direct owner adjustment in
+Photoshop. Placement work also distracted from generating the complete asset
+inventory.
+
+Root Cause:
+
+Image-generated assets have their own crop, scale, silhouette, and local
+coordinate system. Matching dimensions or a guessed bounding box cannot prove
+that their anatomical pixels coincide with a different rendered portrait.
+
+Fix:
+
+- Trim only to the actual alpha silhouette and preserve native dimensions.
+- Stage each asset hidden and centered only as an unmistakably unregistered
+  workspace layer.
+- Name every staged layer `UNREGISTERED__...__OWNER_TRANSFORM_REQUIRED`.
+- Keep the portrait locked at the bottom of the PSD.
+- Give final x/y and scale control to the owner in Photoshop.
+
+Regression Coverage:
+
+`npm run avatar:rig-workspace` rebuilds native crops and the PSD, reopens it,
+and verifies the complete hierarchy and locked bottom reference. No builder
+code computes an anatomical target box or claims approved placement.
+
+Related Files:
+
+- `frontend/scripts/prepare-scarlet-anatomical-part.mjs`
+- `frontend/scripts/build-scarlet-rig-psd.mjs`
+- `frontend/public/prototype/avatar/scarlet-rig-workspace.json`
+- `frontend/public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd`
+
+## BUG-0101 - Review PSD Reference Layer Was Serialized Above Anatomy
+
+Date Found: 2026-07-21
+Status: fixed
+
+Symptoms:
+
+The locked portrait reference visually covered generated anatomical layers in
+Photoshop, preventing placement review even though the intended z-order named
+the candidate as foreground.
+
+Root Cause:
+
+The avatar-specific writer treated the `ag-psd` `children` array as
+top-to-bottom. In the emitted PSD it is consumed bottom-to-top, so appending the
+reference made it the highest visible layer.
+
+Fix:
+
+- Replace organ-specific PSD writers with the generic anatomical preparer.
+- Emit the locked reference first, optional approved lower surfaces next, and
+  the current candidate last.
+- Reopen every PSD immediately after writing and assert both the full ordered
+  name list and the `REFERENCE__` prefix in the first/bottom position.
+
+Regression Coverage:
+
+The right-upper-lash preparation command writes and parses the two-layer PSD;
+generation fails on any bottom-to-top order mismatch.
+
+Related Files:
+
+- `frontend/scripts/prepare-scarlet-anatomical-part.mjs`
+- `frontend/public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/eye_scarlet_right_upper_lash_liner-v1-review.psd`
+
+## BUG-0100 - Rejected Avatar Pipelines Remained Active Beside Canonical Sources
+
+Date Found: 2026-07-21
+Status: fixed
+
+Symptoms:
+
+The avatar workspace exposed hundreds of generated images, several rejected
+PSDs, APNG frames, overlapping contracts, and executable npm commands from V1,
+V2, and V3 experiments. A future authoring step could consume or regenerate a
+rejected asset without an obvious boundary violation.
+
+Root Cause:
+
+Each experiment retained its output for comparison, but the repository had no
+single active-artifact whitelist. Historical evidence and production inputs
+therefore occupied the same filesystem surface.
+
+Fix:
+
+- Remove all derived visual artifacts and obsolete generators.
+- Retain only the portrait and T-pose as visual sources.
+- Lock their paths, dimensions, hashes, and roles in one authoring contract.
+- Make all future anatomical surfaces pass an owner-reviewed one-organ gate
+  before they can enter a PSD.
+
+Regression Coverage:
+
+The reference-only inventory, hash checks, JSON parsing, and frontend build
+form the reset verification. Future avatar validation must fail if an
+unregistered raster or PSD appears in the canonical authoring workspace.
+
+Related Files:
+
+- `frontend/public/prototype/avatar/scarlet-psd-authoring-contract.json`
+- `docs/scarlet-live2d-puppet.md`
+
+## BUG-0099 - Historical Face Partition Was Mistaken For Scarlet's Rig Contour
+
+Date Found: 2026-07-21
+Status: historical; generated candidate removed by BUG-0100
+
+Symptoms:
+
+The first Puppet V3 face base had valid dimensions and exact alpha agreement
+with its mask, but its isolated silhouette read as a generic broad oval rather
+than Scarlet's narrower heart-shaped face. Numeric mask agreement concealed
+that the mask itself was wrong.
+
+Root Cause:
+
+The generator inherited the `face_base` path from the old visible-pixel
+partition. That path was designed to assign source pixels without overlap; it
+was never approved as anatomical rig geometry.
+
+Fix:
+
+- Reject the historical partition path as face geometry.
+- Trace a new V3 contour from the locked half-body portrait using forehead,
+  temple, cheek, jaw, and chin landmarks on the native pixel grid.
+- Store the path and landmarks in the V3 contract rather than in generator
+  code or historical evidence.
+- Add old/new contour, coordinate-grid, isolated silhouette, alpha-match, and
+  direct overlay proofs.
+- Make validation fail when report path or bounds drift from the V3 contract.
+
+Residual Work:
+
+The corrected face is awaiting direct owner review. No further V3 organ or PSD
+may be produced until this gate is accepted.
+
+Related Files:
+
+- `frontend/public/prototype/avatar/scarlet-puppet-v3-contract.json`
+- `frontend/scripts/inspect-scarlet-face-contour-v3.mjs`
+- `frontend/scripts/prepare-scarlet-face-base-v3.mjs`
+- `frontend/scripts/validate-scarlet-avatar.mjs`
+
+## BUG-0098 - Puppet V2 Layer Count Masked Legacy Artistic Dependencies
+
+Date Found: 2026-07-21
+Status: historical; all generated puppet artifacts removed by BUG-0100
+
+Symptoms:
+
+Puppet V2 passed structural validation with 59 materials and 103 PSD layers,
+but `face_base` consisted of a perforated portrait cutout plus a hidden generic
+face. Torso, limbs, hair, eye supports, expressions, and hand variants had the
+same dependency on the superseded generated material pack.
+
+Root Cause:
+
+The generator read `source/generated/materials/materials-index.json`, resized
+those assets around visible cutout bounds, and treated the pair as a completed
+material. The validator checked dimensions, names, groups, files, and PSD
+parsing but did not verify that each rig layer was one newly reconstructed,
+reference-anchored semantic surface.
+
+Fix:
+
+- Mark Puppet V2 and its PSD as rejected evidence.
+- Add a Puppet V3 contract that forbids all legacy artistic inputs.
+- Make PSD admission fail closed until progressive material gates pass.
+- Build the face base from the approved portrait geometry and clean skin
+  pixels, limiting generated pixels to removed or occluded areas.
+- Extend avatar validation to enforce the V2 rejection and V3 face-gate state.
+
+Residual Work:
+
+The face candidate requires owner review. Eyes other than the approved iris,
+brows, nose, mouth, ears, neck, hair, body, limbs, hands, and the V3 PSD remain
+unimplemented.
+
+Related Files:
+
+- `frontend/public/prototype/avatar/scarlet-puppet-v3-contract.json`
+- `frontend/scripts/prepare-scarlet-face-base-v3.mjs`
+- `frontend/scripts/validate-scarlet-avatar.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## BUG-0097 - Hidden Support Corrupted Neutral Puppet Assembly
+
+Date Found: 2026-07-20
+Status: superseded diagnosis; Puppet V2 rejected by BUG-0098
+
+Symptoms:
+
+Early full-puppet composites showed oversized synthetic eye and body support,
+misregistered legacy-board content, and a visibly different face despite the
+individual visible-master extractions being correct. A broad attempt to remove
+light fringe by RGB threshold also punched holes into the pearl-white suit.
+
+Root Cause:
+
+Legacy support boards had different local scales and coordinate systems from
+the registered portrait/T-pose canvas. More importantly, reconstructed support
+was being displayed as neutral artwork instead of remaining hidden under the
+authoritative visible surface. Color alone could not distinguish white fringe
+from legitimate light materials.
+
+Fix:
+
+- Register support to each material's authoritative visible bounds.
+- Separate `visible-master`, `hidden-support`, and `complete` outputs.
+- Disable hidden support in the neutral composite and generated PSD by default.
+- Add exact neutral master-eye composites while retaining the separated eye
+  stack for later clipping and deformation.
+- Remove broad RGB cleanup and preserve source texture unless a boundary is
+  explicitly reviewed.
+- Add a neutral reference, reconstruction, difference map, depth map, contact
+  sheet, per-part proofs, and structural PSD validation.
+
+Regression Coverage:
+
+The original structural checks remain historical evidence only. BUG-0098
+records why they were insufficient and why the resulting PSD is rejected.
+
+Residual Work:
+
+Small source/matte artifacts remain around selected T-pose hair and shoulder
+edges. They require local edge masks plus Cubism movement-extrema checks; they
+must not be addressed with global color thresholds.
+
+Related Files:
+
+- `frontend/public/prototype/avatar/scarlet-puppet-v2-contract.json`
+- `frontend/scripts/prepare-scarlet-puppet-v2.mjs`
+- `frontend/scripts/validate-scarlet-avatar.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## BUG-0096 - Neutral Pixel Partition Mixed Multiple Live2D Semantic Surfaces
+
+Date Found: 2026-07-20
+Status: V1 rejected; semantic replacement assembled in Puppet V2
+
+Symptoms:
+
+The right-eye iris proof visibly carried lower-eyelid and eye-white pixels. If
+used directly in Cubism, gaze motion would move those foreign pixels with the
+iris. Sclera and lash exports were correspondingly incomplete. Other geometric
+patches could reproduce the neutral reference while still mixing face skin
+with nose/mouth features or combining front/rear depth roles.
+
+Root Cause:
+
+The first generator intentionally performed a priority-ordered geometric pixel
+partition. It proved exact source provenance and prevented duplicate pixel
+assignment, but the resulting labels were described too closely to final
+materials. Zero reconstruction mismatch measures neutral coverage, not semantic
+ownership or deformation safety.
+
+Fix:
+
+- Mark the 34 exports as partition evidence only.
+- Add `scarlet-occlusion-contract.json` with an audit of all 34 candidates,
+  draw-order bands, clipping, hidden completion, support materials, and motion
+  proofs.
+- Validate that every visible candidate appears in the audit exactly once.
+- Defer all hidden artwork and PSD assembly to isolated owner-review gates.
+
+Residual Work:
+
+The 26-asset V1 eye gate remains rejected diagnostic evidence. The replacement
+right iris V2 is owner-approved as the common source for both irises, and the
+Puppet V2 pipeline now separates visible-master, hidden-support, complete, and
+variant roles across the eye, face, hair, and body set. The PSD is assembled,
+but the semantic materials still require Cubism clipping, deformation, extreme
+pose review, and local matte cleanup before motion safety is proven.
+
+Related Files:
+
+- `frontend/public/prototype/avatar/scarlet-occlusion-contract.json`
+- `frontend/public/prototype/avatar/scarlet-eye-assets-contract.json`
+- `frontend/public/prototype/avatar/scarlet-right-iris-v2-contract.json`
+- `frontend/scripts/prepare-scarlet-semantic-eyes.mjs`
+- `frontend/scripts/prepare-scarlet-right-iris-v2.mjs`
+- `frontend/public/prototype/avatar/scarlet-puppet-v2-contract.json`
+- `frontend/scripts/prepare-scarlet-puppet-v2.mjs`
+- `frontend/public/prototype/avatar/scarlet-visible-parts-matrix.json`
+- `frontend/scripts/validate-scarlet-avatar.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## BUG-0095 - Live2D Authoring Validation Followed Superseded PSD State
+
+Date Found: 2026-07-20
+Status: historical; pipeline removed by BUG-0100
+
+Symptoms:
+
+The active visible-pixel generator briefly emitted empty non-hair layers after
+component filtering was introduced. The general avatar validator also failed
+on a stale `reference` group inside the earlier generated import PSD even
+though that material pack had been superseded by the master-pixel pipeline.
+
+Root Cause:
+
+The unfiltered retained mask aliased the working mask and was cleared before
+extraction. Separately, the validator discovered and validated every legacy
+PSD merely because it existed, rather than following the active pipeline
+status in the authoring manifest.
+
+Fix:
+
+Clone unfiltered retained masks before clearing the workspace. Validate the
+active fidelity matrix, all generated layer/mask/piece/proof files, and the
+zero-mismatch report by default. Keep the old generated PSD inspection behind
+`--validate-legacy-material-pack`; keep approved-PSD requirements fail-closed
+until the new fidelity PSD exists.
+
+Regression Coverage:
+
+- `npm run avatar:fidelity:parts` exports 34 non-empty materials;
+- portrait and body selected reconstructions report zero RGBA mismatches;
+- `npm run avatar:validate` passes against the active fidelity pipeline; and
+- `npm run build` passes after the validator change.
+
 ## BUG-0094 - Repeated Native Final-Marker Omission Discards Conclusive Answers
 
 Date Found: 2026-07-18

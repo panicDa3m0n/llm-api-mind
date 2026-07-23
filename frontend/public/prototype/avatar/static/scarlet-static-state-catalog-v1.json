@@ -1,0 +1,82 @@
+{
+  "schema_version": "scarlet-static-state-catalog-v1",
+  "status": "initial-three-state-test",
+  "identity_contract": "scarlet-identity-contract-v1.json",
+  "transition": {
+    "type": "crossfade",
+    "duration_ms": 240,
+    "easing": "cubic-bezier(0.22, 1, 0.36, 1)",
+    "registration_rule": "Both images occupy the same fixed stage and object-fit geometry.",
+    "reduced_motion": "switch immediately without opacity animation"
+  },
+  "routing": {
+    "startup": "startup_greeting_smile",
+    "chat_ready_default": "chat_neutral_smile",
+    "chat_long_idle": "chat_idle_bored",
+    "long_idle_after_ms": 120000,
+    "suppression": "Never show long-idle while Scarlet is listening, thinking, speaking, reacting, or processing a turn."
+  },
+  "states": [
+    {
+      "id": "startup_greeting_smile",
+      "surfaces": ["splash", "session-entry"],
+      "asset": "motion/scarlet-startup-greeting-happyhorse-v1.mp4",
+      "fallback_asset": "/prototype/scarlet-character-v1.png",
+      "media": "video",
+      "playback": {
+        "autoplay": true,
+        "loop": {
+          "first_pass_start_seconds": 0,
+          "subsequent_pass_start_seconds": 2,
+          "end_seconds": "media-duration"
+        },
+        "muted": true,
+        "plays_inline": true,
+        "reduced_motion": "Use fallback_asset and do not load or play the video."
+      },
+      "framing": "half-body",
+      "state_delta": {
+        "expression": "open warm greeting smile, lips gently parted at most, bright attentive eyes, mildly raised friendly brows",
+        "gaze": "directly toward the user",
+        "head": "upright with a subtle welcoming tilt no greater than 3 degrees",
+        "pose": "Scarlet's right arm/viewer-left enters the frame with a natural open-palm greeting at shoulder height; five visible correct fingers; left shoulder relaxed",
+        "emotion": "warm joyful recognition, restrained rather than exuberant",
+        "hair": "only slight natural displacement around the raised arm; identity locks unchanged"
+      },
+      "must_show": ["face", "linked throat emblem", "both collar halves", "raised hand and cuff", "both side-specific front hair locks"],
+      "avoid": ["large waving motion blur", "closed eyes", "open-mouth laugh", "salute", "childlike excitement"]
+    },
+    {
+      "id": "chat_neutral_smile",
+      "surfaces": ["chat"],
+      "asset": "portraits/scarlet-chat-neutral-smile-v1.png",
+      "framing": "portrait-half-body",
+      "state_delta": {
+        "expression": "the canonical soft closed-mouth smile, relaxed eyelids, calm brows",
+        "gaze": "directly toward the user",
+        "head": "upright and centered",
+        "pose": "symmetrical relaxed shoulders; arms remain outside the visible portrait unless the canonical crop naturally includes them",
+        "emotion": "quietly present, receptive, and comfortable",
+        "hair": "canonical portrait arrangement"
+      },
+      "must_show": ["face", "collar", "linked throat emblem", "upper chest harness", "both side-specific front hair locks"],
+      "avoid": ["blank expression", "customer-service grin", "head tilt", "visible hand gesture"]
+    },
+    {
+      "id": "chat_idle_bored",
+      "surfaces": ["chat"],
+      "asset": "portraits/scarlet-chat-idle-bored-v1.png",
+      "framing": "portrait-half-body",
+      "state_delta": {
+        "expression": "lightly bored but still present: upper eyelids lowered modestly, one brow fractionally raised, mouth relaxed with the faintest asymmetric pout",
+        "gaze": "slightly off-center as if waiting, never rolled upward or disengaged",
+        "head": "gentle 5-degree tilt",
+        "pose": "one shoulder fractionally lower; no hand supporting the face in this first test",
+        "emotion": "patient mild boredom, not sadness, irritation, exhaustion, contempt, or sleepiness",
+        "hair": "small physically plausible shift following the head tilt; colors and silhouette remain canonical"
+      },
+      "must_show": ["face", "collar", "linked throat emblem", "upper chest harness", "both side-specific front hair locks"],
+      "avoid": ["angry brows", "frown", "eye roll", "yawn", "closed eyes", "slumped posture", "comic boredom symbols"]
+    }
+  ]
+}

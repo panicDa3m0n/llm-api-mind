@@ -1,0 +1,255 @@
+{
+  "schema_version": "scarlet-native-anatomical-assets-v1",
+  "workflow": "generated-chroma-alpha-native-crop-v1",
+  "assets": [
+    {
+      "id": "eye_scarlet_right_sclera",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "632_SCLERA"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_sclera-v1-native.png",
+      "width": 1337,
+      "height": 624,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_iris_pupil",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "633_IRIS_BASE"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_iris_pupil-v1-native.png",
+      "width": 897,
+      "height": 897,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_catchlight",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "634_IRIS_DETAILS",
+        "6342_HIGHLIGHTS"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_catchlight-v1-native.png",
+      "width": 179,
+      "height": 216,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_upper_lid_skin",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "638_UPPER_LID_SKIN"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_upper_lid_skin-v1-native.png",
+      "width": 1283,
+      "height": 408,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_lower_lid_skin",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "636_LOWER_LID_SKIN"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_lower_lid_skin-v1-native.png",
+      "width": 910,
+      "height": 296,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_lower_lashes",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "637_LOWER_LASHES"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_lower_lashes-v1-native.png",
+      "width": 889,
+      "height": 282,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_right_upper_lash_liner",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "639_UPPER_LASH_LINER"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_right_upper_lash_liner-v1-native.png",
+      "width": 1419,
+      "height": 369,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_sclera",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "642_SCLERA"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_sclera-v1-native.png",
+      "width": 1072,
+      "height": 472,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_iris_pupil",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "643_IRIS_BASE"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_iris_pupil-v1-native.png",
+      "width": 897,
+      "height": 897,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_catchlight",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "644_IRIS_DETAILS",
+        "6442_HIGHLIGHTS"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_catchlight-v1-native.png",
+      "width": 179,
+      "height": 216,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_upper_lid_skin",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "648_UPPER_LID_SKIN"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_upper_lid_skin-v1-native.png",
+      "width": 1263,
+      "height": 405,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_lower_lid_skin",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "646_LOWER_LID_SKIN"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_lower_lid_skin-v1-native.png",
+      "width": 899,
+      "height": 299,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_lower_lashes",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "647_LOWER_LASHES"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_lower_lashes-v1-native.png",
+      "width": 773,
+      "height": 240,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "eye_scarlet_left_upper_lash_liner",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "649_UPPER_LASH_LINER"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/eye_scarlet_left_upper_lash_liner-v1-native.png",
+      "width": 1431,
+      "height": 392,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "mouth_upper_lip",
+      "group_path": [
+        "60_HEAD",
+        "62_MOUTH",
+        "625_UPPER_LIP"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/mouth_upper_lip-v1-native.png",
+      "width": 829,
+      "height": 139,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "mouth_lower_lip",
+      "group_path": [
+        "60_HEAD",
+        "62_MOUTH",
+        "624_LOWER_LIP"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/mouth_lower_lip-v1-native.png",
+      "width": 977,
+      "height": 276,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "nose",
+      "group_path": [
+        "60_HEAD",
+        "65_NOSE",
+        "651_NOSE_BASE"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/nose-v1-native.png",
+      "width": 348,
+      "height": 696,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "brow_scarlet_right",
+      "group_path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "640_BROW"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/brow_scarlet_right-v1-native.png",
+      "width": 933,
+      "height": 195,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    },
+    {
+      "id": "brow_scarlet_left",
+      "group_path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "650_BROW"
+      ],
+      "native_asset": "public/prototype/avatar/rig/assets/brow_scarlet_left-v1-native.png",
+      "width": 1294,
+      "height": 301,
+      "placement": "unregistered-owner-controlled",
+      "source_kind": "image-generation"
+    }
+  ]
+}

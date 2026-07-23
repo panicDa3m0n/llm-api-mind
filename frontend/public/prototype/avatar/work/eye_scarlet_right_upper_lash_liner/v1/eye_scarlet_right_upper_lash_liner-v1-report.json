@@ -1,0 +1,50 @@
+{
+  "schema_version": "scarlet-generated-anatomical-part-v1",
+  "workflow": "generated-rgba-transform-psd-v1",
+  "status": "owner-approved-artwork-placement-review",
+  "id": "eye_scarlet_right_upper_lash_liner",
+  "version": "v1",
+  "source_reference": "public/prototype/scarlet-character-v1.png",
+  "generated_source": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/input/approved-generated-lash-green-v1.png",
+  "transparent_input": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/input/approved-generated-lash-transparent-v1.png",
+  "canvas": {
+    "width": 941,
+    "height": 1672
+  },
+  "placement": {
+    "x": 330,
+    "y": 570,
+    "width": 136,
+    "height": 35
+  },
+  "reference_target_bbox": {
+    "x": 330,
+    "y": 570,
+    "width": 136,
+    "height": 35
+  },
+  "review_crop": {
+    "left": 315,
+    "top": 535,
+    "width": 175,
+    "height": 115
+  },
+  "photoshop_order": [
+    "REFERENCE__scarlet_portrait__LOCKED_DO_NOT_EDIT",
+    "CANDIDATE__eye_scarlet_right_upper_lash_liner__APPROVED_ASSET"
+  ],
+  "photoshop_order_semantics": "bottom-to-top",
+  "assets": {
+    "isolated": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/assets/eye_scarlet_right_upper_lash_liner-v1-isolated.png",
+    "full_canvas": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/assets/eye_scarlet_right_upper_lash_liner-v1-full-canvas.png",
+    "review_psd": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/eye_scarlet_right_upper_lash_liner-v1-review.psd",
+    "contact_sheet": "public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/proofs/eye_scarlet_right_upper_lash_liner-v1-contact-sheet.png"
+  },
+  "approval": {
+    "anatomical_asset": true,
+    "approved_by": "owner",
+    "criterion": "perceptual fidelity after generated-asset placement",
+    "placement": "candidate-calibrated-awaiting-owner-review",
+    "z_axis_note": "front hair materials must appear above this layer"
+  }
+}

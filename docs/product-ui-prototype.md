@@ -1,6 +1,6 @@
 # Product UI Static Prototype
 
-Last updated: 2026-07-19
+Last updated: 2026-07-22
 Current app target: V1.54.0; prototype remains an unversioned approval artifact
 Linear issue: SCA-48
 Status: implemented and awaiting explicit owner approval
@@ -11,6 +11,35 @@ The `/prototype` route is the approval artifact for the V2 Product UI. It is a
 static, mobile-first React application with schema-realistic fixtures. It does
 not call the backend and does not alter the existing `/` cockpit or `/mobile`
 consumer.
+
+As of 2026-07-20, the default route presents only the first Android navigation
+step: the Scarlet splash and identity concept. The prior multi-surface product
+preview remains available at `/prototype?surface=product` for comparison. APK
+update, login, registration, and home are intentionally not represented yet.
+
+The splash introduces the approved character direction: Scarlet appears as an
+adult anime woman around age 25, with visible makeup, dark plum hair, pearl and
+graphite clothing, and Timber cyan/fuchsia identity accents. The current
+transparent bust is the approved identity source for an active static-portrait
+system. Scarlet will change among separately authored, identity-locked
+emotional states through short fades and restrained presentation effects. It
+does not simulate continuous facial motion or speech.
+
+The current splash uses a pre-rendered HappyHorse greeting inside a circular
+video bubble. Its opaque background and watermark are excluded by the crop.
+Playback is muted and inline, uses the approved portrait as the loading,
+error, and reduced-motion fallback, and loops from two seconds only after the
+complete first pass.
+
+The TripoAI image-to-3D probe was rejected as the production avatar path after
+its OBJ preserved a general resemblance but introduced visible quality defects.
+The layered raster puppet path is paused after Live2D, PSD, and prepared APNG
+experiments proved too costly and identity-sensitive for the present Product
+UI. Its artifacts and findings remain available for future research. The
+active path is documented in `docs/scarlet-static-portraits.md`: an identity
+contract, an approved supporting 360-degree reference pack, and an incremental catalog of
+static semantic states. The first planned states are startup greeting,
+active-chat neutral, and long-idle boredom.
 
 The artifact was created on the parallel V1.52 development branch and refreshed
 onto V1.54.0 after the Agentic Module contract, host, and SDK landed. This
@@ -131,6 +160,10 @@ with no horizontal overflow.
 
 Screenshots:
 
+- [Mobile splash](assets/product-ui-prototype/mobile-splash.png)
+- [Landscape splash](assets/product-ui-prototype/landscape-splash.png)
+- [Mobile video splash](assets/product-ui-prototype/mobile-splash-video.png)
+- [Landscape video splash](assets/product-ui-prototype/landscape-splash-video.png)
 - [Desktop chat](assets/product-ui-prototype/desktop-chat.png)
 - [Desktop developer lens](assets/product-ui-prototype/desktop-developer-lens.png)
 - [Desktop sessions](assets/product-ui-prototype/desktop-sessions.png)

@@ -7,6 +7,560 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0124 - Scarlet Uses Identity-Locked Static Portrait States
+
+Date: 2026-07-22
+Status: accepted; pauses the active puppet direction in ADR-0123 without deleting its research artifacts
+
+Context:
+
+Two days of layered-puppet, Live2D, PSD, and prepared-animation experiments
+showed that the available workflows consume disproportionate effort while
+drifting from Scarlet's approved raster identity. The Product UI needs a vivid,
+emotionally legible Scarlet sooner than a production-quality deformable puppet
+can be authored.
+
+Decision:
+
+- use authored static Scarlet portraits as the active Product UI character
+  representation;
+- switch portraits by semantic state, with short fades and restrained local UI
+  effects rather than simulated skeletal motion;
+- preserve the approved half-body portrait as the authority for face, hair,
+  makeup, upper body, and rendering, and preserve the approved T-pose as the
+  authority for full-body proportions and body regions absent from the portrait;
+- encode immutable identity, controlled pose/expression variables, forbidden
+  drift, and acceptance checks in a machine-readable identity contract;
+- create a supporting 360-degree reference set for hidden geometry, require
+  owner approval, and prevent those generated views from overriding either
+  approved front authority;
+- treat startup greeting, active-chat neutral, and long-idle boredom as the
+  first three application states; and
+- permit a bounded pre-rendered startup video inside a cropped presentation
+  bubble when it preserves identity, has a canonical static fallback, respects
+  reduced motion, and does not imply a general puppet capability; and
+- retain all layered-puppet artifacts and findings as paused research rather
+  than deleting or presenting them as current implementation work.
+
+Consequences:
+
+Scarlet can gain a broad, incrementally generated emotional vocabulary while
+preserving image quality and identity. Transitions will not create continuous
+body motion or lip synchronization. Those capabilities remain possible future
+rig research and are not implied by static portrait changes.
+
+Amendment, 2026-07-23:
+
+- the owner approved the complete supporting 360-degree pack;
+- the first startup greeting uses the owner-supplied HappyHorse render;
+- the first pass plays from zero and subsequent passes loop from two seconds;
+- audio remains muted for autoplay and the crop excludes the source watermark;
+  and
+- the video remains a splash presentation asset, not a new avatar runtime.
+
+Links:
+
+- `docs/scarlet-static-portraits.md`
+- `docs/scarlet-live2d-puppet.md`
+- `frontend/public/prototype/avatar/static/scarlet-identity-contract-v1.json`
+- `frontend/public/prototype/avatar/static/scarlet-static-state-catalog-v1.json`
+- `frontend/public/prototype/avatar/static/reference-360/scarlet-reference-360-v1.json`
+
+## ADR-0123 - Scarlet Uses A Structural PSD Reference And Owner-Controlled Transforms
+
+Date: 2026-07-21
+Status: accepted; supersedes ADR-0122 placement automation and one-organ PSD blocking
+
+Context:
+
+Generated assets do not share a reliable coordinate system with the approved
+portrait. Repeated automated scale and placement attempts consumed substantial
+work while remaining less accurate than direct owner adjustment. The owner
+provided a complete layered `Poopoo.psd` to clarify practical asset separation,
+grouping, clipping, and shading conventions.
+
+Decision:
+
+- parse Poopoo as structural evidence only and forbid all reuse of its pixels,
+  identity, anatomy, colors, costume, and textures;
+- reproduce its useful construction pattern: painted raster assets, selective
+  clipping, additive iris light, detailed eye/mouth stacks, and hair separated
+  by depth;
+- improve bilateral limb articulation beyond the supplied reference;
+- generate Scarlet assets from Scarlet references only, remove chroma, and
+  trim to native alpha bounds without automatic scaling or registration;
+- stage every candidate hidden in a complete semantic PSD hierarchy;
+- let the owner position and scale candidates directly against the locked
+  bottom portrait in Photoshop; and
+- allow the complete PSD skeleton before every artwork gate closes, while
+  keeping unapproved layers explicitly hidden and unregistered.
+
+Consequences:
+
+The agent focuses on asset generation and repeatable PSD organization rather
+than unreliable transform calibration. Existing generated assets remain
+preserved. A structurally complete PSD no longer implies that its artwork or
+rig is approved.
+
+Links:
+
+- `frontend/public/prototype/avatar/Poopoo.psd`
+- `frontend/public/prototype/avatar/poopoo-structural-reference.json`
+- `frontend/public/prototype/avatar/scarlet-rig-workspace.json`
+- `frontend/public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd`
+- `frontend/scripts/analyze-avatar-psd-reference.mjs`
+- `frontend/scripts/build-scarlet-rig-psd.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0122 - Every Anatomical Surface Uses One Generated-Only Review Workflow
+
+Date: 2026-07-21
+Status: generated-only artwork principle retained; placement automation and PSD blocking superseded by ADR-0123
+
+Context:
+
+The generated right upper lash was visually approved, but a later forelock
+iteration changed method by combining generated artwork with pixels from the
+portrait. That made provenance, anatomy, and future motion behavior ambiguous.
+The review PSD also revealed that `ag-psd` serializes its child array in
+bottom-to-top order, contrary to the earlier assumption.
+
+Decision:
+
+- use the portrait and T-pose only as visual guidance for identity, geometry,
+  target dimensions, position, and final comparison;
+- generate every complete individual anatomical surface as new artwork on a
+  removable chroma background;
+- never copy, crop, extract, patch, or composite reference pixels into an
+  anatomical asset;
+- convert chroma to transparency, then permit only transparent-bound trimming,
+  scaling, and x/y placement before review;
+- drive all organs and all retries through
+  `prepare-scarlet-anatomical-part.mjs` plus a per-part data config, without
+  introducing special construction code;
+- use the same white, black, checkerboard, target-box, 50% alignment,
+  placement-overlay, Difference, and z-stack proof suite for every candidate;
+- store review PSD children bottom-to-top: locked reference first, optional
+  approved lower surfaces next, and current candidate last; and
+- reopen each emitted PSD and fail when the stored layer order differs.
+
+Consequences:
+
+Art style remains an image-generation concern while registration and review
+become deterministic and repeatable. The rejected hybrid forelock is removed.
+The approved lash artwork is retained and calibrated at `(330,570)`, size
+`136x35`; owner approval of that placement remains the current one-organ gate.
+
+Links:
+
+- `frontend/scripts/prepare-scarlet-anatomical-part.mjs`
+- `frontend/public/prototype/avatar/scarlet-psd-authoring-contract.json`
+- `frontend/public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/part-config.json`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0121 - Scarlet Puppet Authoring Restarts From Two Canonical References
+
+Date: 2026-07-21
+Status: accepted
+
+Context:
+
+The generated Live2D material sets, Puppet V2/V3 candidates, and APNG V1/V2
+experiments accumulated hundreds of mutually incompatible outputs. Some
+preserved neutral pixels but failed semantic ownership; others reconstructed
+hidden areas with identity drift or produced unacceptable motion distortion.
+Keeping those files and executable generators active made accidental reuse more
+likely than a clean, reviewable restart.
+
+Decision:
+
+- keep only the approved half-body portrait and the full-body T-pose as visual
+  inputs;
+- use the portrait as the authority for face, hair, neck, torso, and every
+  visible half-body identity detail;
+- use the T-pose only as secondary geometry and verification evidence for
+  hands, arms, legs, and regions absent from the portrait;
+- remove all prior generated images, PSDs, proofs, animation frames, contracts,
+  and executable avatar-generation commands from the active workspace;
+- author exactly one complete transparent anatomical surface at a time, in
+  front-to-back production order;
+- store every admitted surface as a full-canvas `941x1672` RGBA PNG at final
+  native coordinates;
+- validate visible pixels directly over the locked portrait and validate
+  hidden completions only in isolation and beneath approved foreground layers;
+  and
+- keep the master PSD engine-neutral until the anatomical material set is
+  sufficiently complete to choose the production rig runtime.
+
+Consequences:
+
+The avatar workspace is small and unambiguous again. Historical experiment
+findings remain in documentation, but no historical raster may seed a new
+surface. PSD assembly is blocked; the next accepted artifact must be one
+owner-approved frontmost anatomical PNG and its review evidence.
+
+Links:
+
+- `docs/scarlet-live2d-puppet.md`
+- `frontend/public/prototype/avatar/scarlet-psd-authoring-contract.json`
+- `frontend/public/prototype/scarlet-character-v1.png`
+- `frontend/public/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png`
+
+## ADR-0120 - Prepared Scarlet Animations Use Canonical-Neutral APNG Delta Frames
+
+Date: 2026-07-21
+Status: rejected and superseded by ADR-0121
+
+Context:
+
+Manual Live2D material separation repeatedly drifted from the approved portrait
+and required disproportionate reconstruction work before any motion could be
+tested. Full-frame image generation preserved the broad identity but changed
+unrelated details and framing between poses.
+
+Decision:
+
+The experiment originally decided to:
+
+- use APNG as the active prepared-animation container;
+- require the exact canonical neutral as both first and last decoded frame;
+- generate one local gesture master and derive intermediate poses from that
+  master plus the neutral identity reference;
+- composite only reviewed motion corridors over the exact neutral rather than
+  accepting full generated frames;
+- validate pixel-locked identity regions, source/frame provenance, APNG timing,
+  loop count, alpha, MIME type, browser behavior, and final rest state; and
+- retain Live2D artifacts as paused research evidence rather than deleting or
+  representing them as completed runtime assets.
+
+Consequences:
+
+The experiment demonstrated that APNG can preserve prepared raster frames but
+cannot create coherent motion. V1 remained discontinuous and V2 introduced
+unacceptable distortion. Generated artifacts and builders were removed by the
+reference-only reset. APNG remains only a possible future export container for
+motion rendered by a real rig.
+
+Amendment, 2026-07-21:
+
+- APNG is the prepared-animation delivery container, not a motion-generation
+  mechanism;
+- a production candidate must first render a continuous 30 fps source timeline;
+- different poses may not be bridged by long frame delays;
+- local raster meshes may deform approved source pixels inside the motion
+  corridor without creating a full-body rig;
+- static holds may use longer durations because no visual movement occurs; and
+- V1 is retained as rejected motion evidence while V2 tests the first local-rig
+  interval separately.
+
+Historical record: `docs/scarlet-apng-animation.md` and
+`docs/activity-log.md`.
+
+## ADR-0119 - Puppet Rig Layers Are Complete Reference-Anchored Surfaces
+
+Date: 2026-07-21
+Status: principle retained; generated V3 artifacts superseded by ADR-0121
+
+Context:
+
+Audit of the Puppet V2 PSD showed that structural layer count did not imply
+rig readiness. Most materials were either old generated assets or perforated
+master cutouts paired with hidden legacy support. The visible neutral happened
+to resemble Scarlet, but moving a layer would reveal the wrong underlay or a
+transparent gap.
+
+Decision:
+
+- forbid legacy generated materials, rejected eye V1 assets, and Puppet V2
+  outputs as artistic inputs to Puppet V3;
+- construct every rig material as one complete semantic surface;
+- treat visible-pixel partition masks as provenance evidence rather than
+  anatomical rig contours; lock separately reviewed geometry and landmarks in
+  the V3 contract;
+- derive every face and head organ exclusively from the approved half-body
+  portrait; use that portrait as the primary identity source for the visible
+  upper body, while the T-pose controls full-body registration, lower-body
+  organs, and body regions not sufficiently exposed by the portrait;
+- use generation only to reconstruct pixels that are removed, hidden, or
+  occluded, then flatten those pixels into the same complete material;
+- store every material and placement mask on the exact `941x1672` master grid
+  at top-left origin `(0,0)`; crops are proof-only and PSD transforms may not
+  scale or reposition rig artwork;
+- keep source/reference masks and proof layers outside the eventual rig stack;
+- require isolated transparency, black/white background, re-overlay, z-index,
+  and direct visual review for each organ before PSD admission; and
+- block PSD assembly until all required neutral surfaces are approved.
+
+Consequences:
+
+Puppet V2 is rejected evidence. Puppet V3 starts with a complete face skin
+underlay whose silhouette comes from the portrait, whose clean skin anchors
+remain exact reference pixels, and whose generated content fills only missing
+regions. Facial organs, hair, body, PSD assembly, and Cubism work remain blocked
+behind their progressive review gates.
+
+Links:
+
+- `frontend/public/prototype/avatar/scarlet-puppet-v3-contract.json`
+- `frontend/scripts/prepare-scarlet-face-base-v3.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0118 - Puppet PSD Separates Neutral Identity From Hidden Rig Support
+
+Date: 2026-07-20
+Status: rejected and superseded by ADR-0119
+
+Context:
+
+The approved iris workflow established that a moving surface must be complete,
+semantically isolated, and independently occluded, but applying every generated
+completion directly in the neutral pose changed Scarlet's identity. Earlier
+support boards also used coordinate systems and scales that did not match the
+locked portrait and T-pose masters.
+
+Decision:
+
+- build the Puppet V2 PSD from explicitly registered materials on the locked
+  `941x1672` T-pose canvas;
+- keep authoritative visible-master artwork separate from reconstructed
+  hidden-support artwork and disable support layers in the neutral pose;
+- use exact neutral master-eye composites by default while retaining sclera,
+  iris, lash, and aperture materials as a hidden stack for Cubism rigging;
+- reuse the owner-approved right-iris V2 texture for both equivalent irises,
+  with independent position and deformation;
+- permit old generated boards only as labelled hidden support or optional
+  variants, never as visible identity authority; and
+- treat the generated PSD as an assembled authoring candidate, not as a
+  completed Live2D model or proof of motion quality.
+
+Consequences:
+
+The repository can reproduce the 59-material, 103-layer artifact, but later
+audit proved that 51 materials depended wholly or partially on the superseded
+generated material pack. Separating visible cutouts from hidden support did not
+produce complete rig surfaces. The PSD is retained as rejected evidence and
+must not enter Cubism.
+
+Links:
+
+- `frontend/public/prototype/avatar/scarlet-puppet-v2-contract.json`
+- `frontend/scripts/prepare-scarlet-puppet-v2.mjs`
+- `frontend/public/prototype/avatar/source/fidelity-v1/semantic-parts/puppet-v2/`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0117 - Scarlet Puppet Fidelity Is Semantic And Perceptual, Not Retina-Pixel Identical
+
+Date: 2026-07-20
+Status: accepted; right iris V2 owner-approved as bilateral source
+
+Context:
+
+The first eye reconstruction mixed semantic surfaces, while later attempts to
+preserve exact visible pixels created obvious rectangular patches. A statistical
+per-channel color correction also improved numeric similarity while visibly
+contaminating the pupil and limbal ring. Exact retinal color matching is not a
+useful goal when it damages the character effect or moving material.
+
+Decision:
+
+- preserve Scarlet's overall eye identity, violet/fuchsia/cyan language,
+  proportions, anime rendering, and visual effect;
+- allow minor internal iris color variation;
+- keep anatomy, semantic ownership, z-index behavior, clean alpha, and absence
+  of foreign pixels as hard constraints;
+- reconstruct occluded artwork through a coherent generated surface rather than
+  flat-color fill or pasted source rectangles; and
+- evaluate isolated, actual-scale, and rig-stack proofs visually before owner
+  approval.
+
+Consequences:
+
+The V1 eye set is rejected evidence. The V2 right iris is the approved shared
+iris-and-pupil source for both eyes, with catchlight and eyelid reserved for
+separate foreground layers. ADR-0118 governs how this approved source and the
+remaining candidate materials enter the assembled PSD.
+
+Links:
+
+- `frontend/public/prototype/avatar/scarlet-right-iris-v2-contract.json`
+- `frontend/scripts/prepare-scarlet-right-iris-v2.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0116 - Scarlet Puppet Materials Are Semantic Surfaces With Explicit Occlusion
+
+Date: 2026-07-20
+Status: accepted boundary; first eye reconstruction candidate pending owner review
+
+Context:
+
+The 34-part visible-pixel pass reproduced every selected master pixel exactly,
+but a neutral zero-difference composite did not prove that each PNG was a valid
+moving material. The eye ellipse demonstrated the distinction: it contained
+iris, sclera, liner, and eyelid skin because all were geometrically inside the
+same mask. Moving that layer would move foreign pixels with the iris. Similar
+depth or underlay risks exist in the face, mouth, hair, neck, torso, and every
+articulated joint.
+
+Decision:
+
+- treat the first 34 exports as pixel-partition and provenance evidence, not
+  direct Live2D layers;
+- require every rig material to own one semantic surface and record its
+  occluders, draw order, clipping, hidden continuation, and movement proof;
+- preserve authoritative visible pixels byte-for-byte while storing every
+  reconstructed hidden pixel as separately labelled artwork;
+- build complete eye beds and irises, use one aperture mask per eye, and draw
+  separate eyelid-skin and upper/lower lash materials above them;
+- split materials that cross depth bands, especially front/rear hair and
+  neck-skin/collar; and
+- approve reconstruction in isolated eye, face, hair, and body-joint gates
+  before PSD assembly or Cubism rigging.
+
+Consequences:
+
+Neutral fidelity remains measurable, while movement fidelity gains an explicit
+contract. The eye gate now produces clean semantic sources, separately labelled
+hidden completion, clipping, and gaze/blink/provenance proofs. Its generated
+candidate does not advance to PSD assembly until the owner approves it and the
+later edge/alpha pass is completed.
+
+Links:
+
+- `frontend/public/prototype/avatar/scarlet-occlusion-contract.json`
+- `frontend/public/prototype/avatar/scarlet-eye-assets-contract.json`
+- `frontend/public/prototype/avatar/scarlet-visible-parts-matrix.json`
+- `frontend/scripts/validate-scarlet-avatar.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0115 - Scarlet Visible Puppet Materials Preserve Master Pixels Before Hidden Completion
+
+Date: 2026-07-20
+Status: accepted pipeline; visible pieces pending owner review
+
+Context:
+
+Generated boards and heuristic separation produced recognizable but
+identity-inaccurate face, hair, and body materials. A flattened source cannot
+prove hidden anatomy, and repeated automatic repair risks replacing the
+approved Scarlet identity rather than separating it.
+
+Decision:
+
+- lock the approved portrait and full-body T-pose by path, dimensions, and
+  SHA-256 before any extraction;
+- use one measured similarity transform for the complete portrait group and
+  never independently scale or rotate portrait child materials;
+- export visible neutral materials only from unmodified master RGBA pixels;
+- give every material an exact source, anatomical name, native bounding box,
+  binary mask, full-canvas layer, crop, and re-overlay proof;
+- prevent duplicate visible-pixel assignment and require zero RGBA mismatch in
+  selected-region reconstruction;
+- keep hidden continuations and expression/hand variants in a later,
+  explicitly synthetic and reviewable gate; and
+- retain previous generated candidates as historical references, never as
+  final identity-authoritative input.
+
+Consequences:
+
+Visible identity fidelity is measurable before Photoshop or Cubism work. The
+current 34-layer set is not yet a complete puppet because deformation-safe
+underlays, variants, PSD assembly, ArtMeshes, and rigging remain pending.
+
+Links:
+
+- `frontend/public/prototype/avatar/scarlet-fidelity-contract.json`
+- `frontend/public/prototype/avatar/scarlet-visible-parts-matrix.json`
+- `frontend/scripts/prepare-scarlet-visible-parts.mjs`
+- `docs/scarlet-live2d-puppet.md`
+
+## ADR-0114 - Scarlet Uses An Identity-Preserving Live2D Puppet
+
+Date: 2026-07-20
+Status: superseded as active delivery path by ADR-0120; retained as research
+
+Context:
+
+The approved transparent portrait establishes Scarlet's identity, but CSS
+motion cannot produce expression or gesture. An image-to-3D TripoAI probe
+created a recognizable OBJ with defects severe enough to reduce face, hair,
+surface, and animation quality. Scarlet is most often shown at half-body scale,
+where small identity errors are especially visible.
+
+Decision:
+
+- use one full-body Live2D puppet as Scarlet's primary Product UI avatar;
+- preserve the approved portrait as the identity master and use generated
+  full-body art only to extend anatomy and clothing;
+- author the puppet from separated raster materials, ArtMeshes, deformers,
+  standard Cubism parameters, custom arm/hair/light parameters, expressions,
+  physics, and layered motions;
+- use a model-independent semantic contract for action, emotion, gaze, speech,
+  gesture, framing, priority, TTL, and transitions;
+- let screens crop or frame the same puppet as portrait, half body, or full
+  body rather than maintaining unrelated character bases;
+- optimize the first motion set for half-body anime interaction: listening,
+  thinking, speaking, greeting, winking, nodding, and hand gestures;
+- retain APNG only for bounded cinematic transitions, effects, or fallback,
+  never as the primary interactive rig; and
+- do not report a Live2D implementation as complete until a real Cubism export
+  passes deformation, blending, mobile rendering, and identity review.
+
+Consequences:
+
+The avatar can preserve the raster identity while gaining independently
+controllable face, gaze, mouth, body, arms, hair, and light channels. Authoring
+requires material separation and Cubism Editor work before the official Web SDK
+can be integrated. The earlier GLB/VRM implementation direction in ADR-0113 is
+superseded; its identity and palette decisions remain active.
+
+Links:
+
+- `docs/scarlet-live2d-puppet.md`
+- `frontend/public/prototype/avatar/scarlet-avatar-authoring.json`
+- `frontend/src/prototype/avatar/scarletAvatarContract.ts`
+- `frontend/src/prototype/avatar/scarletAvatarController.ts`
+
+## ADR-0113 - Scarlet Uses One Adult Anime Identity Across Product Surfaces
+
+Date: 2026-07-20
+Status: accepted identity; renderer clause superseded by ADR-0114
+
+Context:
+
+The Product UI needs a recurring visual identity that can later express
+Scarlet's actions and affect across splash, update, authentication, home, chat,
+and future embodied surfaces. The first CSS mascot read as a small robot and
+could not support a sufficiently human range of gaze, pose, speech, or emotion.
+
+Decision:
+
+- establish Scarlet as an unmistakably adult woman with an apparent age near
+  25, rendered in a polished modern Japanese anime style;
+- make attractiveness derive from face, gaze, makeup, hair, styling, and
+  presence rather than revealing clothing or childlike proportions;
+- use pearl white and graphite for structural clothing, with Timber cyan and
+  fuchsia as iridescent accents in eyes, hair, makeup, and digital details;
+- treat the generated transparent bust as a concept asset for the static
+  splash, not as the final animated implementation;
+- keep the reusable avatar API semantic (`action`, emotion, gaze, framing) so
+  the renderer can change without rewriting every screen; and
+- keep all current work fixture-only and disconnected from Core state.
+
+Consequences:
+
+The splash now has a recognizable human Scarlet identity and an approval
+artifact for future modeling. Real facial expressions, body actions, speech,
+and affect remain future puppet work and must not be implied by CSS movement
+over the concept image. ADR-0114 records the later decision to use Live2D
+rather than GLB/VRM for the Product UI avatar.
+
+Links:
+
+- `frontend/public/prototype/scarlet-character-v1.png`
+- `frontend/src/prototype/ScarletMascot.tsx`
+- `frontend/src/prototype/SplashScreen.tsx`
+- `docs/assets/product-ui-prototype/mobile-splash.png`
+
 ## ADR-0109 - Approve Product Shape Before Connecting It To Core
 
 Date: 2026-07-19

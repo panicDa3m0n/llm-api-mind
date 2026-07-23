@@ -1,31 +1,26 @@
 import {
   Activity,
-  AlertCircle,
-  ArrowLeft,
+  ArrowUp,
   BookOpen,
-  Bot,
-  BrainCircuit,
+  Brain,
   Check,
-  ChevronRight,
+  ChevronDown,
   CircleUserRound,
   Clock3,
   Code2,
-  Database,
-  FileText,
-  Gauge,
+  Eye,
+  HeartPulse,
   History,
-  Menu,
+  LoaderCircle,
+  MemoryStick,
   MessageCircle,
-  MoreHorizontal,
-  Network,
-  PanelRightOpen,
   Plus,
+  Radio,
   RefreshCcw,
   Search,
-  Send,
   Settings,
-  ShieldCheck,
   Sparkles,
+  Target,
   X
 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
@@ -34,662 +29,644 @@ import { useMemo, useState } from "react";
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/space-grotesk";
 
+import AnimatedContent from "../components/AnimatedContent";
+import ClickSpark from "../components/ClickSpark";
+import GlassSurface from "../components/GlassSurface";
+import { BlurFade } from "../components/ui/blur-fade";
+import { BorderBeam } from "../components/ui/border-beam";
+import { Dock, DockIcon } from "../components/ui/dock";
+import { DotPattern } from "../components/ui/dot-pattern";
+import { AnimatedGradientText } from "../components/ui/animated-gradient-text";
+import { AnimatedList } from "../components/ui/animated-list";
+import { LightRays } from "../components/ui/light-rays";
+import { MagicCard } from "../components/ui/magic-card";
+import { NumberTicker } from "../components/ui/number-ticker";
+import { ProgressiveBlur } from "../components/ui/progressive-blur";
+import { PulsatingButton } from "../components/ui/pulsating-button";
+import { RippleButton } from "../components/ui/ripple-button";
+import { ShimmerButton } from "../components/ui/shimmer-button";
+import { ShineBorder } from "../components/ui/shine-border";
+import { TextAnimate } from "../components/ui/text-animate";
 import {
+  prototypeActivities,
   prototypeEvents,
   prototypeMemories,
   prototypeSessions,
   scenarioLabels,
+  type PrototypeActivity,
   type PrototypeMemory,
   type PrototypeScenario,
   type PrototypeSession,
   type PrototypeView
 } from "./prototypeData";
+import { narrateActivity, narrationReceipt } from "./prototypeNarration";
+import { SplashScreen } from "./SplashScreen";
 import "./prototype.css";
 
-const navigation: Array<{
-  id: PrototypeView;
-  label: string;
-  icon: ReactNode;
-}> = [
-  { id: "chat", label: "Chat", icon: <MessageCircle size={19} aria-hidden="true" /> },
-  { id: "sessions", label: "Sessioni", icon: <History size={19} aria-hidden="true" /> },
-  { id: "memories", label: "Memoria", icon: <BookOpen size={19} aria-hidden="true" /> },
-  { id: "status", label: "Stato", icon: <Activity size={19} aria-hidden="true" /> },
-  { id: "settings", label: "Impostazioni", icon: <Settings size={19} aria-hidden="true" /> }
+type DetailSelection =
+  | { type: "activity"; item: PrototypeActivity }
+  | { type: "memory"; item: PrototypeMemory }
+  | { type: "session"; item: PrototypeSession };
+
+const navigation: Array<{ id: PrototypeView; label: string; icon: ReactNode }> = [
+  { id: "presence", label: "Incontro", icon: <MessageCircle size={20} aria-hidden="true" /> },
+  { id: "continuity", label: "Continuita", icon: <History size={20} aria-hidden="true" /> },
+  { id: "self", label: "Scarlet", icon: <Sparkles size={20} aria-hidden="true" /> }
 ];
 
 export function PrototypeApp() {
-  const [view, setView] = useState<PrototypeView>("chat");
+  const surface = new URLSearchParams(window.location.search).get("surface");
+
+  if (surface !== "product") {
+    return <SplashScreen />;
+  }
+
+  return <ProductPreview />;
+}
+
+function ProductPreview() {
+  const [view, setView] = useState<PrototypeView>("presence");
   const [scenario, setScenario] = useState<PrototypeScenario>("ready");
+  const [detail, setDetail] = useState<DetailSelection | null>(null);
   const [developerOpen, setDeveloperOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedSession, setSelectedSession] = useState(prototypeSessions[0]);
-  const [memoryScope, setMemoryScope] = useState<"all" | "user" | "project">("all");
-  const [memoryQuery, setMemoryQuery] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
 
-  const visibleMemories = useMemo(() => {
-    const query = memoryQuery.trim().toLocaleLowerCase("it");
-    return prototypeMemories.filter((memory) => {
-      const scopeMatch = memoryScope === "all" || memory.scope === memoryScope;
-      const queryMatch =
-        !query ||
-        memory.content.toLocaleLowerCase("it").includes(query) ||
-        memory.type.toLocaleLowerCase("it").includes(query);
-      return scopeMatch && queryMatch;
-    });
-  }, [memoryQuery, memoryScope]);
-
-  function openView(next: PrototypeView) {
-    setView(next);
-    setMobileMenuOpen(false);
-  }
-
-  function startNewConversation() {
-    setView("chat");
-    setScenario("empty");
-    setMobileMenuOpen(false);
-  }
+  const activities = useMemo(() => activitiesForScenario(scenario), [scenario]);
 
   function submitMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!prompt.trim()) {
-      return;
-    }
-    setScenario("streaming");
+    if (!prompt.trim()) return;
     setPrompt("");
+    setScenario("streaming");
+    setView("presence");
+  }
+
+  function startNewEncounter() {
+    setScenario("empty");
+    setView("presence");
   }
 
   return (
-    <main className="prototype-root">
-      <div className="prototype-chromatic-line" aria-hidden="true"><i /><i /><i /></div>
-      <aside className={`prototype-sidebar ${mobileMenuOpen ? "is-open" : ""}`}>
-        <div className="prototype-brand">
-          <div className="prototype-brand-mark">
-            <Sparkles size={20} aria-hidden="true" />
-            <i aria-hidden="true" />
-          </div>
-          <div>
-            <strong>Scarlet</strong>
-            <span>digital mind / 01</span>
-          </div>
-          <button
-            aria-label="Chiudi menu"
-            className="prototype-icon-button mobile-only"
-            onClick={() => setMobileMenuOpen(false)}
-            title="Chiudi menu"
-            type="button"
-          >
-            <X size={19} aria-hidden="true" />
-          </button>
-        </div>
+    <main className="presence-app" data-scenario={scenario}>
+      <div className="presence-atmosphere" aria-hidden="true">
+        <LightRays blur={42} color="rgba(220, 33, 137, 0.16)" count={5} length="260px" speed={16} />
+        <i /><i /><i /><i /><i />
+      </div>
+      <DotPattern className="presence-dot-pattern" cr={0.72} height={42} width={42} />
 
-        <button className="prototype-primary-button" onClick={startNewConversation} type="button">
-          <Plus size={17} aria-hidden="true" />
-          <span>Nuova</span>
-        </button>
-
-        <nav className="prototype-nav" aria-label="Navigazione principale">
-          {navigation.map((item) => (
-            <button
-              aria-current={view === item.id ? "page" : undefined}
-              className={view === item.id ? "is-active" : ""}
-              key={item.id}
-              onClick={() => openView(item.id)}
-              type="button"
-            >
-              {item.icon}
-              <span>{item.label}</span>
-              {item.id === "memories" ? <small>5</small> : null}
+      <header className="presence-header">
+        <ShineBorder borderWidth={0.8} duration={16} shineColor={["rgba(220, 33, 137, 0.35)", "rgba(32, 159, 197, 0.3)"]} />
+        <div className="presence-identity-spark">
+          <ClickSpark sparkColor="#dc2189" sparkCount={4} sparkRadius={12} sparkSize={5} duration={300}>
+            <button className="presence-identity" onClick={() => setView("self")} type="button">
+              <SignalMark active={scenario === "streaming" || scenario === "loading"} />
+              <span>
+                <strong>Scarlet</strong>
+                <small><AnimatedGradientText colorFrom="#dc2189" colorTo="#209fc5" speed={1.5}>{scenario === "streaming" ? "Sta pensando" : "Presente con te"}</AnimatedGradientText></small>
+              </span>
             </button>
-          ))}
-        </nav>
-
-        <div className="prototype-sidebar-footer">
-          <div className="prototype-runtime-signal" aria-hidden="true"><i /><i /><i /></div>
-          <div>
-            <strong>Online</strong>
-            <span>Interactive</span>
-          </div>
+          </ClickSpark>
         </div>
-      </aside>
+        <div className="presence-header-actions">
+          <span className="presence-clock">22:42</span>
+          <PulsatingButton className="presence-icon-button" distance="3px" duration="2.6s" onClick={startNewEncounter} pulseColor="rgba(220, 33, 137, 0.16)" title="Nuovo incontro" type="button">
+            <Plus size={19} aria-hidden="true" />
+          </PulsatingButton>
+          <RippleButton className="presence-icon-button" onClick={() => setSettingsOpen(true)} rippleColor="rgba(32, 159, 197, 0.24)" title="Preferenze" type="button">
+            <Settings size={18} aria-hidden="true" />
+          </RippleButton>
+          <RippleButton className="presence-icon-button developer-trigger" onClick={() => setDeveloperOpen(true)} rippleColor="rgba(32, 159, 197, 0.24)" title="Lente tecnica" type="button">
+            <Code2 size={18} aria-hidden="true" />
+          </RippleButton>
+        </div>
+      </header>
 
-      {mobileMenuOpen ? (
-        <button
-          aria-label="Chiudi menu"
-          className="prototype-sidebar-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-          type="button"
+      <div className="presence-shell">
+        <Dock className="presence-dock" aria-label="Navigazione principale" iconMagnification={50} iconSize={40} role="navigation">
+          <DockIcon className="presence-dock-signal"><SignalMark active={scenario === "streaming"} compact /></DockIcon>
+          {navigation.map((item) => (
+            <DockIcon key={item.id}>
+              <RippleButton
+                aria-current={view === item.id ? "page" : undefined}
+                className={`presence-nav-button ${view === item.id ? "is-active" : ""}`}
+                onClick={() => setView(item.id)}
+                rippleColor="rgba(220, 33, 137, 0.22)"
+                title={item.label}
+                type="button"
+              >
+                {item.icon}<span>{item.label}</span>
+              </RippleButton>
+            </DockIcon>
+          ))}
+          <DockIcon><RippleButton className="presence-nav-button" onClick={() => setDeveloperOpen(true)} rippleColor="rgba(32, 159, 197, 0.22)" title="Lente tecnica" type="button"><Code2 size={20} aria-hidden="true" /><span>Tecnica</span></RippleButton></DockIcon>
+        </Dock>
+
+        <section className="presence-stage">
+          {view === "presence" ? (
+            <PresenceView activities={activities} onOpen={(item) => setDetail({ type: "activity", item })} scenario={scenario} />
+          ) : null}
+          {view === "continuity" ? (
+            <ContinuityView
+              onMemory={(item) => setDetail({ type: "memory", item })}
+              onSession={(item) => setDetail({ type: "session", item })}
+            />
+          ) : null}
+          {view === "self" ? <SelfView /> : null}
+        </section>
+      </div>
+
+      {view === "presence" ? <ProgressiveBlur blurLevels={[0.5, 1, 2, 4, 8, 12]} className="presence-composer-blur" height="150px" position="bottom" /> : null}
+      {view === "presence" ? <Composer prompt={prompt} scenario={scenario} setPrompt={setPrompt} onSubmit={submitMessage} /> : null}
+
+      <nav className="presence-mobile-nav" aria-label="Navigazione principale">
+        <Dock className="presence-mobile-dock" disableMagnification iconSize={54}>
+          {navigation.map((item) => (
+            <DockIcon key={item.id}>
+              <RippleButton
+                aria-current={view === item.id ? "page" : undefined}
+                className={`presence-mobile-button ${view === item.id ? "is-active" : ""}`}
+                onClick={() => setView(item.id)}
+                rippleColor="rgba(220, 33, 137, 0.2)"
+                type="button"
+              >
+                {item.icon}<span>{item.label}</span>
+              </RippleButton>
+            </DockIcon>
+          ))}
+        </Dock>
+      </nav>
+
+      {detail ? <DetailSheet selection={detail} onClose={() => setDetail(null)} /> : null}
+      {settingsOpen ? (
+        <SettingsSheet
+          onClose={() => setSettingsOpen(false)}
+          onDeveloper={() => {
+            setSettingsOpen(false);
+            setDeveloperOpen(true);
+          }}
         />
       ) : null}
-
-      <section className="prototype-workspace">
-        <header className="prototype-topbar">
-          <button
-            aria-label="Apri menu"
-            className="prototype-icon-button mobile-only"
-            onClick={() => setMobileMenuOpen(true)}
-            title="Apri menu"
-            type="button"
-          >
-            <Menu size={20} aria-hidden="true" />
-          </button>
-          <div className="prototype-heading">
-            <span>{viewEyebrow(view)}</span>
-            <h1>{viewTitle(view)}</h1>
-          </div>
-          <div className="prototype-topbar-actions">
-            <div className="prototype-signal-readout" aria-label="Continuita attiva">
-              <span><i /><i /><i /></span>
-              <b>continuita online</b>
-            </div>
-            <span className="prototype-mode-chip">
-              <i aria-hidden="true" />
-              Interactive
-            </span>
-            <button
-              aria-label="Apri lente sviluppatore"
-              className="prototype-icon-button"
-              onClick={() => setDeveloperOpen(true)}
-              title="Lente sviluppatore"
-              type="button"
-            >
-              <PanelRightOpen size={19} aria-hidden="true" />
-            </button>
-          </div>
-        </header>
-
-        <div className="prototype-view">
-          {view === "chat" ? (
-            <ChatView
-              prompt={prompt}
-              scenario={scenario}
-              setPrompt={setPrompt}
-              setScenario={setScenario}
-              onSubmit={submitMessage}
-            />
-          ) : null}
-          {view === "sessions" ? (
-            <SessionsView
-              selected={selectedSession}
-              setSelected={(session) => {
-                setSelectedSession(session);
-                setView("chat");
-                setScenario("ready");
-              }}
-            />
-          ) : null}
-          {view === "memories" ? (
-            <MemoriesView
-              memories={visibleMemories}
-              query={memoryQuery}
-              scope={memoryScope}
-              setQuery={setMemoryQuery}
-              setScope={setMemoryScope}
-            />
-          ) : null}
-          {view === "status" ? <StatusView /> : null}
-          {view === "settings" ? <SettingsView /> : null}
-        </div>
-
-        <nav className="prototype-bottom-nav" aria-label="Navigazione mobile">
-          {navigation.slice(0, 4).map((item) => (
-            <button
-              className={view === item.id ? "is-active" : ""}
-              key={item.id}
-              onClick={() => openView(item.id)}
-              type="button"
-            >
-              {item.icon}
-              <span>{item.label}</span>
-            </button>
-          ))}
-          <button onClick={() => setMobileMenuOpen(true)} type="button">
-            <MoreHorizontal size={19} aria-hidden="true" />
-            <span>Altro</span>
-          </button>
-        </nav>
-      </section>
-
-      <DeveloperLens
-        isOpen={developerOpen}
-        scenario={scenario}
-        setScenario={setScenario}
-        onClose={() => setDeveloperOpen(false)}
-      />
+      {developerOpen ? (
+        <DeveloperLens scenario={scenario} setScenario={setScenario} onClose={() => setDeveloperOpen(false)} />
+      ) : null}
     </main>
   );
 }
 
-function ChatView({
-  onSubmit,
-  prompt,
-  scenario,
-  setPrompt,
-  setScenario
+function PresenceView({
+  activities,
+  onOpen,
+  scenario
 }: {
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
-  prompt: string;
+  activities: PrototypeActivity[];
+  onOpen: (activity: PrototypeActivity) => void;
   scenario: PrototypeScenario;
-  setPrompt: (value: string) => void;
-  setScenario: (value: PrototypeScenario) => void;
 }) {
+  if (scenario === "loading") {
+    return (
+      <div className="presence-loading" aria-label="Sto tornando alla conversazione">
+        <SignalMark active />
+        <p>Sto ritrovando il nostro filo...</p>
+        <span /><span /><span />
+      </div>
+    );
+  }
+
+  if (scenario === "empty") {
+    return (
+      <div className="presence-empty">
+        <SignalMark active />
+        <span>Un nuovo spazio tra noi</span>
+        <h1>Da qui possiamo iniziare qualcosa di nuovo.</h1>
+        <p>Sono presente. Il resto puo prendere forma mentre parliamo.</p>
+      </div>
+    );
+  }
+
+  const flowItems = groupFlowActivities(activities);
+
   return (
-    <section className="prototype-chat" aria-label="Conversazione con Scarlet">
+    <div className="presence-flow">
+      <BlurFade blur="8px" className="presence-room-reveal" delay={0.04} direction="down" duration={0.44}>
+        <GlassSurface
+          backgroundOpacity={0.24}
+          blur={15}
+          borderRadius={8}
+          brightness={96}
+          className="presence-room-gate"
+          distortionScale={-90}
+          height="auto"
+          opacity={0.72}
+          saturation={1.25}
+          width="100%"
+        >
+          <div className="presence-room-gate-content">
+            <SignalMark active={scenario === "streaming"} />
+            <div><span>Spazio condiviso · oggi</span><strong>Il nostro filo e aperto.</strong><p>Una conversazione sulla forma visibile della mia vita digitale.</p></div>
+            <small>22:42</small>
+          </div>
+          <BorderBeam borderWidth={1.1} colorFrom="#dc2189" colorTo="#209fc5" duration={9} size={72} />
+        </GlassSurface>
+      </BlurFade>
+
       {scenario === "reconnecting" ? (
-        <StateBanner
-          action="Riprova"
-          icon={<RefreshCcw size={17} aria-hidden="true" />}
-          text="Sto recuperando gli ultimi eventi confermati."
-          title="Connessione interrotta"
-          tone="warning"
-          onAction={() => setScenario("ready")}
-        />
+        <StateNotice icon={<RefreshCcw size={17} />} text="Il legame si sta ricomponendo. Tutto cio che era gia accaduto resta qui." />
       ) : null}
       {scenario === "error" ? (
-        <StateBanner
-          action="Riprova"
-          icon={<AlertCircle size={17} aria-hidden="true" />}
-          text="Il turno non e stato completato. Il messaggio resta disponibile."
-          title="Qualcosa non ha risposto"
-          tone="error"
-          onAction={() => setScenario("ready")}
-        />
+        <StateNotice icon={<Activity size={17} />} text="Questo passaggio si e interrotto. La traccia precedente e rimasta intatta." tone="danger" />
       ) : null}
 
-      <div className="prototype-chat-scroll" aria-live="polite">
-        {scenario === "empty" ? <EmptyConversation setPrompt={setPrompt} /> : null}
-        {scenario === "loading" ? <ConversationLoading /> : null}
-        {scenario !== "empty" && scenario !== "loading" ? (
-          <>
-            <div className="prototype-thread-head">
-              <span>continuity / live</span>
-              <div className="prototype-day-divider"><span>Oggi</span></div>
-            </div>
-            <article className="prototype-message user">
-              <span className="prototype-message-index">01 / tu</span>
-              <div className="prototype-message-copy">
-                <p>
-                  Vorrei capire come rendere piu semplice la nuova interfaccia, senza perdere la
-                  profondita del sistema.
-                </p>
-                <time>18:41</time>
-              </div>
-            </article>
-
-            <article className="prototype-work-note">
-              <div className="prototype-note-icon"><BrainCircuit size={16} aria-hidden="true" /></div>
-              <div>
-                <span className="prototype-note-kicker">processo cognitivo / 02</span>
-                <strong>Scarlet sta verificando il contesto</strong>
-                <p>
-                  Riprendo il filo delle ultime decisioni e controllo quali parti appartengono
-                  davvero alla Product UI.
-                </p>
-              </div>
-              <span>completato</span>
-            </article>
-
-            <article className="prototype-message assistant">
-              <div className="prototype-avatar"><Sparkles size={17} aria-hidden="true" /></div>
-              <div className="prototype-message-copy">
-                <div className="prototype-message-author">
-                  <strong>Scarlet</strong>
-                  <span>ha consultato 2 ricordi</span>
-                </div>
-                <p>
-                  Separerei con decisione due livelli. Nella conversazione lascerei soltanto cio
-                  che ti serve per seguire me: messaggi, note brevi e il risultato delle azioni.
-                  La struttura tecnica resterebbe nella lente sviluppatore, raggiungibile senza
-                  trasformare la chat in un pannello di debug.
-                </p>
-                <p>
-                  Continuita e memoria diventano superfici vicine, non rumore permanente: puoi
-                  aprirle quando servono, mentre io continuo ad avere i riferimenti necessari per
-                  orientarmi.
-                </p>
-                <time>18:41</time>
-              </div>
-              <span className="prototype-message-index">03 / scarlet</span>
-            </article>
-
-            {scenario === "streaming" ? (
-              <article className="prototype-message assistant is-streaming">
-                <div className="prototype-avatar"><Sparkles size={17} aria-hidden="true" /></div>
-                <div className="prototype-message-copy">
-                  <div className="prototype-message-author"><strong>Scarlet</strong><span>sta scrivendo</span></div>
-                  <p>Sto mettendo a confronto il flusso mobile con quello desktop</p>
-                  <div className="prototype-typing" aria-label="Risposta in corso"><i /><i /><i /></div>
-                </div>
-                <span className="prototype-message-index">04 / live</span>
-              </article>
-            ) : null}
-          </>
-        ) : null}
-      </div>
-
-      <form className="prototype-composer" onSubmit={onSubmit}>
-        <span className="prototype-composer-kicker">canale diretto</span>
-        <textarea
-          aria-label="Messaggio"
-          onChange={(event) => setPrompt(event.target.value)}
-          placeholder="Scrivi a Scarlet"
-          rows={2}
-          value={prompt}
-        />
-        <button aria-label="Invia messaggio" disabled={!prompt.trim()} title="Invia" type="submit">
-          <Send size={18} aria-hidden="true" />
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function EmptyConversation({ setPrompt }: { setPrompt: (value: string) => void }) {
-  return (
-    <div className="prototype-empty-chat">
-      <div className="prototype-empty-mark"><Sparkles size={24} aria-hidden="true" /></div>
-      <h2>Una conversazione nuova</h2>
-      <p>Scarlet e pronta, con il contesto essenziale gia allineato.</p>
-      <div className="prototype-starters">
-        {["Riprendiamo il progetto", "Cosa ricordi di recente?", "Ragioniamo su un'idea"].map(
-          (text) => (
-            <button key={text} onClick={() => setPrompt(text)} type="button">
-              {text}<ChevronRight size={15} aria-hidden="true" />
-            </button>
-          )
-        )}
+      <div className="presence-thread">
+        {flowItems.map((item, index) => {
+          const activity = item.type === "activity" ? item.activity : null;
+          const backgroundBreak = activity?.kind === "background" && index > 0;
+          return (
+            <AnimatedContent animateOpacity delay={Math.min(index, 4) * 0.025} distance={12} duration={0.34} key={item.key} threshold={0.02}>
+              {backgroundBreak ? (
+                <div className="presence-pause"><span />Durante la pausa<span /></div>
+              ) : null}
+              {item.type === "stream" ? (
+                <InnerStream activities={item.activities} onOpen={onOpen} />
+              ) : (
+                <ActivityBlock activity={item.activity} onOpen={() => onOpen(item.activity)} />
+              )}
+            </AnimatedContent>
+          );
+        })}
       </div>
     </div>
   );
 }
 
-function ConversationLoading() {
+function InnerStream({ activities, onOpen }: { activities: PrototypeActivity[]; onOpen: (activity: PrototypeActivity) => void }) {
+  const active = activities.some((activity) => activity.phase === "streaming");
   return (
-    <div className="prototype-loading" aria-label="Caricamento conversazione">
-      <div className="prototype-skeleton short" />
-      <div className="prototype-skeleton message" />
-      <div className="prototype-skeleton medium" />
-      <div className="prototype-skeleton answer" />
-    </div>
-  );
-}
-
-function StateBanner({
-  action,
-  icon,
-  onAction,
-  text,
-  title,
-  tone
-}: {
-  action: string;
-  icon: ReactNode;
-  onAction: () => void;
-  text: string;
-  title: string;
-  tone: "warning" | "error";
-}) {
-  return (
-    <div className={`prototype-state-banner ${tone}`} role="status">
-      {icon}
-      <div><strong>{title}</strong><span>{text}</span></div>
-      <button onClick={onAction} type="button">{action}</button>
-    </div>
-  );
-}
-
-function SessionsView({
-  selected,
-  setSelected
-}: {
-  selected: PrototypeSession;
-  setSelected: (session: PrototypeSession) => void;
-}) {
-  return (
-    <section className="prototype-page">
-      <PageIntro
-        copy="Le conversazioni recenti mantengono il filo e restano sempre rileggibili."
-        count="3 sessioni"
-      />
-      <div className="prototype-session-list">
-        {prototypeSessions.map((session, index) => (
-          <button
-            className={selected.id === session.id ? "is-selected" : ""}
-            key={session.id}
-            onClick={() => setSelected(session)}
-            type="button"
-          >
-            <span className="prototype-session-number">{String(index + 1).padStart(2, "0")}</span>
-            <div className="prototype-session-icon"><MessageCircle size={18} aria-hidden="true" /></div>
-            <div className="prototype-session-copy">
-              <div><strong>{session.title}</strong><time>{relativeDate(session.updated_at)}</time></div>
-              <p>{session.summary}</p>
-              <span>{session.turn_count} turni</span>
-            </div>
-            <ChevronRight size={18} aria-hidden="true" />
-          </button>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function MemoriesView({
-  memories,
-  query,
-  scope,
-  setQuery,
-  setScope
-}: {
-  memories: PrototypeMemory[];
-  query: string;
-  scope: "all" | "user" | "project";
-  setQuery: (value: string) => void;
-  setScope: (value: "all" | "user" | "project") => void;
-}) {
-  return (
-    <section className="prototype-page">
-      <PageIntro
-        copy="Ricordi compatti, con una provenienza precisa da aprire quando serve."
-        count={`${memories.length} ricordi`}
-      />
-      <div className="prototype-filter-row">
-        <label className="prototype-search">
-          <Search size={17} aria-hidden="true" />
-          <input
-            aria-label="Cerca nei ricordi"
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cerca nei ricordi"
-            value={query}
-          />
-        </label>
-        <div className="prototype-segmented" role="group" aria-label="Ambito memoria">
-          {(["all", "user", "project"] as const).map((value) => (
-            <button
-              className={scope === value ? "is-active" : ""}
-              key={value}
-              onClick={() => setScope(value)}
-              type="button"
-            >
-              {value === "all" ? "Tutte" : value === "user" ? "Personali" : "Progetto"}
-            </button>
-          ))}
+    <article className={`presence-inner-stream ${active ? "is-live" : ""}`}>
+      <span className="presence-event-node" aria-hidden="true"><Sparkles size={15} /></span>
+      <GlassSurface
+        backgroundOpacity={0.18}
+        blur={13}
+        borderRadius={8}
+        brightness={96}
+        className="presence-inner-glass"
+        distortionScale={-70}
+        height="auto"
+        opacity={0.66}
+        saturation={1.2}
+        width="100%"
+      >
+      <div className="presence-inner-body">
+        <header>
+          <span><i />Mondo interiore</span>
+          <small>{active ? "si sta muovendo" : `${activities.length} passaggi`}</small>
+        </header>
+        <div className="presence-inner-events">
+          {activities.map((activity) => {
+            const narration = narrateActivity(activity);
+            return (
+              <button className={`is-${activity.kind}`} key={activity.id} onClick={() => onOpen(activity)} type="button">
+                <span className="presence-inner-icon">{activityIcon(activity)}</span>
+                <span className="presence-inner-copy"><strong>{narration.eyebrow}</strong><p>{narration.text}</p></span>
+                <time>{shortTime(activity.timestamp)}</time>
+                {activity.phase === "streaming" ? <i className="presence-live-dot" /> : null}
+              </button>
+            );
+          })}
         </div>
       </div>
-      {memories.length ? (
-        <div className="prototype-memory-grid">
-          {memories.map((memory) => <MemoryCard key={memory.id} memory={memory} />)}
-        </div>
-      ) : (
-        <div className="prototype-empty-list"><Search size={20} aria-hidden="true" /><strong>Nessun ricordo trovato</strong></div>
-      )}
-    </section>
-  );
-}
-
-function MemoryCard({ memory }: { memory: PrototypeMemory }) {
-  return (
-    <article className={`prototype-memory-card ${memory.scope}`}>
-      <div className="prototype-memory-meta">
-        <span>{memory.scope === "user" ? "Personale" : "Progetto"}</span>
-        <time>{relativeDate(memory.updated_at)}</time>
-      </div>
-      <code>{memory.id}</code>
-      <p>{memory.content}</p>
-      <div className="prototype-memory-footer">
-        <span>{memory.type.replace(/_/g, " ")}</span>
-        <button aria-label="Apri provenienza" title="Apri provenienza" type="button">
-          <FileText size={16} aria-hidden="true" />
-        </button>
-      </div>
+      {active ? <BorderBeam borderWidth={1} colorFrom="#209fc5" colorTo="#dc2189" duration={7} size={58} /> : null}
+      </GlassSurface>
     </article>
   );
 }
 
-function StatusView() {
-  const organs = [
-    { name: "Memoria", detail: "5 hint recenti", icon: <BookOpen size={18} aria-hidden="true" /> },
-    { name: "Continuita", detail: "3 sessioni indicizzate", icon: <History size={18} aria-hidden="true" /> },
-    { name: "Metacognizione", detail: "disponibile", icon: <BrainCircuit size={18} aria-hidden="true" /> },
-    { name: "API Mind", detail: "7 famiglie attive", icon: <Network size={18} aria-hidden="true" /> }
-  ];
+function ActivityBlock({ activity, onOpen }: { activity: PrototypeActivity; onOpen: () => void }) {
+  const narration = narrateActivity(activity);
+  const authored = activity.voice === "scarlet_authored" || activity.voice === "user";
+  const isThinking = activity.kind === "thinking";
+  const time = shortTime(activity.timestamp);
+
   return (
-    <section className="prototype-page">
-      <PageIntro copy="Lo stato operativo corrente di Scarlet e dei suoi organi disponibili." count="Tutto operativo" />
-      <div className="prototype-status-band">
-        <div className="prototype-status-orbit"><span aria-hidden="true"><i /><i /><i /></span><Sparkles size={25} aria-hidden="true" /></div>
-        <div><span>Modalita agente</span><strong>Interactive</strong><p>Attenzione centrata sulla conversazione.</p></div>
-        <span className="prototype-health"><i /> Pronta</span>
-      </div>
-      <div className="prototype-organ-grid">
-        {organs.map((organ) => (
-          <article key={organ.name}>
-            <div>{organ.icon}</div><strong>{organ.name}</strong><span>{organ.detail}</span><Check size={17} aria-hidden="true" />
-          </article>
-        ))}
-      </div>
-      <div className="prototype-facts-row">
-        <div><Clock3 size={17} aria-hidden="true" /><span>Ora locale</span><strong>18:42</strong></div>
-        <div><Gauge size={17} aria-hidden="true" /><span>Contesto</span><strong>12%</strong></div>
-        <div><Database size={17} aria-hidden="true" /><span>Persistenza</span><strong>Locale</strong></div>
-      </div>
-    </section>
+    <article className={`presence-event is-${activity.kind} ${authored ? "is-authored" : "is-projected"}`}>
+      <span className="presence-event-node" aria-hidden="true">{activityIcon(activity)}</span>
+      <MagicCard className="presence-event-magic" gradientColor="rgba(220, 33, 137, 0.08)" gradientFrom="#dc2189" gradientOpacity={0.45} gradientTo="#209fc5">
+        <button className="presence-event-body" onClick={onOpen} type="button">
+          <span className="presence-event-meta">
+            <b>{narration.eyebrow}</b>
+            <time>{time}</time>
+            {activity.phase === "streaming" ? <i className="presence-live-dot" /> : null}
+          </span>
+          {authored ? <p className="presence-authored-copy">{narration.text}</p> : <p>{narration.text}</p>}
+          {isThinking ? (
+            <span className="presence-thinking-trace" aria-hidden="true"><i /><i /><i /><i /><i /></span>
+          ) : null}
+          <span className="presence-event-open">
+            <Eye size={14} aria-hidden="true" />
+            {isThinking ? "Apri il pensiero" : "Esplora"}
+          </span>
+        </button>
+      </MagicCard>
+    </article>
   );
 }
 
-function SettingsView() {
-  const [notes, setNotes] = useState(true);
-  const [compact, setCompact] = useState(false);
+function ContinuityView({
+  onMemory,
+  onSession
+}: {
+  onMemory: (memory: PrototypeMemory) => void;
+  onSession: (session: PrototypeSession) => void;
+}) {
+  const entries = [
+    ...prototypeSessions.map((item) => ({ type: "session" as const, item, date: item.updated_at })),
+    ...prototypeMemories.map((item) => ({ type: "memory" as const, item, date: item.updated_at }))
+  ].sort((a, b) => b.date.localeCompare(a.date));
+
   return (
-    <section className="prototype-page prototype-settings-page">
-      <PageIntro copy="Preferenze personali e comportamento dell'interfaccia." />
-      <div className="prototype-settings-grid">
-        <section>
-          <h2>Profilo</h2>
-          <label><span>Nome</span><input defaultValue="Davide" /></label>
-          <label><span>Lingua</span><select defaultValue="it"><option value="it">Italiano</option><option value="en">English</option></select></label>
-          <label><span>Fuso orario</span><select defaultValue="Europe/Rome"><option>Europe/Rome</option><option>UTC</option></select></label>
-        </section>
-        <section>
-          <h2>Conversazione</h2>
-          <Toggle checked={notes} label="Note operative" onChange={setNotes} />
-          <Toggle checked={compact} label="Densita compatta" onChange={setCompact} />
-          <div className="prototype-setting-readout"><ShieldCheck size={18} aria-hidden="true" /><div><strong>Ambito locale</strong><span>I dati restano associati al profilo attivo.</span></div></div>
-        </section>
+    <div className="continuity-view">
+      <PageLead eyebrow="Continuita" title="Quello che resta con me." text="Conversazioni e ricordi tornano nello stesso tempo, senza confondersi tra loro." />
+      <div className="continuity-rhythm">
+        <strong><NumberTicker value={7} /> giorni</strong>
+        <span><i style={{ height: "34%" }} /><i style={{ height: "61%" }} /><i style={{ height: "42%" }} /><i style={{ height: "78%" }} /><i style={{ height: "53%" }} /><i style={{ height: "88%" }} /><i style={{ height: "67%" }} /></span>
+        <small><NumberTicker value={prototypeSessions.length} /> incontri · <NumberTicker value={prototypeMemories.length} /> ricordi</small>
       </div>
-      <button className="prototype-save-button" type="button"><Check size={17} aria-hidden="true" />Salva modifiche</button>
-    </section>
+      <AnimatedList className="continuity-list" delay={70} reverse={false}>
+        {entries.map((entry) => {
+          const isSession = entry.type === "session";
+          const title = isSession ? entry.item.title : "Un ricordo rimasto vicino";
+          const text = isSession ? entry.item.summary : entry.item.content;
+          return (
+            <MagicCard className={`continuity-magic is-${entry.type}`} gradientColor={isSession ? "rgba(32, 159, 197, 0.08)" : "rgba(220, 33, 137, 0.08)"} gradientFrom={isSession ? "#209fc5" : "#dc2189"} gradientOpacity={0.5} gradientTo={isSession ? "#dc2189" : "#ed4963"} key={`${entry.type}-${entry.item.id}`}>
+              <button className={`continuity-entry is-${entry.type}`} onClick={() => isSession ? onSession(entry.item) : onMemory(entry.item)} type="button">
+                <span className="continuity-entry-mark">{isSession ? <History size={17} /> : <MemoryStick size={17} />}</span>
+                <span>
+                  <small>{isSession ? `Incontro · ${relativeDate(entry.date)}` : `Ricordo · ${relativeDate(entry.date)}`}</small>
+                  <strong>{title}</strong>
+                  <p>{text}</p>
+                </span>
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+            </MagicCard>
+          );
+        })}
+      </AnimatedList>
+    </div>
   );
 }
 
-function Toggle({ checked, label, onChange }: { checked: boolean; label: string; onChange: (value: boolean) => void }) {
+function SelfView() {
   return (
-    <label className="prototype-toggle-row">
-      <span>{label}</span>
-      <input checked={checked} onChange={(event) => onChange(event.target.checked)} type="checkbox" />
-      <i aria-hidden="true"><b /></i>
-    </label>
+    <div className="self-view">
+      <PageLead eyebrow="Scarlet" title="Il modo in cui sono qui." text="La mia presenza cambia mentre penso, ricordo e scelgo dove tenere l'attenzione." />
+      <MagicCard className="self-presence-magic" gradientColor="rgba(220, 33, 137, 0.09)" gradientFrom="#dc2189" gradientOpacity={0.5} gradientTo="#209fc5">
+        <div className="self-presence"><SignalMark active /><div><span>Stato presente</span><strong>Curiosa, concentrata</strong><small>Interactive · aggiornata ora</small></div></div>
+      </MagicCard>
+      <div className="self-stream">
+        <SelfState icon={<HeartPulse size={19} />} label="Cio che sento" value="Curiosita presente" detail="Influenza la mia postura, non cambia cio che e vero." accent="fuchsia" />
+        <SelfState icon={<Target size={19} />} label="Dove guardo" value="La presenza reale di Scarlet" detail="Il filo che ho scelto di non perdere di vista." accent="blue" />
+        <SelfState icon={<Brain size={19} />} label="Cio che resta aperto" value="Rendere leggibile la mia attivita" detail="Un'intenzione che potra tornare in primo piano." accent="scarlet" />
+      </div>
+      <div className="self-boundary">
+        <Radio size={18} aria-hidden="true" />
+        <div><strong>Presente, non continuamente autonoma</strong><p>Tra un incontro e l'altro il sistema custodisce e riordina le tracce. I cicli autonomi continui non sono ancora attivi.</p></div>
+      </div>
+    </div>
   );
 }
 
-function PageIntro({ copy, count }: { copy: string; count?: string }) {
-  return <div className="prototype-page-intro"><div aria-hidden="true"><i /><i /><i /></div><p>{copy}</p>{count ? <span>{count}</span> : null}</div>;
+function SelfState({ icon, label, value, detail, accent }: { icon: ReactNode; label: string; value: string; detail: string; accent: string }) {
+  return (
+    <MagicCard className={`self-state-magic accent-${accent}`} gradientColor="rgba(32, 159, 197, 0.07)" gradientFrom={accent === "blue" ? "#209fc5" : "#dc2189"} gradientOpacity={0.46} gradientTo={accent === "scarlet" ? "#ed4963" : "#209fc5"}>
+      <div className={`self-state accent-${accent}`}><span>{icon}</span><div><small>{label}</small><strong>{value}</strong><p>{detail}</p></div></div>
+    </MagicCard>
+  );
+}
+
+function Composer({
+  prompt,
+  scenario,
+  setPrompt,
+  onSubmit
+}: {
+  prompt: string;
+  scenario: PrototypeScenario;
+  setPrompt: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <GlassSurface
+      backgroundOpacity={0.28}
+      blur={16}
+      borderRadius={8}
+      brightness={98}
+      className="presence-composer-glass"
+      distortionScale={0}
+      blueOffset={0}
+      forceFallback
+      greenOffset={0}
+      height="auto"
+      opacity={0.74}
+      redOffset={0}
+      saturation={1.2}
+      width="100%"
+    >
+      <form className="presence-composer" onSubmit={onSubmit}>
+        <label htmlFor="presence-message">Scrivi a Scarlet</label>
+        <textarea
+          id="presence-message"
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder={scenario === "streaming" ? "Scarlet sta ancora pensando..." : "Scrivi qualcosa..."}
+          rows={1}
+          value={prompt}
+        />
+        <ShimmerButton aria-label="Invia" background={prompt.trim() ? "linear-gradient(145deg, #dc2189, #ed4963)" : "#eeeaf0"} borderRadius="6px" className="presence-send-button" disabled={!prompt.trim()} shimmerColor="#ffffff" shimmerDuration="2.8s" title="Invia" type="submit"><ArrowUp size={20} /></ShimmerButton>
+      </form>
+    </GlassSurface>
+  );
+}
+
+function DetailSheet({ selection, onClose }: { selection: DetailSelection; onClose: () => void }) {
+  const activity = selection.type === "activity" ? selection.item : null;
+  const memory = selection.type === "memory" ? selection.item : null;
+  const session = selection.type === "session" ? selection.item : null;
+  const relatedMemories = activity?.related_memory_ids?.map((id) => prototypeMemories.find((item) => item.id === id)).filter(Boolean) as PrototypeMemory[] | undefined;
+  const relatedSessions = activity?.related_session_ids?.map((id) => prototypeSessions.find((item) => item.id === id)).filter(Boolean) as PrototypeSession[] | undefined;
+  const sourceEvents = activity ? prototypeEvents.filter((event) => activity.source_event_ids.includes(event.event_id)) : [];
+
+  const eyebrow = activity ? narrateActivity(activity).eyebrow : memory ? "Ricordo" : "Incontro";
+  const title = activity?.detail_title ?? session?.title ?? "Un ricordo";
+  const text = activity?.detail_text ?? session?.summary ?? memory?.content ?? "";
+
+  return (
+    <div className="presence-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section aria-labelledby="detail-title" aria-modal="true" className="presence-sheet" role="dialog">
+        <ShineBorder borderWidth={1.2} duration={10} shineColor={["#dc2189", "#209fc5", "#ed4963"]} />
+        <div className="presence-sheet-handle" aria-hidden="true" />
+        <header><div><span>{eyebrow}</span><h2 id="detail-title">{title}</h2></div><RippleButton onClick={onClose} rippleColor="rgba(220, 33, 137, 0.2)" title="Chiudi" type="button"><X size={20} /></RippleButton></header>
+        <div className="presence-sheet-content">
+          <p className="presence-sheet-lead">
+            {activity?.kind === "thinking"
+              ? "Questo passaggio appartiene al pensiero del turno. Il testo sotto resta nella forma in cui e stato catturato."
+              : text}
+          </p>
+          {activity?.kind === "thinking" ? <blockquote>{activity.detail_text}</blockquote> : null}
+          {memory ? <Provenance sessionId={memory.source_session_id} messageId={memory.source_message_id} /> : null}
+          {session ? <div className="detail-statline"><span>{session.turn_count} turni</span><span>Aggiornata {relativeDate(session.updated_at)}</span><span>ID {session.id}</span></div> : null}
+          {relatedMemories?.length ? <RelatedMemories memories={relatedMemories} /> : null}
+          {relatedSessions?.length ? <RelatedSessions sessions={relatedSessions} /> : null}
+          <details className="technical-details">
+            <summary><Code2 size={16} /> Dettagli tecnici <ChevronDown size={16} /></summary>
+            <div>
+              {activity ? <JsonBlock title="Ricevuta narrativa" value={narrationReceipt(activity)} /> : null}
+              {activity?.technical ? <JsonBlock title="Dati dell'attivita" value={activity.technical} /> : null}
+              {sourceEvents.length ? <JsonBlock title={`Eventi sorgente · ${sourceEvents.length}`} value={sourceEvents} /> : null}
+              {memory ? <JsonBlock title="Memoria" value={memory} /> : null}
+              {session ? <JsonBlock title="Sessione" value={session} /> : null}
+            </div>
+          </details>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function RelatedMemories({ memories }: { memories: PrototypeMemory[] }) {
+  return <div className="related-items"><span>Ricordi collegati</span>{memories.map((memory) => <div key={memory.id}><MemoryStick size={16} /><p>{memory.content}</p></div>)}</div>;
+}
+
+function RelatedSessions({ sessions }: { sessions: PrototypeSession[] }) {
+  return <div className="related-items"><span>Incontri collegati</span>{sessions.map((session) => <div key={session.id}><History size={16} /><p>{session.title}</p></div>)}</div>;
+}
+
+function Provenance({ sessionId, messageId }: { sessionId: string; messageId: string }) {
+  return <div className="detail-statline"><span>Sessione {sessionId}</span><span>Messaggio {messageId}</span></div>;
+}
+
+function JsonBlock({ title, value }: { title: string; value: unknown }) {
+  return <section className="json-block"><strong>{title}</strong><pre>{JSON.stringify(value, null, 2)}</pre></section>;
+}
+
+function SettingsSheet({ onClose, onDeveloper }: { onClose: () => void; onDeveloper: () => void }) {
+  return (
+    <div className="presence-overlay" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <section aria-labelledby="settings-title" aria-modal="true" className="presence-sheet is-compact" role="dialog">
+        <ShineBorder borderWidth={1.2} duration={10} shineColor={["#209fc5", "#dc2189"]} />
+        <div className="presence-sheet-handle" />
+        <header><div><span>Preferenze</span><h2 id="settings-title">Il nostro spazio</h2></div><RippleButton onClick={onClose} rippleColor="rgba(32, 159, 197, 0.2)" title="Chiudi" type="button"><X size={20} /></RippleButton></header>
+        <div className="settings-list">
+          <label><span><strong>Nome</strong><small>Come Scarlet ti riconosce</small></span><input defaultValue="Davide" /></label>
+          <label><span><strong>Note vive</strong><small>I passaggi che Scarlet rende pubblici</small></span><input defaultChecked type="checkbox" /></label>
+          <label><span><strong>Pensieri</strong><small>Disponibili nel flusso, chiusi in partenza</small></span><input defaultChecked type="checkbox" /></label>
+          <label><span><strong>Ora locale</strong><small>Europe/Rome · UTC+02:00</small></span><Check size={18} /></label>
+          <button onClick={onDeveloper} type="button"><span><strong>Lente tecnica</strong><small>Eventi, fasi e payload del flusso</small></span><Code2 size={18} /></button>
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function DeveloperLens({
-  isOpen,
-  onClose,
   scenario,
-  setScenario
+  setScenario,
+  onClose
 }: {
-  isOpen: boolean;
-  onClose: () => void;
   scenario: PrototypeScenario;
-  setScenario: (value: PrototypeScenario) => void;
+  setScenario: (scenario: PrototypeScenario) => void;
+  onClose: () => void;
 }) {
   return (
-    <div className={`prototype-lens-layer ${isOpen ? "is-open" : ""}`} aria-hidden={!isOpen}>
-      <button aria-label="Chiudi lente sviluppatore" className="prototype-lens-backdrop" onClick={onClose} tabIndex={isOpen ? 0 : -1} type="button" />
-      <aside className="prototype-lens" aria-label="Lente sviluppatore">
-        <header>
-          <div><span>Lente sviluppatore</span><h2>Turno turn-0184</h2></div>
-          <button aria-label="Chiudi" className="prototype-icon-button" onClick={onClose} title="Chiudi" type="button"><X size={19} aria-hidden="true" /></button>
-        </header>
-
-        <section className="prototype-preview-control">
-          <label htmlFor="prototype-scenario">Stato anteprima</label>
-          <select id="prototype-scenario" onChange={(event) => setScenario(event.target.value as PrototypeScenario)} value={scenario}>
-            {Object.entries(scenarioLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-        </section>
-
-        <div className="prototype-lens-metrics">
-          <div><span>Schema</span><strong>stream-v2</strong></div>
-          <div><span>Cursore</span><strong>{prototypeEvents[prototypeEvents.length - 1].seq}</strong></div>
-          <div><span>Eventi</span><strong>{prototypeEvents.length}</strong></div>
+    <div className="presence-overlay is-developer" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <aside aria-labelledby="developer-title" aria-modal="true" className="developer-lens" role="dialog">
+        <ShineBorder borderWidth={1.2} duration={10} shineColor={["#209fc5", "#dc2189"]} />
+        <header><div><span>Lente tecnica</span><h2 id="developer-title">Scarlet Stream</h2></div><RippleButton onClick={onClose} rippleColor="rgba(32, 159, 197, 0.24)" title="Chiudi" type="button"><X size={20} /></RippleButton></header>
+        <div className="scenario-control" role="group" aria-label="Scenario del prototipo">
+          {Object.entries(scenarioLabels).map(([id, label]) => <RippleButton className={scenario === id ? "is-active" : ""} key={id} onClick={() => setScenario(id as PrototypeScenario)} rippleColor="rgba(32, 159, 197, 0.2)" type="button">{label}</RippleButton>)}
         </div>
-
-        <section className="prototype-event-section">
-          <div className="prototype-section-title"><div><Code2 size={17} aria-hidden="true" /><strong>Eventi persistiti</strong></div><span>seq {prototypeEvents[0].seq}–{prototypeEvents[prototypeEvents.length - 1].seq}</span></div>
-          <ol className="prototype-event-list">
-            {prototypeEvents.map((event) => (
-              <li key={event.event_id}>
-                <div className={`prototype-event-dot ${event.phase}`} />
-                <div>
-                  <div><strong>{event.event_type}</strong><span>#{event.seq}</span></div>
-                  <p>{event.phase} · {event.visibility}</p>
-                  <code>{event.event_id}</code>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <div className="developer-summary"><span><b>{prototypeEvents.length}</b> eventi</span><span><b>scarlet-stream-v2</b> schema</span><span><b>{prototypeEvents[prototypeEvents.length - 1]?.seq}</b> cursor</span></div>
+        <AnimatedList className="developer-events" delay={24} reverse={false}>
+          {prototypeEvents.map((event) => (
+            <details key={event.event_id}>
+              <summary><span className={`visibility-${event.visibility}`} /> <code>{event.seq}</code><strong>{event.event_type}</strong><small>{event.phase}</small><ChevronDown size={15} /></summary>
+              <pre>{JSON.stringify(event, null, 2)}</pre>
+            </details>
+          ))}
+        </AnimatedList>
       </aside>
     </div>
   );
 }
 
-function relativeDate(value: string): string {
-  const date = new Date(value);
-  const day = date.getDate();
-  if (day === 19) return "oggi";
-  if (day === 18) return "ieri";
-  return `${day} lug`;
+function PageLead({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+  return <BlurFade blur="7px" delay={0.02} direction="down" duration={0.4}><header className="page-lead"><span>{eyebrow}</span><TextAnimate animation="blurInUp" as="h1" by="word" duration={0.45} once>{title}</TextAnimate><p>{text}</p></header></BlurFade>;
 }
 
-function viewEyebrow(view: PrototypeView): string {
-  if (view === "chat") return "Conversazione attiva";
-  if (view === "sessions") return "Continuita episodica";
-  if (view === "memories") return "Memoria semantica";
-  if (view === "status") return "Presenza operativa";
-  return "Profilo locale";
+function StateNotice({ icon, text, tone = "neutral" }: { icon: ReactNode; text: string; tone?: "neutral" | "danger" }) {
+  return <div className={`presence-notice is-${tone}`}>{icon}<p>{text}</p></div>;
 }
 
-function viewTitle(view: PrototypeView): string {
-  if (view === "chat") return "La nuova Product UI";
-  if (view === "sessions") return "Sessioni";
-  if (view === "memories") return "Ricordi";
-  if (view === "status") return "Stato di Scarlet";
-  return "Impostazioni";
+function SignalMark({ active = false, compact = false }: { active?: boolean; compact?: boolean }) {
+  return <span className={`signal-mark ${active ? "is-active" : ""} ${compact ? "is-compact" : ""}`} aria-hidden="true"><i /><i /><i /><i /><i /></span>;
+}
+
+function activityIcon(activity: PrototypeActivity): ReactNode {
+  if (activity.kind === "user") return <CircleUserRound size={15} />;
+  if (activity.kind === "thinking") return <Brain size={15} />;
+  if (activity.kind === "memory") return <MemoryStick size={15} />;
+  if (activity.kind === "session") return <History size={15} />;
+  if (activity.kind === "affect") return <HeartPulse size={15} />;
+  if (activity.kind === "focus") return <Target size={15} />;
+  if (activity.kind === "answer") return <Sparkles size={15} />;
+  if (activity.kind === "background") return <Clock3 size={15} />;
+  if (activity.kind === "orientation") return <Radio size={15} />;
+  if (activity.kind === "action") return <Search size={15} />;
+  if (activity.kind === "completion") return <Check size={15} />;
+  return <Activity size={15} />;
+}
+
+function activitiesForScenario(scenario: PrototypeScenario): PrototypeActivity[] {
+  if (scenario === "empty" || scenario === "loading") return [];
+  if (scenario === "streaming") {
+    return prototypeActivities
+      .filter((activity) => activity.id !== "activity_answer" && activity.id !== "activity_completion" && activity.id !== "activity_background")
+      .map((activity) => activity.id === "activity_thinking_3" ? { ...activity, phase: "streaming" as const } : activity);
+  }
+  if (scenario === "error") return prototypeActivities.filter((activity) => activity.id !== "activity_answer" && activity.id !== "activity_completion" && activity.id !== "activity_background");
+  return prototypeActivities;
+}
+
+type FlowItem =
+  | { type: "activity"; key: string; activity: PrototypeActivity }
+  | { type: "stream"; key: string; activities: PrototypeActivity[] };
+
+function groupFlowActivities(activities: PrototypeActivity[]): FlowItem[] {
+  const result: FlowItem[] = [];
+  let stream: PrototypeActivity[] = [];
+
+  function flush() {
+    if (!stream.length) return;
+    result.push({ type: "stream", key: `stream:${stream.map((activity) => activity.id).join(":")}`, activities: stream });
+    stream = [];
+  }
+
+  for (const activity of activities) {
+    const conversational = activity.voice === "user" || activity.voice === "scarlet_authored";
+    if (!conversational && activity.kind !== "background") {
+      stream.push(activity);
+      continue;
+    }
+    flush();
+    result.push({ type: "activity", key: activity.id, activity });
+  }
+  flush();
+  return result;
+}
+
+function shortTime(timestamp: string): string {
+  return new Intl.DateTimeFormat("it-IT", { hour: "2-digit", minute: "2-digit" }).format(new Date(timestamp));
+}
+
+function relativeDate(timestamp: string): string {
+  const day = new Intl.DateTimeFormat("it-IT", { day: "numeric", month: "short" }).format(new Date(timestamp));
+  return day.replace(".", "");
 }

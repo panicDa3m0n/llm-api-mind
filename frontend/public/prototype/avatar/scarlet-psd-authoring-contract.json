@@ -1,0 +1,123 @@
+{
+  "schema_version": "scarlet-psd-authoring-v2",
+  "status": "layered-workspace-active-owner-transform-and-art-review",
+  "purpose": "Generate complete Scarlet anatomical assets, stage them in a rig-ready PSD hierarchy, and leave final placement and scaling to the owner in Photoshop.",
+  "canvas": {
+    "width": 941,
+    "height": 1672,
+    "origin": "top-left",
+    "units": "source-pixels",
+    "color_space": "sRGB"
+  },
+  "side_convention": {
+    "naming": "anatomical-scarlet-side",
+    "scarlet_left": "viewer-right",
+    "scarlet_right": "viewer-left"
+  },
+  "visual_authorities": {
+    "portrait": {
+      "path": "../scarlet-character-v1.png",
+      "sha256": "2036ff5f4c776261746d660856ee16763e64f5f9bb101e5a31ce277f60694049",
+      "dimensions": [941, 1672],
+      "role": "Authoritative identity, face, hair, neck, visible torso, rendering, color, and detail reference.",
+      "mutable": false
+    },
+    "tpose": {
+      "path": "source/scarlet-full-body-tpose-reference-v1.png",
+      "sha256": "095a105fc19acb68441846e59db20c82be07ed5ea8639cd32b562740de4f6c71",
+      "dimensions": [941, 1672],
+      "role": "Secondary geometry reference for arms, hands, legs, boots, and body regions absent from the portrait. It never overrides portrait identity.",
+      "mutable": false
+    }
+  },
+  "structural_reference": {
+    "path": "Poopoo.psd",
+    "sha256": "6041f9b2ef9db5fdea74aad79c3af4c2e0c9496916d2befb42e455e7fa4a6127",
+    "audit": "poopoo-structural-reference.json",
+    "role": "Reference for PSD hierarchy, anatomical separation, clipping, blend modes, and z-order only.",
+    "forbidden_uses": [
+      "copying or transforming Poopoo pixels into Scarlet artwork",
+      "using Poopoo colors, identity, anatomy, costume, textures, or shaders as Scarlet artwork",
+      "treating the less-articulated Poopoo limbs as sufficient for Scarlet"
+    ]
+  },
+  "asset_policy": {
+    "construction": "Generate every anatomical part as independent new artwork guided exclusively by the Scarlet portrait or T-pose.",
+    "one_semantic_surface_per_asset": true,
+    "complete_hidden_geometry": true,
+    "transparent_background": true,
+    "reference_pixels_may_be_copied": false,
+    "native_asset_rule": "Remove the generated chroma background and trim to the true alpha silhouette. Do not scale or register automatically.",
+    "owner_transform_rule": "The owner positions and scales every staged native asset against the locked bottom portrait in Photoshop."
+  },
+  "rendering_policy": {
+    "default": "Paint texture, depth, shadows, highlights, outlines, and material response directly into each generated Scarlet asset.",
+    "separate_overlay_gate": "Create a separate shader or expression layer only when it must move, deform, fade, or change independently.",
+    "normal_clipped": ["face shadow", "blush", "local skin shading"],
+    "multiply_clipped": ["independent dark markings when needed"],
+    "linear_dodge": ["iris light", "catchlight glow", "cyan and magenta suit emission"],
+    "baked_by_default": ["hair shading", "hair texture", "skin rendering", "clothing folds", "material highlights"]
+  },
+  "canonical_workflow": {
+    "id": "generated-native-rgba-owner-transform-psd-v2",
+    "steps": [
+      "Generate one complete anatomical Scarlet asset on a removable chroma background from the correct Scarlet reference.",
+      "Remove only the chroma background and preserve the generated alpha edge.",
+      "Trim the asset to its real alpha silhouette without resizing or registration.",
+      "Insert the native asset hidden in the semantic rig folder with an UNREGISTERED owner-transform name.",
+      "Let the owner position and scale the asset against the locked bottom portrait.",
+      "Approve identity, anatomy, edge quality, z-order, and recomposition before treating the asset as production artwork."
+    ],
+    "forbidden_operations": [
+      "copying reference or structural-reference pixels into a Scarlet asset",
+      "hybrid generated and reference-pixel patches",
+      "static-color repair of missing anatomy",
+      "automatic placement presented as approved",
+      "per-organ workflow substitution"
+    ],
+    "implementations": [
+      "frontend/scripts/prepare-scarlet-anatomical-part.mjs",
+      "frontend/scripts/build-scarlet-rig-psd.mjs",
+      "frontend/scripts/analyze-avatar-psd-reference.mjs"
+    ]
+  },
+  "workspace": {
+    "manifest": "scarlet-rig-workspace.json",
+    "output_psd": "rig/scarlet-layered-rig-workspace-v2.psd",
+    "reference_layer": "REFERENCE__SCARLET_PORTRAIT__LOCKED_BOTTOM",
+    "reference_order": "first in the bottom-to-top PSD child array",
+    "candidate_state": "hidden and unregistered until owner placement",
+    "root_groups_back_to_front": [
+      "10_REAR_HAIR",
+      "20_LOWER_BODY",
+      "30_ARMS",
+      "40_NECK",
+      "50_TORSO",
+      "60_HEAD",
+      "70_FOREGROUND_LIMBS_AND_FX"
+    ]
+  },
+  "required_surface_families": {
+    "rear_hair": ["base mass", "right locks", "left locks", "color accents"],
+    "lower_body_per_side": ["upper leg", "knee cover", "lower leg", "boot"],
+    "arm_per_side": ["upper arm", "elbow cover", "forearm", "wrist cover", "default hand", "hand variants"],
+    "neck": ["base", "independent shading when needed", "rear collar"],
+    "torso": ["suit base", "chest panels", "harness and trims", "front collar", "luminous accents", "shoulder joint covers"],
+    "face": ["ears", "complete skin base", "clipped shading", "clipped blush", "independent details"],
+    "mouth": ["inner mouth", "tongue", "upper teeth", "lower teeth", "rear oral teeth occlusion", "lower lip", "upper lip", "lip shadow", "expression variants"],
+    "eye_per_side": ["brow shadow", "sclera", "iris base", "pupil", "highlights", "linear-dodge iris glow", "eye corner", "lower lid", "lower lashes", "upper lid", "upper lash and liner", "brow"],
+    "nose": ["base", "shading", "highlight"],
+    "front_hair": ["front mass", "bangs", "right face locks", "left face locks", "cyan and magenta locks", "optional dynamic rim glow"],
+    "expressions": ["tears below front hair", "emotion shadows below front hair", "emotion symbols and effects above the complete character"],
+    "dynamic_foreground_limbs": ["foreground hand variants", "foreground arm variants"]
+  },
+  "admission": {
+    "requires_owner_visual_approval": true,
+    "requires_alpha_edge_review": true,
+    "requires_z_order_review": true,
+    "requires_reference_recomposition_review": true,
+    "placement_is_owner_controlled": true,
+    "current_approved_artwork": ["eye_scarlet_right_upper_lash_liner"],
+    "all_other_staged_assets": "generated-pending-owner-review"
+  }
+}

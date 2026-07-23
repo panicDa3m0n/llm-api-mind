@@ -4,6 +4,694 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-23 - Cross-Machine Product UI And Laboratory Checkpoint
+
+Area: repository continuity / Product UI / laboratory state.
+
+Type: Explicit checkpoint and reviewed laboratory-data release inside V1.54.0
+on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Publish the complete accumulated Product UI, avatar research, static identity,
+visual evidence, scripts, and current laboratory state so development can
+continue from another PC without relying on untracked local artifacts.
+
+Boundary:
+
+- secrets, `.env` files, caches, virtual environments, build outputs, and
+  disposable evaluator databases remain excluded;
+- `backend/data/app.db` is explicitly released as a laboratory snapshot, never
+  as production data or a production deployment seed;
+- all PSD files and the laboratory snapshot use Git LFS;
+- production VPS data remains outside Git and unchanged.
+
+Database evidence:
+
+- role `laboratory`, isolation `direct`, `codex_test=false`;
+- SQLite integrity `ok`, 27 tables, 139,264,000 bytes;
+- 36 memories, 26 facts, 163 sessions, 598 messages, 3,597 events;
+- SHA-256
+  `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`.
+
+Cross-machine recovery:
+
+- install Git LFS before checkout;
+- clone and checkout `sca-48-product-ui-prototype`;
+- run `git lfs pull`, then verify LFS materialization;
+- install backend/frontend dependencies normally;
+- restore provider credentials only through ignored local environment files.
+
+Verification:
+
+- frontend production build passed with 2,022 transformed modules;
+- database preflight confirmed laboratory/direct ownership and integrity `ok`;
+- staged database boundary rejected the ordinary path and passed only with the
+  explicit `--allow-laboratory-snapshot` release acknowledgment;
+- all five large DB/PSD files are staged as LFS pointers;
+- static avatar contracts and structural reports parse as valid JSON;
+- staged whitespace validation passed after removing two trailing blank lines;
+- secret scan found only documented placeholder values.
+
+Residual Risk:
+
+Documentation integrity still reports 39 references to deliberately removed
+historical avatar/APNG artifacts. These are retained as truthful experiment
+history and are not missing active checkpoint files. A fresh machine requires
+Git LFS and separately restored ignored credentials.
+
+## 2026-07-22 - Scarlet Static Portrait Identity And 360-Degree References
+
+Area: Product UI / Scarlet visual identity.
+
+Type: Prototype implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Decision:
+
+The owner paused the layered-puppet path after two days of experiments and
+selected identity-locked static portraits with short fades as the active
+Product UI direction. Puppet artifacts remain preserved for later research.
+
+Changes:
+
+- Added a machine-readable identity contract covering immutable facial,
+  makeup, hair, body, costume, cuff, hand, rendering, and output rules.
+- Added the initial semantic state catalog for startup greeting, active-chat
+  neutral, and long-idle boredom.
+- Generated references for both profiles, four three-quarter views,
+  natural rear, exposed rear costume, and bilateral palms/hand backs.
+- Added a manifest that keeps generated views subordinate to the two approved
+  front authorities; the owner approved the complete supporting pack.
+- Added a single turntable contact sheet for visual review.
+- Integrated the owner-supplied HappyHorse greeting into the splash as a
+  cropped, muted video bubble with canonical portrait fallback.
+- Replaced native looping with one complete first pass followed by a stable
+  `2s -> end` loop.
+
+Verification:
+
+- visually inspected every generated candidate at full resolution;
+- compared all eight directions in turntable order;
+- checked anatomical cyan/magenta side continuity, hand anatomy, cuff details,
+  rear hair volume, rear costume continuity, and full-body framing;
+- parsed both new contract JSON files and the 360-degree manifest;
+- passed the frontend production build;
+- verified the greeting in Chromium at `390x844` and `844x390`;
+- confirmed H.264 partial-content delivery, no console errors, no horizontal
+  overflow, hidden watermark, and a forced end-to-loop transition from 5.08 to
+  2.10 seconds.
+
+Residual Risk:
+
+The pack is approved as supporting reference, not as a replacement for the two
+canonical front authorities. The HappyHorse source remains unsuitable outside
+its controlled bubble because it has an opaque background and watermark.
+
+## 2026-07-21 - Poopoo-Informed Scarlet PSD Structure
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner supplied `Poopoo.psd` as a complete layered-character reference and
+took ownership of final asset positioning and scaling. Parsed evidence showed
+that the reference relies on 105 painted raster layers, 22 groups, 12 clipping
+relationships, six `linear dodge` eye-light layers, and one clipped `multiply`
+layer. It does not rely on Photoshop masks or a generic shader stack. Ordinary
+material depth remains painted inside each asset.
+
+Changes:
+
+- Added a repeatable structural PSD audit that excludes layer pixels and
+  records hierarchy, bounds, clipping, opacity, and blend modes.
+- Restricted Poopoo to structural evidence; its artwork is forbidden as a
+  Scarlet input.
+- Replaced the provisional Scarlet folder tree with a Poopoo-informed V2 tree
+  covering rear hair, articulated lower body, bilateral articulated arms,
+  neck, torso, detailed head systems, expressions, and foreground effects.
+- Kept Scarlet more articulated than the reference where the reference leaves
+  one arm or a whole leg combined.
+- Changed the active workflow to native alpha-trimmed generated assets staged
+  hidden in their semantic folders. The owner performs final Photoshop
+  transforms against the locked bottom portrait.
+- Extended the PSD builder to preserve declared clipping, blend mode, opacity,
+  visibility, and layer names.
+- Rebuilt the V2 PSD with all 19 existing Scarlet assets without discarding
+  generated work.
+
+Verification:
+
+- `cd frontend && npm run avatar:reference:audit`
+- `cd frontend && npm run avatar:rig-workspace`
+- parsed reference: 105 raster layers, 22 groups, 12 clipped layers
+- rebuilt Scarlet PSD: seven rig roots plus locked bottom reference and 19
+  hidden unregistered assets
+
+Residual Risk:
+
+The hierarchy is production-oriented, but the staged artwork remains visually
+unapproved except for the right upper lash/liner. Empty folders are inventory,
+not completed assets. Photoshop placement and later rig deformation tests are
+still required.
+
+## 2026-07-21 - Canonical Generated-Only Anatomical Workflow
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner approved the generated lash artwork but rejected the later cyan
+forelock path because it mixed generated artwork with portrait pixels and
+changed construction method between organs. The PSD also placed the locked
+reference above candidates because `ag-psd` child order had been interpreted in
+the wrong direction.
+
+Changes:
+
+- Removed the rejected cyan forelock candidate and every path that referenced
+  it as active artwork.
+- Added one generic per-part preparer driven by a small JSON config. It accepts
+  only a newly generated transparent anatomical source and performs only trim,
+  scale, x/y placement, proof composition, and PSD packaging.
+- Prohibited reference-pixel extraction, hybrid patches, static repainting, and
+  per-organ workflow substitutions in the machine-readable contract.
+- Defined and verified PSD child order as bottom-to-top: locked reference first,
+  approved lower surfaces next, and current candidate last.
+- Calibrated the approved lash against its actual portrait region at
+  `(330,570)`, size `136x35`, and made the preparer reject placement drift from
+  that recorded target box.
+
+Verification:
+
+- generic lash preparation command completed
+- PSD reopened after writing and matched the expected bottom-to-top layer order
+- white, black, checkerboard, target-box, 50% alignment, placement-overlay,
+  Difference, and z-stack proof inspection
+- contract/config/report JSON parse and path checks
+
+Result:
+
+The lash artwork remains owner-approved. Its calibrated placement is the sole
+open visual gate; no second anatomical candidate remains active.
+
+## 2026-07-21 - First Surgical Anatomical Surface Candidate
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Changes:
+
+- Accepted the owner-approved generated right upper lash/liner as the first new
+  anatomical source after the reference-only reset.
+- Removed its green background with a soft alpha edge, fitted it to the Scarlet
+  portrait, and exported isolated and canonical full-canvas RGBA assets.
+- Added a reproducible preparation path, a locked-reference two-layer PSD, contrasting
+  alpha proofs, placement overlay, difference diagnostic, and a structured
+  surface report.
+- Clarified that perceptual fidelity in the recomposed PSD is the admission
+  criterion; exact source-pixel identity remains diagnostic only.
+
+Verification:
+
+- direct visual inspection of white, black, checkerboard, reference, overlay,
+  and difference panels
+- PNG geometry and alpha-range checks
+- PSD parse confirming `941x1672` geometry and the expected two layer names
+
+Result:
+
+The isolated lash artwork is owner-approved. Its calibrated placement is a
+review candidate at `(330,570)` sized `136x35`, matching the recorded reference
+lash box. Owner approval of this final registration closes the current gate.
+
+## 2026-07-21 - Scarlet Avatar Reference-Only Reset
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Corrective implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The active avatar workspace contained 816 files and occupied approximately
+291 MB: 767 PNGs, seven PSDs, generated proofs, APNG frames, contracts, and 14
+generators from several mutually incompatible methods. V1 APNG motion was
+discontinuous, V2 local-raster interpolation distorted the character, and the
+Live2D material candidates were not trustworthy anatomical surfaces.
+
+Changes:
+
+- Removed all derived avatar images, PSDs, animation frames, proofs, previews,
+  generated contracts, and obsolete generation scripts.
+- Removed the obsolete `avatar:*` npm commands so rejected outputs cannot be
+  recreated accidentally.
+- Preserved only the approved half-body portrait and the T-pose verification
+  reference as visual inputs.
+- Added a renderer-neutral PSD authoring contract with locked hashes, canvas,
+  side convention, anatomical surface inventory, front-to-back production
+  order, inverse render order, and fail-closed review gates.
+- Defined separate visible-region and hidden-region proofs. Hidden completion
+  must be reviewed beneath approved foreground layers, never uncovered over the
+  flattened portrait.
+- Reframed APNG as rejected construction research and kept only its written
+  findings.
+
+Verification:
+
+- reference whitelist and recursive avatar inventory
+- SHA-256 and `941x1672` dimension checks for both canonical PNGs
+- JSON parse and contract-path checks
+- frontend production build
+
+Result:
+
+The avatar visual workspace now starts from two canonical PNG references and
+one non-visual authoring contract. No anatomical PNG or production PSD is
+currently admitted. The next gate is one owner-reviewed frontmost surface.
+
+## 2026-07-21 - Scarlet Greeting V2 Local Raster Motion Test
+
+Area: Product UI / prepared Scarlet animation.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner accepted the four authored greeting sources but rejected the V1 APNG
+movement. The encoded file was valid; the source timeline contained only five
+distinct images and 75-110 ms jumps, so no continuous motion existed to play.
+Direct RIFE comparison also distorted or removed the articulated hand/forearm
+between distant poses and was rejected as the primary in-between generator.
+
+Changes:
+
+- Added a separate V2 renderer for `neutral -> lift_low -> neutral` without
+  replacing or deleting V1 evidence.
+- Extracted approved keyframe pixels into semantic hand and sleeve mattes and
+  moved them through a local raster mesh anchored at the off-canvas arm origin.
+- Added smootherstep easing, 18 steps each direction, uniform 33/34 ms moving
+  frames, exact neutral endpoints, identity-lock assertions, jump diagnostics,
+  source-layer proofs, contact sheet, manifest, and V1/V2 browser comparison.
+- Caught pale duplicate fragments during full-resolution inspection and removed
+  them by excluding a dilated moving silhouette from the static cleanup layer.
+
+Verification:
+
+- `cd frontend && npm run avatar:animation:greeting-v2`
+- decoded APNG: 37 frames, 1,749 ms, exact canonical first/last hashes
+- all face-core, hair-crown, and viewer-right locks exact
+- local browser: V1 and V2 HTTP 200 as `image/png`; zero console warnings/errors
+- direct inspection of contact sheet, semantic matte on white/black, and full
+  resolution early/middle/late moving frames
+
+Residual Risk:
+
+V2 proves the continuous-timeline method only for entry/exit. Owner visual
+acceptance is still required for trajectory and edge quality, and matched local
+meshes are still needed for the remaining pose-to-pose intervals. The current
+13.7 MB full-frame APNG is deliberately unoptimized; Android performance and
+delta-frame encoding remain later gates.
+
+## 2026-07-21 - Scarlet APNG Greeting V1 Workflow Candidate
+
+Area: Product UI / prepared Scarlet animation.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Test whether a reusable APNG workflow can produce a real Scarlet greeting while
+preserving the approved neutral identity and avoiding full-frame regeneration.
+
+Changes:
+
+- Added a deterministic Pillow builder for chroma extraction, canvas
+  registration, partial motion-corridor compositing, APNG assembly, manifest
+  generation, static proofs, and decoded-frame verification.
+- Established the exact neutral first/last-frame contract and locked face core,
+  hair crown, and viewer-right regions across every generated pose.
+- Rejected the first full generated greeting frame because it embedded a fake
+  checkerboard and changed the character scale.
+- Added a canonical open-palm master pose, then regenerated low, middle, and
+  angled poses using both neutral identity and gesture-master references after
+  the first sequence changed cuff design between frames.
+- Changed the runtime filename from `.apng` to `.png` after browser inspection
+  found `application/octet-stream`; the same APNG content now receives
+  `image/png` without server-specific configuration.
+- Added an 11-frame, 1,300 ms one-shot greeting candidate, replay preview,
+  contact sheet, and changed-pixel map.
+
+Verification:
+
+- `cd frontend && npm run avatar:animation:greeting`
+- decoded APNG: 11 frames, loop count 1, exact first/last neutral RGBA hash
+- frame manifest: all three identity locks exact; motion corridor approximately
+  11-16% of the canvas depending on pose
+- local Chromium load: HTTP 200, `content-type: image/png`, no console warnings
+  or errors, replay request successful
+
+Residual Risk:
+
+Owner visual approval of motion smoothness remains pending. Android WebView
+decode cost and runtime animation orchestration are outside this first test.
+
+## 2026-07-21 - Puppet V2 Rejection And Reference-Anchored V3 Face Gate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Corrective implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+Direct source audit disproved the earlier Puppet V2 readiness claim. Of 59
+named materials, 33 combined master cutouts with resized legacy artwork and 18
+used only legacy artwork. The PSD was structurally layered but did not contain
+one complete reference-faithful surface per rig organ.
+
+Changes:
+
+- Marked Puppet V2 as rejected evidence and removed it from active acceptance.
+- Added a V3 contract that forbids legacy material, eye V1, and Puppet V2
+  artistic inputs and blocks PSD assembly behind progressive material gates.
+- Made source ownership explicit and machine-checkable: all face/head organs
+  use only the approved half-body portrait; the portrait also remains primary
+  for visible upper-body identity, while the T-pose controls registration,
+  lower-body organs, and uncovered body regions. Both hashes are locked.
+- Generated the first complete face-base candidate from the approved portrait:
+  reference-derived silhouette, 11,300 exact clean-skin pixels, 31,213 blended
+  reference-anchor pixels, and 94,706 reconstructed pixels limited to removed
+  or occluded areas.
+- Locked every V3 rig asset and placement mask to the `941x1672` master canvas,
+  top-left origin, zero final offset, and proof-only crop policy; the validator
+  checks dimensions for complete, reference, reconstruction, mask, and
+  recompose outputs.
+- Rejected the first face composition after its broad reference patches
+  included hair and created hard seams; narrowed the anchors to clean skin
+  islands and regenerated the proof.
+- Rejected the inherited visible-partition face mask after direct owner review
+  found that it produced a generic oval rather than Scarlet's facial shape.
+  Re-traced forehead, temple, cheek, jaw, and chin landmarks against the locked
+  portrait, reducing the complete mask from 114,762 to 106,006 pixels and
+  adding a pixel-grid old/new contour proof.
+- Updated avatar validation to require V2 rejection, V3 face-gate lifecycle,
+  zero legacy support, blocked PSD admission, exact reference pixels, and a
+  transparent full-canvas face output.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:face-v3`
+- original-resolution inspection of transparent/checker, white, black, and
+  reference-pixel proof panels
+- source audit of every Puppet V2 material and PSD layer
+
+Residual Risk:
+
+The V3 face base is a candidate awaiting owner review. The current recompose
+image still uses rejected visible-partition evidence for the other organs and
+is diagnostic only. No other V3 organ and no V3 PSD has been produced.
+
+## 2026-07-20 - Scarlet Puppet V2 Full Material Assembly
+
+Historical note: this candidate was rejected on 2026-07-21 after the source
+audit recorded in BUG-0098 and ADR-0119. The entry below describes what was
+implemented at the time, not an active or Cubism-ready artifact.
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Apply the owner-approved complete-iris method across the remaining puppet
+surfaces, preserve the locked neutral identity, and produce one reviewable PSD
+without claiming that the Cubism rig already exists.
+
+Changes:
+
+- Promoted the right iris V2 to the owner-approved shared bilateral source and
+  reused it independently for both eyes.
+- Added a 59-material Puppet V2 contract covering face, eye stacks, facial
+  features, hair depth, torso, neck/collar, articulated limbs, joint covers,
+  boots, hands, and expression variants.
+- Registered every material to the master canvas and exported visible-master,
+  hidden-support, complete, crop, mask, and proof artifacts.
+- Separated exact neutral identity from deformation support: hidden completion
+  remains disabled in the neutral pose, and exact neutral master eyes remain
+  visible until Cubism activates the separately clipped eye stack.
+- Generated a `941x1672`, 103-layer PSD plus neutral reference/reconstruction,
+  difference map, depth map, contact sheet, and per-material proofs.
+- Rejected broad light-color fringe removal after it damaged valid pearl suit
+  pixels; retained surgical matte cleanup as a later reviewed boundary pass.
+- Extended avatar validation to open the generated PSD and fail on missing
+  groups, layers, dimensions, report files, or bilateral-iris approval state.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:right-iris-v2`
+- `cd frontend && npm run avatar:fidelity:puppet-v2`
+- `cd frontend && npm run avatar:validate`
+- original-resolution visual inspection of the final neutral reference and
+  reconstructed puppet
+
+Result:
+
+The pipeline reports 59 materials, 31 neutral materials, silhouette IoU
+`0.9672666849`, common-pixel RGB MAE `0.0746457296`, and successful PSD parsing
+with 103 layers. The metrics are advisory; visual inspection confirms that the
+approved face and eye effect survive assembly.
+
+Residual Risk:
+
+The PSD is an assembled candidate, not a completed Live2D model. Small matte
+artifacts inherited from the T-pose remain near selected hair/shoulder edges.
+Cubism ArtMeshes, clipping activation, deformers, extreme keyforms, physics,
+motions, `.moc3` export, and Android runtime verification remain pending.
+
+## 2026-07-20 - Scarlet Right Iris V2 Precision Gate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Replace the rejected whole-eye V1 candidate with one anatomically valid and
+independently reviewable right iris, without assembling a PSD or advancing any
+other body part.
+
+Changes:
+
+- Rejected intermediate variants that embedded the upper eyelid, showed a
+  rectangular master-pixel patch, used a photorealistic texture, retained a
+  painted checkerboard, or produced an excessive alpha halo.
+- Generated one seamless anime iris-and-pupil reconstruction from the approved
+  eye reference, removed the chroma background, normalized it to a circular
+  `512x512` canvas, and retained an `8px` high-resolution alpha feather.
+- Kept catchlight, eyelid, liner, skin, and sclera outside the movable iris and
+  added isolated-background, `44px`, neutral, and proof-only z-index sheets.
+- Recorded that minor retinal color differences are acceptable when Scarlet's
+  overall eye identity and effect remain coherent; anatomy, ownership, z-index,
+  and edge quality remain strict.
+- Marked the 26-asset V1 eye set as rejected evidence and added fail-closed V2
+  contract validation.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:right-iris-v2`
+- visual inspection of all four V2 proof sheets at original resolution
+- `cd frontend && npm run avatar:validate`
+- `cd frontend && npm run build`
+
+Residual Risk:
+
+The right iris V2 was subsequently owner-approved and reused bilaterally in
+Puppet V2. Catchlight, aperture, lids, lashes, sclera, and the PSD are now
+represented in that later assembly; Cubism rigging remains pending.
+
+## 2026-07-20 - Scarlet Semantic Eye Asset Gate Candidate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Prepare the two-eye semantic asset gate without assembling a PSD, while
+respecting source fidelity, z-index ownership, hidden completion, and the
+separate future edge/transparency review requested by the owner.
+
+Changes:
+
+- Added a versioned eye contract and deterministic generator locked to the
+  approved portrait hash.
+- Rejected intermediate outputs when iris crops retained eyelid pixels, sclera
+  absorbed skin/liner, lower lashes absorbed the lid line, or generated support
+  visibly exceeded the eye aperture.
+- Exported 26 assets across visible-master, hidden-completion, complete, and
+  hidden-support roles, including separate lower lashes/lid lines and hidden
+  upper-lash roots.
+- Added asset, provenance, neutral, gaze-extrema, and blink-material proofs.
+- Kept PSD generation and final edge/alpha cleanup explicitly disabled and
+  extended avatar validation to enforce that boundary.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:eyes`
+- `cd frontend && npm run avatar:validate`
+- visual inspection of every generated proof at source resolution
+
+Residual Risk:
+
+The semantic ownership and support geometry are ready for owner review, but the
+candidate is not approved. Hard raster boundaries and synthetic sclera
+transitions remain intentionally visible for the later edge/alpha refinement
+pass. No PSD or Cubism material was created.
+
+## 2026-07-20 - Scarlet Live2D Occlusion And Hidden-Surface Audit
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation analysis inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Re-evaluate every visible-pixel candidate as a moving Live2D material after the
+owner identified eyelid pixels inside the iris crop.
+
+Changes:
+
+- Audited all 34 current candidates for semantic contamination, mixed depth,
+  missing underlays, clipping, foreground occluders, and maximum-motion risks.
+- Added a versioned occlusion contract with explicit draw-order bands, one
+  eye-aperture mask per eye, ten support-material sets, and five controlled
+  reconstruction gates.
+- Reclassified the existing 34 PNGs as neutral pixel-partition evidence rather
+  than rig-ready materials.
+- Extended avatar validation so the occlusion audit must cover every current
+  candidate exactly once and every draw order/material record is structurally
+  valid.
+- Updated the authoring and fidelity manifests without modifying either locked
+  master or generating hidden artwork.
+
+Verification:
+
+- `cd frontend && npm run avatar:validate`
+- JSON contract validation covers 34/34 visible candidates and 10 support sets.
+
+Residual Risk:
+
+The contract identifies the required artwork but does not pretend that hidden
+pixels already exist. The next owner-reviewed gate is the two-eye system;
+Photoshop/Cubism assembly remains blocked until all semantic materials pass
+neutral and movement proofs.
+
+## 2026-07-20 - Scarlet Visible-Pixel Live2D Parts Gate
+
+Type:
+
+Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Replace heuristic/generated material separation with a reviewable matrix of
+exact visible pixels from the approved Scarlet portrait and T-pose masters,
+without beginning PSD assembly or hidden-art reconstruction.
+
+Changes:
+
+- Added `scarlet-visible-parts-matrix.json` with 34 named neutral materials,
+  anatomical side conventions, source roles, masks, rig purpose, and explicit
+  hidden-completion requirements.
+- Added `prepare-scarlet-visible-parts.mjs` to verify master hashes, extract
+  full-canvas and cropped PNGs, write binary masks and individual overlay
+  proofs, produce contact sheets/partition maps, and reconstruct selected
+  source regions.
+- Kept portrait child materials in portrait-native coordinates for one future
+  group transform; T-pose body materials remain in final canvas coordinates.
+- Marked the previous generated material pack and PSDs as superseded,
+  non-authoritative candidates rather than deleting them.
+- Updated the avatar validator to make the fidelity report/files the active
+  default and keep legacy PSD validation behind an explicit flag.
+
+Verification:
+
+- `npm run avatar:fidelity:register`
+- `npm run avatar:fidelity:parts`
+- `npm run avatar:validate`
+- `npm run build`
+- 34/34 parts non-empty: 19 portrait and 15 body.
+- Zero changed source RGB pixels and zero changed source alpha pixels.
+- Zero RGBA mismatch pixels in portrait and body selected-region
+  reconstructions.
+- Visual review performed on portrait/body contact sheets, partition maps,
+  face materials, hair masses, torso, limbs, and re-overlay proofs.
+
+Residual Risk:
+
+The owner has not yet approved the visual masks. Hidden hair/skin/body/joint
+continuations, expression variants, alternate hands, PSD assembly, and Cubism
+rigging remain intentionally out of scope.
+
+## 2026-07-20 - Scarlet Live2D Puppet Authoring Foundation (SCA-48)
+
+The TripoAI image-to-OBJ probe produced a recognizable Scarlet but insufficient
+mesh and visual quality. The owner selected an identity-preserving 2D puppet as
+the new avatar direction, with one full-body model framed differently by each
+screen and a strong emphasis on half-body anime expressions and gestures.
+
+Prepared a Live2D authoring contract without claiming that a static fallback is
+already a rig. The repository now contains the approved portrait, the generated
+full-body T-pose reference, a Photoshop JSX generator, a 4096x4096 layered PSD
+material-separation template, and a flattened inspection preview. The template
+keeps the approved portrait and body guide as locked references and establishes
+the groups required for face, eyes, brows, mouth, hair, body, arms, and effects.
+
+Added a model-independent TypeScript intent contract and resolver for action,
+emotion, gaze, speech, gesture, framing, priority, transitions, and TTL. Added a
+versioned authoring manifest plus source/model validation commands. The actual
+`.moc3` remains pending because Cubism Editor, its licensed material-separation
+plugin, and Cubism SDK/Core are not installed on the workstation; Photoshop
+2025 is present and successfully generated the source PSD.
+
+Verification covers Photoshop script execution, PSD/PNG dimensions, direct
+preview inspection, the source-only avatar validator, and the frontend
+TypeScript/Vite production build. The next valid step is material separation,
+Cubism rig authoring, model export, and only then Web SDK integration and mobile
+visual verification.
+
+## 2026-07-20 - Scarlet Splash And Character Identity Concept (SCA-48)
+
+Implemented the first Android-oriented Product UI step as an isolated static
+splash. `/prototype` now opens on the splash while the earlier product preview
+remains available through `?surface=product`; no backend, update, login,
+registration, or home flow was added.
+
+The owner replaced the robotic CSS mascot direction with an adult human anime
+identity. A generated 3D-style concept depicts Scarlet at an apparent age near
+25 with makeup, dark plum hair, Timber cyan/fuchsia details, pearl/graphite
+clothing, and a warm direct gaze. The chroma source was converted to a local
+transparent PNG and the splash integrates it through a reusable semantic
+avatar component. CSS provides only presentation movement, aura, and light;
+the concept does not claim real 3D expression or rigging.
+
+Production build passed without warnings. Real-browser screenshots and visual
+inspection covered `390x844`, compact `360x640`, and landscape `844x390`.
+Portrait and landscape remain exactly within the viewport, the character asset
+loads successfully, and the production browser reported no console warnings or
+errors. Final screenshots are stored as `mobile-splash.png` and
+`landscape-splash.png` under `docs/assets/product-ui-prototype/`.
+
 ## 2026-07-19 - Scarlet Signal Product UI Redesign (SCA-48)
 
 The owner accepted the prototype's screens and functional structure but

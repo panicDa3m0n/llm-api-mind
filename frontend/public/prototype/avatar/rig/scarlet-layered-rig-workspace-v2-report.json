@@ -1,0 +1,801 @@
+{
+  "schema_version": "scarlet-rig-workspace-v2",
+  "status": "owner-placement-required",
+  "output_psd": "public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd",
+  "structural_reference": {
+    "source": "public/prototype/avatar/Poopoo.psd",
+    "sha256": "6041f9b2ef9db5fdea74aad79c3af4c2e0c9496916d2befb42e455e7fa4a6127",
+    "audit": "public/prototype/avatar/poopoo-structural-reference.json",
+    "usage": "Hierarchy, semantic asset inventory, clipping, blend modes, and z-order only. No source pixels or character design may enter Scarlet artwork."
+  },
+  "canvas": {
+    "width": 941,
+    "height": 1672
+  },
+  "layer_order_semantics": "bottom-to-top",
+  "reference_layer": "REFERENCE__SCARLET_PORTRAIT__LOCKED_BOTTOM",
+  "hierarchy": [
+    {
+      "name": "REFERENCE__SCARLET_PORTRAIT__LOCKED_BOTTOM"
+    },
+    {
+      "name": "10_REAR_HAIR",
+      "children": [
+        {
+          "name": "11_REAR_HAIR_BASE",
+          "children": []
+        },
+        {
+          "name": "12_REAR_LOCKS_SCARLET_RIGHT",
+          "children": []
+        },
+        {
+          "name": "13_REAR_LOCKS_SCARLET_LEFT",
+          "children": []
+        },
+        {
+          "name": "14_REAR_HAIR_ACCENTS",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "20_LOWER_BODY",
+      "children": [
+        {
+          "name": "21_PELVIS",
+          "children": []
+        },
+        {
+          "name": "22_LEG_SCARLET_RIGHT",
+          "children": [
+            {
+              "name": "221_UPPER_LEG",
+              "children": []
+            },
+            {
+              "name": "222_KNEE_COVER",
+              "children": []
+            },
+            {
+              "name": "223_LOWER_LEG",
+              "children": []
+            },
+            {
+              "name": "224_BOOT",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "23_LEG_SCARLET_LEFT",
+          "children": [
+            {
+              "name": "231_UPPER_LEG",
+              "children": []
+            },
+            {
+              "name": "232_KNEE_COVER",
+              "children": []
+            },
+            {
+              "name": "233_LOWER_LEG",
+              "children": []
+            },
+            {
+              "name": "234_BOOT",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "30_ARMS",
+      "children": [
+        {
+          "name": "31_ARM_SCARLET_RIGHT",
+          "children": [
+            {
+              "name": "311_UPPER_ARM",
+              "children": []
+            },
+            {
+              "name": "312_ELBOW_COVER",
+              "children": []
+            },
+            {
+              "name": "313_FOREARM",
+              "children": []
+            },
+            {
+              "name": "314_WRIST_COVER",
+              "children": []
+            },
+            {
+              "name": "315_HAND",
+              "children": []
+            },
+            {
+              "name": "316_HAND_VARIANTS",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "32_ARM_SCARLET_LEFT",
+          "children": [
+            {
+              "name": "321_UPPER_ARM",
+              "children": []
+            },
+            {
+              "name": "322_ELBOW_COVER",
+              "children": []
+            },
+            {
+              "name": "323_FOREARM",
+              "children": []
+            },
+            {
+              "name": "324_WRIST_COVER",
+              "children": []
+            },
+            {
+              "name": "325_HAND",
+              "children": []
+            },
+            {
+              "name": "326_HAND_VARIANTS",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "40_NECK",
+      "children": [
+        {
+          "name": "41_NECK_BASE",
+          "children": []
+        },
+        {
+          "name": "42_NECK_SHADING",
+          "children": []
+        },
+        {
+          "name": "43_COLLAR_BACK",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "50_TORSO",
+      "children": [
+        {
+          "name": "51_SUIT_BASE",
+          "children": []
+        },
+        {
+          "name": "52_CHEST_PANELS",
+          "children": []
+        },
+        {
+          "name": "53_HARNESS_AND_TRIMS",
+          "children": []
+        },
+        {
+          "name": "54_COLLAR_FRONT",
+          "children": []
+        },
+        {
+          "name": "55_LUMINOUS_ACCENTS",
+          "children": []
+        },
+        {
+          "name": "56_SHOULDER_JOINT_COVERS",
+          "children": []
+        }
+      ]
+    },
+    {
+      "name": "60_HEAD",
+      "children": [
+        {
+          "name": "61_FACE",
+          "children": [
+            {
+              "name": "611_EARS",
+              "children": []
+            },
+            {
+              "name": "612_FACE_SKIN_BASE",
+              "children": []
+            },
+            {
+              "name": "613_FACE_SHADING_CLIPPED",
+              "children": []
+            },
+            {
+              "name": "614_BLUSH_CLIPPED",
+              "children": []
+            },
+            {
+              "name": "615_FACE_DETAILS",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "62_MOUTH",
+          "children": [
+            {
+              "name": "621_INNER_MOUTH",
+              "children": []
+            },
+            {
+              "name": "622_TONGUE",
+              "children": []
+            },
+            {
+              "name": "623_TEETH",
+              "children": [
+                {
+                  "name": "6231_UPPER_TEETH",
+                  "children": []
+                },
+                {
+                  "name": "6232_LOWER_TEETH",
+                  "children": []
+                },
+                {
+                  "name": "6233_BACK_TEETH_ORAL_OCCLUSION",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "624_LOWER_LIP",
+              "children": [
+                {
+                  "name": "UNREGISTERED__mouth_lower_lip__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "625_UPPER_LIP",
+              "children": [
+                {
+                  "name": "UNREGISTERED__mouth_upper_lip__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "626_LIP_SHADOW",
+              "children": []
+            },
+            {
+              "name": "627_MOUTH_VARIANTS",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "63_EYE_SCARLET_RIGHT",
+          "children": [
+            {
+              "name": "631_BROW_SHADOW",
+              "children": []
+            },
+            {
+              "name": "632_SCLERA",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_sclera__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "633_IRIS_BASE",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_iris_pupil__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "634_IRIS_DETAILS",
+              "children": [
+                {
+                  "name": "6341_PUPIL",
+                  "children": []
+                },
+                {
+                  "name": "6342_HIGHLIGHTS",
+                  "children": [
+                    {
+                      "name": "UNREGISTERED__eye_scarlet_right_catchlight__OWNER_TRANSFORM_REQUIRED"
+                    }
+                  ]
+                },
+                {
+                  "name": "6343_GLOW_LINEAR_DODGE",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "635_EYE_CORNER",
+              "children": []
+            },
+            {
+              "name": "636_LOWER_LID_SKIN",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_lower_lid_skin__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "637_LOWER_LASHES",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_lower_lashes__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "638_UPPER_LID_SKIN",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_upper_lid_skin__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "639_UPPER_LASH_LINER",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_right_upper_lash_liner__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "640_BROW",
+              "children": [
+                {
+                  "name": "UNREGISTERED__brow_scarlet_right__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "64_EYE_SCARLET_LEFT",
+          "children": [
+            {
+              "name": "641_BROW_SHADOW",
+              "children": []
+            },
+            {
+              "name": "642_SCLERA",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_sclera__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "643_IRIS_BASE",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_iris_pupil__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "644_IRIS_DETAILS",
+              "children": [
+                {
+                  "name": "6441_PUPIL",
+                  "children": []
+                },
+                {
+                  "name": "6442_HIGHLIGHTS",
+                  "children": [
+                    {
+                      "name": "UNREGISTERED__eye_scarlet_left_catchlight__OWNER_TRANSFORM_REQUIRED"
+                    }
+                  ]
+                },
+                {
+                  "name": "6443_GLOW_LINEAR_DODGE",
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "645_EYE_CORNER",
+              "children": []
+            },
+            {
+              "name": "646_LOWER_LID_SKIN",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_lower_lid_skin__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "647_LOWER_LASHES",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_lower_lashes__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "648_UPPER_LID_SKIN",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_upper_lid_skin__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "649_UPPER_LASH_LINER",
+              "children": [
+                {
+                  "name": "UNREGISTERED__eye_scarlet_left_upper_lash_liner__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "650_BROW",
+              "children": [
+                {
+                  "name": "UNREGISTERED__brow_scarlet_left__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "65_NOSE",
+          "children": [
+            {
+              "name": "651_NOSE_BASE",
+              "children": [
+                {
+                  "name": "UNREGISTERED__nose__OWNER_TRANSFORM_REQUIRED"
+                }
+              ]
+            },
+            {
+              "name": "652_NOSE_SHADING",
+              "children": []
+            },
+            {
+              "name": "653_NOSE_HIGHLIGHT",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "66_EXPRESSION_OVERLAYS_BEHIND_FRONT_HAIR",
+          "children": [
+            {
+              "name": "661_TEARS",
+              "children": []
+            },
+            {
+              "name": "662_EMOTION_SHADOWS",
+              "children": []
+            }
+          ]
+        },
+        {
+          "name": "67_FRONT_HAIR",
+          "children": [
+            {
+              "name": "671_FRONT_HAIR_MASS",
+              "children": []
+            },
+            {
+              "name": "672_BANGS",
+              "children": []
+            },
+            {
+              "name": "673_FACE_LOCKS_SCARLET_RIGHT",
+              "children": []
+            },
+            {
+              "name": "674_FACE_LOCKS_SCARLET_LEFT",
+              "children": []
+            },
+            {
+              "name": "675_CYAN_MAGENTA_ACCENT_LOCKS",
+              "children": []
+            },
+            {
+              "name": "676_DYNAMIC_RIM_GLOW",
+              "children": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "70_FOREGROUND_LIMBS_AND_FX",
+      "children": [
+        {
+          "name": "71_FOREGROUND_HAND_VARIANTS",
+          "children": []
+        },
+        {
+          "name": "72_FOREGROUND_ARM_VARIANTS",
+          "children": []
+        },
+        {
+          "name": "73_EMOTION_SYMBOLS_AND_FX",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "asset_stack_order": "Each path follows the PSD bottom-to-top hierarchy; Photoshop displays the inverse panel order.",
+  "placed_assets": [
+    {
+      "id": "mouth_lower_lip",
+      "path": [
+        "60_HEAD",
+        "62_MOUTH",
+        "624_LOWER_LIP",
+        "UNREGISTERED__mouth_lower_lip__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "mouth_upper_lip",
+      "path": [
+        "60_HEAD",
+        "62_MOUTH",
+        "625_UPPER_LIP",
+        "UNREGISTERED__mouth_upper_lip__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_sclera",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "632_SCLERA",
+        "UNREGISTERED__eye_scarlet_right_sclera__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_iris_pupil",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "633_IRIS_BASE",
+        "UNREGISTERED__eye_scarlet_right_iris_pupil__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_catchlight",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "634_IRIS_DETAILS",
+        "6342_HIGHLIGHTS",
+        "UNREGISTERED__eye_scarlet_right_catchlight__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_lower_lid_skin",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "636_LOWER_LID_SKIN",
+        "UNREGISTERED__eye_scarlet_right_lower_lid_skin__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_lower_lashes",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "637_LOWER_LASHES",
+        "UNREGISTERED__eye_scarlet_right_lower_lashes__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_upper_lid_skin",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "638_UPPER_LID_SKIN",
+        "UNREGISTERED__eye_scarlet_right_upper_lid_skin__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_right_upper_lash_liner",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "639_UPPER_LASH_LINER",
+        "UNREGISTERED__eye_scarlet_right_upper_lash_liner__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "brow_scarlet_right",
+      "path": [
+        "60_HEAD",
+        "63_EYE_SCARLET_RIGHT",
+        "640_BROW",
+        "UNREGISTERED__brow_scarlet_right__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_sclera",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "642_SCLERA",
+        "UNREGISTERED__eye_scarlet_left_sclera__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_iris_pupil",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "643_IRIS_BASE",
+        "UNREGISTERED__eye_scarlet_left_iris_pupil__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_catchlight",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "644_IRIS_DETAILS",
+        "6442_HIGHLIGHTS",
+        "UNREGISTERED__eye_scarlet_left_catchlight__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_lower_lid_skin",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "646_LOWER_LID_SKIN",
+        "UNREGISTERED__eye_scarlet_left_lower_lid_skin__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_lower_lashes",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "647_LOWER_LASHES",
+        "UNREGISTERED__eye_scarlet_left_lower_lashes__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_upper_lid_skin",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "648_UPPER_LID_SKIN",
+        "UNREGISTERED__eye_scarlet_left_upper_lid_skin__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "eye_scarlet_left_upper_lash_liner",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "649_UPPER_LASH_LINER",
+        "UNREGISTERED__eye_scarlet_left_upper_lash_liner__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "brow_scarlet_left",
+      "path": [
+        "60_HEAD",
+        "64_EYE_SCARLET_LEFT",
+        "650_BROW",
+        "UNREGISTERED__brow_scarlet_left__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    },
+    {
+      "id": "nose",
+      "path": [
+        "60_HEAD",
+        "65_NOSE",
+        "651_NOSE_BASE",
+        "UNREGISTERED__nose__OWNER_TRANSFORM_REQUIRED"
+      ],
+      "hidden": true,
+      "blend_mode": "normal",
+      "clipping": false
+    }
+  ],
+  "unregistered_assets": [
+    "eye_scarlet_right_sclera",
+    "eye_scarlet_right_iris_pupil",
+    "eye_scarlet_right_catchlight",
+    "eye_scarlet_right_upper_lid_skin",
+    "eye_scarlet_right_lower_lid_skin",
+    "eye_scarlet_right_lower_lashes",
+    "eye_scarlet_right_upper_lash_liner",
+    "eye_scarlet_left_sclera",
+    "eye_scarlet_left_iris_pupil",
+    "eye_scarlet_left_catchlight",
+    "eye_scarlet_left_upper_lid_skin",
+    "eye_scarlet_left_lower_lid_skin",
+    "eye_scarlet_left_lower_lashes",
+    "eye_scarlet_left_upper_lash_liner",
+    "mouth_upper_lip",
+    "mouth_lower_lip",
+    "nose",
+    "brow_scarlet_right",
+    "brow_scarlet_left"
+  ]
+}

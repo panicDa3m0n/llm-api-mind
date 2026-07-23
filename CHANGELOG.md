@@ -6,10 +6,64 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+- Pause the layered Scarlet puppet as active Product UI work while preserving
+  its artifacts and findings for future research.
+- Add an identity-locked static portrait contract, initial emotional-state
+  catalog, and an approved supporting 360-degree reference pack with eight turntable
+  directions, exposed rear costume, bilateral hand/cuff details, and a visual
+  contact sheet.
+- Add the owner-supplied HappyHorse startup greeting as a cropped, muted splash
+  bubble with canonical portrait fallback, reduced-motion handling, and one
+  full first pass followed by a `2s -> end` loop.
+- Add a cross-machine checkpoint for the complete Product UI/avatar workspace,
+  track every PSD and the explicitly reviewed laboratory snapshot through Git
+  LFS, and document clone/materialization requirements.
+
+- Add a repeatable structural audit for the supplied layered `Poopoo.psd` and
+  constrain it to hierarchy, clipping, blend-mode, and asset-inventory
+  reference without permitting any artwork reuse.
+- Rebuild the Scarlet V2 PSD as a complete Poopoo-informed but more articulated
+  rig hierarchy, preserving 19 generated Scarlet assets as hidden native crops
+  for owner-controlled Photoshop placement.
+- Align avatar shading with the observed layered-character method: painted
+  material rendering inside assets, clipped local overlays, and additive eye or
+  suit emission only when independently controllable.
+- Standardize every Scarlet anatomical iteration on one generated-only
+  workflow: chroma-to-alpha input, transform-only registration, fixed proof
+  suite with explicit target/alignment diagnostics, and a bottom-to-top PSD
+  with the locked reference first.
+- Remove the rejected hybrid cyan-forelock candidate and forbid copying or
+  patching portrait/T-pose pixels into generated anatomical assets.
+- Add the first post-reset Scarlet anatomical candidate: an owner-approved
+  right upper lash/liner with transparent and full-canvas exports, reproducible
+  generic preparation script, layered PSD, alpha proofs, and calibrated
+  placement at `(330,570)`, size `136x35`, pending final owner review.
+- Define perceptual fidelity in the recomposed PSD, rather than literal
+  pixel-for-pixel identity, as the anatomical asset acceptance criterion.
+- Reset Scarlet avatar authoring to the approved half-body portrait and T-pose
+  only, removing 815 derived or obsolete avatar-workspace files, seven rejected
+  PSDs, APNG V1/V2 outputs, and all legacy avatar generators and npm commands.
+- Add an engine-neutral surgical PSD contract with locked reference hashes,
+  full-canvas coordinates, anatomical ownership, front-to-back production,
+  back-to-front rendering, and distinct visible/hidden review gates.
+- Retain the findings from the rejected Live2D and APNG experiments in project
+  documentation without keeping their artwork active or reusable.
+
 ### Static Product UI Approval Prototype (SCA-48)
 
 #### Added
 
+- Add the renderer-independent semantic avatar intent contract and resolver;
+  keep the layered visual authoring workspace reference-only until individual
+  anatomical surfaces pass review.
+- Add the isolated Android-oriented Scarlet splash as the default
+  `/prototype` surface, leaving the prior Product UI available through
+  `?surface=product` and adding no backend or later onboarding flow.
+- Add the first transparent Scarlet character concept: an adult anime woman
+  with makeup, pearl/graphite styling, and Timber hair, eye, and clothing
+  accents, integrated through a reusable semantic avatar component.
+- Add portrait and landscape splash screenshots verified in a production
+  browser.
 - Add an isolated `/prototype` route with schema-realistic V2 sessions,
   memories, and durable event fixtures; it performs no backend calls and does
   not change the existing cockpit or mobile consumer.
@@ -27,6 +81,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 #### Changed
 
+- Replace the image-to-3D and prepared-APNG construction paths with an
+  engine-neutral layered raster PSD process after both approaches produced
+  unacceptable identity or motion defects.
 - Move the frontend build pipeline to Tailwind CSS 4 through the official Vite
   plugin while preserving the existing client build.
 - Build the prototype initially on the V1.52 development branch and refresh it
@@ -35,6 +92,11 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 #### Verification
 
+- The avatar reset verifies the two canonical `941x1672` references by hash and
+  dimensions, parses the new PSD contract, and passes the frontend build.
+- The splash passes production-browser inspection at `390x844`, `360x640`,
+  and `844x390` with loaded imagery, no viewport overflow, and no console
+  errors or warnings.
 - TypeScript/Vite production build passes on Tailwind V4 and `npm audit`
   reports zero vulnerabilities.
 - Real-browser inspection at 1440x1000 and 390x844 covers chat, sessions,

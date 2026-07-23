@@ -9,6 +9,59 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0080 - Canonical-Neutral APNG Greeting
+
+Status: V1 movement rejected; V2 local-rig method under visual review
+
+Hypothesis:
+
+A prepared APNG gesture can preserve Scarlet's approved identity when every
+frame starts from the canonical neutral and generated content replaces only a
+reviewed motion corridor.
+
+Method:
+
+- use the approved `941x1672` transparent portrait as immutable neutral;
+- generate one open-palm master pose and three transition/oscillation poses;
+- reject full-frame outputs and composite only the old/new arm silhouettes;
+- assemble an 11-frame one-shot greeting with variable timing;
+- inspect sequence and change-map proofs; and
+- decode the output and verify hashes, timing, loop count, identity locks,
+  browser requests, MIME type, and console state.
+
+Result:
+
+The technical contract passes. The 1,300 ms, 6.6 MB APNG has 11 decoded frames,
+loop count 1, exact canonical-neutral first and last hashes, transparent output,
+and exact face-core, hair-crown, and viewer-right locks. Chromium loads it as
+`image/png` with no warnings or errors. A first artistic variant was rejected
+because cuff details changed; using the open-palm pose as a canonical gesture
+reference made the replacement poses substantially more coherent.
+
+Owner review rejected the V1 movement: the four source poses are individually
+usable, but five distinct images with 75-110 ms pose holds behave as discrete
+switches. APNG does not synthesize motion between frames.
+
+The V2 variant treats APNG only as delivery. It renders
+`neutral -> lift_low -> neutral` through a local raster mesh with smootherstep
+easing, 18 steps in each direction, and 33/34 ms moving-frame durations. The
+37-frame, 1,749 ms output preserves exact neutral endpoints and all declared
+identity locks. Full-resolution review found and then removed a duplicated pale
+arm edge caused by an insufficient exclusion margin between static cleanup and
+the moving matte.
+
+V2 remains under owner visual review. It evaluates only entry and exit, not the
+remaining pose-to-pose greeting. Semantic matte quality, natural trajectory,
+Android decode/performance, and the 13.7 MB unoptimized size remain open gates.
+
+Evidence:
+
+- `docs/scarlet-apng-animation.md`
+- `frontend/public/prototype/avatar/animations/greeting-v1/`
+- `frontend/scripts/build-scarlet-greeting-apng.py`
+- `frontend/public/prototype/avatar/animations/greeting-v2-motion-test/`
+- `frontend/scripts/build-scarlet-greeting-motion-v2.py`
+
 ## EXP-0079 - Native Markerless Finality Recovery
 
 Status: accepted and deployed in V1.50.1

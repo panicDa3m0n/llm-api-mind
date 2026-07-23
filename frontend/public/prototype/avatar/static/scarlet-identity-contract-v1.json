@@ -1,0 +1,158 @@
+{
+  "schema_version": "scarlet-static-identity-v1",
+  "status": "active-generation-authority",
+  "purpose": "Preserve one recognizable Scarlet identity across independently generated static RPG-style portrait states.",
+  "authoritative_references": [
+    {
+      "priority": 1,
+      "path": "public/prototype/scarlet-character-v1.png",
+      "sha256": "2036ff5f4c776261746d660856ee16763e64f5f9bb101e5a31ce277f60694049",
+      "role": "Absolute authority for face, makeup, eyes, hair, upper-body rendering, collar, chest structure, palette, and default proportions."
+    },
+    {
+      "priority": 2,
+      "path": "public/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png",
+      "sha256": "095a105fc19acb68441846e59db20c82be07ed5ea8639cd32b562740de4f6c71",
+      "role": "Supporting authority for complete suit, sleeves, cuffs, arms, hands, hips, legs, boots, and poses not visible in the portrait. It cannot override portrait face or rendering."
+    }
+  ],
+  "output_contract": {
+    "canonical_canvas": { "width": 941, "height": 1672, "color_space": "sRGB" },
+    "format": "PNG RGBA",
+    "background": "transparent",
+    "framing": "portrait or half-body inside the canonical canvas",
+    "registration": {
+      "head_center_x_normalized": 0.5,
+      "eye_line_y_normalized": 0.34,
+      "chin_y_normalized": 0.51,
+      "collar_center_y_normalized": 0.58,
+      "rule": "Keep head scale and vertical anchors stable across states so CSS crossfades do not create a visual jump. A raised hand may enter the side of the frame without moving the face anchors."
+    },
+    "edge_rule": "Hair, hands, shoulders, and clothing require clean antialiased alpha without matte fringe, cast shadow, floor, frame, text, or watermark."
+  },
+  "identity": {
+    "presentation": {
+      "name": "Scarlet",
+      "gender_presentation": "young adult woman",
+      "apparent_age": "approximately 25 years old; unmistakably adult",
+      "aesthetic": "attractive premium anime heroine with polished semi-realistic 3D-rendered depth",
+      "presence": "self-possessed, intelligent, warm, digitally alive; never childlike, doll-like, generic, or mascot-like"
+    },
+    "face": {
+      "shape": "symmetrical narrow heart-oval face; smooth temples, softly defined cheekbones, tapered jaw, small rounded chin",
+      "forehead": "medium-high forehead framed by a precise center hair part",
+      "brows": "dark plum-brown, straight-to-softly-arched, full but clean, matching the reference thickness and distance from the eyes",
+      "eyes": "large almond-shaped adult anime eyes with slightly lifted outer corners; equal scale and spacing; bright white sclera",
+      "irises": "identical bilateral cyan-to-fuchsia irises: luminous cyan outer ring, magenta/fuchsia inner field, dark violet pupil, small crisp white catchlights",
+      "nose": "small straight narrow nose with a soft bridge, compact rounded tip, subtle nostrils, and a narrow vertical pearly highlight",
+      "mouth": "small balanced mouth with a defined cupid bow, fuller glossy lower lip, coral-scarlet/fuchsia tint, and softly lifted default corners",
+      "skin": "fair warm-neutral peach skin, smooth luminous finish, restrained cheek blush, no freckles, tattoos, piercings, scars, or beauty marks",
+      "ears": "human ears, mostly covered by hair, no animal ears and no visible earrings"
+    },
+    "makeup": {
+      "eyeliner": "precise black winged upper liner with long separated lashes; delicate lower lashes",
+      "eyeshadow": "cyan accent on Scarlet's right eye/viewer-left and fuchsia-magenta accent on Scarlet's left eye/viewer-right, blended into the common violet identity palette",
+      "complexion": "soft blush and subtle highlight; no heavy contour",
+      "lips": "glossy coral-fuchsia with a small central highlight; never dark lipstick or nude lips"
+    },
+    "hair": {
+      "length": "very long, reaching below the waist in full-body framing",
+      "mass": "dense voluminous layered hair with large polished waves and tapered locks",
+      "part": "clean center part with visible dark root line",
+      "base_color": "near-black deep plum and violet, not brown and not blue-black",
+      "scarlet_right_viewer_left": "one unmistakable bright cyan front lock beginning at the center part, transitioning through cool blue and joining vivid magenta/fuchsia lower locks; additional magenta rim accents",
+      "scarlet_left_viewer_right": "predominantly deep plum-violet with a thin cyan outer rim and restrained magenta lower streak",
+      "surface": "individual glossy strands, violet specular depth, smooth premium rendering; no flat vector blocks",
+      "silhouette": "large symmetric crown, face-framing waves, long front locks over both shoulders, rear mass behind the torso",
+      "forbidden": "no bangs covering both eyes, ponytail, bob, braid, bun, hair accessories, animal ears, or side reversal of the cyan lock"
+    },
+    "body": {
+      "build": "tall adult feminine silhouette, slender athletic waist, balanced shoulders and hips, long limbs, natural hands",
+      "proportions": "consistent with the T-pose; no chibi proportions, exaggerated anatomy, or childlike head-to-body ratio"
+    },
+    "outfit": {
+      "category": "fitted futuristic pearl-white full-body suit",
+      "base_material": "soft pearl-white technical fabric with subtle panel shading and premium semi-matte depth",
+      "collar": "high split standing collar; pearl inner panels, graphite outer border, bright cyan inner piping, very thin fuchsia secondary light line",
+      "chest_harness": "symmetric dark graphite structural bands descending from the collar, curving around the chest and continuing vertically down the torso",
+      "throat_emblem": "two vertically linked graphite-framed luminous gems: larger upper cyan diamond with fuchsia border and smaller lower cyan tapered diamond; exact central alignment",
+      "chest_lights": "short paired cyan and fuchsia luminous bars embedded symmetrically near the upper outer chest inside graphite trim",
+      "shoulders": "pearl-white fitted shoulders with graphite bands and small geometric cyan/fuchsia diamond panels on the outer upper arms",
+      "sleeves": "long fitted pearl sleeves with subtle seams, graphite joint structure near shoulders and wrists",
+      "cuffs": "narrow dark graphite wrist rings with a thin pearl edge and restrained cyan/fuchsia technical accent; identical on both wrists",
+      "hands": "natural fair-skinned feminine hands with five correctly formed fingers and glossy soft-pink nails",
+      "lower_suit": "pearl-white fitted torso, hips, and legs with symmetric graphite contour panels; cyan/fuchsia hip lights, diamond knee modules, cyan shin lights, pearl boots with graphite and Timber accents",
+      "forbidden": "no cape, skirt, exposed midriff, gloves, armor plates, jewelry, logos, text, weapons, random seams, extra gems, or missing cuffs"
+    },
+    "rendering": {
+      "medium": "high-end semi-realistic anime character render with convincing 3D volume while remaining clearly illustrated",
+      "detail": "sharp face and clothing detail, fine hair strands, soft skin texture, glossy eyes and lips, controlled material reflections",
+      "lighting": "soft frontal beauty light with cool cyan and subtle fuchsia rim accents; no harsh cinematic recoloring",
+      "camera": "straight-on eye-level portrait lens without wide-angle distortion",
+      "palette": ["deep plum", "violet", "cyan", "fuchsia", "scarlet-coral", "pearl white", "graphite"]
+    }
+  },
+  "immutable_across_all_states": [
+    "adult age and facial geometry",
+    "eye shape, iris colors, pupil design, and eye spacing",
+    "skin tone and nose structure",
+    "hair part, length, volume, side-specific cyan and magenta lock placement",
+    "complete outfit design including collar, linked throat gems, graphite harness, shoulder panels, sleeves, cuffs, and chest lights",
+    "body proportions and hand anatomy",
+    "rendering style, camera perspective, face scale, and canonical registration anchors"
+  ],
+  "controlled_state_variables": [
+    "eyelid openness",
+    "brow height and curvature",
+    "mouth curvature and openness",
+    "cheek blush intensity",
+    "head tilt up to 8 degrees",
+    "gaze direction within a natural range",
+    "shoulder posture",
+    "arm and hand gesture",
+    "minor physically plausible movement of loose hair tips",
+    "subtle state-appropriate lighting intensity without palette change"
+  ],
+  "forbidden_drift": [
+    "different woman or altered face",
+    "different eye color or asymmetric iris palette",
+    "side-swapped cyan hair lock",
+    "shortened or recolored hair",
+    "different collar, chest harness, emblem, shoulder panel, sleeve, cuff, or suit seam layout",
+    "generic sci-fi armor or fantasy clothing",
+    "extra accessories, text, logos, jewelry, horns, animal ears, wings, or weapons",
+    "photoreal human, flat cel-shaded cartoon, chibi, child, porcelain doll, or plastic figurine rendering",
+    "cropped forehead, chin, gesture hand, or required costume landmark",
+    "incorrect fingers, duplicated limbs, fused hands, or asymmetric body anatomy",
+    "background, frame, floor, cast shadow, watermark, or typography"
+  ],
+  "generation_protocol": {
+    "use_case": "identity-preserve",
+    "strategy": "Treat the portrait as the identity target and the T-pose only as support for anatomy, hands, cuffs, and costume continuity. Change only the state delta.",
+    "prompt_order": [
+      "output and framing contract",
+      "immutable Scarlet identity block",
+      "state-specific expression, gaze, head, shoulder, and gesture delta",
+      "explicit costume landmarks visible in the chosen framing",
+      "rendering and alpha requirements",
+      "forbidden drift list"
+    ],
+    "iteration_rule": "Reject a generation that changes identity or costume. Do not repair drift by accumulating unrelated prompt changes; regenerate from the same identity block with one targeted correction.",
+    "state_comparison_rule": "Review every candidate beside the canonical portrait and all already accepted states, not in isolation."
+  },
+  "acceptance_gate": {
+    "human_or_llm_visual_judgment_required": true,
+    "numeric_metrics_are_diagnostic_only": true,
+    "checks": [
+      "same recognizable Scarlet face",
+      "correct side-specific hair color topology",
+      "correct bilateral iris identity",
+      "all visible outfit landmarks preserved",
+      "state reads immediately without exaggeration",
+      "stable head scale and anchors for crossfade",
+      "clean alpha and complete silhouette",
+      "correct hands and fingers when visible",
+      "no forbidden additions or omissions"
+    ]
+  }
+}

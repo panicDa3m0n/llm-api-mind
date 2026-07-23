@@ -132,6 +132,24 @@ than hidden Core blockers.
 
 ## Local Run
 
+For a fresh clone on another development machine, install Git LFS before
+materializing the checkout:
+
+```bash
+git lfs install
+git clone https://github.com/panicDa3m0n/llm-api-mind.git
+cd llm-api-mind
+git checkout <checkpoint-branch>
+git lfs pull
+git lfs ls-files
+```
+
+Git LFS carries the reviewed laboratory snapshot and large PSD research
+artifacts. Provider credentials and `.env` files are intentionally excluded:
+restore them separately through a secure channel and never add them to Git.
+The repository database is laboratory state only and must not be copied to the
+VPS production mount.
+
 Backend:
 
 ```bash
