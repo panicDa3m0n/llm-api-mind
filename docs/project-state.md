@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-24
-App target: V1.55.2; V1.50.1 remains deployed and release-accepted
+App target: V1.55.3; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -233,6 +233,11 @@ Current verification baseline:
   Zero-Luce delivery/final-answer smoke, GPT bootstrap/help/finalize, DB
   integrity, context accounting, and frontend parity all passed. Annotated tag
   `v1.50.1` points to that deployed runtime.
+- V1.55.3 development target supersedes that native marker policy: current
+  MiniMax documentation and direct Product evidence establish non-empty
+  `stop_reason=end_turn` as the authoritative natural completion. The old
+  marker is compatibility-only and stripped when present; `max_tokens`, empty
+  output, and independent semantic failures retain bounded rejection.
 
 ### 3.2 Dynamic Context
 

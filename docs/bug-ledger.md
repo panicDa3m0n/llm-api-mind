@@ -7,6 +7,47 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0113 - Native Finality Ignored MiniMax M3 End Turn
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.3
+
+Symptoms:
+
+A Product Chat response could finish at MiniMax with non-empty public text and
+`stop_reason=end_turn`, then fail twice with `llm.incomplete_response` because
+M3 omitted the private `<scarlet-final/>` marker. The assistant message was not
+persisted even though the provider had explicitly completed the turn.
+
+Root Cause:
+
+The runtime treated a project-local prompt marker as more authoritative than
+the provider protocol. MiniMax documents `end_turn` as natural model
+completion, with final public text carried in the response content blocks.
+Marker compliance is stochastic and is not part of the MiniMax M3 API.
+
+Fix:
+
+- accept non-empty `end_turn` as the native structural final boundary;
+- strip the old marker when present, without requiring or prompting for it;
+- retain `max_tokens`, empty output, and semantic-obligation failures as
+  recoverable/rejectable cases; and
+- trace both provider stop reason and boundary source.
+
+Regression Coverage:
+
+Focused tests cover markerless `end_turn`, legacy marker stripping,
+`max_tokens`, empty terminal output, sync/stream recovery, semantic
+obligations, and the model-facing negative gate. A direct M3 Stream V2 turn
+completed markerless at attempt one and persisted its answer.
+
+Related:
+
+- ADR-0130
+- `backend/app/runtime/answer_obligations.py`
+- `backend/app/api/chat_native_turn.py`
+- MiniMax Anthropic-compatible Messages API documentation
+
 ## BUG-0112 - Product Document Height And Stale Model Override Regressed The Approved Surface
 
 Date Found: 2026-07-24

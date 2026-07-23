@@ -4,6 +4,63 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-24 - V1.55.3 MiniMax M3 Provider-Terminal Finality
+
+Area: Core native turn / MiniMax M3 completion / answer obligations.
+
+Type: Fix on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Stop complete MiniMax M3 answers from becoming `llm.incomplete_response` when
+the provider has already returned its documented natural terminal
+`stop_reason=end_turn`.
+
+Changes:
+
+- Reconstructed failed Product session
+  `ses_7cc4bab9c8f7468d80fcfd48bbd34728`: M3 returned non-empty text and
+  `end_turn`, but both attempts omitted the private `<scarlet-final/>` marker;
+  the semantic fallback rejected the corrected draft and persisted
+  `turn.failed`.
+- Verified in the current official MiniMax Anthropic-compatible documentation
+  that `end_turn` means the model ended naturally and that final text is
+  returned in the response content blocks.
+- Made non-empty `end_turn` the native structural final boundary. The old marker
+  remains accepted and stripped for provider-history compatibility but is no
+  longer model-facing or required.
+- Kept non-terminal `max_tokens`, empty output, and real semantic-obligation
+  failures on the existing one-correction then explicit-failure path.
+- Added trace evidence for provider stop reason and selected boundary source.
+- Updated deterministic negative controls to represent truncation with
+  `max_tokens` instead of marker omission.
+- Advanced development identity to V1.55.3.
+
+Verification:
+
+- `62 passed` across focused answer-obligation, native sync/stream,
+  model-facing gate, and SDK/version tests.
+- Ruff passes on all changed Python files.
+- Focused mypy with imports isolated passes the three changed runtime modules.
+  The configured Windows gate still reports the seven pre-existing POSIX-only
+  `resource`/`killpg` typing errors in Agentic Module host files; no changed
+  file is implicated.
+- Frontend V1.55.3 production build passes with 2,033 transformed modules.
+- Database boundary and `git diff --check` pass. Documentation integrity
+  reports only the same 39 historical avatar-workspace references.
+- Real session `ses_840244eb0fe84dda87c68ecf89c35bf2`, turn
+  `turn_faaad8f836fa48f1a2df1a3b5f2f97ad`, completed through Stream V2 on the
+  first response with `provider_stop_reason=end_turn`,
+  `boundary_source=provider_end_turn`, `marker_stripped=false`, one persisted
+  assistant answer, and terminal `turn.completed`.
+
+Boundary:
+
+- No UI stream contract, Mind tool surface, database schema, memory behavior,
+  or external GPT finalize contract changed.
+- The mutable laboratory database contains the human/live diagnostic sessions
+  and remains excluded from source control.
+
 ## 2026-07-24 - V1.55.2 Product Chat Activity And Evidence Inspector
 
 Area: Product UI Chat / Stream V2 projection / evidence inspection.

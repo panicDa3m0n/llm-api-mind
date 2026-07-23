@@ -6,6 +6,35 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.55.3 - MiniMax M3 Provider-Terminal Finality
+
+#### Changed
+
+- Treat a non-empty MiniMax M3 response with `stop_reason=end_turn` as the
+  authoritative native final-answer boundary.
+- Retain `<scarlet-final/>` only as backward-compatible input that is stripped
+  before persistence; the model is no longer instructed or required to emit it.
+- Record `provider_stop_reason` and `boundary_source` in answer-validation
+  traces.
+- Advance backend/frontend development identity to V1.55.3.
+
+#### Fixed
+
+- Stop rejecting complete M3 answers merely because they omit the project-local
+  private marker.
+- Keep `max_tokens`, empty terminal output, and failed semantic obligations on
+  the existing bounded recovery/failure path.
+
+#### Verification
+
+- Focused native answer, stream, obligation, model-facing, and SDK contracts
+  pass `62/62`; Ruff and focused mypy pass on the changed Python surface.
+- A real MiniMax M3 Stream V2 turn completed on its first markerless
+  `end_turn`, persisted the assistant response, and emitted `turn.completed`.
+- Frontend production build, database boundary, and diff checks pass;
+  documentation integrity retains only the 39 known historical avatar
+  references.
+
 ### V1.55.2 - Product Chat Activity Evidence
 
 #### Added

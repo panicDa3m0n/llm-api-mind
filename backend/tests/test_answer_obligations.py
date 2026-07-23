@@ -3,16 +3,15 @@ import json
 from app.llm.provider import LLMExecutedToolCall, LLMTextResult
 from app.runtime.answer_obligations import (
     NATIVE_FINAL_MARKER,
-    NATIVE_FINALITY_RECOVERY_ID,
     AnswerObligationManifest,
     AnswerObligation,
     augment_with_tool_evidence,
     compile_answer_obligations,
     correction_instruction,
     gpt_action_policy,
+    resolve_native_final_boundary,
     strip_native_final_marker,
     validate_answer_semantics,
-    with_native_finality_recovery,
 )
 
 
@@ -464,20 +463,27 @@ def test_native_final_marker_is_stripped_only_at_the_final_boundary() -> None:
     assert unchanged.endswith("continuo a scrivere.")
 
 
-def test_native_finality_recovery_is_hard_semantic_and_deduplicated() -> None:
-    manifest = AnswerObligationManifest(transport="native")
+def test_native_final_boundary_uses_provider_end_turn_without_requiring_marker() -> None:
+    public, accepted, marker_stripped, source = resolve_native_final_boundary(
+        "Risposta completa.",
+        stop_reason="end_turn",
+    )
 
-    recovered = with_native_finality_recovery(manifest)
-    recovered_twice = with_native_finality_recovery(recovered)
+    assert public == "Risposta completa."
+    assert accepted is True
+    assert marker_stripped is False
+    assert source == "provider_end_turn"
 
-    obligation = recovered.obligations[0]
-    assert obligation.id == NATIVE_FINALITY_RECOVERY_ID
-    assert obligation.severity == "hard"
-    assert obligation.validation_kind == "semantic"
-    assert obligation.evidence["automatic_rewrite"] is False
-    assert [item.id for item in recovered_twice.obligations] == [
-        NATIVE_FINALITY_RECOVERY_ID
-    ]
+
+def test_native_final_boundary_rejects_non_terminal_or_empty_provider_output() -> None:
+    truncated = resolve_native_final_boundary(
+        "Risposta interrotta.",
+        stop_reason="max_tokens",
+    )
+    empty = resolve_native_final_boundary("", stop_reason="end_turn")
+
+    assert truncated == ("Risposta interrotta.", False, False, None)
+    assert empty == ("", False, False, None)
 
 
 def test_warning_and_advisory_findings_are_traced_without_blocking() -> None:
@@ -533,7 +539,7 @@ def test_structural_recovery_repeats_unassessed_hard_semantic_obligations() -> N
                 id="answer.final_boundary",
                 severity="hard",
                 validation_kind="structural",
-                requirement="End with the private final marker.",
+                requirement="Return one non-empty provider terminal answer.",
             ),
             AnswerObligation(
                 id="action.outcome.failed",

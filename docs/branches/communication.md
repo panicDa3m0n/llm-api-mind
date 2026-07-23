@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-24
-System version assessed: V1.50.1 deployed; V1.55.2 Product UI target
+System version assessed: V1.50.1 deployed; V1.55.3 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -85,6 +85,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.50.1 mantiene il marker privato come confine primario ma, dopo la sola
   correzione consentita, usa un giudice LLM fail-closed per distinguere una
   risposta completa senza marker da una seconda nota di avanzamento.
+- V1.55.3 supersede quel confine per il runtime nativo: un contenuto pubblico
+  non vuoto con `stop_reason=end_turn` e la chiusura naturale documentata da
+  MiniMax M3. Il marker resta solo compatibilita ripulita; troncamento,
+  contenuto vuoto e obblighi semantici falliti restano bloccanti.
 - Il target Product UI V1.54.0 rende ora ogni turno fixture una sequenza di
   bolle semantiche: contesto, memoria, stato di riflessione, nota pubblica,
   azioni, focus e risposta finale. Le note/risposte restano autoriali; le
@@ -138,6 +142,9 @@ consumer e mantiene i terminali falliti leggibili dopo replay.
 Aggiornamento Product UI V1.55.2: thinking e movimenti diventano visibili live
 e ricostruibili al replay; ogni bolla semantica apre una ricevuta centrata e la
 modalita evidenze private sblocca solo ordine/metadati, mai chain-of-thought.
+Aggiornamento V1.55.3: la risposta finale nativa segue il terminale provider
+MiniMax M3. Un `end_turn` con testo viene persistito senza dipendere da marker
+stocastici, mentre i veri terminali incompleti restano espliciti.
 
 ## Sviluppi precedenti
 

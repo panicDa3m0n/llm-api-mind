@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0130 - Provider End Turn Owns Native Finality
+
+Date: 2026-07-24
+Status: accepted for V1.55.3; supersedes ADR-0106 for native completion
+
+Context:
+
+ADR-0106 kept `<scarlet-final/>` as the primary boundary and added semantic
+recovery after a second omission. Human Product testing reproduced the same
+availability failure: MiniMax M3 returned non-empty text with
+`stop_reason=end_turn`, omitted the project-local marker, and the fallback
+judge rejected the turn. Official MiniMax Anthropic-compatible documentation
+defines `end_turn` as the model ending naturally and places final public text
+in response content blocks.
+
+Decision:
+
+- a non-empty native response with `stop_reason=end_turn` is structurally final;
+- `<scarlet-final/>` remains optional backward compatibility and is stripped
+  when present, but is absent from model-facing obligations and recovery copy;
+- `max_tokens`, empty output, and other non-terminal results do not satisfy the
+  boundary and retain bounded correction followed by explicit failure;
+- semantic obligations remain independent and can still trigger correction or
+  rejection; and
+- validation traces record `provider_stop_reason` and `boundary_source`.
+
+Consequences:
+
+Native completion now follows the provider contract and cannot fail solely on
+stochastic marker formatting. Progress-like text returned with `end_turn` is a
+completed provider answer and is handled as content quality, not falsely
+classified as transport incompleteness. Existing semantic evidence checks,
+empty-output safety, provider-history preservation, and GPT finalize behavior
+remain intact.
+
+Links:
+
+- BUG-0113
+- `backend/app/runtime/answer_obligations.py`
+- `backend/app/api/chat_native_turn.py`
+- `docs/api-contract.md`
+
 ## ADR-0129 - Product Activity Uses A Bounded Evidence Projection
 
 Date: 2026-07-24

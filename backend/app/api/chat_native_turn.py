@@ -63,15 +63,14 @@ from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.runtime.answer_obligations import (
-    NATIVE_FINAL_MARKER,
     AnswerObligationManifest,
     augment_with_tool_evidence,
     compile_answer_obligations,
     correction_instruction,
     render_answer_obligations,
+    resolve_native_final_boundary,
     strip_native_final_marker,
     validate_answer_semantics,
-    with_native_finality_recovery,
 )
 from app.runtime.events import (
     record_event,
@@ -1050,30 +1049,26 @@ def _enforce_native_answer_obligations(
                 )
                 trace_ids.append(manifest_trace_id)
 
-        public_answer, structural_ok = strip_native_final_marker(current.text)
-        fallback_answer = current.text.strip()
-        semantic_finality_recovery = (
-            attempt == 1
-            and not structural_ok
-            and bool(fallback_answer)
-            and fallback_answer != NATIVE_FINAL_MARKER
-        )
-        validation_manifest = (
-            with_native_finality_recovery(current_manifest)
-            if semantic_finality_recovery
-            else current_manifest
+        (
+            public_answer,
+            structural_ok,
+            marker_stripped,
+            boundary_source,
+        ) = resolve_native_final_boundary(
+            current.text,
+            stop_reason=current.stop_reason,
         )
         semantic_validation = (
             validate_answer_semantics(
                 provider=provider,
-                manifest=validation_manifest,
-                answer=public_answer if structural_ok else current.text,
+                manifest=current_manifest,
+                answer=public_answer,
                 max_tokens=settings.answer_validation_max_tokens,
             )
-            if structural_ok or semantic_finality_recovery
+            if structural_ok
             else None
         )
-        accepted = (structural_ok or semantic_finality_recovery) and (
+        accepted = structural_ok and (
             semantic_validation is None or semantic_validation.accepted
         )
         with Session(engine) as db:
@@ -1088,18 +1083,14 @@ def _enforce_native_answer_obligations(
                     "accepted": accepted,
                     "structural_final_boundary": {
                         "accepted": structural_ok,
-                        "marker_stripped": structural_ok,
-                        "semantic_recovery_attempted": semantic_finality_recovery,
-                        "semantic_recovery_accepted": (
-                            semantic_finality_recovery
-                            and semantic_validation is not None
-                            and semantic_validation.accepted
-                        ),
+                        "marker_stripped": marker_stripped,
+                        "provider_stop_reason": current.stop_reason,
+                        "boundary_source": boundary_source,
                     },
                     "semantic": semantic_validation.model_dump(mode="json")
                     if semantic_validation is not None
                     else None,
-                    "manifest": validation_manifest.model_dump(mode="json"),
+                    "manifest": current_manifest.model_dump(mode="json"),
                     "draft": {
                         "provider_message_id": current.provider_message_id,
                         "chars": len(current.text),
@@ -1120,7 +1111,8 @@ def _enforce_native_answer_obligations(
                 payload={
                     "attempt": attempt + 1,
                     "structural_ok": structural_ok,
-                    "semantic_finality_recovery": semantic_finality_recovery,
+                    "provider_stop_reason": current.stop_reason,
+                    "boundary_source": boundary_source,
                     "hard_failure_ids": (
                         semantic_validation.hard_failure_ids
                         if semantic_validation is not None
