@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-23
-System version assessed: V1.50.1 deployed; V1.55.0 Product UI target
+System version assessed: V1.50.1 deployed; V1.55.1 Product UI target
 Status: active branch
 
 ## Filosofia del ramo
@@ -24,6 +24,9 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
   `public` persistiti da `scarlet-stream-v2`; note e risposte restano autoriali,
   i movimenti sono narrati in forma consumer e thinking/debug/private restano
   esclusi.
+- V1.55.1 tratta `turn.failed` come eccezione terminale consumer-safe: una sola
+  bolla italiana resta visibile anche dopo replay, senza promuovere gli altri
+  eventi diagnostici o duplicare il fallimento come errore di trasporto.
 - V1.5.1 normalizza i blocchi MiniMax M3 in base alla struttura provider:
   thinking tecnico, note pubbliche pre-tool, tool exchange con input/output e
   risposta finale.
@@ -125,10 +128,9 @@ Aggiornamento V1.41.0: sync, stream e GPT bridge condividono manifest e
 validazione. Le bozze rifiutate non diventano messaggi canonici e lo streaming
 non rende visibile il testo conclusivo prima dell'accettazione; note operative
 legate a reali azioni restano visibili.
-Aggiornamento Product UI target V1.54.0: il prototipo traduce la sequenza
-operativa in presenza conversazionale e conserva nel JSON il confine tra testo
-autoriale e narrazione deterministica. Il collegamento reale a V2 resta
-esplicitamente differito.
+Aggiornamento Product UI V1.55.1: il prototipo traduce la sequenza V2 reale in
+presenza conversazionale, conserva il confine tra testo autoriale e proiezione
+consumer e mantiene i terminali falliti leggibili dopo replay.
 
 ## Sviluppi precedenti
 

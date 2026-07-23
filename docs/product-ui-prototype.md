@@ -1,7 +1,7 @@
 # Scarlet Product UI
 
 Last updated: 2026-07-23
-Current app target: V1.55.0; prototype is connected to the local Core
+Current app target: V1.55.1; prototype is connected to the local Core
 Linear issue: SCA-48
 Status: implemented, owner-approved direction, first real Core integration
 
@@ -454,7 +454,7 @@ Screenshots:
 
 ## Current Boundary
 
-SCA-49's first Core connection slice is implemented in V1.55.0 without adding
+SCA-49's first Core connection slice is implemented in V1.55.1 without adding
 HTTP operations:
 
 - `/prototype` consumes the existing 30-operation Core surface;
@@ -464,3 +464,8 @@ HTTP operations:
   preferences, prompt-rule switches, and consumer maintenance are unavailable;
 - Capacitor/Android packaging remains deferred until the browser application is
   complete.
+
+V1.55.1 adds a repeatable browser gate and makes failed-turn replay part of the
+consumer contract. `turn.failed` is rendered as a single translated terminal
+bubble even when its canonical event retains diagnostic visibility; no other
+debug/private event becomes user-visible.

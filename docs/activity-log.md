@@ -4,6 +4,66 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-23 - V1.55.1 Product UI Browser Error Audit
+
+Area: Product UI / browser regression / Stream V2 failure presentation.
+
+Type: Fix on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Exercise the complete connected application from the UI, resolve every
+reproducible Product defect found, and leave a repeatable browser gate.
+
+Changes:
+
+- Added `npm run test:prototype:ui`, a Playwright/Edge smoke over local
+  Splash/video-to-Login transition, authentication, unavailable registration,
+  persisted Product view, Core hydration, real session creation, optional live
+  V2 chat, session list, memory search/detail, settings save, unavailable
+  controls, logout, mobile scroll/layout, console/network errors, and
+  horizontal overflow.
+- Reproduced one real `llm.incomplete_response` terminal from the browser and
+  proved that the Core persisted `turn.failed` at sequence 15.
+- Corrected Chat replay so a diagnostic-visibility `turn.failed` remains a
+  consumer-safe terminal error while all other debug/private evidence remains
+  hidden.
+- Removed the transient duplicate/fallback transport error when the canonical
+  terminal is already available, and translated the known incomplete-response
+  code into Italian consumer copy.
+- Added an explicit Scarlet favicon link, eliminating the remaining browser
+  404.
+- Advanced development identity to V1.55.1.
+
+Verification:
+
+- Default Product UI smoke passed at `1440x1000` and `390x844` with no console
+  errors, failed requests, HTTP `4xx/5xx`, or horizontal overflow.
+- The harness ignores only the expected `ERR_ABORTED` for the greeting MP4
+  remainder when the approved 52% cut unmounts Splash; every other request
+  failure remains blocking.
+- A live MiniMax greeting completed through `stream-v2` and produced a new
+  answer bubble.
+- Reopening the persisted failed session produced exactly one
+  `turn.failed` bubble, no `ui.transport.error` duplicate, and the expected
+  Italian recovery copy.
+- Home mobile remained `2049px` tall in an `844px` viewport; Chat retained its
+  fixed viewport/header/scroller/composer/dock contract.
+- Desktop Profile and mobile Chat screenshots were inspected.
+- Frontend V1.55.1 production build passed with 2,032 transformed modules;
+  focused Stream V2/SDK tests passed `10/10`; focused Ruff passed; npm audit
+  reported zero vulnerabilities; and `git diff --check` passed.
+- Documentation integrity retained exactly the 39 pre-existing historical
+  avatar references and introduced no new error.
+
+Boundary:
+
+- No Core endpoint, event persistence, visibility classification, provider
+  prompt, account behavior, or database schema changed.
+- The failed provider turn is retained as test evidence in the local
+  laboratory database; runtime database changes remain outside source
+  control.
+
 ## 2026-07-23 - V1.55.0 Product UI Connected To Scarlet Core
 
 Area: Product UI / Core consumer integration / Windows runtime readiness.

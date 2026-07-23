@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-19
-App target: V1.54.0; V1.50.1 remains deployed and release-accepted
+App target: V1.55.1; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 

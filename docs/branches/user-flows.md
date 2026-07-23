@@ -1,7 +1,7 @@
 # Branch: Gestione Flussi Utente
 
 Last updated: 2026-07-23
-System version assessed: V1.55.0 development target
+System version assessed: V1.55.1 development target
 Status: first Product UI Core integration active
 
 ## Filosofia del ramo
@@ -66,36 +66,28 @@ identita, tempo, luogo, lingua, privacy e continuita.
 - L'header Product ripetitivo e stato rimosso: un dock inferiore a cinque voci
   gestisce la navigazione sia mobile sia desktop, mentre logout vive in alto
   nelle Impostazioni.
-- Chat, Memoria, Sessioni e Profilo espongono i JSON fixture disponibili;
-  Impostazioni anticipa regole system-prompt e funzioni fake di profilo,
-  privacy, manutenzione ed extra in una superficie unica a gruppi; Memoria
-  gestisce conteggi estesi e record numerati.
-- Ogni turno Chat fixture mostra ora, come bolle ordinate, messaggio utente,
-  contesto, memoria, riflessione visibile, nota pubblica, azioni, focus e
-  risposta finale. Il JSON distingue testo autoriale e proiezione consumer.
+- Chat, Memoria, Sessioni e Profilo espongono i JSON reali disponibili;
+  Impostazioni persiste i campi supportati e apre il modale di indisponibilita
+  per regole prompt, privacy, manutenzione ed extra senza contratto consumer.
+- Ogni turno Chat usa eventi V2 reali e distingue testo autoriale, proiezione
+  consumer, terminali falliti e confine debug/private.
 
 ## Stato attuale
 
-Valutazione: L3 per il prototipo statico; i client reali restano L2/L3.
+Valutazione: L3 per il Product UI connesso; i client precedenti restano L2/L3.
 
-Esistono ora due superfici distinte: cockpit tecnico per sviluppo e app mobile
-consumer per uso normale. La mobile app abilita chat, memoria visibile, profilo
-e settings reali. Il prototipo aggiunge il primo flusso di ingresso
-splash/autenticazione/Home, ma login, registrazione, riepiloghi, ricordi,
-sessioni e azioni sono ancora locali e finti. L'autenticazione locale persiste
-la schermata ma non e un contratto di sicurezza. Home, Chat, Memoria, Sessioni
-e Profilo hanno una prima implementazione da discutere e approvare; i pannelli
-JSON rendono ispezionabili le fixture e gli switch mostrano la futura
-traduzione in regole prompt. Non esistono ancora account backend, multiutente,
-chat reale, session close esplicito, revisione guidata memoria o workflow
-privacy avanzati. Anche i blocchi evento Chat sono fixture: la proiezione
-consumer reale da `scarlet-stream-v2` appartiene a SCA-49.
+Esistono ora tre superfici distinte: cockpit tecnico, precedente client mobile
+consumer e Product UI `/prototype`. Il Product UI aggiunge
+splash/autenticazione locale/Home e collega health, riepiloghi, ricordi,
+sessioni, Chat V2, profilo e impostazioni ai contratti Core esistenti.
+L'autenticazione locale persiste la schermata ma non e un contratto di
+sicurezza. Le azioni senza contratto aprono il modale centrale e non simulano
+successi. Non esistono ancora account backend, multiutente, session close
+esplicito, revisione guidata memoria o workflow privacy avanzati. V1.55.1
+aggiunge un gate browser ripetibile e preserva un `turn.failed` come singola
+bolla consumer dopo reload.
 
-Il prototipo V1.52.0 e verificato in browser ma deliberatamente scollegato dai
-dati runtime. L'approvazione del proprietario e obbligatoria prima che SCA-50
-estragga le primitive responsive o SCA-49 lo connetta al Core.
-
-Sistema valutato: V1.54.0 development target.
+Sistema valutato: V1.55.1 development target.
 
 ## Sviluppi precedenti
 
@@ -121,6 +113,17 @@ Sistema valutato: V1.54.0 development target.
   credenziali fake e shell responsive Home/Chat/Memoria/Sessioni/Profilo con
   dati e funzioni dimostrativi; readiness reale, sessione locale persistente,
   Chat a viewport e pannelli JSON completano il secondo passaggio.
+
+## Verifica V1.55.1
+
+- Il gate Playwright/Edge attraversa Splash/video, Login, registrazione
+  indisponibile, persistenza, Home, sessioni, Memoria, Impostazioni, modali e
+  logout.
+- Un turno MiniMax reale ha completato Stream V2 dalla UI.
+- Un turno fallito persistito viene ricostruito dopo replay come una sola
+  bolla italiana, senza duplicazione di trasporto.
+- Desktop `1440x1000` e mobile `390x844` passano senza errori console/rete,
+  overflow orizzontale o regressioni dello scroll/layout Chat.
 
 ## Verifica V1.52.0
 

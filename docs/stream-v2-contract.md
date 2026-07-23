@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-19
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.55.0
+Contract introduced: V1.51.0; current app target: V1.55.1
 Linear issue: SCA-47
 
 ## 1. Purpose
@@ -196,6 +196,12 @@ Consumer views normally render `public` events. The developer lens may render
 `debug` and permitted `private` events, link `trace_id` or `tool_call_id` from
 payload evidence, and fetch the dedicated debug APIs for full traces. Product
 clients must not derive user-visible semantics from provider-native blocks.
+
+`turn.failed` is the bounded exception to ordinary consumer visibility
+filtering: the Product UI may render its allowlisted code/message as terminal
+failure state even when the persisted event retains diagnostic visibility.
+This does not authorize rendering any neighboring debug/private event or
+validation detail.
 
 ## 8. Compatibility
 

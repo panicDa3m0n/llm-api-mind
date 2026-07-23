@@ -168,6 +168,7 @@ export function ChatViewportScreen({
     setOptimisticMessage(text);
     setDraft("");
     let targetSession = currentSession;
+    const received: ScarletStreamEvent[] = [];
 
     try {
       if (!targetSession) {
@@ -176,7 +177,6 @@ export function ChatViewportScreen({
         onSessionCreated?.(targetSession);
       }
 
-      const received: ScarletStreamEvent[] = [];
       await streamTurnV2(targetSession.id, text, undefined, (streamEvent) => {
         received.push(streamEvent);
         setOptimisticMessage(null);
@@ -209,7 +209,10 @@ export function ChatViewportScreen({
       setOptimisticMessage(null);
       const message =
         reason instanceof Error ? reason.message : "Invio non riuscito.";
-      setError(message);
+      const hasCanonicalFailure = received.some(
+        (item) => item.event_type === "turn.failed"
+      );
+      setError(hasCanonicalFailure ? null : message);
       if (targetSession) {
         try {
           const [replayedEvents, persistedMessages] = await Promise.all([
@@ -364,7 +367,10 @@ function projectConversation(
   messages: ChatMessage[]
 ): ChatFlowBlock[] {
   const publicEvents = events
-    .filter((event) => event.visibility === "public")
+    .filter(
+      (event) =>
+        event.visibility === "public" || event.event_type === "turn.failed"
+    )
     .sort((left, right) => left.seq - right.seq || left.event_id.localeCompare(right.event_id));
   const representedMessageIds = new Set(
     publicEvents
@@ -480,7 +486,7 @@ function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
       event,
       "error",
       "Turno non completato",
-      valueAsString(payload.message) || "Il turno si è interrotto prima della risposta."
+      failureMessage(payload)
     );
   }
   return null;
@@ -610,6 +616,16 @@ function valueAsRecord(value: unknown): Record<string, unknown> | null {
 
 function valueAsString(value: unknown): string {
   return typeof value === "string" ? value : "";
+}
+
+function failureMessage(payload: Record<string, unknown>) {
+  if (valueAsString(payload.code) === "llm.incomplete_response") {
+    return "Non sono riuscita a completare una risposta valida. Puoi riprovare con un nuovo messaggio.";
+  }
+  return (
+    valueAsString(payload.message) ||
+    "Il turno si è interrotto prima della risposta."
+  );
 }
 
 function phaseLabel(phase: ScarletStreamEvent["phase"]) {

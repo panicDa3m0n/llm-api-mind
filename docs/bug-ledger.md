@@ -7,6 +7,72 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0110 - Product UI Emitted A Browser Favicon 404
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.1
+
+Symptoms:
+
+Every clean browser run logged one failed resource request even when all Core
+operations succeeded.
+
+Root Cause:
+
+The HTML document declared no favicon, so Chromium requested `/favicon.ico`,
+which does not exist in the Vite public tree.
+
+Fix:
+
+Use the existing versioned Scarlet portrait as the explicit PNG favicon.
+
+Regression Coverage:
+
+The Product UI browser smoke now treats every HTTP `4xx/5xx` response as a
+failure and completes with a clean network/console report.
+
+Related Files:
+
+- `frontend/index.html`
+- `frontend/scripts/test-product-ui.mjs`
+
+## BUG-0109 - Failed V2 Turns Disappeared Or Became Transport Errors In Chat
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.1
+
+Symptoms:
+
+A real browser turn persisted `turn.failed`, but Chat could only show the
+failure through its live catch fallback. Reopening that session filtered the
+terminal out, while suppressing the fallback would make the failure disappear.
+
+Root Cause:
+
+The Product projection filtered by `visibility=public` before interpreting
+terminal events. Runtime persists `turn.failed` with diagnostic visibility
+even though Stream V2 requires the terminal to reconstruct a failed turn.
+
+Fix:
+
+- allow the stable allowlisted `turn.failed` terminal through the consumer
+  projection while continuing to exclude all other debug/private events;
+- suppress the separate transport error when the canonical terminal was
+  received; and
+- translate `llm.incomplete_response` into consumer-facing Italian copy.
+
+Regression Coverage:
+
+The UI smoke reopens the real failed session, asserts exactly one
+`data-event-type=turn.failed` bubble, asserts no `ui.transport.error`, and
+checks the translated recovery message.
+
+Related Files:
+
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+- `docs/stream-v2-contract.md`
+
 ## BUG-0108 - Generated Agentic Module Could Not Launch On Windows
 
 Date Found: 2026-07-23

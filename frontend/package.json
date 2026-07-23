@@ -1,12 +1,13 @@
 {
   "name": "llm-api-mind-frontend",
   "private": true,
-  "version": "1.55.0",
+  "version": "1.55.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 127.0.0.1",
+    "test:prototype:ui": "node scripts/test-product-ui.mjs",
     "avatar:parts": "node scripts/prepare-scarlet-anatomical-part.mjs",
     "avatar:reference:audit": "node scripts/analyze-avatar-psd-reference.mjs",
     "avatar:rig-psd": "node scripts/build-scarlet-rig-psd.mjs",
@@ -31,6 +32,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "ag-psd": "^31.0.2",
+    "playwright-core": "1.61.1",
     "sharp": "^0.35.3",
     "tailwindcss": "^4.1.11",
     "typescript": "^5.7.0",

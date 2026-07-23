@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-23
-App target: V1.55.0; V1.50.1 remains deployed and release-accepted
+App target: V1.55.1; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -112,16 +112,18 @@ Implemented and verified:
   installed and native chat behavior is unchanged.
 - a standalone Agentic Module SDK now owns the same public contract models used
   by the host and provides scaffold, runtime, schema, and conformance tools.
-- the V1.55.0 Product UI now consumes existing health, session, message,
+- the V1.55.1 Product UI now consumes existing health, session, message,
   Stream V2 replay/live, memory, profile, and runtime-settings contracts;
   unsupported account, privacy workflow, notification, voice/avatar,
   prompt-rule, and consumer-maintenance controls fail honestly through one
-  unavailable modal rather than client fixtures.
+  unavailable modal rather than client fixtures; a repeatable browser gate
+  covers success, failed-turn replay, console/network errors, and responsive
+  layout.
 
 Current verification baseline:
 
 - backend plus public SDK: 304 tests passed at 82.32% statement coverage for
-  the V1.55.0 Windows/CI-aligned gate;
+  the V1.55.0 Windows/CI-aligned gate; V1.55.1 changes no backend behavior;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;

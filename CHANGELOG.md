@@ -6,6 +6,36 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.55.1 - Product UI Browser Regression Fixes
+
+#### Added
+
+- Add a repeatable Playwright/Edge Product UI smoke covering local
+  Splash/video-to-Login transition, local authentication, registration
+  unavailability, session persistence, Core hydration, real session creation,
+  optional live V2 chat, session replay, memory search/detail, settings save,
+  unavailable modals, logout, mobile scrolling, fixed Chat chrome, console
+  errors, HTTP failures, and horizontal overflow.
+
+#### Fixed
+
+- Preserve a failed V2 turn as one canonical consumer error bubble after
+  replay even though the persisted terminal retains diagnostic visibility;
+  do not duplicate it as a transport failure during the live stream.
+- Translate `llm.incomplete_response` into concise Italian consumer copy
+  without exposing validation/debug details.
+- Declare the existing Scarlet portrait as the application favicon so browser
+  runs no longer emit the pre-existing `/favicon.ico` 404.
+
+#### Verification
+
+- Repeatable desktop `1440x1000` and mobile `390x844` UI smoke passes against
+  the real local Core with clean console/network results.
+- One live MiniMax V2 greeting completes through the UI; one persisted failed
+  turn replays as exactly one translated error bubble.
+- Frontend production build, 10 focused Stream V2/SDK tests, Ruff, npm audit,
+  and repository diff checks pass.
+
 ### V1.55.0 - Scarlet Product UI Core Integration
 
 #### Added
