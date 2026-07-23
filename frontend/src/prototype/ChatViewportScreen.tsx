@@ -37,6 +37,12 @@ import type {
   DashboardMemory,
   ScarletStreamEvent
 } from "../types";
+import {
+  ChatEventDetailModal,
+  type ChatEventInspection,
+  inspectablePayload,
+  isProtectedStreamEvent
+} from "./ChatEventDetailModal";
 import { DataJsonPanel } from "./DataJsonPanel";
 
 type ChatFlowKind =
@@ -55,10 +61,28 @@ type ChatFlowBlock = {
   eventType: string;
   id: string;
   kind: ChatFlowKind;
+  sourceEvents: ScarletStreamEvent[];
   status: "completed" | "live";
   text: string;
   title: string;
 };
+
+const CONSUMER_ACTIVITY_EVENT_TYPES = new Set([
+  "agent.mode.changed",
+  "llm.request.started",
+  "llm.response.started",
+  "llm.thinking.started",
+  "memory.context.built",
+  "runtime.context.built",
+  "turn.failed"
+]);
+
+const CONSUMER_ACTIVITY_EVENT_PREFIXES = [
+  "mind.tool_call.",
+  "organ.affect.",
+  "organ.focus.",
+  "organ.volition."
+];
 
 export function ChatViewportScreen({
   memories,
@@ -67,6 +91,7 @@ export function ChatViewportScreen({
   onOpenMemory,
   onOpenSessions,
   onSessionCreated,
+  privateEvidenceUnlocked,
   session
 }: {
   memories: DashboardMemory[];
@@ -75,6 +100,7 @@ export function ChatViewportScreen({
   onOpenMemory: () => void;
   onOpenSessions: () => void;
   onSessionCreated?: (session: ChatSession) => void;
+  privateEvidenceUnlocked: boolean;
   session: ChatSession | null;
 }) {
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(session);
@@ -85,10 +111,12 @@ export function ChatViewportScreen({
   const [sending, setSending] = useState(false);
   const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [inspection, setInspection] = useState<ChatEventInspection | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setCurrentSession(session);
+    setInspection(null);
   }, [session]);
 
   useEffect(() => {
@@ -128,15 +156,40 @@ export function ChatViewportScreen({
   }, [currentSession?.id]);
 
   const flow = useMemo(() => {
-    const projected = projectConversation(events, messages);
+    const projected = projectConversation(
+      events,
+      messages,
+      privateEvidenceUnlocked
+    );
     if (optimisticMessage) {
       projected.push({
         eventType: "message.user.pending",
         id: "optimistic-user-message",
         kind: "user",
+        sourceEvents: [],
         status: "live",
         text: optimisticMessage,
         title: "Tu"
+      });
+    }
+    const lastBlock = projected[projected.length - 1];
+    const turnAlreadySettled =
+      lastBlock?.kind === "answer" || lastBlock?.kind === "error";
+    if (
+      sending &&
+      !turnAlreadySettled &&
+      !projected.some(
+        (block) => block.kind === "reflection" && block.status === "live"
+      )
+    ) {
+      projected.push({
+        eventType: "ui.activity.pending",
+        id: "scarlet-thinking-pending",
+        kind: "reflection",
+        sourceEvents: [],
+        status: "live",
+        text: "Sto raccogliendo il contesto utile prima di formulare la risposta.",
+        title: "Scarlet sta pensando"
       });
     }
     if (error) {
@@ -144,13 +197,21 @@ export function ChatViewportScreen({
         eventType: "ui.transport.error",
         id: `transport-error-${error}`,
         kind: "error",
+        sourceEvents: [],
         status: "completed",
         text: error,
         title: "Connessione interrotta"
       });
     }
     return projected;
-  }, [error, events, messages, optimisticMessage]);
+  }, [
+    error,
+    events,
+    messages,
+    optimisticMessage,
+    privateEvidenceUnlocked,
+    sending
+  ]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -233,11 +294,23 @@ export function ChatViewportScreen({
   const sessionData = {
     session: currentSession,
     messages,
-    events,
+    events: events
+      .filter(
+        (event) =>
+          privateEvidenceUnlocked || !isProtectedStreamEvent(event)
+      )
+      .map((event) =>
+        isProtectedStreamEvent(event)
+          ? { ...event, payload: inspectablePayload(event) }
+          : event
+      ),
+    hidden_protected_event_count: events.filter(isProtectedStreamEvent).length,
     reducer_contract: {
       deduplicate_by: "event_id",
       order_by: ["seq", "event_id"],
-      visibility: "public",
+      visibility: "public + consumer-safe activity allowlist",
+      private_evidence_unlocked: privateEvidenceUnlocked,
+      private_reasoning_text: "always redacted",
       terminal_events: ["turn.completed", "turn.failed"]
     },
     transport: {
@@ -304,7 +377,19 @@ export function ChatViewportScreen({
               </div>
             ) : (
               <div className="scarlet-chat__messages" aria-live="polite">
-                {flow.map((block) => <ChatFlowBubble block={block} key={block.id} />)}
+                {flow.map((block) => (
+                  <ChatFlowBubble
+                    block={block}
+                    key={block.id}
+                    onInspect={
+                      block.sourceEvents.length > 0 &&
+                      block.kind !== "user" &&
+                      block.kind !== "answer"
+                        ? () => setInspection(block)
+                        : undefined
+                    }
+                  />
+                ))}
               </div>
             )}
             <details className="scarlet-chat__mobile-data">
@@ -358,40 +443,92 @@ export function ChatViewportScreen({
           <DataJsonPanel compact data={sessionData} title="Payload chat" />
         </aside>
       </div>
+      <ChatEventDetailModal
+        inspection={inspection}
+        onClose={() => setInspection(null)}
+      />
     </section>
   );
 }
 
 function projectConversation(
   events: ScarletStreamEvent[],
-  messages: ChatMessage[]
+  messages: ChatMessage[],
+  privateEvidenceUnlocked: boolean
 ): ChatFlowBlock[] {
-  const publicEvents = events
-    .filter(
-      (event) =>
-        event.visibility === "public" || event.event_type === "turn.failed"
+  const terminalTurns = new Set(
+    events
+      .filter(
+        (event) =>
+          event.event_type === "turn.completed" ||
+          event.event_type === "turn.failed"
+      )
+      .map((event) => event.turn_id)
+      .filter((turnId): turnId is string => typeof turnId === "string")
+  );
+  const flowEvents = events
+    .filter((event) =>
+      isConsumerFlowEvent(event, privateEvidenceUnlocked)
     )
     .sort((left, right) => left.seq - right.seq || left.event_id.localeCompare(right.event_id));
   const representedMessageIds = new Set(
-    publicEvents
+    flowEvents
       .map((event) => valueAsRecord(event.payload.message)?.id)
       .filter((id): id is string => typeof id === "string")
   );
   const completedAnswerTurns = new Set(
-    publicEvents
+    flowEvents
       .filter((event) => event.event_type === "assistant.answer.completed")
       .map((event) => event.turn_id)
       .filter((turnId): turnId is string => typeof turnId === "string")
   );
-  const blocks = publicEvents
-    .map((event) =>
+  const thinkingTurns = new Set(
+    flowEvents
+      .filter((event) => event.event_type === "llm.thinking.started")
+      .map((event) => event.turn_id)
+      .filter((turnId): turnId is string => typeof turnId === "string")
+  );
+  const blocks: ChatFlowBlock[] = [];
+  const toolBlockIndexes = new Map<string, number>();
+
+  for (const event of flowEvents) {
+    if (
       event.event_type === "message.assistant.persisted" &&
       event.turn_id &&
       completedAnswerTurns.has(event.turn_id)
-        ? null
-        : projectEvent(event)
-    )
-    .filter((block): block is ChatFlowBlock => block !== null);
+    ) {
+      continue;
+    }
+    if (
+      (event.event_type === "llm.request.started" ||
+        event.event_type === "llm.response.started") &&
+      event.turn_id &&
+      thinkingTurns.has(event.turn_id)
+    ) {
+      continue;
+    }
+
+    const projected = projectEvent(event, terminalTurns);
+    if (!projected) continue;
+
+    if (event.event_type.startsWith("mind.tool_call.")) {
+      const lifecycleKey = toolLifecycleKey(event);
+      const existingIndex = toolBlockIndexes.get(lifecycleKey);
+      if (existingIndex !== undefined) {
+        blocks[existingIndex] = {
+          ...projected,
+          id: blocks[existingIndex].id,
+          sourceEvents: [
+            ...blocks[existingIndex].sourceEvents,
+            ...projected.sourceEvents
+          ]
+        };
+        continue;
+      }
+      toolBlockIndexes.set(lifecycleKey, blocks.length);
+    }
+    blocks.push(projected);
+  }
 
   for (const message of messages) {
     if (representedMessageIds.has(message.id)) continue;
@@ -409,10 +546,49 @@ function projectConversation(
   return blocks;
 }
 
-function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
+function isConsumerFlowEvent(
+  event: ScarletStreamEvent,
+  privateEvidenceUnlocked: boolean
+): boolean {
+  if (event.event_type === "llm.thinking.captured") {
+    return privateEvidenceUnlocked;
+  }
+  if (event.visibility === "public") return true;
+  if (event.visibility === "private") return privateEvidenceUnlocked;
+  return (
+    CONSUMER_ACTIVITY_EVENT_TYPES.has(event.event_type) ||
+    CONSUMER_ACTIVITY_EVENT_PREFIXES.some((prefix) =>
+      event.event_type.startsWith(prefix)
+    )
+  );
+}
+
+function projectEvent(
+  event: ScarletStreamEvent,
+  terminalTurns: Set<string>
+): ChatFlowBlock | null {
   const payload = event.payload;
   const message = valueAsRecord(payload.message);
   const text = valueAsString(payload.text);
+  const turnIsOpen = Boolean(
+    event.turn_id && !terminalTurns.has(event.turn_id)
+  );
+
+  if (
+    event.visibility === "private" ||
+    event.event_type === "llm.thinking.captured"
+  ) {
+    return block(
+      event,
+      event.event_type === "llm.thinking.captured"
+        ? "reflection"
+        : "state",
+      event.event_type === "llm.thinking.captured"
+        ? "Pensiero privato registrato"
+        : "Evidenza privata registrata",
+      "Il Core ha conservato questo passaggio. Apri i dettagli per verificarne ordine e metadati; il contenuto interno resta protetto."
+    );
+  }
 
   if (event.event_type === "message.user.persisted" && message) {
     return eventMessageBlock(event, message, "user");
@@ -435,7 +611,9 @@ function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
     );
   }
   if (event.event_type === "memory.context.built") {
-    const selected = Array.isArray(payload.selected) ? payload.selected.length : 0;
+    const selected =
+      valueAsNumber(payload.selected_count) ??
+      (Array.isArray(payload.selected) ? payload.selected.length : 0);
     return block(
       event,
       "memory",
@@ -446,31 +624,35 @@ function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
     );
   }
   if (
+    event.event_type === "llm.request.started" ||
     event.event_type === "llm.response.started" ||
     event.event_type === "llm.thinking.started"
   ) {
     return block(
       event,
       "reflection",
-      "Riflessione",
+      "Scarlet sta pensando",
       "Sto preparando la risposta e separando ciò che so da ciò che devo verificare.",
       false,
-      event.phase === "streaming"
+      turnIsOpen
     );
   }
   if (event.event_type.startsWith("mind.tool_call.")) {
-    const operation =
-      valueAsString(payload.operation) ||
-      valueAsString(payload.tool_name) ||
-      "azione sul sistema";
-    const summary = valueAsString(payload.result_summary);
+    const live =
+      turnIsOpen &&
+      event.event_type !== "mind.tool_call.completed" &&
+      event.event_type !== "mind.tool_call.failed";
     return block(
       event,
       "action",
-      event.phase === "failed" ? "Azione non riuscita" : "Azione di Scarlet",
-      summary || `${operation} · ${phaseLabel(event.phase)}`,
+      event.event_type === "mind.tool_call.failed"
+        ? "Azione non riuscita"
+        : live
+          ? "Scarlet sta agendo"
+          : "Azione completata",
+      toolActivityText(payload, event.event_type, live),
       false,
-      event.phase === "executing"
+      live
     );
   }
   if (event.event_type.startsWith("organ.focus.")) {
@@ -478,7 +660,33 @@ function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
       event,
       "state",
       "Fuoco attuale",
-      valueAsString(payload.message) || "Ho aggiornato il punto su cui sto lavorando."
+      valueAsString(payload.reason) ||
+        valueAsString(payload.message) ||
+        "Ho aggiornato il punto su cui sto lavorando."
+    );
+  }
+  if (event.event_type.startsWith("organ.affect.")) {
+    const details = valueAsRecord(payload.details);
+    const emotion = valueAsString(details?.emotion);
+    return block(
+      event,
+      "state",
+      "Stato interiore",
+      emotion
+        ? `Ho riconosciuto ${humanize(emotion)} come parte di questo passaggio.`
+        : "Ho registrato come questo passaggio sta orientando il mio stato."
+    );
+  }
+  if (
+    event.event_type.startsWith("organ.volition.") ||
+    event.event_type === "agent.mode.changed"
+  ) {
+    return block(
+      event,
+      "state",
+      "Direzione attuale",
+      valueAsString(payload.reason) ||
+        "Ho aggiornato la direzione con cui sto affrontando questo passaggio."
     );
   }
   if (event.event_type === "turn.failed") {
@@ -490,6 +698,49 @@ function projectEvent(event: ScarletStreamEvent): ChatFlowBlock | null {
     );
   }
   return null;
+}
+
+function toolLifecycleKey(event: ScarletStreamEvent): string {
+  return (
+    valueAsString(event.payload.provider_tool_use_id) ||
+    event.links.tool_call_id ||
+    event.links.parent_event_id ||
+    event.event_id
+  );
+}
+
+function toolActivityText(
+  payload: Record<string, unknown>,
+  eventType: string,
+  live: boolean
+): string {
+  const operation = valueAsRecord(payload.operation);
+  const intent = valueAsString(operation?.intent);
+  const directOperation = valueAsString(payload.operation);
+  const result = valueAsRecord(payload.result_summary);
+  const resultOperation = valueAsString(result?.operation);
+  const objective =
+    intent ||
+    directOperation ||
+    resultOperation ||
+    "consultare le funzioni interne necessarie";
+  const normalizedObjective =
+    objective.length > 0
+      ? `${objective.charAt(0).toLocaleLowerCase("it")}${objective.slice(1)}`
+      : objective;
+
+  if (eventType === "mind.tool_call.failed") {
+    return `Non sono riuscita a completare questo passaggio: ${normalizedObjective}.`;
+  }
+  if (live) {
+    return `Mi occupo di questo passaggio: ${normalizedObjective}.`;
+  }
+  const count = valueAsNumber(result?.count);
+  const countSuffix =
+    count === null
+      ? ""
+      : ` Ho ottenuto ${count} ${count === 1 ? "risultato" : "risultati"}.`;
+  return `Ho completato questo passaggio: ${normalizedObjective}.${countSuffix}`;
 }
 
 function block(
@@ -505,6 +756,7 @@ function block(
     eventType: event.event_type,
     id: event.event_id,
     kind,
+    sourceEvents: [event],
     status: live ? "live" : "completed",
     text,
     title
@@ -521,6 +773,7 @@ function eventMessageBlock(
     eventType: event.event_type,
     id: event.event_id,
     kind,
+    sourceEvents: [event],
     status: "completed",
     text: valueAsString(message.content),
     title: kind === "user" ? "Tu" : "Scarlet"
@@ -533,6 +786,7 @@ function messageBlock(message: ChatMessage, kind: "user" | "answer"): ChatFlowBl
     eventType: `message.${message.role}.persisted`,
     id: message.id,
     kind,
+    sourceEvents: [],
     status: "completed",
     text: message.content,
     title: kind === "user" ? "Tu" : "Scarlet"
@@ -556,7 +810,13 @@ function mergeEvents(
   );
 }
 
-function ChatFlowBubble({ block }: { block: ChatFlowBlock }) {
+function ChatFlowBubble({
+  block,
+  onInspect
+}: {
+  block: ChatFlowBlock;
+  onInspect?: () => void;
+}) {
   if (block.kind === "user") {
     return (
       <article className="scarlet-chat__message is-user" data-flow-kind="user">
@@ -581,6 +841,17 @@ function ChatFlowBubble({ block }: { block: ChatFlowBlock }) {
       className={`scarlet-chat__flow-block is-${block.kind}${block.authoredByScarlet ? " is-authored" : ""}`}
       data-event-type={block.eventType}
       data-flow-kind={block.kind}
+      data-flow-status={block.status}
+      onClick={onInspect}
+      onKeyDown={(event) => {
+        if (!onInspect || (event.key !== "Enter" && event.key !== " ")) {
+          return;
+        }
+        event.preventDefault();
+        onInspect();
+      }}
+      role={onInspect ? "button" : undefined}
+      tabIndex={onInspect ? 0 : undefined}
     >
       <span className="scarlet-chat__flow-icon">{flowIcon(block.kind)}</span>
       <div className="scarlet-chat__flow-bubble">
@@ -618,6 +889,10 @@ function valueAsString(value: unknown): string {
   return typeof value === "string" ? value : "";
 }
 
+function valueAsNumber(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 function failureMessage(payload: Record<string, unknown>) {
   if (valueAsString(payload.code) === "llm.incomplete_response") {
     return "Non sono riuscita a completare una risposta valida. Puoi riprovare con un nuovo messaggio.";
@@ -626,12 +901,6 @@ function failureMessage(payload: Record<string, unknown>) {
     valueAsString(payload.message) ||
     "Il turno si è interrotto prima della risposta."
   );
-}
-
-function phaseLabel(phase: ScarletStreamEvent["phase"]) {
-  if (phase === "executing" || phase === "streaming") return "in corso";
-  if (phase === "failed") return "non riuscita";
-  return "completata";
 }
 
 function humanize(value: string) {

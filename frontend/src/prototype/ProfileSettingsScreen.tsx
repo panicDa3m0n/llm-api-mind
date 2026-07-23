@@ -29,15 +29,19 @@ type SettingsDraft = {
 
 export function ProfileSettingsScreen({
   onLogout,
+  onPrivateEvidenceChange,
   onSettingsChanged,
   onUnavailable,
+  privateEvidenceUnlocked,
   profile,
   settings,
   username
 }: {
   onLogout: () => void;
+  onPrivateEvidenceChange: (unlocked: boolean) => void;
   onSettingsChanged: (settings: RuntimeSettings) => void;
   onUnavailable: (feature: UnavailableFeature) => void;
+  privateEvidenceUnlocked: boolean;
   profile: UserProfile | null;
   settings: RuntimeSettings | null;
   username: string;
@@ -74,6 +78,11 @@ export function ProfileSettingsScreen({
   const settingsData = {
     profile,
     runtime_settings: settings,
+    local_interface: {
+      private_evidence_unlocked: privateEvidenceUnlocked,
+      storage: "local device preference",
+      chain_of_thought_text: "always redacted"
+    },
     editable_contract: [
       "user_display_name",
       "language",
@@ -232,6 +241,16 @@ export function ProfileSettingsScreen({
               value={draft.privacy_scope}
             />
           </div>
+          <div className="scarlet-settings__preferences">
+            <PreferenceRow
+              active={privateEvidenceUnlocked}
+              detail="Mostra nel flusso le evidenze private come ricevute ispezionabili. Il testo del ragionamento interno resta protetto."
+              label="Evidenze private"
+              onClick={() =>
+                onPrivateEvidenceChange(!privateEvidenceUnlocked)
+              }
+            />
+          </div>
           <div className="scarlet-settings__command-grid">
             <SettingsCommand
               detail="Il Core non espone ancora un archivio privacy."
@@ -320,23 +339,27 @@ function GroupTitle({
 }
 
 function PreferenceRow({
+  active = false,
   detail,
   label,
   onClick
 }: {
+  active?: boolean;
   detail: string;
   label: string;
   onClick: () => void;
 }) {
   return (
     <button
-      aria-pressed="false"
+      aria-pressed={active}
       className="scarlet-profile-screen__preference"
       onClick={onClick}
       type="button"
     >
       <span><strong>{label}</strong><small>{detail}</small></span>
-      <i aria-hidden="true"><b /></i>
+      <i aria-hidden="true" className={active ? "is-on" : ""}>
+        <b />
+      </i>
     </button>
   );
 }

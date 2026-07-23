@@ -1,7 +1,7 @@
 # Branch: Gestione Flussi Utente
 
-Last updated: 2026-07-23
-System version assessed: V1.55.1 development target
+Last updated: 2026-07-24
+System version assessed: V1.55.2 development target
 Status: first Product UI Core integration active
 
 ## Filosofia del ramo
@@ -86,8 +86,12 @@ successi. Non esistono ancora account backend, multiutente, session close
 esplicito, revisione guidata memoria o workflow privacy avanzati. V1.55.1
 aggiunge un gate browser ripetibile e preserva un `turn.failed` come singola
 bolla consumer dopo reload.
+V1.55.2 rende visibili i movimenti reali del turno, aggiunge ricevute evento
+centrate e una preferenza locale per evidenze protette metadata-only. Le
+schermate lunghe mantengono scroll documento naturale; solo Chat usa il layout
+interno a viewport.
 
-Sistema valutato: V1.55.1 development target.
+Sistema valutato: V1.55.2 development target.
 
 ## Sviluppi precedenti
 
@@ -124,6 +128,18 @@ Sistema valutato: V1.55.1 development target.
   bolla italiana, senza duplicazione di trasporto.
 - Desktop `1440x1000` e mobile `390x844` passano senza errori console/rete,
   overflow orizzontale o regressioni dello scroll/layout Chat.
+
+## Verifica V1.55.2
+
+- Un turno MiniMax M3 reale mostra stato pending, memoria, contesto, richiesta
+  e thinking prima della risposta.
+- Replay completo e fallito ricostruiscono bolle e terminali senza duplicati.
+- I modali evento sono centrati e navigabili su desktop/mobile; contesto e
+  memoria espongono fatti coerenti e i tool raggruppano il lifecycle.
+- `Evidenze private` persiste al reload, si cancella al logout e non espone il
+  testo di `llm.thinking.captured`.
+- Il gate CSS vieta height/min-height sui root Product e prova lo scroll reale
+  di Home separatamente dal layout Chat a viewport.
 
 ## Verifica V1.52.0
 

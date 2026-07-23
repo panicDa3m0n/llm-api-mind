@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 deployed; V1.55.1 Product UI connected and UI-regression tested
+Architecture baseline: Core V1.50.1 deployed; V1.55.2 Product UI activity stream and evidence inspector tested
 Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-19
+Last updated: 2026-07-24
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 

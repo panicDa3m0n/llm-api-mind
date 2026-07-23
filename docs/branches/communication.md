@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-07-23
-System version assessed: V1.50.1 deployed; V1.55.1 Product UI target
+Last updated: 2026-07-24
+System version assessed: V1.50.1 deployed; V1.55.2 Product UI target
 Status: active branch
 
 ## Filosofia del ramo
@@ -27,6 +27,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.55.1 tratta `turn.failed` come eccezione terminale consumer-safe: una sola
   bolla italiana resta visibile anche dopo replay, senza promuovere gli altri
   eventi diagnostici o duplicare il fallimento come errore di trasporto.
+- V1.55.2 autorizza una allowlist stretta di movimenti diagnostici reali:
+  contesto, memoria, stato di pensiero, azioni Mind e organi rilevanti diventano
+  bolle ordinate e ispezionabili. Le note/risposte restano autoriali, mentre
+  `llm.thinking.captured` conserva solo metadati protetti nel Product stream.
 - V1.5.1 normalizza i blocchi MiniMax M3 in base alla struttura provider:
   thinking tecnico, note pubbliche pre-tool, tool exchange con input/output e
   risposta finale.
@@ -131,6 +135,9 @@ legate a reali azioni restano visibili.
 Aggiornamento Product UI V1.55.1: il prototipo traduce la sequenza V2 reale in
 presenza conversazionale, conserva il confine tra testo autoriale e proiezione
 consumer e mantiene i terminali falliti leggibili dopo replay.
+Aggiornamento Product UI V1.55.2: thinking e movimenti diventano visibili live
+e ricostruibili al replay; ogni bolla semantica apre una ricevuta centrata e la
+modalita evidenze private sblocca solo ordine/metadati, mai chain-of-thought.
 
 ## Sviluppi precedenti
 

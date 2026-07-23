@@ -16,6 +16,7 @@ const DEFAULT_CREDENTIALS: AuthCredentials = {
   password: "scarlet"
 };
 const LOCAL_SESSION_KEY = "scarlet-prototype-session-v1";
+const LOCAL_PRIVATE_EVIDENCE_KEY = "scarlet-private-evidence-v1";
 
 type LocalSession = {
   authenticated: true;
@@ -69,6 +70,14 @@ function writeLocalSession(username: string, view: ProductView) {
   }
 }
 
+function readPrivateEvidencePreference(): boolean {
+  try {
+    return window.localStorage.getItem(LOCAL_PRIVATE_EVIDENCE_KEY) === "enabled";
+  } catch {
+    return false;
+  }
+}
+
 export function AppEntryFlow() {
   const requestedScreen = useMemo(
     () => new URLSearchParams(window.location.search).get("screen"),
@@ -104,6 +113,9 @@ export function AppEntryFlow() {
     isProductReview ? "scarlet" : storedSession?.username ?? ""
   );
   const [sessionActive, setSessionActive] = useState(Boolean(storedSession));
+  const [privateEvidenceUnlocked, setPrivateEvidenceUnlocked] = useState(
+    readPrivateEvidencePreference
+  );
   const authTransitionTimer = useRef<number | null>(null);
 
   const enterAuthentication = useCallback(() => {
@@ -234,15 +246,33 @@ export function AppEntryFlow() {
         initialView={initialProductView}
         onLogout={() => {
           window.localStorage.removeItem(LOCAL_SESSION_KEY);
+          window.localStorage.removeItem(LOCAL_PRIVATE_EVIDENCE_KEY);
           setSessionActive(false);
           setAuthenticatedUser("");
+          setPrivateEvidenceUnlocked(false);
           setScreen("auth");
+        }}
+        onPrivateEvidenceChange={(unlocked) => {
+          setPrivateEvidenceUnlocked(unlocked);
+          try {
+            if (unlocked) {
+              window.localStorage.setItem(
+                LOCAL_PRIVATE_EVIDENCE_KEY,
+                "enabled"
+              );
+            } else {
+              window.localStorage.removeItem(LOCAL_PRIVATE_EVIDENCE_KEY);
+            }
+          } catch {
+            // The preference remains active for this app lifetime.
+          }
         }}
         onViewChange={(view) => {
           if (sessionActive && authenticatedUser) {
             writeLocalSession(authenticatedUser, view);
           }
         }}
+        privateEvidenceUnlocked={privateEvidenceUnlocked}
         username={authenticatedUser}
       />
     );

@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-19
-App target: V1.55.1; V1.50.1 remains deployed and release-accepted
+Last reviewed: 2026-07-24
+App target: V1.55.2; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1882,6 +1882,9 @@ and terminal turn state remain available.
 The projector is allowlist-based. Full tool result envelopes and full runtime
 context blocks remain available through linked tool/trace APIs rather than
 being copied into every Product UI event.
+`llm.thinking.captured` retains protected-event metadata such as `has_text`,
+model step/index, phase, sequence, and trace links, but V1.55.2 removes its
+`payload.text` from both live V2 and replay.
 
 Terminal events are `turn.completed` and `turn.failed`. Transport closure is
 not a successful terminal state.
@@ -4192,7 +4195,8 @@ POST /api/maintenance/jobs/{job_id}/run                         implemented
 
 ## Product UI Consumer Mapping
 
-Status: implemented in V1.55.0; no new HTTP operation added
+Status: implemented in V1.55.0; activity/evidence projection refined in
+V1.55.2; no new HTTP operation added
 
 `/prototype` uses the existing consumer-safe surface:
 
@@ -4216,7 +4220,11 @@ success. Local `scarlet/scarlet` access is not an HTTP authentication contract.
 
 The Chat consumer validates `scarlet-stream-v2`, session identity, event-id
 idempotency, contiguous session sequence, replay cursor progress, visibility,
-and terminal events. Only public events are eligible for Product narration.
+and terminal events. Authored text remains public-only. An exact
+consumer-activity allowlist may narrate diagnostic lifecycle facts for
+context, memory, bounded thinking status, Mind actions, and relevant state.
+Protected events stay hidden by default and can expose only redacted metadata
+through the local evidence inspector.
 
 ## Agentic Module Public Contracts
 

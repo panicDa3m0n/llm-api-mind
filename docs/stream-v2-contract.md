@@ -1,8 +1,8 @@
 # Scarlet Stream V2 Contract
 
-Last updated: 2026-07-19
+Last updated: 2026-07-24
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.55.1
+Contract introduced: V1.51.0; current app target: V1.55.2
 Linear issue: SCA-47
 
 ## 1. Purpose
@@ -29,6 +29,10 @@ provider requests, responses, or trace payloads into the client stream.
 Projection uses an event-family allowlist. In particular, full tool results
 and full runtime-context blocks remain behind their linked tool/trace APIs;
 V2 carries compact operation, result-summary, count, lifecycle, and link data.
+`llm.thinking.captured` is a protected semantic event: V2 preserves
+`has_text`, model step/index, phase, sequence, and trace links, but removes its
+`payload.text` even when an older persisted record uses diagnostic rather than
+private visibility.
 
 ## 3. Event Envelope
 
@@ -192,16 +196,23 @@ it does not pretend to resume generation. A new user retry is a new turn.
 
 ## 7. Visibility And Developer Evidence
 
-Consumer views normally render `public` events. The developer lens may render
-`debug` and permitted `private` events, link `trace_id` or `tool_call_id` from
-payload evidence, and fetch the dedicated debug APIs for full traces. Product
-clients must not derive user-visible semantics from provider-native blocks.
+Consumer views render authored `public` evidence plus an explicit
+consumer-activity allowlist for context, memory, bounded thinking status, Mind
+tool lifecycle, and relevant organ state. Allowlisted diagnostic events use
+deterministic narration from stable lifecycle facts; their payload text does
+not become Scarlet-authored speech. Unknown diagnostic events remain hidden.
 
-`turn.failed` is the bounded exception to ordinary consumer visibility
-filtering: the Product UI may render its allowlisted code/message as terminal
-failure state even when the persisted event retains diagnostic visibility.
-This does not authorize rendering any neighboring debug/private event or
-validation detail.
+The Product evidence inspector may expose sequence, phase, visibility, links,
+bounded payloads, and grouped lifecycle receipts. Protected events remain
+hidden by default. A local interface preference may reveal their existence and
+metadata, but never captured-thinking text. The dedicated debug/trace APIs
+remain the internal inspection boundary for complete evidence. Product clients
+must not derive user-visible semantics from provider-native blocks.
+
+`turn.failed` remains a bounded terminal exception: the Product UI may render
+its allowlisted code/message even when the persisted event retains diagnostic
+visibility. Other diagnostic families require their own exact allowlist entry;
+private or validation detail is never included implicitly.
 
 ## 8. Compatibility
 

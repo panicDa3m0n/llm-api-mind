@@ -1,9 +1,9 @@
 # Scarlet Product UI
 
-Last updated: 2026-07-23
-Current app target: V1.55.1; prototype is connected to the local Core
+Last updated: 2026-07-24
+Current app target: V1.55.2; prototype is connected to the local Core
 Linear issue: SCA-48
-Status: implemented, owner-approved direction, first real Core integration
+Status: implemented, connected, activity/evidence pass under owner evaluation
 
 ## Purpose
 
@@ -134,17 +134,19 @@ The lower workspace shows the three latest memories and three recent sessions.
 Memory selection, session resume, and new conversation use the existing Core
 contracts. Home hydrates health, the most recent sessions, dashboard memories,
 profile, and runtime settings in parallel. Failed reads keep any previously
-loaded real values, show the Core as unavailable, and never fall back to
-fixtures. The same five-destination dock is used on desktop and mobile.
+loaded real values and never fall back to fixtures. Provider/Core metadata is
+not repeated as a consumer header. The same five-destination dock is used on
+desktop and mobile.
 
 ## Post-Login Screen First Passes
 
-The shared post-login shell keeps Scarlet's gradient space, dock, Core status,
-and active-view state consistent
+The shared post-login shell keeps Scarlet's gradient space, dock, and
+active-view state consistent
 across:
 
-- Chat: empty/new state, starter prompts, persisted history, V2 public-event
-  bubbles, real streaming composer, reconnect replay, and continuity preview;
+- Chat: empty/new state, starter prompts, persisted history, V2 authored and
+  consumer-activity bubbles, real streaming composer, reconnect replay,
+  evidence inspector, and continuity preview;
 - Memory: search, category filters, record selection, provenance-style detail,
   and source-session navigation;
 - Sessions: chronological recent-session list, search, new conversation, and
@@ -198,31 +200,33 @@ not the document. Other long Product screens retain normal body scrolling.
 ### Semantic Turn Bubbles
 
 The conversation no longer jumps directly from a user message to Scarlet's
-final answer. Public persisted V2 events are rendered in semantic order:
+final answer. Persisted V2 evidence is rendered in canonical sequence:
 
 ```txt
 user -> context -> memory -> reflection status -> public note
 -> action receipt(s) -> relevant state -> final answer
 ```
 
-Context, memory, action, and state bubbles are deterministic consumer
-projections written in Scarlet's first-person voice. They describe observable
-system movement without exposing route syntax, payloads, provider blocks, or
-chain-of-thought. Their JSON receipts retain the compact source event families
-that grounded the narration.
+Context, memory, bounded thinking status, action, and state bubbles are
+deterministic consumer projections written in Scarlet's first-person voice.
+They describe observable system movement without promoting provider/debug
+payload text to authored speech. Each semantic movement opens a centered
+receipt with sequence, phase, visibility, trace/tool/message links, bounded
+facts, and grouped source events.
 
 Public notes and final answers are different: their text is authored by
 Scarlet and is not rewritten by the UI. `llm.thinking.captured` remains
-private; the optional reflection bubble communicates only that a bounded
-review occurred. Lifecycle duplicates such as tool started/requested/result/
-completed are grouped into one action bubble.
+protected by event type even when a historical record uses diagnostic
+visibility. Stream V2 omits its text and retains only evidence metadata.
+Lifecycle duplicates such as tool started/requested/result/completed are
+grouped into one action bubble.
 
 The browser consumer validates the V2 schema/session identity, deduplicates by
 `event_id`, orders by `(seq,event_id)`, rejects conflicts and sequence gaps,
 pages replay until its durable cursor is complete, and requires
-`turn.completed` or `turn.failed` rather than trusting stream closure. Only
-`public` events become Product bubbles; persisted messages provide the
-historical fallback.
+`turn.completed` or `turn.failed` rather than trusting stream closure.
+Authored content is public-only; an exact allowlist admits consumer-safe
+diagnostic lifecycle facts. Unknown diagnostic evidence remains hidden.
 
 ## Inspectable Core Data And Settings
 
@@ -234,6 +238,7 @@ Profile/Settings uses one continuous surface separated by light Scarlet rules,
 not one card for each command. It previews:
 
 - real display-name, language, country, timezone, and privacy-scope fields;
+- a real local `Evidenze private` interface preference;
 - five visible future behavior switches;
 - future privacy export/deletion;
 - future consumer memory/session maintenance; and
@@ -243,7 +248,9 @@ Profile, privacy, and maintenance/extra areas each group multiple controls.
 The supported environment fields persist through
 `PUT /api/dashboard/settings`. Every unsupported command opens
 `Funzione non disponibile`; it does not mutate local state or claim that work
-completed. The explicit logout remains at the top of Settings.
+completed. `Evidenze private` persists on the device, reveals protected event
+metadata/receipts rather than chain-of-thought, and is cleared on logout. The
+explicit logout remains at the top of Settings.
 
 ## Scrolling Contract
 
@@ -251,9 +258,9 @@ The existing cockpit needs a fixed-height, internally scrolling three-pane
 root. Most Product UI screens instead need normal page-level scrolling. While
 `/prototype` is mounted, `PrototypeApp` applies a scoped document class that
 restores the original classes on unmount. The scoped selectors explicitly
-override the cockpit base with `height: auto`, `min-height: 100%`, and normal
-vertical overflow on `html`, `body`, and `#root`; the browser's natural
-document flow therefore owns page height.
+override the cockpit base with normal vertical overflow on `html` and `body`
+and no document-root `height` / `min-height` declarations; `#root` remains in
+visible natural flow. The browser therefore owns page height.
 Post-login view changes reset window, document-element, and body scroll
 positions to the top. This contract is route-local and does not alter `/` or
 `/mobile`. Chat temporarily sets only body vertical overflow to hidden and
@@ -454,7 +461,7 @@ Screenshots:
 
 ## Current Boundary
 
-SCA-49's first Core connection slice is implemented in V1.55.1 without adding
+SCA-49's first Core connection slice is implemented through V1.55.2 without adding
 HTTP operations:
 
 - `/prototype` consumes the existing 30-operation Core surface;
@@ -465,7 +472,7 @@ HTTP operations:
 - Capacitor/Android packaging remains deferred until the browser application is
   complete.
 
-V1.55.1 adds a repeatable browser gate and makes failed-turn replay part of the
-consumer contract. `turn.failed` is rendered as a single translated terminal
-bubble even when its canonical event retains diagnostic visibility; no other
-debug/private event becomes user-visible.
+V1.55.2 adds real consumer activity projection and centered evidence receipts.
+Diagnostic activity is exact-allowlist only. Protected evidence is hidden by
+default, metadata-only when locally unlocked, and captured-thinking text never
+enters the Product V2 payload.

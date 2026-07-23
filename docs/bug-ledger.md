@@ -7,6 +7,93 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0112 - Product Document Height And Stale Model Override Regressed The Approved Surface
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.2
+
+Symptoms:
+
+- the Product document root still declared `height` / `min-height` even though
+  long non-Chat pages were approved around natural document scrolling;
+- an unrequested Core/provider banner occupied the top of Product screens; and
+- the running laboratory reported MiniMax M2.7 although the repository and
+  accepted runtime target use MiniMax M3.
+
+Root Cause:
+
+The scoped document fix retained explicit height declarations instead of the
+approved overflow-only rule. The connected Product pass also surfaced health
+metadata as consumer chrome. Separately, ignored `backend/.env` still carried
+an old M2.7 override despite the M3 repository default and example.
+
+Fix:
+
+- remove height declarations from scoped `html` / `body`;
+- keep fixed-height behavior only inside the dedicated Chat route layout;
+- remove the Core/provider banner; and
+- restore the local `MINIMAX_MODEL=MiniMax-M3` override and restart the backend.
+
+Regression Coverage:
+
+The browser gate inspects loaded CSS rules to prohibit height/min-height on the
+Product document roots, programmatically scrolls the hydrated mobile Home, and
+checks Chat viewport geometry separately. Runtime health was directly verified
+as MiniMax M3.
+
+Related Files:
+
+- `frontend/src/prototype/prototype.css`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+
+## BUG-0111 - Product Chat Filtered Real Thinking And Activity Evidence
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.2
+
+Symptoms:
+
+Real turns showed only user and final-answer bubbles. `Scarlet sta pensando`
+did not activate, context/memory movements were absent, and historical
+streaming reflection could remain marked live if exposed naively.
+
+Root Cause:
+
+Chat filtered every event except `visibility=public` and `turn.failed` before
+its existing context, memory, thinking, tool, and focus projectors ran. Real
+native lifecycle events are intentionally diagnostic even when their presence
+can be narrated safely. The memory bubble also read an optional `selected`
+array instead of canonical `selected_count`.
+
+Fix:
+
+- authorize an exact consumer-safe event allowlist and deterministic narration;
+- add a transient pending-thinking state before the first persisted activity;
+- derive live state from terminal evidence;
+- collapse each tool lifecycle into one evolving action bubble;
+- add centered, source-linked event receipts and a persisted protected-evidence
+  switch; and
+- strip `llm.thinking.captured.text` from Stream V2 while retaining proof that
+  the protected event exists.
+
+Regression Coverage:
+
+The browser harness observes live event appearance, asserts context/memory/
+thinking replay exactly once, checks private evidence is absent by default,
+opens coherent context and memory inspectors, unlocks and inspects the
+redacted captured-thinking receipt, and repeats modal geometry on mobile.
+Focused backend tests assert Stream V2 never includes captured-thinking text.
+
+Related Files:
+
+- `backend/app/api/chat_stream_v2.py`
+- `backend/tests/test_chat_api.py`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ChatEventDetailModal.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+- `docs/stream-v2-contract.md`
+
 ## BUG-0110 - Product UI Emitted A Browser Favicon 404
 
 Date Found: 2026-07-23

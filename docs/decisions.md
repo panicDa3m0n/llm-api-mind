@@ -7,6 +7,63 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0129 - Product Activity Uses A Bounded Evidence Projection
+
+Date: 2026-07-24
+Status: accepted
+
+Context:
+
+Real native turns persist useful lifecycle evidence such as context assembly,
+memory retrieval, request start, thinking start, Mind tool calls, and organ
+state with diagnostic visibility. Rendering only `public` evidence hides
+Scarlet's actual movement; rendering all diagnostic/private payloads would
+expose implementation detail and protected reasoning.
+
+Decision:
+
+- keep Stream V2 persisted sequence and event identity as the source of truth;
+- render authentic public user/note/answer text unchanged;
+- authorize only exact diagnostic event types/families needed for consumer
+  context, memory, bounded thinking status, Mind actions, and relevant state;
+- narrate those lifecycle facts deterministically without deriving semantics
+  from provider-native content;
+- collapse duplicate tool lifecycle events into one source-linked consumer
+  bubble;
+- make every semantic movement bubble open a centered evidence receipt with
+  sequence, phase, visibility, links, bounded payload, and grouped source
+  events;
+- keep protected events hidden by default and gate their metadata receipts
+  behind a local, logout-cleared `Evidenze private` preference;
+- treat `llm.thinking.captured` as protected by type even when historical
+  native records label it `debug`; and
+- never expose captured-thinking text through Stream V2. Preserve only
+  `has_text`, model step/index, phase, sequence, and trace links; complete
+  internal evidence remains in the existing debug/trace boundary.
+
+Consequences:
+
+Product Chat can show Scarlet thinking and acting in real time without
+pretending that a UI status is her authored inner monologue. Replay rebuilds
+the same consumer flow and all receipts remain grounded in durable events.
+The local evidence setting is an interface preference, not authorization to
+read chain-of-thought, and does not add a cognitive API or mutate Scarlet's
+state. New diagnostic families require an explicit allowlist decision before
+they can become consumer bubbles.
+
+This decision refines ADR-0127's real-event projection and supersedes
+ADR-0128's narrower phrase "render only public evidence"; the honesty boundary
+remains unchanged because diagnostic payload text is not promoted to authored
+consumer content.
+
+Links:
+
+- `backend/app/api/chat_stream_v2.py`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ChatEventDetailModal.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/stream-v2-contract.md`
+
 ## ADR-0128 - Product UI Executes Existing Core Contracts Or Declares Unavailability
 
 Date: 2026-07-23

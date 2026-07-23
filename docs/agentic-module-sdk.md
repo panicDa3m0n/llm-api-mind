@@ -1,7 +1,7 @@
 # Scarlet Agentic Module SDK
 
 Last updated: 2026-07-19
-App target: V1.55.1 over the release-accepted V1.50.1 Core
+App target: V1.55.2 over the release-accepted V1.50.1 Core
 SDK version: 1.0.0
 Protocol versions: manifest V1, port V1, lifecycle V1
 Status: implemented public development kit; no product module installed

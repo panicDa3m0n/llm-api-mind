@@ -9,6 +9,8 @@ const baseUrl = (process.env.PRODUCT_UI_BASE_URL || "http://127.0.0.1:5173")
 const liveChat = process.env.PRODUCT_UI_LIVE_CHAT === "1";
 const replayFailedSessionId =
   process.env.PRODUCT_UI_REPLAY_FAILED_SESSION_ID || "";
+const replayFlowSessionId =
+  process.env.PRODUCT_UI_REPLAY_FLOW_SESSION_ID || "";
 const executablePath =
   process.env.BROWSER_EXECUTABLE ||
   [
@@ -109,8 +111,24 @@ async function runDesktop() {
     await page.getByTestId("login-password").fill("scarlet");
     await page.getByTestId("login-submit").click();
     await page.getByTestId("home-dashboard").waitFor({ state: "visible" });
-    await expectVisibleText(page, "Core collegato");
+    await expectVisibleText(page, "nessuna fixture");
     await assertNoHorizontalOverflow(page);
+    await assertPrototypeDocumentScrollContract(page);
+    assert.equal(
+      await page.locator(".scarlet-core-status").count(),
+      0,
+      "Il banner Core/provider non deve occupare le schermate consumer."
+    );
+    const activeModel = await page.evaluate(async () => {
+      const response = await fetch("/health");
+      const health = await response.json();
+      return health.model;
+    });
+    assert.equal(
+      activeModel,
+      "MiniMax-M3",
+      "Il runtime locale non usa il modello M3 atteso."
+    );
     steps.push("login-home-hydration");
 
     await page.goto(`${baseUrl}/prototype`, { waitUntil: "networkidle" });
@@ -139,6 +157,32 @@ async function runDesktop() {
       const answerCount = await page
         .locator('[data-flow-kind="answer"]')
         .count();
+      await page.evaluate(() => {
+        window.__scarletFlowEventsSeen = [];
+        const capture = () => {
+          for (const element of document.querySelectorAll(
+            "[data-event-type]"
+          )) {
+            const eventType = element.getAttribute("data-event-type");
+            const status = element.getAttribute("data-flow-status") || "";
+            const receipt = `${eventType}:${status}`;
+            if (
+              eventType &&
+              !window.__scarletFlowEventsSeen.includes(receipt)
+            ) {
+              window.__scarletFlowEventsSeen.push(receipt);
+            }
+          }
+        };
+        capture();
+        const observer = new MutationObserver(capture);
+        observer.observe(document.body, {
+          attributes: true,
+          childList: true,
+          subtree: true
+        });
+        window.__scarletFlowObserver = observer;
+      });
       await page
         .getByLabel("Scrivi a Scarlet")
         .fill("Ciao Scarlet.");
@@ -150,6 +194,11 @@ async function runDesktop() {
       );
       await page.getByRole("button", { name: "Invia messaggio" }).click();
       assert.equal((await streamResponse).status(), 200);
+      await page
+        .locator(
+          '[data-flow-kind="reflection"][data-flow-status="live"]'
+        )
+        .waitFor({ state: "visible", timeout: 15_000 });
       await page.waitForFunction(
         (previousCount) => {
           const answerArrived =
@@ -176,6 +225,32 @@ async function runDesktop() {
           answerCount,
         "Lo stream non ha prodotto una nuova risposta."
       );
+      const flowEventsSeen = await page.evaluate(() => {
+        window.__scarletFlowObserver?.disconnect();
+        return window.__scarletFlowEventsSeen || [];
+      });
+      assert(
+        flowEventsSeen.some((receipt) =>
+          receipt.startsWith("llm.thinking.started:live")
+        ),
+        `Lo stato reale di pensiero non si è attivato: ${flowEventsSeen.join(", ")}`
+      );
+      for (const eventType of [
+        "memory.context.built",
+        "runtime.context.built",
+        "llm.thinking.started"
+      ]) {
+        assert.equal(
+          await page.locator(`[data-event-type="${eventType}"]`).count(),
+          1,
+          `La proiezione consumer di ${eventType} manca o è duplicata.`
+        );
+      }
+      assert.equal(
+        await page.locator('[data-event-type="llm.thinking.captured"]').count(),
+        0,
+        "Il contenuto thinking privato non deve entrare nel flusso consumer."
+      );
       await page
         .getByRole("button", { name: "Invia messaggio" })
         .waitFor({ state: "visible" });
@@ -184,7 +259,7 @@ async function runDesktop() {
         false,
         "Il composer deve tornare inattivo dopo aver svuotato il draft."
       );
-      steps.push("real-v2-turn");
+      steps.push(`real-v2-turn:${flowEventsSeen.join("|")}`);
     }
 
     await clickDock(page, "Sessioni");
@@ -195,6 +270,69 @@ async function runDesktop() {
       "La sessione appena creata non compare nella UI."
     );
     steps.push("sessions-list");
+
+    if (replayFlowSessionId) {
+      await page
+        .getByPlaceholder("Cerca titolo o ID sessione")
+        .fill(replayFlowSessionId);
+      const replaySession = page
+        .locator(".scarlet-sessions-screen__list article")
+        .filter({ hasText: replayFlowSessionId });
+      assert.equal(
+        await replaySession.count(),
+        1,
+        "Sessione completa di regressione non trovata."
+      );
+      await replaySession.getByRole("button").click();
+      await page.getByTestId("chat-screen").waitFor({ state: "visible" });
+      for (const eventType of [
+        "memory.context.built",
+        "runtime.context.built",
+        "llm.thinking.started"
+      ]) {
+        const activity = page.locator(`[data-event-type="${eventType}"]`);
+        await activity.waitFor({ state: "visible" });
+        assert.equal(
+          await activity.getAttribute("data-flow-status"),
+          "completed",
+          `Il replay di ${eventType} deve essere completato.`
+        );
+      }
+      await page.locator('[data-event-type="runtime.context.built"]').click();
+      await assertCenteredEventModal(page, { width: 1440, height: 1000 });
+      await page
+        .getByTestId("chat-event-detail-modal")
+        .getByText("Blocchi runtime", { exact: true })
+        .waitFor({ state: "visible" });
+      await page.screenshot({
+        fullPage: false,
+        path: path.join(outputDir, "desktop-chat-event-modal.png")
+      });
+      await page
+        .getByRole("button", { name: "Chiudi dettagli evento" })
+        .click();
+      await page.locator('[data-event-type="memory.context.built"]').click();
+      await assertCenteredEventModal(page, { width: 1440, height: 1000 });
+      await page
+        .getByTestId("chat-event-detail-modal")
+        .getByText("Ricordi selezionati", { exact: true })
+        .waitFor({ state: "visible" });
+      await page
+        .getByRole("button", { name: "Chiudi dettagli evento" })
+        .click();
+      assert.equal(
+        await page.locator('[data-event-type="llm.thinking.captured"]').count(),
+        0,
+        "Il replay non deve mostrare il thinking privato."
+      );
+      await page.screenshot({
+        fullPage: false,
+        path: path.join(outputDir, "desktop-chat-replay.png")
+      });
+      steps.push("completed-turn-activity-replay");
+      await clickDock(page, "Sessioni");
+      await page.getByTestId("sessions-screen").waitFor({ state: "visible" });
+    }
 
     if (replayFailedSessionId) {
       await page
@@ -265,6 +403,59 @@ async function runDesktop() {
     await expectVisibleText(page, "Impostazioni salvate nel Core.");
     steps.push("real-settings-save");
 
+    const privateEvidenceToggle = page.getByRole("button", {
+      name: "Evidenze private"
+    });
+    await privateEvidenceToggle.click();
+    assert.equal(
+      await privateEvidenceToggle.getAttribute("aria-pressed"),
+      "true",
+      "Lo switch delle evidenze private non si è attivato."
+    );
+    await page.reload({ waitUntil: "networkidle" });
+    await page.getByTestId("profile-screen").waitFor({ state: "visible" });
+    assert.equal(
+      await page
+        .getByRole("button", { name: "Evidenze private" })
+        .getAttribute("aria-pressed"),
+      "true",
+      "La preferenza locale delle evidenze private non persiste al reload."
+    );
+    steps.push("private-evidence-setting-persistence");
+
+    if (replayFlowSessionId) {
+      await clickDock(page, "Sessioni");
+      await page
+        .getByPlaceholder("Cerca titolo o ID sessione")
+        .fill(replayFlowSessionId);
+      const replaySession = page
+        .locator(".scarlet-sessions-screen__list article")
+        .filter({ hasText: replayFlowSessionId });
+      await replaySession.getByRole("button").click();
+      await page.getByTestId("chat-screen").waitFor({ state: "visible" });
+      const privateThinking = page.locator(
+        '[data-event-type="llm.thinking.captured"]'
+      );
+      await privateThinking.waitFor({ state: "visible" });
+      await privateThinking.click();
+      await assertCenteredEventModal(page, { width: 1440, height: 1000 });
+      const eventModal = page.getByTestId("chat-event-detail-modal");
+      await eventModal
+        .getByText("contenuto del ragionamento interno protetto", {
+          exact: false
+        })
+        .waitFor({ state: "visible" });
+      await eventModal
+        .getByText("Evidenza privata sbloccata", { exact: false })
+        .waitFor({ state: "visible" });
+      await page
+        .getByRole("button", { name: "Chiudi dettagli evento" })
+        .click();
+      steps.push("private-event-redacted-inspection");
+      await clickDock(page, "Profilo");
+      await page.getByTestId("profile-screen").waitFor({ state: "visible" });
+    }
+
     await page.screenshot({
       fullPage: true,
       path: path.join(outputDir, "desktop-profile.png")
@@ -278,6 +469,13 @@ async function runDesktop() {
       ),
       null,
       "Logout non ha eliminato la sessione locale."
+    );
+    assert.equal(
+      await page.evaluate(() =>
+        window.localStorage.getItem("scarlet-private-evidence-v1")
+      ),
+      null,
+      "Logout non ha eliminato la preferenza locale sulle evidenze private."
     );
     steps.push("logout");
 
@@ -314,18 +512,45 @@ async function runMobile() {
     await page.getByTestId("login-password").fill("scarlet");
     await page.getByTestId("login-submit").click();
     await page.getByTestId("home-dashboard").waitFor({ state: "visible" });
-    await expectVisibleText(page, "Core collegato");
+    await expectVisibleText(page, "nessuna fixture");
     await assertNoHorizontalOverflow(page);
+    await assertPrototypeDocumentScrollContract(page);
 
     const homeMetrics = await page.evaluate(() => ({
+      bodyClientHeight: document.body.clientHeight,
+      bodyRectHeight: document.body.getBoundingClientRect().height,
+      bodyScrollHeight: document.body.scrollHeight,
       clientHeight: document.documentElement.clientHeight,
+      homeHeight:
+        document.querySelector(".scarlet-home")?.getBoundingClientRect().height ??
+        0,
+      rootHeight:
+        document.querySelector("#root")?.getBoundingClientRect().height ?? 0,
       scrollHeight: document.documentElement.scrollHeight
     }));
     assert(
-      homeMetrics.scrollHeight > homeMetrics.clientHeight,
-      "Home mobile non espone lo scroll pagina."
+      Math.max(homeMetrics.scrollHeight, homeMetrics.bodyScrollHeight) >
+        homeMetrics.clientHeight,
+      `Home mobile non espone lo scroll pagina: ${JSON.stringify(homeMetrics)}`
     );
-    steps.push(`home-scroll:${homeMetrics.scrollHeight}`);
+    const scrollPosition = await page.evaluate(() => {
+      document.documentElement.scrollTop = 120;
+      document.body.scrollTop = 120;
+      const position = Math.max(
+        document.documentElement.scrollTop,
+        document.body.scrollTop
+      );
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      return position;
+    });
+    assert(
+      scrollPosition > 0,
+      `Home mobile ha contenuto eccedente ma non scorre: ${JSON.stringify(homeMetrics)}`
+    );
+    steps.push(
+      `home-scroll:${Math.max(homeMetrics.scrollHeight, homeMetrics.bodyScrollHeight)}`
+    );
 
     for (const target of ["Memoria", "Sessioni", "Profilo"]) {
       await clickDock(page, target);
@@ -337,6 +562,24 @@ async function runMobile() {
     await assertCenteredModal(page, viewport);
     await page.getByRole("button", { name: "Ho capito" }).click();
     steps.push("mobile-centered-modal");
+
+    if (replayFlowSessionId) {
+      await clickDock(page, "Sessioni");
+      await page
+        .getByPlaceholder("Cerca titolo o ID sessione")
+        .fill(replayFlowSessionId);
+      const replaySession = page
+        .locator(".scarlet-sessions-screen__list article")
+        .filter({ hasText: replayFlowSessionId });
+      await replaySession.getByRole("button").click();
+      await page.getByTestId("chat-screen").waitFor({ state: "visible" });
+      await page.locator('[data-event-type="memory.context.built"]').click();
+      await assertCenteredEventModal(page, viewport);
+      await page
+        .getByRole("button", { name: "Chiudi dettagli evento" })
+        .click();
+      steps.push("mobile-event-detail-modal");
+    }
 
     await clickDock(page, "Chat");
     await page.getByTestId("chat-screen").waitFor({ state: "visible" });
@@ -436,6 +679,22 @@ async function assertCenteredModal(page, viewport) {
   );
 }
 
+async function assertCenteredEventModal(page, viewport) {
+  const modal = page.getByTestId("chat-event-detail-modal");
+  await modal.waitFor({ state: "visible" });
+  const dialog = modal.locator(".scarlet-event-detail__dialog");
+  const box = await dialog.boundingBox();
+  assert(box, "Modale evento senza dimensioni.");
+  assert(
+    Math.abs(box.x + box.width / 2 - viewport.width / 2) <= 2,
+    "Il modale evento non è centrato orizzontalmente."
+  );
+  assert(
+    Math.abs(box.y + box.height / 2 - viewport.height / 2) <= 2,
+    "Il modale evento non è centrato verticalmente."
+  );
+}
+
 async function assertNoHorizontalOverflow(page) {
   const metrics = await page.evaluate(() => ({
     body: document.body.scrollWidth,
@@ -445,6 +704,52 @@ async function assertNoHorizontalOverflow(page) {
   assert(
     metrics.body <= metrics.viewport && metrics.document <= metrics.viewport,
     `Overflow orizzontale: ${JSON.stringify(metrics)}`
+  );
+}
+
+async function assertPrototypeDocumentScrollContract(page) {
+  const declarations = await page.evaluate(() => {
+    const matches = [];
+    const visit = (rules) => {
+      for (const rule of rules) {
+        if ("cssRules" in rule) {
+          visit(rule.cssRules);
+        }
+        if (
+          "selectorText" in rule &&
+          (
+            (
+              rule.selectorText?.includes("html.scarlet-prototype-document") &&
+              rule.selectorText?.includes("body.scarlet-prototype-document")
+            ) ||
+            rule.selectorText?.includes(
+              "body.scarlet-prototype-document #root"
+            )
+          )
+        ) {
+          matches.push({
+            height: rule.style.height,
+            minHeight: rule.style.minHeight,
+            selector: rule.selectorText
+          });
+        }
+      }
+    };
+    for (const sheet of document.styleSheets) {
+      try {
+        visit(sheet.cssRules);
+      } catch {
+        // Ignore browser-protected third-party sheets.
+      }
+    }
+    return matches;
+  });
+  assert(declarations.length > 0, "Contratto CSS documento prototipo non trovato.");
+  assert(
+    declarations.every(
+      (declaration) => !declaration.height && !declaration.minHeight
+    ),
+    `Il documento prototipo non deve fissare height/min-height: ${JSON.stringify(declarations)}`
   );
 }
 

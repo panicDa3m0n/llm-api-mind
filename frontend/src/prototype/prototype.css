@@ -20,8 +20,6 @@
 
 html.scarlet-prototype-document,
 body.scarlet-prototype-document {
-  height: auto;
-  min-height: 100%;
   overflow-x: hidden;
   overflow-y: auto;
 }
@@ -32,8 +30,6 @@ body.scarlet-prototype-document {
 }
 
 body.scarlet-prototype-document #root {
-  height: auto;
-  min-height: 100%;
   overflow: visible;
 }
 

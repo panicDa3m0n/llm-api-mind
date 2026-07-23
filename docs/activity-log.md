@@ -4,6 +4,83 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-24 - V1.55.2 Product Chat Activity And Evidence Inspector
+
+Area: Product UI Chat / Stream V2 projection / evidence inspection.
+
+Type: Fix and implementation on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Make Scarlet's real thinking status and system movements visible in their
+persisted order, while keeping protected reasoning private and making every
+movement inspectable enough to audit API Mind continuity.
+
+Changes:
+
+- Reproduced the missing-flow defect on
+  `ses_c7ff211e8ebc4b848fad44b8710a35b9`: Stream V2 contained memory, runtime,
+  request, thinking, answer, and terminal events, but Chat discarded all
+  diagnostic-visibility activity before projection.
+- Added an exact consumer activity allowlist for context, memory, request /
+  thinking status, Mind tool lifecycle, focus, affect, volition, agent mode,
+  public notes, answers, and terminal failures.
+- Added an immediate transient `Scarlet sta pensando` receipt, then reconcile
+  it with persisted `llm.request.started` / `llm.thinking.started` evidence.
+- Corrected memory narration to use `selected_count`, grouped one tool
+  lifecycle into one stable bubble, and derive live/completed status from turn
+  terminals so replay never leaves historical thinking marked active.
+- Added a centered responsive detail inspector to every semantic movement
+  bubble. It exposes the event family, consumer narration, sequence, phase,
+  visibility, trace/tool/message links, bounded payload, and all grouped source
+  events.
+- Added the local persisted `Evidenze private` switch under Privacy. Protected
+  events are absent by default, become metadata receipts when enabled, and the
+  preference is removed on logout.
+- Treated `llm.thinking.captured` as protected by semantic type even where
+  historical native events use `visibility=debug`.
+- Removed captured-thinking `text` from the Stream V2 client projection. The
+  persisted event, debug trace, `has_text`, step/index, order, and links remain
+  intact.
+- Removed the unrequested Core/provider banner from Product headers.
+- Removed `height` / `min-height` from the scoped Product `html` and `body`
+  roots and added a browser assertion that those declarations cannot return.
+  Chat retains only its route-specific internal viewport contract.
+- Found the ignored local `backend/.env` still overriding the repository M3
+  default with M2.7; restored `MINIMAX_MODEL=MiniMax-M3` and restarted the
+  laboratory backend.
+- Advanced backend/frontend development identity to V1.55.2.
+
+Verification:
+
+- `/health` reports `provider=minimax`, `model=MiniMax-M3`.
+- A real M3 Product turn observed, in order:
+  `ui.activity.pending`, `memory.context.built`,
+  `runtime.context.built`, `llm.request.started`,
+  `llm.thinking.started`, and the final answer.
+- Stream V2 replay reports `llm.thinking.captured.has_text=true` while the
+  projected payload contains no `text`.
+- Focused backend/SDK result: `12 passed` for Stream V2 live/replay/reducer,
+  terminal-failure, and versioned SDK coverage; Ruff and focused mypy pass.
+- Playwright/Edge passes default, successful replay, failed replay, live M3,
+  evidence-setting persistence, redacted protected-event inspection, desktop
+  and mobile centered modals, page scroll, fixed Chat chrome, console/network,
+  and horizontal-overflow gates.
+- Frontend TypeScript/Vite production build passes with 2,033 transformed
+  modules and npm audit reports zero vulnerabilities. Desktop event-inspector
+  and Chat replay screenshots were inspected.
+- Documentation integrity retains exactly the 39 pre-existing historical
+  avatar-workspace references and introduces no new error.
+
+Boundary:
+
+- No prompt, database schema, cognitive mutation, account API, or new Mind
+  operation changed.
+- The local runtime database remains modified by human/live testing and is
+  excluded from source control.
+- Protected reasoning text remains available only in the existing internal
+  debug/trace boundary, never in Stream V2 Product payloads.
+
 ## 2026-07-23 - V1.55.1 Product UI Browser Error Audit
 
 Area: Product UI / browser regression / Stream V2 failure presentation.

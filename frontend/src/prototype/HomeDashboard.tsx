@@ -6,7 +6,6 @@ import {
   House,
   MessageCircleMore,
   Plus,
-  RefreshCw,
   Sparkles,
   UserRound
 } from "lucide-react";
@@ -60,11 +59,15 @@ export function HomeDashboard({
   initialView = "home",
   username,
   onLogout,
+  onPrivateEvidenceChange,
+  privateEvidenceUnlocked,
   onViewChange
 }: {
   initialView?: ProductView;
   username: string;
   onLogout: () => void;
+  onPrivateEvidenceChange: (unlocked: boolean) => void;
+  privateEvidenceUnlocked: boolean;
   onViewChange?: (view: ProductView) => void;
 }) {
   const [view, setView] = useState<ProductView>(initialView);
@@ -170,27 +173,6 @@ export function HomeDashboard({
       <div className="scarlet-home__signal" aria-hidden="true"><i /><i /><i /></div>
 
       <div className="scarlet-home__shell">
-        {view !== "chat" && connectionError ? (
-          <div className="scarlet-core-status is-offline" role="status">
-            <span>
-              <strong>Core non raggiungibile</strong>
-              I dati mostrati non vengono sostituiti con esempi.
-            </span>
-            <button onClick={() => void refresh()} type="button">
-              <RefreshCw aria-hidden="true" size={15} /> Riprova
-            </button>
-          </div>
-        ) : view !== "chat" ? (
-          <div className="scarlet-core-status is-online" role="status">
-            <span>
-              <strong>{loading ? "Collegamento al Core…" : "Core collegato"}</strong>
-              {data.health
-                ? `${data.health.provider} · ${data.health.model}`
-                : "Sincronizzazione dati reali"}
-            </span>
-          </div>
-        ) : null}
-
         {view === "home" ? (
           <HomeContent
             creatingSession={creatingSession}
@@ -220,6 +202,7 @@ export function HomeDashboard({
                 ]
               }));
             }}
+            privateEvidenceUnlocked={privateEvidenceUnlocked}
             session={activeSession}
           />
         ) : null}
@@ -268,7 +251,9 @@ export function HomeDashboard({
               setData((current) => ({ ...current, settings }));
               void refresh();
             }}
+            onPrivateEvidenceChange={onPrivateEvidenceChange}
             onUnavailable={setUnavailable}
+            privateEvidenceUnlocked={privateEvidenceUnlocked}
             profile={data.profile}
             settings={data.settings}
             username={username}

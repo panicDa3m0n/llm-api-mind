@@ -2400,6 +2400,11 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         event for event in events if event["event_type"] == "runtime.context.built"
     )
     assert "blocks" not in runtime_context_event["payload"]
+    thinking_event = next(
+        event for event in events if event["event_type"] == "llm.thinking.captured"
+    )
+    assert thinking_event["payload"]["has_text"] is True
+    assert "text" not in thinking_event["payload"]
     terminal = next(
         event for event in events if event["event_type"] == "turn.completed"
     )

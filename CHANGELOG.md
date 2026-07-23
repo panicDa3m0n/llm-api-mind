@@ -6,6 +6,51 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.55.2 - Product Chat Activity Evidence
+
+#### Added
+
+- Render the real Stream V2 context, memory, thinking, tool, focus, affect,
+  volition, note, answer, and failure movements as ordered consumer bubbles.
+- Add an immediate live `Scarlet sta pensando` state while the first persisted
+  activity event is arriving, then reconcile it with the canonical stream.
+- Make every semantic movement bubble keyboard/click inspectable through a
+  centered responsive modal with sequence, phase, visibility, links, facts,
+  and the bounded Stream V2 receipt.
+- Add a persisted local `Evidenze private` setting. Protected events become
+  visible as metadata receipts when enabled and are removed again on logout.
+
+#### Changed
+
+- Group duplicate tool lifecycle events into one evolving action bubble and
+  derive completed/live state from canonical turn terminals.
+- Remove the unrequested Core/provider status banner from Product screens.
+- Remove `height` and `min-height` declarations from the scoped Product
+  document roots; long pages retain body/document scrolling while Chat keeps
+  its dedicated viewport-internal layout.
+- Advance backend/frontend development identity to V1.55.2.
+
+#### Fixed
+
+- Stop filtering consumer-safe diagnostic activity before Chat can narrate it.
+- Use the real `memory.context.built.selected_count` field instead of relying
+  on an optional selected-record array.
+- Strip `llm.thinking.captured.payload.text` from Stream V2 while preserving
+  `has_text`, order, phase, model step, links, and internal trace evidence.
+- Correct the local laboratory override from MiniMax M2.7 to MiniMax M3 and
+  verify the active backend model through `/health`.
+
+#### Verification
+
+- Focused Stream V2 and SDK tests pass `12/12`; the contract proves
+  captured-thinking text is absent from live and replay payloads.
+- Playwright/Edge passes live MiniMax M3 activity streaming and deterministic
+  replay, centered event inspectors on desktop/mobile, protected evidence
+  persistence/redaction, logout cleanup, failed-turn replay, fixed Chat
+  chrome, and real page scrolling.
+- Ruff, focused mypy, npm audit, frontend production build, and repository
+  diff checks pass.
+
 ### V1.55.1 - Product UI Browser Regression Fixes
 
 #### Added
