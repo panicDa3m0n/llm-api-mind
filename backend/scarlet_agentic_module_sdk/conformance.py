@@ -15,7 +15,7 @@ from pydantic import Field, ValidationError
 from scarlet_agentic_module_sdk.client import (
     ModuleClientError,
     ModuleProcessClient,
-    resolve_entrypoint,
+    resolve_entrypoint_file,
 )
 from scarlet_agentic_module_sdk.contracts import (
     AGENTIC_MODULE_PORT_VERSION,
@@ -120,8 +120,8 @@ def validate_manifest(
                 location="mode_tags",
             )
         ]
-    executable = resolve_entrypoint(module_directory, manifest)
-    if not Path(executable[0]).is_file():
+    executable = resolve_entrypoint_file(module_directory, manifest)
+    if not executable.is_file():
         return manifest, [
             _failure(
                 "manifest.entrypoint_missing",
@@ -142,7 +142,7 @@ def validate_manifest(
 async def run_conformance(
     module_directory: Path,
     *,
-    core_version: str = "1.54.0",
+    core_version: str = "1.55.0",
     active_mode_tag: str = "interactive",
     known_mode_tags: tuple[str, ...] = DEFAULT_AGENT_MODE_TAGS,
 ) -> ConformanceReport:

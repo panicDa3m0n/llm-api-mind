@@ -7,6 +7,170 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0128 - Product UI Executes Existing Core Contracts Or Declares Unavailability
+
+Date: 2026-07-23
+Status: accepted
+
+Context:
+
+The approved Product UI contained useful navigation and controls, but most
+post-login values and actions were fixtures. Connecting them by inventing
+client-only success states would make Scarlet appear to have capabilities that
+the Core cannot reproduce or trace.
+
+Decision:
+
+- use only existing consumer-safe health, chat, V2 replay/stream, dashboard
+  memory, profile, and settings contracts;
+- keep `scarlet/scarlet` as explicit local test access until account contracts
+  exist;
+- show one centered `Funzione non disponibile` modal for every visible action
+  without a matching consumer contract;
+- do not route Product controls to internal Mind, debug, or maintenance APIs
+  merely because those operational endpoints exist;
+- use V2 persisted sequence/event identity as the Chat source of truth, render
+  only public evidence, and require a terminal event;
+- expose offline/partial Core state without substituting fixtures.
+
+Consequences:
+
+The Product application is now honest about what Scarlet can execute. New
+features need an approved Core contract before their controls can stop opening
+the unavailable modal. Operator maintenance remains separated from consumer
+UX, and local login remains a test convenience rather than authentication.
+
+Links:
+
+- `frontend/src/api.ts`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/product-ui-prototype.md`
+
+## ADR-0127 - Product Chat Narrates Scarlet's Public Movements
+
+Date: 2026-07-23
+Status: accepted; real V2 projection implemented in V1.55.0
+
+Context:
+
+Scarlet is presented as a digital individual, not a final-answer service.
+Showing only user and assistant messages hides the real temporal structure of
+her work. Showing raw traces, tool payloads, provider thinking, or every
+protocol lifecycle duplicate would instead turn the conversation into a
+developer log and violate privacy/communication boundaries.
+
+Decision:
+
+- render a turn as an ordered conversation flow containing user text, semantic
+  context/memory movements, bounded reflection status, public notes, actions,
+  relevant state changes, and final answer;
+- narrate deterministic system movements in concise first-person language so
+  they remain part of Scarlet's visible presence;
+- preserve authentic `assistant.note.emitted` and
+  `assistant.answer.completed` text without UI rewriting;
+- group lifecycle duplicates into one consumer bubble and retain source event
+  families in the inspectable receipt;
+- never expose `llm.thinking.captured` text or infer chain-of-thought from
+  private/debug evidence;
+- order by the future V2 sequence contract and treat terminal events, not
+  stream closure, as completion; and
+- keep `ui.activity.projected` fixture-only until SCA-49 defines whether the
+  consumer-safe projection is backend-emitted or deterministically reduced by
+  an authorized client.
+
+Consequences:
+
+The user can follow Scarlet's actions without learning API Mind vocabulary.
+The authored/projection boundary remains inspectable, and raw evidence stays
+in the developer lens. The prototype does not yet prove real-time wording,
+visibility authorization, replay, errors, retries, cancellation, or unknown
+event behavior; those remain integration acceptance requirements.
+
+Links:
+
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/product.css`
+- `docs/stream-v2-contract.md`
+- `docs/product-ui-prototype.md`
+
+## ADR-0126 - Prototype Session Persists Locally Until Explicit Logout
+
+Date: 2026-07-23
+Status: accepted for the SCA-48 browser approval artifact
+
+Context:
+
+The future Capacitor application should resume where the authenticated user
+left it after a reload, browser close, Android backgrounding, or process
+recreation. The current prototype has no account backend and cannot claim
+secure authentication, but resetting to splash/login on every browser reload
+prevents evaluation of the intended application lifecycle.
+
+Decision:
+
+- persist only a prototype authentication marker, username, and last Product
+  view under the versioned local key `scarlet-prototype-session-v1`;
+- restore that view when `/prototype` opens without an explicit review query;
+- update the saved view whenever authenticated Product navigation changes;
+- remove the key only on explicit logout or invalid stored structure;
+- keep draft messages, fake registration credentials, preferences, and all
+  fixture data outside the persistent session; and
+- treat `?screen=...` routes as intentional visual-review overrides.
+
+Consequences:
+
+The browser prototype now models resume continuity and gives future Capacitor
+work a clear lifecycle expectation. It does not provide identity assurance,
+token expiry, encryption, revocation, multiuser isolation, or native storage
+semantics. Real authentication must replace the marker behind the approved UI
+without reusing it as a security contract.
+
+Links:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/product-ui-prototype.md`
+
+## ADR-0125 - Product Screens Use Local Fixtures Until Flow Approval
+
+Date: 2026-07-23
+Status: accepted for the sequential SCA-48 Product UI approval cycle
+
+Context:
+
+The application is being designed one user-facing screen at a time, with direct
+owner-agent discussion after each surface. Connecting partially approved
+screens to authentication, database, session, memory, or chat contracts would
+mix visual decisions with integration work and make iteration less bounded.
+
+Decision:
+
+- implement the complete browser screen sequence before real data integration;
+- use deterministic, realistic local fixtures and simulated interactions for
+  screens whose final Core wiring has not yet been approved;
+- make the fake boundary visible in the review UI and documentation;
+- prohibit fixture actions from reading or mutating the backend database;
+- preserve direct review URLs for individual screens; and
+- perform authentication, Core-port, persistence, and Capacitor integration as
+  separately declared work after the screen flow is approved.
+
+Consequences:
+
+The owner can evaluate navigation, hierarchy, responsive behavior, Scarlet's
+placement, and visual language without live-data risk. Displayed counts and
+records are not runtime evidence, and simulated actions do not prove chat or
+session lifecycle behavior. Later integration must replace fixtures behind the
+approved surface while preserving the relevant Core contracts.
+
+Links:
+
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ProductScreens.tsx`
+- `docs/product-ui-prototype.md`
+
 ## ADR-0124 - Scarlet Uses Identity-Locked Static Portrait States
 
 Date: 2026-07-22
@@ -57,6 +221,14 @@ Amendment, 2026-07-23:
 - audio remains muted for autoplay and the crop excludes the source watermark;
   and
 - the video remains a splash presentation asset, not a new avatar runtime.
+
+Later amendment, 2026-07-23:
+
+- the greeting is preloaded and held at zero while splash checks run;
+- playback starts only after application and video readiness converge;
+- it plays from zero to the end exactly once, without the previously proposed
+  repeated `2s -> end` loop; and
+- the full media `ended` event owns the transition from splash to Login.
 
 Links:
 

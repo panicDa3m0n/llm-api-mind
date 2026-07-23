@@ -18,10 +18,28 @@
 
 * { box-sizing: border-box; }
 
+html.scarlet-prototype-document,
+body.scarlet-prototype-document {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+body.scarlet-prototype-document {
+  margin: 0;
+  overscroll-behavior-y: none;
+}
+
+body.scarlet-prototype-document #root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
 html:has(.presence-app),
 body:has(.presence-app),
 #root:has(.presence-app) {
-  min-height: 100%;
   margin: 0;
   background: var(--presence-bg);
 }

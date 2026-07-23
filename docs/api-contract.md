@@ -4190,6 +4190,34 @@ GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
 
+## Product UI Consumer Mapping
+
+Status: implemented in V1.55.0; no new HTTP operation added
+
+`/prototype` uses the existing consumer-safe surface:
+
+```txt
+GET  /health
+POST /api/chat/sessions
+GET  /api/chat/sessions
+GET  /api/chat/sessions/{session_id}/messages
+POST /api/chat/sessions/{session_id}/turn/stream-v2
+GET  /api/chat/sessions/{session_id}/events
+GET  /api/dashboard/memories
+GET  /api/dashboard/profile
+GET  /api/dashboard/settings
+PUT  /api/dashboard/settings
+```
+
+The Product client does not call debug, internal Mind, GPT bridge, or
+maintenance operations. A visible control without one of the approved
+consumer contracts must remain unavailable rather than synthesize a local
+success. Local `scarlet/scarlet` access is not an HTTP authentication contract.
+
+The Chat consumer validates `scarlet-stream-v2`, session identity, event-id
+idempotency, contiguous session sequence, replay cursor progress, visibility,
+and terminal events. Only public events are eligible for Product narration.
+
 ## Agentic Module Public Contracts
 
 Status: manifest and Core Port V1 contracts implemented in V1.52.0; opt-in

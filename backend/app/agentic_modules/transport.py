@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from app.agentic_modules.registry import RegisteredModule
+from scarlet_agentic_module_sdk.client import resolve_entrypoint
 from scarlet_agentic_module_sdk.contracts import AGENTIC_MODULE_PORT_VERSION
 
 
@@ -231,12 +232,10 @@ class JsonLineModuleProcess:
 
 
 def _resolved_entrypoint(registration: RegisteredModule) -> list[str]:
-    declared = registration.manifest.runtime.entrypoint
-    executable = declared[0]
-    path = os.path.expanduser(executable)
-    if not os.path.isabs(path):
-        path = str((registration.module_directory / path).resolve())
-    return [path, *declared[1:]]
+    return resolve_entrypoint(
+        registration.module_directory,
+        registration.manifest,
+    )
 
 
 def _launch_entrypoint(registration: RegisteredModule) -> list[str]:

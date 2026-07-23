@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.54.0. Closed deployed Core baseline: V1.50.1.
+Development target: V1.55.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 

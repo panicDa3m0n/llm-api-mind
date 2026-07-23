@@ -1,8 +1,8 @@
 # Branch: Gestione Flussi Utente
 
-Last updated: 2026-07-19
-System version assessed: V1.52.0 candidate
-Status: static Product UI approval gate active
+Last updated: 2026-07-23
+System version assessed: V1.55.0 development target
+Status: first Product UI Core integration active
 
 ## Filosofia del ramo
 
@@ -21,6 +21,10 @@ identita, tempo, luogo, lingua, privacy e continuita.
 - I settings non sono piu cosmetici: profilo, privacy, paese, fuso e lingua
   entrano nel runtime context.
 - La session history permette di aprire sessioni precedenti per titolo.
+- V1.55.0 collega `/prototype` a health, sessioni, messaggi, Stream V2,
+  memorie, profilo e impostazioni reali. Ogni controllo senza contratto
+  consumer apre il modale centrale `Funzione non disponibile` e non simula
+  successi.
 - V1.14.0 aggiunge una superficie mobile consumer separata su `/mobile`, mentre
   `/` resta il cockpit dev. La mobile UI usa dati reali gia disponibili
   (chat streaming, sessioni, memoria, profilo, settings) e marca le funzioni
@@ -38,6 +42,37 @@ identita, tempo, luogo, lingua, privacy e continuita.
   UI responsive per mobile e desktop, cognizione pubblica compatta, sessioni,
   memorie, stato, impostazioni, recovery e lente sviluppatore alimentati
   esclusivamente da fixture V2 realistiche.
+- Il target V1.54.0 estende l'ingresso di `/prototype` con loader, controllo
+  aggiornamento simulato, transizione automatica, Login/Registrazione e
+  credenziali fake verificabili senza collegare un backend account.
+- Il saluto video viene precaricato in parallelo ai controlli della splash,
+  resta fermo e nascosto fino al `100%`, viene riprodotto una sola volta e
+  abilita il passaggio al Login soltanto al termine.
+- Il primo accesso fake conduce ora a una Home responsive con Scarlet, riepiloghi,
+  ultimi ricordi e sessioni recenti; dati e azioni restano fixture locali fino
+  all'approvazione dell'intero percorso di schermate.
+- La shell post-login collega ora Home, Chat, Memoria, Sessioni e Profilo con
+  prime versioni coerenti e funzioni locali simulate. Lo scroll finestra usa un
+  contratto documento scoped al prototipo e non eredita piu il blocco del
+  cockpit.
+- Splash termina ora sulla readiness reale di ritratto, font e media, poi
+  riproduce il primo `52%` del saluto precaricato a velocita naturale `1x` e
+  apre subito Login.
+- L'accesso fake conserva in local storage username e ultima schermata; reload
+  e riapertura riprendono il flusso, mentre logout cancella esplicitamente la
+  sessione.
+- Chat usa un layout app a viewport intera: header Scarlet compatto, soli
+  messaggi scorrevoli, composer sempre visibile e dock mobile riservato.
+- L'header Product ripetitivo e stato rimosso: un dock inferiore a cinque voci
+  gestisce la navigazione sia mobile sia desktop, mentre logout vive in alto
+  nelle Impostazioni.
+- Chat, Memoria, Sessioni e Profilo espongono i JSON fixture disponibili;
+  Impostazioni anticipa regole system-prompt e funzioni fake di profilo,
+  privacy, manutenzione ed extra in una superficie unica a gruppi; Memoria
+  gestisce conteggi estesi e record numerati.
+- Ogni turno Chat fixture mostra ora, come bolle ordinate, messaggio utente,
+  contesto, memoria, riflessione visibile, nota pubblica, azioni, focus e
+  risposta finale. Il JSON distingue testo autoriale e proiezione consumer.
 
 ## Stato attuale
 
@@ -45,14 +80,22 @@ Valutazione: L3 per il prototipo statico; i client reali restano L2/L3.
 
 Esistono ora due superfici distinte: cockpit tecnico per sviluppo e app mobile
 consumer per uso normale. La mobile app abilita chat, memoria visibile, profilo
-e settings reali, ma non ha ancora onboarding, multiutente, session close
-esplicito, revisione guidata memoria o workflow privacy avanzati.
+e settings reali. Il prototipo aggiunge il primo flusso di ingresso
+splash/autenticazione/Home, ma login, registrazione, riepiloghi, ricordi,
+sessioni e azioni sono ancora locali e finti. L'autenticazione locale persiste
+la schermata ma non e un contratto di sicurezza. Home, Chat, Memoria, Sessioni
+e Profilo hanno una prima implementazione da discutere e approvare; i pannelli
+JSON rendono ispezionabili le fixture e gli switch mostrano la futura
+traduzione in regole prompt. Non esistono ancora account backend, multiutente,
+chat reale, session close esplicito, revisione guidata memoria o workflow
+privacy avanzati. Anche i blocchi evento Chat sono fixture: la proiezione
+consumer reale da `scarlet-stream-v2` appartiene a SCA-49.
 
 Il prototipo V1.52.0 e verificato in browser ma deliberatamente scollegato dai
 dati runtime. L'approvazione del proprietario e obbligatoria prima che SCA-50
 estragga le primitive responsive o SCA-49 lo connetta al Core.
 
-Sistema valutato: V1.52.0 candidate.
+Sistema valutato: V1.54.0 development target.
 
 ## Sviluppi precedenti
 
@@ -73,6 +116,11 @@ Sistema valutato: V1.52.0 candidate.
   metacognizione.
 - V1.52.0: route Product UI statica, pipeline Tailwind CSS 4, anteprima a sei
   stati e screenshot desktop/mobile versionati.
+- Target V1.54.0: entry controller, loader/update check simulato, saluto
+  precaricato come transizione conclusiva, Login/Registrazione responsive,
+  credenziali fake e shell responsive Home/Chat/Memoria/Sessioni/Profilo con
+  dati e funzioni dimostrativi; readiness reale, sessione locale persistente,
+  Chat a viewport e pannelli JSON completano il secondo passaggio.
 
 ## Verifica V1.52.0
 
@@ -99,6 +147,11 @@ Sistema valutato: V1.52.0 candidate.
 - Session lifecycle: attiva, inattiva, chiusa, archiviata.
 - Modalita privacy: locale singolo, profilo privato, multiutente futuro.
 - Flussi per esportazione, cancellazione e correzione dati utente.
+- Sostituzione della sessione local-storage con autenticazione, scadenza,
+  revoca e storage nativo sicuri.
+- Compilazione delle preferenze approvate in regole system-prompt tracciabili.
 - Packaging Capacitor/Android dopo stabilizzazione visiva della mobile app.
+- Autenticazione reale, persistenza account e sicurezza solo dopo approvazione
+  del flusso visuale e definizione del relativo contratto backend.
 - Brand pass consumer: icona, visual identity Scarlet, motion e schermata
   iniziale senza trasformare la UI in una landing page.

@@ -19,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current development target: **V1.54.0**. The closed, deployed Core baseline is
+Current development target: **V1.55.0**. The closed, deployed Core baseline is
 **V1.50.1**.
 
 The project has a working local baseline runtime:
@@ -171,6 +171,25 @@ Open:
 ```txt
 http://127.0.0.1:5173
 ```
+
+Product UI entry-flow review:
+
+```txt
+http://127.0.0.1:5173/prototype
+http://127.0.0.1:5173/prototype?screen=splash
+http://127.0.0.1:5173/prototype?screen=login
+http://127.0.0.1:5173/prototype?screen=register
+http://127.0.0.1:5173/prototype?screen=home
+http://127.0.0.1:5173/prototype?screen=chat
+http://127.0.0.1:5173/prototype?screen=memory
+http://127.0.0.1:5173/prototype?screen=sessions
+http://127.0.0.1:5173/prototype?screen=profile
+```
+
+The prototype login is local and fake. Use `scarlet` / `scarlet`; no account
+or credential is sent to the backend. The post-login Home also uses only local
+demonstration data and simulated actions; it does not read or write the
+database.
 
 The local UI is a Tailwind-based Scarlet dashboard with recent sessions,
 conversation, live agent stream, semantic memories, user profile, and runtime

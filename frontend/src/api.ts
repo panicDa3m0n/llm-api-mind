@@ -7,6 +7,8 @@ import type {
   DashboardMemories,
   HealthStatus,
   RuntimeSettings,
+  ScarletStreamEvent,
+  ScarletStreamReplay,
   StreamEvent,
   TraceItem,
   UserProfile
@@ -133,6 +135,134 @@ export async function streamTurn(
   if (finalLine) {
     onEvent(JSON.parse(finalLine) as StreamEvent);
   }
+}
+
+export async function streamTurnV2(
+  sessionId: string,
+  message: string,
+  maxTokens: number | undefined,
+  onEvent: (event: ScarletStreamEvent) => void
+): Promise<void> {
+  const response = await fetch(
+    resolveApiPath(`/api/chat/sessions/${sessionId}/turn/stream-v2`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message,
+        max_tokens: maxTokens || null
+      })
+    }
+  );
+
+  if (!response.ok) {
+    let error = `${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as ApiError;
+      error = body.detail?.message || body.detail?.code || error;
+    } catch {
+      // Keep the HTTP status fallback.
+    }
+    throw new Error(error);
+  }
+
+  if (
+    response.headers.get("X-Scarlet-Stream-Schema") !== "scarlet-stream-v2"
+  ) {
+    throw new Error("Contratto stream Scarlet V2 non riconosciuto.");
+  }
+  if (!response.body) {
+    throw new Error("Streaming response body is unavailable.");
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  function emitLine(line: string) {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    const event = JSON.parse(trimmed) as ScarletStreamEvent;
+    if (event.schema_version !== "scarlet-stream-v2") {
+      throw new Error("Evento stream Scarlet V2 non valido.");
+    }
+    onEvent(event);
+  }
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    lines.forEach(emitLine);
+  }
+  emitLine(buffer);
+}
+
+export function fetchSessionEventsV2(
+  sessionId: string,
+  afterSeq = 0,
+  limit = 500
+): Promise<ScarletStreamReplay> {
+  const query = new URLSearchParams({
+    after_seq: String(afterSeq),
+    limit: String(limit)
+  });
+  return request<ScarletStreamReplay>(
+    `/api/chat/sessions/${sessionId}/events?${query.toString()}`
+  );
+}
+
+export async function fetchAllSessionEventsV2(
+  sessionId: string
+): Promise<ScarletStreamEvent[]> {
+  const eventsById = new Map<string, ScarletStreamEvent>();
+  let afterSeq = 0;
+
+  for (let pageNumber = 0; pageNumber < 100; pageNumber += 1) {
+    const page = await fetchSessionEventsV2(sessionId, afterSeq, 500);
+    for (const event of page.events) {
+      if (
+        event.schema_version !== "scarlet-stream-v2" ||
+        event.session_id !== sessionId ||
+        !Number.isInteger(event.seq) ||
+        event.seq < 1
+      ) {
+        throw new Error("Envelope replay Scarlet V2 non valido.");
+      }
+      const existing = eventsById.get(event.event_id);
+      if (existing && JSON.stringify(existing) !== JSON.stringify(event)) {
+        throw new Error(`Conflitto evento replay: ${event.event_id}`);
+      }
+      eventsById.set(event.event_id, event);
+    }
+    if (!page.cursor.has_more) {
+      const events = [...eventsById.values()].sort(
+        (left, right) =>
+          left.seq - right.seq || left.event_id.localeCompare(right.event_id)
+      );
+      let expectedSeq = 1;
+      for (const event of events) {
+        if (event.seq !== expectedSeq) {
+          throw new Error(
+            `Gap nel replay Scarlet V2: atteso ${expectedSeq}, ricevuto ${event.seq}.`
+          );
+        }
+        expectedSeq += 1;
+      }
+      if (page.cursor.latest_seq !== events.length) {
+        throw new Error("Cursore replay Scarlet V2 non coerente.");
+      }
+      return events;
+    }
+    if (page.cursor.next_after_seq <= afterSeq) {
+      throw new Error("Il cursore replay Scarlet non avanza.");
+    }
+    afterSeq = page.cursor.next_after_seq;
+  }
+
+  throw new Error("Replay Scarlet oltre il limite di sicurezza.");
 }
 
 export function fetchMessages(sessionId: string): Promise<ChatMessage[]> {

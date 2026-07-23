@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import io
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from scarlet_agentic_module_sdk.contracts import (
     PortCallContext,
 )
 from scarlet_agentic_module_sdk.schema import contract_schemas
+from scarlet_agentic_module_sdk.client import resolve_entrypoint
 
 
 def test_sdk_and_core_use_the_same_contract_class_and_versioned_schemas() -> None:
@@ -51,7 +53,7 @@ def test_module_runtime_returns_typed_result_and_structured_error() -> None:
     context = PortCallContext(
         request_id="request-health",
         module_id="cloud.honeylabs.fixture",
-        core_version="1.54.0",
+        core_version="1.55.0",
         active_mode_tag="interactive",
         deadline_at=datetime.now(timezone.utc),
     )
@@ -141,6 +143,13 @@ def test_scaffold_passes_standalone_conformance_without_patch(tmp_path: Path) ->
         tmp_path / "fixture",
         module_id="cloud.honeylabs.generated-fixture",
     )
+    manifest = AgenticModuleManifest.model_validate_json(
+        (module / "agentic-module.json").read_text(encoding="utf-8")
+    )
+    assert resolve_entrypoint(module, manifest)[:2] == [
+        sys.executable,
+        str((module / "run-module").resolve()),
+    ]
 
     report = asyncio.run(run_conformance(module))
 
@@ -179,7 +188,7 @@ def test_scaffold_runs_through_real_core_host_without_patch(tmp_path: Path) -> N
         )
         registry = discover_modules([root], approvals=[approval])
         assert registry.diagnostics == ()
-        host = AgenticModuleHost(registry, core_version="1.54.0")
+        host = AgenticModuleHost(registry, core_version="1.55.0")
         plan = await host.activate("interactive")
         assert plan.ordered_active_modules == [approval.module_id]
         context = await host.contribute_context(

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-19
-App target: V1.54.0; V1.50.1 remains deployed and release-accepted
+Last updated: 2026-07-23
+App target: V1.55.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -112,10 +112,16 @@ Implemented and verified:
   installed and native chat behavior is unchanged.
 - a standalone Agentic Module SDK now owns the same public contract models used
   by the host and provides scaffold, runtime, schema, and conformance tools.
+- the V1.55.0 Product UI now consumes existing health, session, message,
+  Stream V2 replay/live, memory, profile, and runtime-settings contracts;
+  unsupported account, privacy workflow, notification, voice/avatar,
+  prompt-rule, and consumer-maintenance controls fail honestly through one
+  unavailable modal rather than client fixtures.
 
 Current verification baseline:
 
-- backend plus public SDK: 304 tests passed at 82.46% statement coverage;
+- backend plus public SDK: 304 tests passed at 82.32% statement coverage for
+  the V1.55.0 Windows/CI-aligned gate;
 - frozen whole-system preliminary regression: 9/9;
 - frontend TypeScript/Vite production build: passed;
 - database boundary check: passed;
@@ -375,7 +381,7 @@ product opportunity, not an unfinished Core acceptance criterion.
 | Branch | Level | Effective technical state | Principal need |
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
-| User flows | L2/L3 | Working dev cockpit and mobile prototype with sessions, memory, profile, settings | onboarding, memory/privacy management, session lifecycle, component rework |
+| User flows | L2/L3 | Working dev cockpit and mobile prototype plus a readiness-driven natural-speed half greeting, locally persistent fake Login, bottom-dock navigation, semantic event-bubble Chat, inspectable fixture JSON, extended Memory layout, and grouped Settings flow | review event narration and remaining screens, then integrate V2 projection, real auth, memory/privacy management, prompt preferences and session lifecycle |
 | Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | deploy V1.42 receipts, then monitor multi-cycle quality |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
@@ -472,8 +478,13 @@ technical invariants; Linear owns ordering and work state.
 
 1. SCA-48 has produced an isolated, schema-realistic mobile-first prototype at
    `/prototype`, with the revised Scarlet Signal visual system, responsive
-   browser evidence, and an integrated developer lens; explicit owner approval
-   remains the final acceptance gate.
+   browser evidence, an integrated developer lens, and the first sequential
+   app flow from readiness-driven loader/splash through a shortened preloaded
+   natural-speed half-greeting transition to locally persistent fake
+   Login/registration and a fixture-backed responsive shell using one bottom
+   dock across Home, viewport Chat, extended Memory, Sessions, and grouped
+   Profile/Settings with inspectable JSON; sequential screen review and
+   explicit owner approval remain the next acceptance gates.
 2. SCA-50 builds one responsive UI foundation and design system.
 3. SCA-49 connects the Product UI and developer lens to Core contracts.
 4. SCA-52 verifies the same client as an Android Capacitor application.

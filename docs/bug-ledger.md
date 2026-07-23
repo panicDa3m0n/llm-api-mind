@@ -7,6 +7,256 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0108 - Generated Agentic Module Could Not Launch On Windows
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.0
+
+Symptoms:
+
+Three existing SDK/real-host conformance tests failed with `WinError 193`
+after the full development environment was installed on Windows.
+
+Root Cause:
+
+The generated `run-module` launcher is a valid executable shebang script on
+POSIX. Windows `CreateProcess` does not interpret that shebang and attempted to
+execute the text file as a native Win32 binary.
+
+Fix:
+
+Resolve Python-suffix or Python-shebang entrypoints through
+`sys.executable` in the shared SDK resolver, and make the Core host reuse the
+same resolver before its Linux resource wrapper.
+
+Regression Coverage:
+
+The generated scaffold now passes standalone conformance, real Core Host
+conformance, and CLI conformance unchanged on Windows.
+
+Related Files:
+
+- `backend/scarlet_agentic_module_sdk/client.py`
+- `backend/scarlet_agentic_module_sdk/conformance.py`
+- `backend/app/agentic_modules/transport.py`
+- `backend/tests/test_agentic_module_sdk.py`
+
+## BUG-0107 - Dashboard Timezones Failed On Windows Without Tzdata
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.0
+
+Symptoms:
+
+With the declared backend dependencies installed on Windows, `/health`,
+sessions, and memories returned 200, while `/api/dashboard/profile` and
+`/api/dashboard/settings` returned 500.
+
+Root Cause:
+
+`RuntimePreferences` validates `Europe/Rome` through Python `zoneinfo`.
+Windows does not ship the IANA timezone database used by `zoneinfo`, and the
+backend package did not declare the first-party `tzdata` fallback.
+
+Fix:
+
+Declare `tzdata>=2025.2` for Windows in `backend/pyproject.toml`.
+
+Regression Coverage:
+
+Direct isolated `CODEX_TEST` HTTP calls to profile/settings returned 200 after
+installing the declared package, and the browser saved runtime settings through
+the real endpoint.
+
+Related Files:
+
+- `backend/pyproject.toml`
+- `backend/app/runtime/preferences.py`
+- `backend/app/api/dashboard.py`
+
+## BUG-0106 - Artificial Splash Stages Delayed A Ready Application
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The splash always consumed its staged timer sequence even when the application
+portrait, fonts, and greeting media were already ready. The 5.163-second
+greeting then made the first entry feel substantially longer than necessary.
+
+Root Cause:
+
+Readiness was represented by fixed progress intervals rather than the assets
+that gate first paint and greeting playback. The greeting source also played at
+its authored duration even though only a short transition beat is needed.
+
+Fix:
+
+- join portrait decode, font readiness, two animation frames, and media
+  readiness instead of waiting through staged progress timers;
+- preload the greeting from splash start and begin it immediately when both
+  application and media are ready;
+- retain a six-second media fallback only for an unavailable greeting after
+  the application itself is ready;
+- play the source at natural `1x` speed and stop at `52%`, preserving the
+  authored greeting cadence while removing the unnecessary second half; and
+- navigate from either that bounded cut or the real media `ended` event with a
+  160ms leaving transition.
+
+Regression Coverage:
+
+Real Chrome at `390x844` measured greeting start after `1018ms`, natural-speed
+half greeting plus leaving transition at `2865ms`, and Login at `3883ms` total.
+The video reported duration `5.162993s`, playback rate `1`, and active playback.
+
+Related Files:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/ScarletMascot.tsx`
+- `frontend/src/prototype/SplashScreen.tsx`
+
+## BUG-0105 - Product Prototype Inherited The Cockpit's Locked Document Scroll
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The post-login Home was taller than a mobile viewport, but the browser window
+did not provide reliable page-level scrolling. Subsequent full pages would
+inherit the same behavior.
+
+Root Cause:
+
+The global Tailwind base in `frontend/src/styles.css` deliberately locks
+`body` with `overflow: hidden` for the three-pane cockpit. The first scoped
+prototype override correctly restored vertical overflow but also assigned
+`height: auto` and `min-height: 100%` to the root document elements. Those
+height declarations interfered with reliable page scrolling across the
+post-login screens.
+
+Fix:
+
+- apply a `scarlet-prototype-document` class to `html` and `body` while the
+  `/prototype` React surface is mounted;
+- set only horizontal/vertical overflow on `html` and `body`, without assigning
+  either `height` or `min-height`;
+- keep `#root` overflow visible without assigning document-level height or
+  minimum height;
+- remove the classes on unmount so the real cockpit/mobile overflow contracts
+  remain unchanged; and
+- reset window, document-element, and body scroll positions on post-login view
+  changes.
+
+Correction, 2026-07-23:
+
+The owner reproduced the remaining failure in browser DevTools and identified
+the prototype-level `height: auto` / `min-height: 100%` pair as the active
+blocker. Removing both declarations from all prototype document-root selectors
+is the accepted fix.
+
+Recurrence and final correction, V1.55.0:
+
+The global cockpit rule `html, body, #root { height: 100% }` remained active
+when the route-scoped declarations were omitted. Real Chrome measured the
+mobile Home document at exactly `844px`, clipping content below the viewport.
+The final scoped contract explicitly overrides inherited height with
+`height: auto` and `min-height: 100%` on the prototype document and root.
+Chrome then measured `2049px` of document height, reached `scrollY=1205`, kept
+document width equal to the `390px` viewport, and retained the intentional
+`844px` Chat viewport.
+
+Regression Coverage:
+
+Browser verification covers Home, Chat, Memory, Sessions, and Profile with the
+final scoped document override. The body becomes the effective page scroll
+container, retains exact horizontal document/client width, reaches its measured
+maximum scroll, and returns to the top after view navigation.
+
+Related Files:
+
+- `frontend/src/prototype/PrototypeApp.tsx`
+- `frontend/src/prototype/prototype.css`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/home.css`
+
+## BUG-0104 - Splash Greeting Played Invisibly During Startup
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The startup greeting appeared not to play. Media diagnostics showed that the
+video was actually advancing behind the canonical portrait while its CSS
+opacity remained zero, and the automatic splash timer navigated to Login
+before the 5.163-second greeting could finish.
+
+Root Cause:
+
+Visibility depended exclusively on a React `onCanPlay` state update. On fast
+local media delivery the native readiness event could occur before that update
+was observed, leaving the `is-ready` class absent. More fundamentally, the
+video used autoplay during loading even though the intended experience was to
+show it only after startup completed.
+
+Fix:
+
+- preload the video while keeping it paused at zero and transparent;
+- verify readiness both from the element's current `readyState` and subsequent
+  media events;
+- start visible playback only when application and media readiness converge;
+- remove looping and route to Login from the full greeting's `ended` event;
+- retain explicit fallback behavior for reduced motion, media failure, or
+  readiness timeout.
+
+Regression Coverage:
+
+Real Edge mobile emulation proves the video ready/paused/hidden at `12%`,
+playing/visible at `100%`, and Login absent until after the full media ends.
+No runtime exception or horizontal overflow was observed.
+
+Related Files:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/SplashScreen.tsx`
+- `frontend/src/prototype/ScarletMascot.tsx`
+- `frontend/src/prototype/splash.css`
+
+## BUG-0103 - Animated Button Fill Covered Its Text
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+Primary authentication button labels became unreadable when the colored hover
+fill expanded across the full button.
+
+Root Cause:
+
+The fill was an absolutely positioned pseudo-element. Only the arrow icon was
+an element with an explicit stacking position; the adjacent button label was a
+direct text node and therefore had no independent layer above the fill.
+
+Fix:
+
+Wrap every primary-button label in an element, place all label/icon children
+above the fill, and explicitly preserve white foreground color during hover.
+
+Regression Coverage:
+
+A real Edge hover at mobile emulation width expanded the pseudo-element to the
+full `309px` button width while computed foreground color remained
+`rgb(255, 255, 255)` for both child elements.
+
+Related Files:
+
+- `frontend/src/prototype/AuthScreen.tsx`
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/splash.css`
+
 ## BUG-0102 - Generated Anatomy Was Treated As Automatically Registerable
 
 Date Found: 2026-07-21

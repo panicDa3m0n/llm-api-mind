@@ -6,6 +6,104 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.55.0 - Scarlet Product UI Core Integration
+
+#### Added
+
+- Connect `/prototype` Home, Chat, Memory, Sessions, Profile, Settings, and
+  health status to the existing Core contracts without adding new endpoints.
+- Add a typed `scarlet-stream-v2` browser consumer with paged replay,
+  envelope/idempotency/gap validation, public-event projection, persisted
+  history fallback, terminal-event enforcement, and reconnect replay.
+- Add one accessible centered `Funzione non disponibile` modal for
+  registration, behavioral switches, notifications, privacy export/account
+  deletion, consumer maintenance, voice, avatar preferences, and other
+  capabilities not implemented by the Core.
+
+#### Changed
+
+- Replace Product fixtures and fake success feedback with real session,
+  message, memory, profile, settings, and health data; offline mode remains
+  explicit and never substitutes demonstration records.
+- Persist the supported display-name, language, country, timezone, and privacy
+  fields through `/api/dashboard/settings`; keep local `scarlet/scarlet` login
+  only as the approved test-access boundary.
+- Advance backend/frontend development identity to V1.55.0 and declare
+  `tzdata` on Windows so real dashboard profile/settings routes can resolve
+  IANA timezones.
+- Launch Python Agentic Module entrypoints through the active interpreter so
+  standalone SDK and real-host conformance work on Windows as well as POSIX.
+- Restore explicit route-scoped `height: auto`/`min-height: 100%` overrides so
+  long Product pages scroll despite the cockpit's global fixed-height base,
+  while Chat retains its dedicated `100dvh` internal-scroller contract.
+
+#### Verification
+
+- Frontend TypeScript/Vite production build passes.
+- Real Chrome against an isolated `CODEX_TEST` Core passes login, real Home
+  hydration, session creation/resume, Chat V2 surface, real settings save,
+  unavailable-feature modals, mobile page scroll, and fixed Chat layout at
+  `1440x1000` and `390x844`, with no API `5xx` or horizontal overflow.
+- Focused and complete backend, SDK, lint/type, documentation, and database
+  boundary results are recorded in the V1.55.0 activity entry: 304 tests pass
+  at 82.32% coverage, Ruff/mypy pass, npm audit is clean, and OpenAPI remains
+  at 30 operations. The documentation checker retains only its 39 historical
+  missing avatar-workspace references.
+
+- Add the first complete semantic turn flow to prototype Chat: user message,
+  context, memory, bounded reflection status, authentic public note, grounded
+  action receipts, focus state, and Scarlet's final answer as ordered bubbles.
+- Preserve the authored/projection boundary in Chat: notes and answers remain
+  Scarlet's original text, operational bubbles use consumer-safe first-person
+  narration with their source event families retained in the inspectable JSON,
+  and private chain-of-thought is never rendered.
+- Make `/prototype` restore the locally authenticated user and last open
+  Product view after reload/reopen, while explicit logout removes that local
+  session and returns to authentication.
+- Replace staged splash timers with real portrait/font/media readiness, start
+  the already-preloaded greeting as soon as the application is ready, and play
+  its first `52%` at natural `1x` speed before the immediate Login transition.
+- Rebuild Chat as a viewport shell: compact fixed Scarlet header, internally
+  scrolling messages, persistent composer, non-overlapping mobile dock, and
+  desktop continuity/JSON rail.
+- Remove the repetitive shared Product header and use one five-destination
+  bottom dock on mobile and desktop; move the real logout control to the top of
+  Settings.
+- Add readable fixture JSON surfaces to Chat, Memory, Sessions, and Profile,
+  plus fake profile, privacy, maintenance, extra, export, deletion, and
+  prompt-rule preference controls.
+- Refine Memory for extended counts and numbered records, and replace the
+  Settings card grid with one grouped surface separated by lightweight Scarlet
+  rules, switches, and multi-command rows.
+- Fix prototype page scrolling with an explicit route-scoped overflow mode
+  while leaving `height` and `min-height` unset at the prototype document
+  level, preserving the existing real clients.
+- Add coherent fixture-backed Chat, Memory, Sessions, and Profile first passes
+  behind the Home navigation, including fake message send, memory search and
+  detail, session resume/new flows, local preferences, and logout.
+- Connect every existing Home destination: primary conversation actions,
+  summary cards, individual memories, recent-session resume buttons, desktop
+  navigation, mobile dock, and profile control.
+- Add the first post-login Home dashboard to `/prototype`: an integrated
+  Scarlet hero, three quick system summaries, latest-memory and recent-session
+  cards, responsive desktop/mobile navigation, and simulated new/resume
+  actions backed only by explicit local fixtures.
+- Route successful fake authentication to Home while keeping every dashboard
+  datum and interaction disconnected from the backend and database until the
+  complete screen flow is visually approved.
+- Preload the Scarlet greeting in parallel with splash startup, keep it paused
+  and hidden during checks, play it once from zero after application readiness,
+  and transition to Login only after the greeting ends.
+- Refine the application entry UI by preserving white primary-button labels
+  above the animated hover fill, removing the authentication card's decorative
+  left edge, and moving splash progress into Scarlet's spoken status while
+  reserving the page footer for copyright and version.
+- Extend `/prototype` from splash-only review into the first complete
+  application-entry sequence: bounded startup loader, simulated local update
+  check, automatic transition to authentication, and direct review URLs.
+- Add one responsive Scarlet-branded authentication card with Login and
+  Registrazione tabs, inline validation, password visibility, in-session fake
+  registration, and the test account `scarlet/scarlet`.
 - Pause the layered Scarlet puppet as active Product UI work while preserving
   its artifacts and findings for future research.
 - Add an identity-locked static portrait contract, initial emotional-state
