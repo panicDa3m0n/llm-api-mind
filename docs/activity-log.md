@@ -4,6 +4,1422 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-24 - V1.55.3 MiniMax M3 Provider-Terminal Finality
+
+Area: Core native turn / MiniMax M3 completion / answer obligations.
+
+Type: Fix on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Stop complete MiniMax M3 answers from becoming `llm.incomplete_response` when
+the provider has already returned its documented natural terminal
+`stop_reason=end_turn`.
+
+Changes:
+
+- Reconstructed failed Product session
+  `ses_7cc4bab9c8f7468d80fcfd48bbd34728`: M3 returned non-empty text and
+  `end_turn`, but both attempts omitted the private `<scarlet-final/>` marker;
+  the semantic fallback rejected the corrected draft and persisted
+  `turn.failed`.
+- Verified in the current official MiniMax Anthropic-compatible documentation
+  that `end_turn` means the model ended naturally and that final text is
+  returned in the response content blocks.
+- Made non-empty `end_turn` the native structural final boundary. The old marker
+  remains accepted and stripped for provider-history compatibility but is no
+  longer model-facing or required.
+- Kept non-terminal `max_tokens`, empty output, and real semantic-obligation
+  failures on the existing one-correction then explicit-failure path.
+- Added trace evidence for provider stop reason and selected boundary source.
+- Updated deterministic negative controls to represent truncation with
+  `max_tokens` instead of marker omission.
+- Advanced development identity to V1.55.3.
+- Restored the Linux quality gate after PR #20 exposed repository-level Ruff
+  drift: normalized the two checker import blocks and restored the executable
+  bit expected by `EXE001` for `scripts/check_documentation.py`.
+- Registered only the 21 exact avatar artifact paths retired by BUG-0100 as
+  historical documentation references. Their 39 canonical ledger occurrences
+  remain readable without weakening validation for other missing paths.
+
+Verification:
+
+- `62 passed` across focused answer-obligation, native sync/stream,
+  model-facing gate, and SDK/version tests.
+- Ruff passes on all changed Python files.
+- Focused mypy with imports isolated passes the three changed runtime modules.
+  The configured Windows gate still reports the seven pre-existing POSIX-only
+  `resource`/`killpg` typing errors in Agentic Module host files; no changed
+  file is implicated.
+- Frontend V1.55.3 production build passes with 2,033 transformed modules.
+- Database boundary, `git diff --check`, and documentation integrity pass; the
+  latter excludes the 39 canonical references to the 21 explicitly retired
+  avatar-workspace artifacts.
+- The complete GitHub Actions Ruff target passes locally with the exact CI
+  command across backend, SDK, tests, and scripts.
+- Real session `ses_840244eb0fe84dda87c68ecf89c35bf2`, turn
+  `turn_faaad8f836fa48f1a2df1a3b5f2f97ad`, completed through Stream V2 on the
+  first response with `provider_stop_reason=end_turn`,
+  `boundary_source=provider_end_turn`, `marker_stripped=false`, one persisted
+  assistant answer, and terminal `turn.completed`.
+
+Boundary:
+
+- No UI stream contract, Mind tool surface, database schema, memory behavior,
+  or external GPT finalize contract changed.
+- The mutable laboratory database contains the human/live diagnostic sessions
+  and remains excluded from source control.
+
+## 2026-07-24 - V1.55.2 Product Chat Activity And Evidence Inspector
+
+Area: Product UI Chat / Stream V2 projection / evidence inspection.
+
+Type: Fix and implementation on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Make Scarlet's real thinking status and system movements visible in their
+persisted order, while keeping protected reasoning private and making every
+movement inspectable enough to audit API Mind continuity.
+
+Changes:
+
+- Reproduced the missing-flow defect on
+  `ses_c7ff211e8ebc4b848fad44b8710a35b9`: Stream V2 contained memory, runtime,
+  request, thinking, answer, and terminal events, but Chat discarded all
+  diagnostic-visibility activity before projection.
+- Added an exact consumer activity allowlist for context, memory, request /
+  thinking status, Mind tool lifecycle, focus, affect, volition, agent mode,
+  public notes, answers, and terminal failures.
+- Added an immediate transient `Scarlet sta pensando` receipt, then reconcile
+  it with persisted `llm.request.started` / `llm.thinking.started` evidence.
+- Corrected memory narration to use `selected_count`, grouped one tool
+  lifecycle into one stable bubble, and derive live/completed status from turn
+  terminals so replay never leaves historical thinking marked active.
+- Added a centered responsive detail inspector to every semantic movement
+  bubble. It exposes the event family, consumer narration, sequence, phase,
+  visibility, trace/tool/message links, bounded payload, and all grouped source
+  events.
+- Added the local persisted `Evidenze private` switch under Privacy. Protected
+  events are absent by default, become metadata receipts when enabled, and the
+  preference is removed on logout.
+- Treated `llm.thinking.captured` as protected by semantic type even where
+  historical native events use `visibility=debug`.
+- Removed captured-thinking `text` from the Stream V2 client projection. The
+  persisted event, debug trace, `has_text`, step/index, order, and links remain
+  intact.
+- Removed the unrequested Core/provider banner from Product headers.
+- Removed `height` / `min-height` from the scoped Product `html` and `body`
+  roots and added a browser assertion that those declarations cannot return.
+  Chat retains only its route-specific internal viewport contract.
+- Found the ignored local `backend/.env` still overriding the repository M3
+  default with M2.7; restored `MINIMAX_MODEL=MiniMax-M3` and restarted the
+  laboratory backend.
+- Advanced backend/frontend development identity to V1.55.2.
+
+Verification:
+
+- `/health` reports `provider=minimax`, `model=MiniMax-M3`.
+- A real M3 Product turn observed, in order:
+  `ui.activity.pending`, `memory.context.built`,
+  `runtime.context.built`, `llm.request.started`,
+  `llm.thinking.started`, and the final answer.
+- Stream V2 replay reports `llm.thinking.captured.has_text=true` while the
+  projected payload contains no `text`.
+- Focused backend/SDK result: `12 passed` for Stream V2 live/replay/reducer,
+  terminal-failure, and versioned SDK coverage; Ruff and focused mypy pass.
+- Playwright/Edge passes default, successful replay, failed replay, live M3,
+  evidence-setting persistence, redacted protected-event inspection, desktop
+  and mobile centered modals, page scroll, fixed Chat chrome, console/network,
+  and horizontal-overflow gates.
+- Frontend TypeScript/Vite production build passes with 2,033 transformed
+  modules and npm audit reports zero vulnerabilities. Desktop event-inspector
+  and Chat replay screenshots were inspected.
+- Documentation integrity retains exactly the 39 pre-existing historical
+  avatar-workspace references and introduces no new error.
+
+Boundary:
+
+- No prompt, database schema, cognitive mutation, account API, or new Mind
+  operation changed.
+- The local runtime database remains modified by human/live testing and is
+  excluded from source control.
+- Protected reasoning text remains available only in the existing internal
+  debug/trace boundary, never in Stream V2 Product payloads.
+
+## 2026-07-23 - V1.55.1 Product UI Browser Error Audit
+
+Area: Product UI / browser regression / Stream V2 failure presentation.
+
+Type: Fix on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Exercise the complete connected application from the UI, resolve every
+reproducible Product defect found, and leave a repeatable browser gate.
+
+Changes:
+
+- Added `npm run test:prototype:ui`, a Playwright/Edge smoke over local
+  Splash/video-to-Login transition, authentication, unavailable registration,
+  persisted Product view, Core hydration, real session creation, optional live
+  V2 chat, session list, memory search/detail, settings save, unavailable
+  controls, logout, mobile scroll/layout, console/network errors, and
+  horizontal overflow.
+- Reproduced one real `llm.incomplete_response` terminal from the browser and
+  proved that the Core persisted `turn.failed` at sequence 15.
+- Corrected Chat replay so a diagnostic-visibility `turn.failed` remains a
+  consumer-safe terminal error while all other debug/private evidence remains
+  hidden.
+- Removed the transient duplicate/fallback transport error when the canonical
+  terminal is already available, and translated the known incomplete-response
+  code into Italian consumer copy.
+- Added an explicit Scarlet favicon link, eliminating the remaining browser
+  404.
+- Advanced development identity to V1.55.1.
+
+Verification:
+
+- Default Product UI smoke passed at `1440x1000` and `390x844` with no console
+  errors, failed requests, HTTP `4xx/5xx`, or horizontal overflow.
+- The harness ignores only the expected `ERR_ABORTED` for the greeting MP4
+  remainder when the approved 52% cut unmounts Splash; every other request
+  failure remains blocking.
+- A live MiniMax greeting completed through `stream-v2` and produced a new
+  answer bubble.
+- Reopening the persisted failed session produced exactly one
+  `turn.failed` bubble, no `ui.transport.error` duplicate, and the expected
+  Italian recovery copy.
+- Home mobile remained `2049px` tall in an `844px` viewport; Chat retained its
+  fixed viewport/header/scroller/composer/dock contract.
+- Desktop Profile and mobile Chat screenshots were inspected.
+- Frontend V1.55.1 production build passed with 2,032 transformed modules;
+  focused Stream V2/SDK tests passed `10/10`; focused Ruff passed; npm audit
+  reported zero vulnerabilities; and `git diff --check` passed.
+- Documentation integrity retained exactly the 39 pre-existing historical
+  avatar references and introduced no new error.
+
+Boundary:
+
+- No Core endpoint, event persistence, visibility classification, provider
+  prompt, account behavior, or database schema changed.
+- The failed provider turn is retained as test evidence in the local
+  laboratory database; runtime database changes remain outside source
+  control.
+
+## 2026-07-23 - V1.55.0 Product UI Connected To Scarlet Core
+
+Area: Product UI / Core consumer integration / Windows runtime readiness.
+
+Type: Implementazione on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Replace the approved Product UI fixtures with every existing consumer-safe
+Core function, keep absent capabilities explicit, and close the work as one
+buildable V1.55.0 commit.
+
+Changes:
+
+- Connected Home to health, sessions, dashboard memories, profile, and runtime
+  settings; partial/offline reads remain visible and never fall back to fake
+  data.
+- Connected session creation/resume, persisted messages, live
+  `scarlet-stream-v2`, and paged replay to Chat.
+- Added client validation for V2 schema/session identity, event-id conflicts,
+  sequence gaps, durable cursor progress, visibility, and terminal events.
+- Projected only public context, memory, note, action, focus, error, and answer
+  evidence into the approved conversation bubbles; private/debug payloads
+  remain outside the Product surface.
+- Connected Memory, Sessions, Profile, and the supported display-name,
+  language, country, timezone, and privacy settings to existing endpoints.
+- Replaced registration and unsupported behavior/privacy/maintenance/extra
+  actions with one centered accessible `Funzione non disponibile` modal.
+- Preserved `scarlet/scarlet` as local test access and persistent local view
+  state; no account backend or security claim was added.
+- Added the missing conditional Windows `tzdata` dependency after direct
+  profile/settings calls proved that IANA timezone lookup otherwise returned
+  HTTP 500.
+- Made SDK/Core module launch resolve Python shebang entrypoints through the
+  active interpreter after the complete Windows gate exposed `WinError 193`.
+- Corrected the Product document override to explicitly escape the cockpit's
+  inherited fixed height while retaining Chat's dedicated viewport layout.
+- Advanced backend/frontend development identity and SDK Core defaults to
+  V1.55.0.
+
+Verification:
+
+- `cd frontend && npm run build`
+- Real Chrome at `1440x1000` and `390x844` against an isolated temporary
+  `CODEX_TEST` Core:
+  local login, registration modal, real Home hydration, real session creation,
+  Chat V2 surface, unavailable Settings modal, real settings save, exact
+  `390px` document width, full Home scroll (`2049px` document / `844px`
+  viewport), and fixed Chat composer/dock all passed.
+- Browser run produced no API `5xx`; the only desktop console error was the
+  pre-existing missing favicon request.
+- Complete backend/SDK suite: `304 passed in 52.50s`; measured coverage
+  `82.32%`.
+- Ruff passed; mypy passed across 42 source files with the Linux CI target.
+- `npm audit --audit-level=high` found zero vulnerabilities.
+- OpenAPI remained at 30 operations across 28 paths and reports V1.55.0.
+- Documentation integrity returned only the 39 pre-existing missing historical
+  avatar-workspace references; this task introduced no new documentation
+  error.
+- Staged database-boundary result is recorded in the commit handoff.
+
+Residual Risk:
+
+- Chat was not sent to the live MiniMax provider during this task; deterministic
+  V2 backend tests remain the provider-independent evidence.
+- Local authentication is intentionally not secure.
+- Unsupported controls need new Core contracts before they can become active.
+
+## 2026-07-23 - Semantic Scarlet Event Bubbles In Prototype Chat
+
+Area: Product UI / Chat event rendering and communication.
+
+Type: Implementazione inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Make Scarlet's activity perceptible as part of the conversation. A user should
+see what she is doing from the request through the final answer without
+reading raw events, debug payloads, or private chain-of-thought.
+
+Changes:
+
+- Replaced the resumed-session user/answer pair with a nine-block semantic
+  turn: user, context, memory, reflection status, public note, two actions,
+  focus state, and final answer.
+- Added deterministic first-person fixtures for all three current session
+  examples and for each fake message sent from a new conversation.
+- Added distinct lightweight bubble treatments and icons for context, memory,
+  reflection, note, action, state, and answer while keeping them inside the
+  existing message scroller.
+- Kept authentic public notes and final answers marked as Scarlet-authored.
+  System facts are marked `ui.activity.projected` and retain their compact
+  source event families in JSON.
+- Explicitly excluded `llm.thinking.captured` content. Reflection bubbles
+  narrate only the bounded visible state that a reflection is occurring.
+- Extended the Chat JSON fixture with the ordered flow, source event types,
+  `scarlet-stream-v2` target, public-note policy, private-thinking boundary,
+  and terminal-event expectation.
+
+Boundary:
+
+- the event sequence and narration are deterministic local fixtures;
+- `ui.activity.projected` is a prototype narrative receipt, not a newly
+  implemented Core/V2 event type;
+- no endpoint, stream reducer, visibility policy, database, prompt, or real
+  tool execution changed;
+- SCA-49 must define the real consumer-safe projection without exposing debug
+  or private payloads.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,032 transformed
+  modules;
+- real Chrome at `390x844` rendered the exact ordered kinds
+  `user -> context -> memory -> reflection -> note -> action -> action ->
+  state -> answer`;
+- the initial flow contained no `llm.thinking.captured` event, displayed one
+  authentic Note and one final Answer, and fake send appended a second complete
+  nine-block turn;
+- mobile body stayed exactly `844px`; its `598px` message viewport scrolled
+  `1707px` of two-turn content while the composer ended at `765px` above the
+  dock at `772px`;
+- desktop body stayed exactly `900px`; its `611px` message viewport held
+  `780px` of event flow while composer and dock remained separated;
+- the top and bottom of the mobile sequence and the completed desktop sequence
+  were visually inspected.
+
+Residual risk:
+
+- action-copy quality still needs owner review across errors, retries,
+  cancellation, long waits, background maintenance, and unknown additive V2
+  event types;
+- real integration must preserve event order/idempotency and never turn
+  private reasoning into public narration.
+
+## 2026-07-23 - Readiness Entry, Persistent Preview Session, And App-Like Chat
+
+Area: Product UI / lifecycle, local session, Chat, internal data surfaces, and
+settings.
+
+Type: Implementazione plus Fix inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Make the browser prototype behave more like the future installed application:
+finish startup on actual readiness, retain the user's authenticated screen
+until explicit logout, keep the complete Chat chrome visible, and expose the
+available fixture payloads while the real contracts remain disconnected.
+
+Changes:
+
+- Removed staged splash progress timers. Application readiness now joins
+  portrait decode, font readiness, two painted frames, and greeting-media
+  readiness before playback.
+- Kept the greeting video preloading during splash loading, then played its
+  first `52%` at natural `1x` speed; Scarlet's authored cadence remains intact
+  and the synthetic cut triggers the same Login transition as `ended`.
+- Added the `scarlet-prototype-session-v1` local session containing username,
+  authentication state, and last Product view. Reload/reopen restores it;
+  explicit logout removes it.
+- Rebuilt Chat as a `100dvh` application shell with a compact Scarlet header,
+  one internally scrolling message viewport, a persistent composer, and a
+  reserved non-overlapping mobile dock area.
+- Removed the repetitive shared Product logo/header/profile strip. A
+  five-destination dock now owns navigation on mobile and desktop, while
+  Settings owns the explicit logout action.
+- Replaced Chat's black action/send buttons with icon-only Scarlet controls.
+- Reorganized Memory around an extended `12.480` total, tabular `001` record
+  numbers, better row spacing, and a clearer archive heading.
+- Added fixture JSON panels to Chat, Memory, Sessions, and Profile. Chat keeps
+  the payload in the desktop context rail and behind a mobile disclosure.
+- Expanded Profile/Settings with five fake preference switches, visible future
+  system-prompt instructions, and grouped profile, privacy, maintenance, extra,
+  export, deletion, and logout controls inside one line-divided surface rather
+  than one card per command.
+
+Boundary:
+
+- local storage is a prototype convenience, not an authentication/security
+  design;
+- current view is retained, but draft Chat messages and setting changes remain
+  ephemeral;
+- JSON panels show deterministic fixtures, not database/runtime evidence;
+- no API, database, stream, system prompt, account backend, Capacitor, or
+  Android behavior changed.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,032 transformed
+  modules;
+- automated real-Chrome checks passed at mobile `390x844` and desktop
+  `1440x900`;
+- on the final measured local run, loading reached greeting in `1018ms`, the
+  natural-speed half greeting plus leaving transition took `2865ms`, and total
+  splash-to-Login was `3883ms`; media reported duration `5.162993s` and
+  playback rate `1`;
+- mobile Chat held body height at exactly `844px`, used `overflow-y:hidden`,
+  allocated `534px` to the message scroller, and scrolled `2350px` of generated
+  messages while the composer remained at `696..765px` above the dock at
+  `772..834px`;
+- final desktop Chat held body height at exactly `900px`, kept the compact
+  header at `28..104px`, message viewport at `114..725px`, composer at
+  `725..817px`, and universal dock at `828..890px`;
+- the refinement smoke confirmed five dock destinations at both breakpoints,
+  no shared Product header, transparent Chat action/send backgrounds with
+  `rgb(237, 0, 140)` icons, `12.480`/`001` Memory rendering, one Settings
+  surface with four grouped sections and seven grouped command buttons;
+- Login, navigation to Memory, reload restoration to Memory, Profile reload
+  restoration, explicit logout clearing local storage, and unauthenticated
+  return through splash to Login all passed;
+- Chat/Profile screenshots were visually inspected after the numeric checks.
+
+Residual risk:
+
+- browser local storage can be cleared by the user/OS and is not encrypted;
+- later Capacitor background/resume behavior still requires native lifecycle
+  verification on the Mac/Android build;
+- the real data shapes and prompt-rule compiler may require UI changes when
+  SCA-49 begins.
+
+## 2026-07-23 - Post-Login Navigation First Pass And Document Scroll Fix
+
+Area: Product UI / post-login navigation and page lifecycle.
+
+Type: Fix plus Implementazione inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Make the long Home and subsequent Product UI screens use normal window
+scrolling, then provide a coherent first version of every destination already
+reachable from Home.
+
+Changes:
+
+- Replaced the inherited cockpit fixed-height/hidden-overflow document behavior
+  with an explicit `scarlet-prototype-document` mode applied only while
+  `/prototype` is mounted.
+- Added one shared post-login shell with responsive desktop navigation, mobile
+  dock, profile access, active-view state, and scroll-to-top on view change.
+- Added fixture-backed Chat, Memory, Sessions, and Profile first passes.
+- Added simulated Chat send, starter prompts, contextual-memory preview,
+  memory search/category/detail, source-session navigation, session search,
+  new/resume actions, local preference toggles, and fake logout.
+- Connected Home hero actions, quick stats, individual memory cards, session
+  controls, desktop menu, mobile dock, and profile control to their intended
+  destinations.
+- Added direct review states for `chat`, `memory`, `sessions`, and `profile`.
+- Removed `height` and `min-height` from every prototype document-root selector
+  after owner DevTools inspection proved that those declarations still blocked
+  reliable scrolling; the scoped mode now owns overflow only.
+- Extended post-login scroll reset to `body` and `documentElement`, matching the
+  effective page scroll container after the corrected root CSS.
+
+Boundary:
+
+- every new screen still uses deterministic local fixtures and local React
+  state;
+- no API request, stream consumer, database read/write, or persistence was
+  introduced;
+- the scroll reset is scoped to `/prototype` and does not modify the cockpit or
+  real mobile client's overflow model.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,029 transformed
+  modules;
+- both the production bundle and the refreshed development server were
+  exercised through Edge at mobile `390x844` and desktop `1440x1000`;
+- mobile Home measured `1557px` body scroll height, reached
+  `body.scrollTop=713`, kept document/client width at `390px`, and returned
+  every scroll position to zero on navigation;
+- `html` and `body` reported `overflow-y: auto` without prototype-level
+  `height` or `min-height`; `body` became the effective page scroll container
+  and `#root` retained visible overflow without prototype-level constraints;
+- Chat, Memory, Sessions, and Profile opened from the mobile dock; Memory opened
+  from desktop navigation;
+- new conversation, continue latest, individual memory, session summary, and
+  resume-session Home actions reached the correct screens and selections;
+- simulated Chat send rendered one user and one Scarlet message;
+- zero API requests and zero runtime exceptions were observed.
+
+Corrected-scroll matrix:
+
+- mobile body scroll reached its exact maximum on Home `713px`, Chat `205px`,
+  Memory `189px`, Sessions `379px`, and Profile `459px`;
+- desktop body scroll reached its exact maximum on all five screens;
+- navigating from a scrolled Home to Chat reset `body.scrollTop`,
+  `documentElement.scrollTop`, and `window.scrollY` to zero.
+
+## 2026-07-23 - Fixture-Backed Post-Login Home Dashboard
+
+Area: Product UI / Home after authentication.
+
+Type: Implementazione inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Continue the browser-first application in user navigation order with a
+responsive Home that establishes Scarlet's presence, exposes useful continuity
+at a glance, and lets the owner review the screen before real Core integration.
+
+Changes:
+
+- Routed successful fake Login and in-session registration access to Home.
+- Added a Scarlet-led hero with welcome copy and primary conversation action.
+- Added three quick summary cards for active memories, recent sessions, and the
+  latest encounter.
+- Added compact latest-memory and recent-session collections with local
+  simulated preview, resume, and new-conversation feedback.
+- Added desktop navigation, a mobile bottom dock, and local logout.
+- Kept Home data in a dedicated deterministic fixture and labelled the
+  prototype boundary visibly in the page.
+
+Boundary:
+
+- every summary, memory, and session is local demonstration data;
+- Home performs no API request and no database read or write;
+- resume/new-conversation actions provide simulated UI feedback only;
+- real auth, chat routing, persistence, Core ports, and Capacitor remain out of
+  scope until the sequential screen set is approved.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,027 transformed
+  modules;
+- real Edge rendering passed at mobile `390x844` and desktop `1440x1000`;
+- the document width equalled the viewport at both sizes, with the mobile dock
+  visible only on mobile;
+- three summary cards, three memories, and three sessions rendered from the
+  fixture at both viewports;
+- `scarlet/scarlet` reached Home through the real fake-login interaction;
+- simulated new-session feedback rendered without navigation or persistence;
+- zero API requests and zero runtime exceptions were observed;
+- mobile and desktop Home screenshots were captured.
+
+## 2026-07-23 - Preloaded Greeting Transition Before Login
+
+Area: Product UI / splash lifecycle.
+
+Type: Fix inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Load Scarlet's complete greeting in parallel with application startup, then
+use the already-ready motion as the deliberate transition from completed
+splash checks to Login.
+
+Changes:
+
+- Removed hidden autoplay and the post-first-pass loop.
+- Added an explicit `loading -> greeting -> leaving` splash lifecycle.
+- Kept the video paused at zero and transparent while `preload=auto` completes
+  alongside the staged startup checks.
+- Added race-safe media readiness through ready-state inspection plus
+  `loadeddata`, `canplay`, and `playing` signals.
+- Start playback from zero only after application readiness and video
+  readiness are both true.
+- Fade to Login only after the full media `ended` event, with reduced-motion,
+  playback-error, and bounded-readiness fallbacks.
+- Added a true-mobile greeting-transition evidence image.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,024 transformed
+  modules;
+- at initial progress `12%`, the video reported `readyState=4`,
+  `paused=true`, `currentTime=0`, and `opacity=0`;
+- after progress reached `100%`, the splash reported phase `greeting`, the
+  video reported `paused=false`, `opacity=1`, and time advancing from zero;
+- Login remained absent during greeting and appeared only after the complete
+  5.163-second media ended;
+- the mobile document and viewport widths both remained exactly `390px`;
+- no runtime exceptions were observed.
+
+## 2026-07-23 - Entry UI Visual Refinement
+
+Area: Product UI / application entry flow.
+
+Type: Fix inside the SCA-48 V1.54.0 approval artifact on
+`sca-48-product-ui-prototype`.
+
+Changes:
+
+- Raised both primary-button labels and arrow icons above the animated hover
+  fill and locked their hover color to white.
+- Removed the decorative chromatic edge from the authentication card.
+- Replaced the static splash phrase with Scarlet's live startup status and
+  placed its loader and progress bar directly beneath that spoken message.
+- Reserved the splash bottom edge for `© 2026 Scarlet` and the current
+  `V1.54.0` version note.
+- Refreshed the mobile splash/Login and desktop Login evidence images.
+
+Verification:
+
+- frontend TypeScript/Vite production build passed with 2,024 transformed
+  modules;
+- true mobile emulation reported `innerWidth`, `clientWidth`, and
+  `scrollWidth` all equal to `390`;
+- desktop reported all three widths equal to `1440`;
+- the authentication edge element was absent at both viewports;
+- during a real rendered hover, the gradient fill reached the full `309px`
+  button width and both text nodes remained `rgb(255, 255, 255)`;
+- mobile splash geometry kept the inline progress group within the main
+  content and the copyright/version footer at the viewport bottom.
+
+## 2026-07-23 - Product App Splash And Local Authentication Flow
+
+Area: Product UI / application entry flow.
+
+Type: Prototype implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Begin browser-first application production in the same order experienced by
+the user, while deferring Capacitor/Android packaging until the web product is
+complete.
+
+Changes:
+
+- Replaced the splash-only default route with a deterministic entry
+  controller.
+- Added an explicit loader with staged local startup and simulated update-check
+  states before the minimum splash interval completes.
+- Added prototype review URLs that hold the splash or open login/registration
+  directly without changing the default automatic flow.
+- Added one responsive Scarlet-branded authentication card over the approved
+  application background.
+- Added Login and Registrazione tabs, password visibility, inline validation,
+  an in-session fake registration flow, and test login `scarlet/scarlet`.
+- Added an honest post-login boundary that confirms local authentication and
+  identifies Home as the next screen rather than routing into the old product
+  preview.
+
+Boundary:
+
+- startup and update checks are simulated locally and make no network request;
+- authentication and registration are test-only, in-memory behaviors;
+- no backend endpoint, account storage, Home screen, Core stream, or Capacitor
+  project is introduced;
+- the previous multi-surface preview remains available at
+  `/prototype?surface=product`.
+
+Verification:
+
+- TypeScript/Vite production build passed with 2,024 transformed modules;
+- default `/prototype` moved from splash to Login after the bounded startup
+  sequence;
+- mobile `390x844` and desktop `1440x1000` had exact document/viewport width
+  and no horizontal overflow;
+- splash, Login, Registrazione, invalid credentials, `scarlet/scarlet`,
+  session-only registration, and registered-user login were directly
+  exercised through a real Edge renderer;
+- no browser runtime exceptions were observed;
+- versioned screenshots were captured for entry splash, mobile Login,
+  registration, successful login, and desktop Login.
+
+Residual Risk:
+
+This is still the static SCA-48 approval artifact. Fake authentication proves
+the navigation and visual contract only; real identity, security, persistence,
+update delivery, Home, and Android lifecycle remain later work.
+
+## 2026-07-23 - Cross-Machine Product UI And Laboratory Checkpoint
+
+Area: repository continuity / Product UI / laboratory state.
+
+Type: Explicit checkpoint and reviewed laboratory-data release inside V1.54.0
+on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Publish the complete accumulated Product UI, avatar research, static identity,
+visual evidence, scripts, and current laboratory state so development can
+continue from another PC without relying on untracked local artifacts.
+
+Boundary:
+
+- secrets, `.env` files, caches, virtual environments, build outputs, and
+  disposable evaluator databases remain excluded;
+- `backend/data/app.db` is explicitly released as a laboratory snapshot, never
+  as production data or a production deployment seed;
+- all PSD files and the laboratory snapshot use Git LFS;
+- production VPS data remains outside Git and unchanged.
+
+Database evidence:
+
+- role `laboratory`, isolation `direct`, `codex_test=false`;
+- SQLite integrity `ok`, 27 tables, 139,264,000 bytes;
+- 36 memories, 26 facts, 163 sessions, 598 messages, 3,597 events;
+- SHA-256
+  `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`.
+
+Cross-machine recovery:
+
+- install Git LFS before checkout;
+- clone and checkout `sca-48-product-ui-prototype`;
+- run `git lfs pull`, then verify LFS materialization;
+- install backend/frontend dependencies normally;
+- restore provider credentials only through ignored local environment files.
+
+Verification:
+
+- frontend production build passed with 2,022 transformed modules;
+- database preflight confirmed laboratory/direct ownership and integrity `ok`;
+- staged database boundary rejected the ordinary path and passed only with the
+  explicit `--allow-laboratory-snapshot` release acknowledgment;
+- all five large DB/PSD files are staged as LFS pointers;
+- static avatar contracts and structural reports parse as valid JSON;
+- staged whitespace validation passed after removing two trailing blank lines;
+- secret scan found only documented placeholder values.
+
+Residual Risk:
+
+Documentation integrity still reports 39 references to deliberately removed
+historical avatar/APNG artifacts. These are retained as truthful experiment
+history and are not missing active checkpoint files. A fresh machine requires
+Git LFS and separately restored ignored credentials.
+
+## 2026-07-22 - Scarlet Static Portrait Identity And 360-Degree References
+
+Area: Product UI / Scarlet visual identity.
+
+Type: Prototype implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Decision:
+
+The owner paused the layered-puppet path after two days of experiments and
+selected identity-locked static portraits with short fades as the active
+Product UI direction. Puppet artifacts remain preserved for later research.
+
+Changes:
+
+- Added a machine-readable identity contract covering immutable facial,
+  makeup, hair, body, costume, cuff, hand, rendering, and output rules.
+- Added the initial semantic state catalog for startup greeting, active-chat
+  neutral, and long-idle boredom.
+- Generated references for both profiles, four three-quarter views,
+  natural rear, exposed rear costume, and bilateral palms/hand backs.
+- Added a manifest that keeps generated views subordinate to the two approved
+  front authorities; the owner approved the complete supporting pack.
+- Added a single turntable contact sheet for visual review.
+- Integrated the owner-supplied HappyHorse greeting into the splash as a
+  cropped, muted video bubble with canonical portrait fallback.
+- Replaced native looping with one complete first pass followed by a stable
+  `2s -> end` loop.
+
+Verification:
+
+- visually inspected every generated candidate at full resolution;
+- compared all eight directions in turntable order;
+- checked anatomical cyan/magenta side continuity, hand anatomy, cuff details,
+  rear hair volume, rear costume continuity, and full-body framing;
+- parsed both new contract JSON files and the 360-degree manifest;
+- passed the frontend production build;
+- verified the greeting in Chromium at `390x844` and `844x390`;
+- confirmed H.264 partial-content delivery, no console errors, no horizontal
+  overflow, hidden watermark, and a forced end-to-loop transition from 5.08 to
+  2.10 seconds.
+
+Residual Risk:
+
+The pack is approved as supporting reference, not as a replacement for the two
+canonical front authorities. The HappyHorse source remains unsuitable outside
+its controlled bubble because it has an opaque background and watermark.
+
+## 2026-07-21 - Poopoo-Informed Scarlet PSD Structure
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner supplied `Poopoo.psd` as a complete layered-character reference and
+took ownership of final asset positioning and scaling. Parsed evidence showed
+that the reference relies on 105 painted raster layers, 22 groups, 12 clipping
+relationships, six `linear dodge` eye-light layers, and one clipped `multiply`
+layer. It does not rely on Photoshop masks or a generic shader stack. Ordinary
+material depth remains painted inside each asset.
+
+Changes:
+
+- Added a repeatable structural PSD audit that excludes layer pixels and
+  records hierarchy, bounds, clipping, opacity, and blend modes.
+- Restricted Poopoo to structural evidence; its artwork is forbidden as a
+  Scarlet input.
+- Replaced the provisional Scarlet folder tree with a Poopoo-informed V2 tree
+  covering rear hair, articulated lower body, bilateral articulated arms,
+  neck, torso, detailed head systems, expressions, and foreground effects.
+- Kept Scarlet more articulated than the reference where the reference leaves
+  one arm or a whole leg combined.
+- Changed the active workflow to native alpha-trimmed generated assets staged
+  hidden in their semantic folders. The owner performs final Photoshop
+  transforms against the locked bottom portrait.
+- Extended the PSD builder to preserve declared clipping, blend mode, opacity,
+  visibility, and layer names.
+- Rebuilt the V2 PSD with all 19 existing Scarlet assets without discarding
+  generated work.
+
+Verification:
+
+- `cd frontend && npm run avatar:reference:audit`
+- `cd frontend && npm run avatar:rig-workspace`
+- parsed reference: 105 raster layers, 22 groups, 12 clipped layers
+- rebuilt Scarlet PSD: seven rig roots plus locked bottom reference and 19
+  hidden unregistered assets
+
+Residual Risk:
+
+The hierarchy is production-oriented, but the staged artwork remains visually
+unapproved except for the right upper lash/liner. Empty folders are inventory,
+not completed assets. Photoshop placement and later rig deformation tests are
+still required.
+
+## 2026-07-21 - Canonical Generated-Only Anatomical Workflow
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner approved the generated lash artwork but rejected the later cyan
+forelock path because it mixed generated artwork with portrait pixels and
+changed construction method between organs. The PSD also placed the locked
+reference above candidates because `ag-psd` child order had been interpreted in
+the wrong direction.
+
+Changes:
+
+- Removed the rejected cyan forelock candidate and every path that referenced
+  it as active artwork.
+- Added one generic per-part preparer driven by a small JSON config. It accepts
+  only a newly generated transparent anatomical source and performs only trim,
+  scale, x/y placement, proof composition, and PSD packaging.
+- Prohibited reference-pixel extraction, hybrid patches, static repainting, and
+  per-organ workflow substitutions in the machine-readable contract.
+- Defined and verified PSD child order as bottom-to-top: locked reference first,
+  approved lower surfaces next, and current candidate last.
+- Calibrated the approved lash against its actual portrait region at
+  `(330,570)`, size `136x35`, and made the preparer reject placement drift from
+  that recorded target box.
+
+Verification:
+
+- generic lash preparation command completed
+- PSD reopened after writing and matched the expected bottom-to-top layer order
+- white, black, checkerboard, target-box, 50% alignment, placement-overlay,
+  Difference, and z-stack proof inspection
+- contract/config/report JSON parse and path checks
+
+Result:
+
+The lash artwork remains owner-approved. Its calibrated placement is the sole
+open visual gate; no second anatomical candidate remains active.
+
+## 2026-07-21 - First Surgical Anatomical Surface Candidate
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Changes:
+
+- Accepted the owner-approved generated right upper lash/liner as the first new
+  anatomical source after the reference-only reset.
+- Removed its green background with a soft alpha edge, fitted it to the Scarlet
+  portrait, and exported isolated and canonical full-canvas RGBA assets.
+- Added a reproducible preparation path, a locked-reference two-layer PSD, contrasting
+  alpha proofs, placement overlay, difference diagnostic, and a structured
+  surface report.
+- Clarified that perceptual fidelity in the recomposed PSD is the admission
+  criterion; exact source-pixel identity remains diagnostic only.
+
+Verification:
+
+- direct visual inspection of white, black, checkerboard, reference, overlay,
+  and difference panels
+- PNG geometry and alpha-range checks
+- PSD parse confirming `941x1672` geometry and the expected two layer names
+
+Result:
+
+The isolated lash artwork is owner-approved. Its calibrated placement is a
+review candidate at `(330,570)` sized `136x35`, matching the recorded reference
+lash box. Owner approval of this final registration closes the current gate.
+
+## 2026-07-21 - Scarlet Avatar Reference-Only Reset
+
+Area: Product UI / Scarlet layered 2D puppet.
+
+Type: Corrective implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+The active avatar workspace contained 816 files and occupied approximately
+291 MB: 767 PNGs, seven PSDs, generated proofs, APNG frames, contracts, and 14
+generators from several mutually incompatible methods. V1 APNG motion was
+discontinuous, V2 local-raster interpolation distorted the character, and the
+Live2D material candidates were not trustworthy anatomical surfaces.
+
+Changes:
+
+- Removed all derived avatar images, PSDs, animation frames, proofs, previews,
+  generated contracts, and obsolete generation scripts.
+- Removed the obsolete `avatar:*` npm commands so rejected outputs cannot be
+  recreated accidentally.
+- Preserved only the approved half-body portrait and the T-pose verification
+  reference as visual inputs.
+- Added a renderer-neutral PSD authoring contract with locked hashes, canvas,
+  side convention, anatomical surface inventory, front-to-back production
+  order, inverse render order, and fail-closed review gates.
+- Defined separate visible-region and hidden-region proofs. Hidden completion
+  must be reviewed beneath approved foreground layers, never uncovered over the
+  flattened portrait.
+- Reframed APNG as rejected construction research and kept only its written
+  findings.
+
+Verification:
+
+- reference whitelist and recursive avatar inventory
+- SHA-256 and `941x1672` dimension checks for both canonical PNGs
+- JSON parse and contract-path checks
+- frontend production build
+
+Result:
+
+The avatar visual workspace now starts from two canonical PNG references and
+one non-visual authoring contract. No anatomical PNG or production PSD is
+currently admitted. The next gate is one owner-reviewed frontmost surface.
+
+## 2026-07-21 - Scarlet Greeting V2 Local Raster Motion Test
+
+Area: Product UI / prepared Scarlet animation.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Finding:
+
+The owner accepted the four authored greeting sources but rejected the V1 APNG
+movement. The encoded file was valid; the source timeline contained only five
+distinct images and 75-110 ms jumps, so no continuous motion existed to play.
+Direct RIFE comparison also distorted or removed the articulated hand/forearm
+between distant poses and was rejected as the primary in-between generator.
+
+Changes:
+
+- Added a separate V2 renderer for `neutral -> lift_low -> neutral` without
+  replacing or deleting V1 evidence.
+- Extracted approved keyframe pixels into semantic hand and sleeve mattes and
+  moved them through a local raster mesh anchored at the off-canvas arm origin.
+- Added smootherstep easing, 18 steps each direction, uniform 33/34 ms moving
+  frames, exact neutral endpoints, identity-lock assertions, jump diagnostics,
+  source-layer proofs, contact sheet, manifest, and V1/V2 browser comparison.
+- Caught pale duplicate fragments during full-resolution inspection and removed
+  them by excluding a dilated moving silhouette from the static cleanup layer.
+
+Verification:
+
+- `cd frontend && npm run avatar:animation:greeting-v2`
+- decoded APNG: 37 frames, 1,749 ms, exact canonical first/last hashes
+- all face-core, hair-crown, and viewer-right locks exact
+- local browser: V1 and V2 HTTP 200 as `image/png`; zero console warnings/errors
+- direct inspection of contact sheet, semantic matte on white/black, and full
+  resolution early/middle/late moving frames
+
+Residual Risk:
+
+V2 proves the continuous-timeline method only for entry/exit. Owner visual
+acceptance is still required for trajectory and edge quality, and matched local
+meshes are still needed for the remaining pose-to-pose intervals. The current
+13.7 MB full-frame APNG is deliberately unoptimized; Android performance and
+delta-frame encoding remain later gates.
+
+## 2026-07-21 - Scarlet APNG Greeting V1 Workflow Candidate
+
+Area: Product UI / prepared Scarlet animation.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Test whether a reusable APNG workflow can produce a real Scarlet greeting while
+preserving the approved neutral identity and avoiding full-frame regeneration.
+
+Changes:
+
+- Added a deterministic Pillow builder for chroma extraction, canvas
+  registration, partial motion-corridor compositing, APNG assembly, manifest
+  generation, static proofs, and decoded-frame verification.
+- Established the exact neutral first/last-frame contract and locked face core,
+  hair crown, and viewer-right regions across every generated pose.
+- Rejected the first full generated greeting frame because it embedded a fake
+  checkerboard and changed the character scale.
+- Added a canonical open-palm master pose, then regenerated low, middle, and
+  angled poses using both neutral identity and gesture-master references after
+  the first sequence changed cuff design between frames.
+- Changed the runtime filename from `.apng` to `.png` after browser inspection
+  found `application/octet-stream`; the same APNG content now receives
+  `image/png` without server-specific configuration.
+- Added an 11-frame, 1,300 ms one-shot greeting candidate, replay preview,
+  contact sheet, and changed-pixel map.
+
+Verification:
+
+- `cd frontend && npm run avatar:animation:greeting`
+- decoded APNG: 11 frames, loop count 1, exact first/last neutral RGBA hash
+- frame manifest: all three identity locks exact; motion corridor approximately
+  11-16% of the canvas depending on pose
+- local Chromium load: HTTP 200, `content-type: image/png`, no console warnings
+  or errors, replay request successful
+
+Residual Risk:
+
+Owner visual approval of motion smoothness remains pending. Android WebView
+decode cost and runtime animation orchestration are outside this first test.
+
+## 2026-07-21 - Puppet V2 Rejection And Reference-Anchored V3 Face Gate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Corrective implementation inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Finding:
+
+Direct source audit disproved the earlier Puppet V2 readiness claim. Of 59
+named materials, 33 combined master cutouts with resized legacy artwork and 18
+used only legacy artwork. The PSD was structurally layered but did not contain
+one complete reference-faithful surface per rig organ.
+
+Changes:
+
+- Marked Puppet V2 as rejected evidence and removed it from active acceptance.
+- Added a V3 contract that forbids legacy material, eye V1, and Puppet V2
+  artistic inputs and blocks PSD assembly behind progressive material gates.
+- Made source ownership explicit and machine-checkable: all face/head organs
+  use only the approved half-body portrait; the portrait also remains primary
+  for visible upper-body identity, while the T-pose controls registration,
+  lower-body organs, and uncovered body regions. Both hashes are locked.
+- Generated the first complete face-base candidate from the approved portrait:
+  reference-derived silhouette, 11,300 exact clean-skin pixels, 31,213 blended
+  reference-anchor pixels, and 94,706 reconstructed pixels limited to removed
+  or occluded areas.
+- Locked every V3 rig asset and placement mask to the `941x1672` master canvas,
+  top-left origin, zero final offset, and proof-only crop policy; the validator
+  checks dimensions for complete, reference, reconstruction, mask, and
+  recompose outputs.
+- Rejected the first face composition after its broad reference patches
+  included hair and created hard seams; narrowed the anchors to clean skin
+  islands and regenerated the proof.
+- Rejected the inherited visible-partition face mask after direct owner review
+  found that it produced a generic oval rather than Scarlet's facial shape.
+  Re-traced forehead, temple, cheek, jaw, and chin landmarks against the locked
+  portrait, reducing the complete mask from 114,762 to 106,006 pixels and
+  adding a pixel-grid old/new contour proof.
+- Updated avatar validation to require V2 rejection, V3 face-gate lifecycle,
+  zero legacy support, blocked PSD admission, exact reference pixels, and a
+  transparent full-canvas face output.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:face-v3`
+- original-resolution inspection of transparent/checker, white, black, and
+  reference-pixel proof panels
+- source audit of every Puppet V2 material and PSD layer
+
+Residual Risk:
+
+The V3 face base is a candidate awaiting owner review. The current recompose
+image still uses rejected visible-partition evidence for the other organs and
+is diagnostic only. No other V3 organ and no V3 PSD has been produced.
+
+## 2026-07-20 - Scarlet Puppet V2 Full Material Assembly
+
+Historical note: this candidate was rejected on 2026-07-21 after the source
+audit recorded in BUG-0098 and ADR-0119. The entry below describes what was
+implemented at the time, not an active or Cubism-ready artifact.
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Apply the owner-approved complete-iris method across the remaining puppet
+surfaces, preserve the locked neutral identity, and produce one reviewable PSD
+without claiming that the Cubism rig already exists.
+
+Changes:
+
+- Promoted the right iris V2 to the owner-approved shared bilateral source and
+  reused it independently for both eyes.
+- Added a 59-material Puppet V2 contract covering face, eye stacks, facial
+  features, hair depth, torso, neck/collar, articulated limbs, joint covers,
+  boots, hands, and expression variants.
+- Registered every material to the master canvas and exported visible-master,
+  hidden-support, complete, crop, mask, and proof artifacts.
+- Separated exact neutral identity from deformation support: hidden completion
+  remains disabled in the neutral pose, and exact neutral master eyes remain
+  visible until Cubism activates the separately clipped eye stack.
+- Generated a `941x1672`, 103-layer PSD plus neutral reference/reconstruction,
+  difference map, depth map, contact sheet, and per-material proofs.
+- Rejected broad light-color fringe removal after it damaged valid pearl suit
+  pixels; retained surgical matte cleanup as a later reviewed boundary pass.
+- Extended avatar validation to open the generated PSD and fail on missing
+  groups, layers, dimensions, report files, or bilateral-iris approval state.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:right-iris-v2`
+- `cd frontend && npm run avatar:fidelity:puppet-v2`
+- `cd frontend && npm run avatar:validate`
+- original-resolution visual inspection of the final neutral reference and
+  reconstructed puppet
+
+Result:
+
+The pipeline reports 59 materials, 31 neutral materials, silhouette IoU
+`0.9672666849`, common-pixel RGB MAE `0.0746457296`, and successful PSD parsing
+with 103 layers. The metrics are advisory; visual inspection confirms that the
+approved face and eye effect survive assembly.
+
+Residual Risk:
+
+The PSD is an assembled candidate, not a completed Live2D model. Small matte
+artifacts inherited from the T-pose remain near selected hair/shoulder edges.
+Cubism ArtMeshes, clipping activation, deformers, extreme keyforms, physics,
+motions, `.moc3` export, and Android runtime verification remain pending.
+
+## 2026-07-20 - Scarlet Right Iris V2 Precision Gate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Replace the rejected whole-eye V1 candidate with one anatomically valid and
+independently reviewable right iris, without assembling a PSD or advancing any
+other body part.
+
+Changes:
+
+- Rejected intermediate variants that embedded the upper eyelid, showed a
+  rectangular master-pixel patch, used a photorealistic texture, retained a
+  painted checkerboard, or produced an excessive alpha halo.
+- Generated one seamless anime iris-and-pupil reconstruction from the approved
+  eye reference, removed the chroma background, normalized it to a circular
+  `512x512` canvas, and retained an `8px` high-resolution alpha feather.
+- Kept catchlight, eyelid, liner, skin, and sclera outside the movable iris and
+  added isolated-background, `44px`, neutral, and proof-only z-index sheets.
+- Recorded that minor retinal color differences are acceptable when Scarlet's
+  overall eye identity and effect remain coherent; anatomy, ownership, z-index,
+  and edge quality remain strict.
+- Marked the 26-asset V1 eye set as rejected evidence and added fail-closed V2
+  contract validation.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:right-iris-v2`
+- visual inspection of all four V2 proof sheets at original resolution
+- `cd frontend && npm run avatar:validate`
+- `cd frontend && npm run build`
+
+Residual Risk:
+
+The right iris V2 was subsequently owner-approved and reused bilaterally in
+Puppet V2. Catchlight, aperture, lids, lashes, sclera, and the PSD are now
+represented in that later assembly; Cubism rigging remains pending.
+
+## 2026-07-20 - Scarlet Semantic Eye Asset Gate Candidate
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Prepare the two-eye semantic asset gate without assembling a PSD, while
+respecting source fidelity, z-index ownership, hidden completion, and the
+separate future edge/transparency review requested by the owner.
+
+Changes:
+
+- Added a versioned eye contract and deterministic generator locked to the
+  approved portrait hash.
+- Rejected intermediate outputs when iris crops retained eyelid pixels, sclera
+  absorbed skin/liner, lower lashes absorbed the lid line, or generated support
+  visibly exceeded the eye aperture.
+- Exported 26 assets across visible-master, hidden-completion, complete, and
+  hidden-support roles, including separate lower lashes/lid lines and hidden
+  upper-lash roots.
+- Added asset, provenance, neutral, gaze-extrema, and blink-material proofs.
+- Kept PSD generation and final edge/alpha cleanup explicitly disabled and
+  extended avatar validation to enforce that boundary.
+
+Verification:
+
+- `cd frontend && npm run avatar:fidelity:eyes`
+- `cd frontend && npm run avatar:validate`
+- visual inspection of every generated proof at source resolution
+
+Residual Risk:
+
+The semantic ownership and support geometry are ready for owner review, but the
+candidate is not approved. Hard raster boundaries and synthetic sclera
+transitions remain intentionally visible for the later edge/alpha refinement
+pass. No PSD or Cubism material was created.
+
+## 2026-07-20 - Scarlet Live2D Occlusion And Hidden-Surface Audit
+
+Area: Product UI / Scarlet Live2D puppet.
+
+Type: Implementation analysis inside V1.54.0 on
+`sca-48-product-ui-prototype`.
+
+Goal:
+
+Re-evaluate every visible-pixel candidate as a moving Live2D material after the
+owner identified eyelid pixels inside the iris crop.
+
+Changes:
+
+- Audited all 34 current candidates for semantic contamination, mixed depth,
+  missing underlays, clipping, foreground occluders, and maximum-motion risks.
+- Added a versioned occlusion contract with explicit draw-order bands, one
+  eye-aperture mask per eye, ten support-material sets, and five controlled
+  reconstruction gates.
+- Reclassified the existing 34 PNGs as neutral pixel-partition evidence rather
+  than rig-ready materials.
+- Extended avatar validation so the occlusion audit must cover every current
+  candidate exactly once and every draw order/material record is structurally
+  valid.
+- Updated the authoring and fidelity manifests without modifying either locked
+  master or generating hidden artwork.
+
+Verification:
+
+- `cd frontend && npm run avatar:validate`
+- JSON contract validation covers 34/34 visible candidates and 10 support sets.
+
+Residual Risk:
+
+The contract identifies the required artwork but does not pretend that hidden
+pixels already exist. The next owner-reviewed gate is the two-eye system;
+Photoshop/Cubism assembly remains blocked until all semantic materials pass
+neutral and movement proofs.
+
+## 2026-07-20 - Scarlet Visible-Pixel Live2D Parts Gate
+
+Type:
+
+Implementation inside V1.54.0 on `sca-48-product-ui-prototype`.
+
+Goal:
+
+Replace heuristic/generated material separation with a reviewable matrix of
+exact visible pixels from the approved Scarlet portrait and T-pose masters,
+without beginning PSD assembly or hidden-art reconstruction.
+
+Changes:
+
+- Added `scarlet-visible-parts-matrix.json` with 34 named neutral materials,
+  anatomical side conventions, source roles, masks, rig purpose, and explicit
+  hidden-completion requirements.
+- Added `prepare-scarlet-visible-parts.mjs` to verify master hashes, extract
+  full-canvas and cropped PNGs, write binary masks and individual overlay
+  proofs, produce contact sheets/partition maps, and reconstruct selected
+  source regions.
+- Kept portrait child materials in portrait-native coordinates for one future
+  group transform; T-pose body materials remain in final canvas coordinates.
+- Marked the previous generated material pack and PSDs as superseded,
+  non-authoritative candidates rather than deleting them.
+- Updated the avatar validator to make the fidelity report/files the active
+  default and keep legacy PSD validation behind an explicit flag.
+
+Verification:
+
+- `npm run avatar:fidelity:register`
+- `npm run avatar:fidelity:parts`
+- `npm run avatar:validate`
+- `npm run build`
+- 34/34 parts non-empty: 19 portrait and 15 body.
+- Zero changed source RGB pixels and zero changed source alpha pixels.
+- Zero RGBA mismatch pixels in portrait and body selected-region
+  reconstructions.
+- Visual review performed on portrait/body contact sheets, partition maps,
+  face materials, hair masses, torso, limbs, and re-overlay proofs.
+
+Residual Risk:
+
+The owner has not yet approved the visual masks. Hidden hair/skin/body/joint
+continuations, expression variants, alternate hands, PSD assembly, and Cubism
+rigging remain intentionally out of scope.
+
+## 2026-07-20 - Scarlet Live2D Puppet Authoring Foundation (SCA-48)
+
+The TripoAI image-to-OBJ probe produced a recognizable Scarlet but insufficient
+mesh and visual quality. The owner selected an identity-preserving 2D puppet as
+the new avatar direction, with one full-body model framed differently by each
+screen and a strong emphasis on half-body anime expressions and gestures.
+
+Prepared a Live2D authoring contract without claiming that a static fallback is
+already a rig. The repository now contains the approved portrait, the generated
+full-body T-pose reference, a Photoshop JSX generator, a 4096x4096 layered PSD
+material-separation template, and a flattened inspection preview. The template
+keeps the approved portrait and body guide as locked references and establishes
+the groups required for face, eyes, brows, mouth, hair, body, arms, and effects.
+
+Added a model-independent TypeScript intent contract and resolver for action,
+emotion, gaze, speech, gesture, framing, priority, transitions, and TTL. Added a
+versioned authoring manifest plus source/model validation commands. The actual
+`.moc3` remains pending because Cubism Editor, its licensed material-separation
+plugin, and Cubism SDK/Core are not installed on the workstation; Photoshop
+2025 is present and successfully generated the source PSD.
+
+Verification covers Photoshop script execution, PSD/PNG dimensions, direct
+preview inspection, the source-only avatar validator, and the frontend
+TypeScript/Vite production build. The next valid step is material separation,
+Cubism rig authoring, model export, and only then Web SDK integration and mobile
+visual verification.
+
+## 2026-07-20 - Scarlet Splash And Character Identity Concept (SCA-48)
+
+Implemented the first Android-oriented Product UI step as an isolated static
+splash. `/prototype` now opens on the splash while the earlier product preview
+remains available through `?surface=product`; no backend, update, login,
+registration, or home flow was added.
+
+The owner replaced the robotic CSS mascot direction with an adult human anime
+identity. A generated 3D-style concept depicts Scarlet at an apparent age near
+25 with makeup, dark plum hair, Timber cyan/fuchsia details, pearl/graphite
+clothing, and a warm direct gaze. The chroma source was converted to a local
+transparent PNG and the splash integrates it through a reusable semantic
+avatar component. CSS provides only presentation movement, aura, and light;
+the concept does not claim real 3D expression or rigging.
+
+Production build passed without warnings. Real-browser screenshots and visual
+inspection covered `390x844`, compact `360x640`, and landscape `844x390`.
+Portrait and landscape remain exactly within the viewport, the character asset
+loads successfully, and the production browser reported no console warnings or
+errors. Final screenshots are stored as `mobile-splash.png` and
+`landscape-splash.png` under `docs/assets/product-ui-prototype/`.
+
+## 2026-07-19 - Scarlet Signal Product UI Redesign (SCA-48)
+
+The owner accepted the prototype's screens and functional structure but
+rejected the first visual direction as generic, overly cautious, and too close
+to common GPT-style products. The redesign preserved the isolated `/prototype`
+route, schema-realistic fixtures, states, and no-backend boundary while
+replacing the visual system end to end.
+
+Scarlet Signal now uses fuchsia, scarlet, and light blue as functional identity
+colors over cool neutral structure. A chromatic continuity line links the
+application rail, conversation, sessions, memories, runtime state, mobile
+navigation, and developer evidence. The chat no longer presents Scarlet as a
+stack of assistant cards: her answers are open editorial content, work notes
+are dark cognitive events, and the direct user channel has its own fuchsia
+surface. Sessions became numbered traces and memories remain compact,
+source-oriented repeated records. Variable Manrope and Space Grotesk fonts are
+self-hosted through npm dependencies.
+
+The frontend production build and npm audit pass with zero vulnerabilities.
+Browser inspection at 1440x1000 and 390x844 covered chat, sessions, memories,
+status, settings, developer lens, reconnect, drawer navigation, console, and
+horizontal overflow. No warning, error, clipping, or incoherent overlap was
+found. Nine updated screenshots are versioned under
+`docs/assets/product-ui-prototype/`. SCA-48 still requires explicit owner
+approval of this redesigned direction before integration.
+
+## 2026-07-19 - Static Mobile-First Product UI Prototype (SCA-48)
+
+Created `/prototype` as an isolated, clickable Product UI approval artifact.
+It uses no API calls and leaves the real `/` cockpit and `/mobile` client
+unchanged. Schema-realistic fixtures cover sessions, memory provenance, and
+the required `scarlet-stream-v2` envelope. The same responsive component tree
+exposes chat, continuity, memory, operating state, settings, and a developer
+lens rather than creating separate user and diagnostic applications.
+
+The developer lens can deterministically preview ready, empty, loading,
+streaming, reconnecting, and error states. The frontend pipeline moved from
+Tailwind 3/PostCSS to Tailwind CSS 4 through the official Vite plugin. Catalyst
+was unavailable in the repository/workspace, so local equivalent primitives
+are documented as temporary references for SCA-50 rather than a new shared
+design system.
+
+The production frontend build passed and `npm audit` reported zero
+vulnerabilities. Real-browser inspection at 1440x1000 and 390x844 exercised
+chat, session navigation, memory, the developer lens, scenario selection, and
+reconnect. It found and corrected one low-contrast user-message rule and one
+hidden mobile-menu accessibility issue. Final checks found no page overflow,
+console warning, console error, clipped primary control, or incoherent
+overlap. Four final screenshots are versioned under
+`docs/assets/product-ui-prototype/`. SCA-48 remains open pending explicit owner
+approval, and no runtime/database data entered the prototype.
+
+The branch was subsequently refreshed onto the V1.54.0 Agentic Module SDK
+baseline. Merge conflicts were limited to shared version and documentation
+surfaces; the prototype interaction and visual implementation stayed unchanged,
+and the explicit owner-approval gate remains active.
+
 ## 2026-07-19 - Agentic Module SDK And Conformance Kit (SCA-55)
 
 Implemented the public `scarlet-agentic-module-sdk` 1.0.0 package without

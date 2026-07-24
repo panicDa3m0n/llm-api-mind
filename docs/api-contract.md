@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-19
-App target: V1.54.0; V1.50.1 remains deployed and release-accepted
+Last reviewed: 2026-07-24
+App target: V1.55.2; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1598,24 +1598,28 @@ of `turn_complete`. A successful streamed recovery records
 `llm.completion.recovery.started`; both sync and stream response traces include
 the final `completion_recovery` object.
 
-Final-boundary invariant (V1.50.1): the private `<scarlet-final/>` marker
-remains the primary native boundary and is stripped before persistence. The
-first marker miss triggers one bounded correction. If the corrected second
-draft is non-empty but still omits the marker, the runtime does not auto-accept
-or rewrite it: it adds the hard semantic obligation
-`answer.final_boundary.semantic_recovery` and uses the structured LLM judge to
-verify that the draft is complete, standalone, conclusive, and independent of
-rejected public text. The original draft is accepted unchanged only when all
-hard semantic obligations pass. A progress note, fragment, `unknown`/`fail`
-finding, or unavailable validator remains HTTP 502 and creates no assistant
-message. `answer.validation.structural_final_boundary` records whether semantic
-recovery was attempted and accepted.
+Final-boundary invariant (V1.55.3): a non-empty native response with
+`stop_reason=end_turn` is the authoritative provider terminal and can become
+the final public answer after any independent semantic obligations pass.
+MiniMax documents `end_turn` as natural model completion and returns the answer
+inside response content blocks. The private `<scarlet-final/>` marker remains
+accepted only for backward compatibility and is stripped before public
+persistence and provider-history storage; the model is no longer instructed or
+required to emit it.
 
-Production acceptance at merge `676e560` verified the unchanged primary path:
-MiniMax emitted the marker on its first attempt, the runtime stripped it, and
-the native turn persisted a conclusive answer. The controlled V1.50.1 tests
-remain the evidence for second-miss semantic acceptance and rejection because
-the runtime does not force a provider failure in production.
+`max_tokens`, empty output, and other non-terminal results do not satisfy the
+native boundary. They retain one bounded correction and then fail explicitly
+with HTTP 502 if the second result is still non-terminal. Hard semantic
+obligations remain independent: a structurally complete `end_turn` can still
+receive one correction or fail when evidence validation returns `fail`,
+`unknown`, or unavailable. `answer.validation.structural_final_boundary`
+records `accepted`, `marker_stripped`, `provider_stop_reason`, and
+`boundary_source` (`provider_end_turn` or `private_marker`).
+
+Direct V1.55.3 verification completed one real markerless MiniMax M3 response
+on its first `end_turn`, persisted the public answer, and emitted
+`turn.completed`. Deterministic controls retain marker compatibility,
+non-terminal, empty-output, sync/stream, and semantic-obligation coverage.
 
 The canonical history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages
@@ -1882,6 +1886,9 @@ and terminal turn state remain available.
 The projector is allowlist-based. Full tool result envelopes and full runtime
 context blocks remain available through linked tool/trace APIs rather than
 being copied into every Product UI event.
+`llm.thinking.captured` retains protected-event metadata such as `has_text`,
+model step/index, phase, sequence, and trace links, but V1.55.2 removes its
+`payload.text` from both live V2 and replay.
 
 Terminal events are `turn.completed` and `turn.failed`. Transport closure is
 not a successful terminal state.
@@ -4082,8 +4089,8 @@ Contract:
 
 - obligations have `hard`, `warning`, or `advisory` severity and structural or
   semantic validation kind;
-- structural native completion uses a private marker that is removed before
-  canonical persistence and public delivery;
+- structural native completion requires non-empty public text and provider
+  `stop_reason=end_turn`; a legacy private marker is removed when present;
 - semantic validation uses a structured LLM judgment only when semantic
   obligations exist;
 - a hard failure permits one correction and then fails explicitly;
@@ -4189,6 +4196,39 @@ POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
+
+## Product UI Consumer Mapping
+
+Status: implemented in V1.55.0; activity/evidence projection refined in
+V1.55.2; no new HTTP operation added
+
+`/prototype` uses the existing consumer-safe surface:
+
+```txt
+GET  /health
+POST /api/chat/sessions
+GET  /api/chat/sessions
+GET  /api/chat/sessions/{session_id}/messages
+POST /api/chat/sessions/{session_id}/turn/stream-v2
+GET  /api/chat/sessions/{session_id}/events
+GET  /api/dashboard/memories
+GET  /api/dashboard/profile
+GET  /api/dashboard/settings
+PUT  /api/dashboard/settings
+```
+
+The Product client does not call debug, internal Mind, GPT bridge, or
+maintenance operations. A visible control without one of the approved
+consumer contracts must remain unavailable rather than synthesize a local
+success. Local `scarlet/scarlet` access is not an HTTP authentication contract.
+
+The Chat consumer validates `scarlet-stream-v2`, session identity, event-id
+idempotency, contiguous session sequence, replay cursor progress, visibility,
+and terminal events. Authored text remains public-only. An exact
+consumer-activity allowlist may narrate diagnostic lifecycle facts for
+context, memory, bounded thinking status, Mind actions, and relevant state.
+Protected events stay hidden by default and can expose only redacted metadata
+through the local evidence inspector.
 
 ## Agentic Module Public Contracts
 

@@ -144,7 +144,9 @@ def _client_payload(event: CognitiveEvent) -> dict[str, Any]:
         for key, value in source.items()
         if key in COMMON_CLIENT_PAYLOAD_FIELDS
     }
-    if event.type == "memory.context.built":
+    if event.type == "llm.thinking.captured":
+        payload.pop("text", None)
+    elif event.type == "memory.context.built":
         for key in ("selected", "near_miss", "conflicts"):
             value = source.get(key)
             if isinstance(value, list):

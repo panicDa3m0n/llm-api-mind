@@ -118,17 +118,7 @@ def test_controlled_providers_expose_final_boundary_difference() -> None:
     gate.IncompleteGateProvider.reset_observations()
     failed = incomplete.generate_chat(messages=[], system="negative")
     assert "<scarlet-final/>" not in failed.text
-    rejected = incomplete.generate_text(
-        prompt=json.dumps(
-            {
-                "obligations": [
-                    {"id": "answer.final_boundary.semantic_recovery"}
-                ]
-            }
-        ),
-        system="runtime answer-obligation judge",
-    )
-    assert json.loads(rejected.text)["findings"][0]["status"] == "fail"
+    assert failed.stop_reason == "max_tokens"
 
 
 def test_delivery_oracle_distinguishes_projection_and_completion() -> None:

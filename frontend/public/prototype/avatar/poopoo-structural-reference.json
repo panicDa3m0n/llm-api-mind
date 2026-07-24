@@ -1,0 +1,2786 @@
+{
+  "schema_version": "layered-avatar-structural-reference-v1",
+  "source": "public/prototype/avatar/Poopoo.psd",
+  "source_sha256": "6041f9b2ef9db5fdea74aad79c3af4c2e0c9496916d2befb42e455e7fa4a6127",
+  "source_bytes": 67864395,
+  "usage_boundary": {
+    "permitted": [
+      "layer hierarchy reference",
+      "anatomical asset inventory reference",
+      "clipping and blend-mode reference",
+      "z-order and grouping reference"
+    ],
+    "forbidden": [
+      "copying source pixels into Scarlet assets",
+      "using source artwork as a Scarlet texture",
+      "deriving Scarlet identity, colors, anatomy, or costume from this character"
+    ],
+    "scarlet_visual_authority": [
+      "public/prototype/scarlet-character-v1.png",
+      "public/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png"
+    ]
+  },
+  "canvas": {
+    "width": 3500,
+    "height": 9341
+  },
+  "order_semantics": "bottom-to-top",
+  "counts": {
+    "roots": 8,
+    "groups": 22,
+    "raster_layers": 105,
+    "hidden": 2,
+    "clipped": 12,
+    "non_normal_blend": 7
+  },
+  "blend_modes": {
+    "normal": 98,
+    "pass through": 22,
+    "multiply": 1,
+    "linear dodge": 6
+  },
+  "clipped_layers": [
+    {
+      "path": [
+        "lower body",
+        "leg l",
+        "Chain"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Neck Tat"
+      ],
+      "blend_mode": "multiply",
+      "opacity": 0.7607843137254902
+    },
+    {
+      "path": [
+        "Head",
+        "Blush l"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "Blush r"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "Face Sh"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Mouth",
+        "Inner Mouth",
+        "Tongue"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Mouth",
+        "Inner Mouth",
+        "Teeth Bk"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Mouth",
+        "Inner Mouth",
+        "Teeth Low"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Mouth",
+        "Inner Mouth",
+        "Teeth Up"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Nose",
+        "Nose Line"
+      ],
+      "blend_mode": "normal",
+      "opacity": 1
+    }
+  ],
+  "non_normal_layers": [
+    {
+      "path": [
+        "Neck Tat"
+      ],
+      "blend_mode": "multiply",
+      "opacity": 0.7607843137254902
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Big Light"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 0.5686274509803921
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Lil Lights"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Highlight"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 0.5568627450980392
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Big Light"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 0.5686274509803921
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Lil Lights"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 1
+    },
+    {
+      "path": [
+        "Head",
+        "facial",
+        "Eye",
+        "Iris",
+        "Highlight"
+      ],
+      "blend_mode": "linear dodge",
+      "opacity": 0.5568627450980392
+    }
+  ],
+  "hidden_layers": [
+    [
+      "Head",
+      "mask"
+    ],
+    [
+      "Head",
+      "facial",
+      "Mouth",
+      "Inner Mouth",
+      "Tongue Out"
+    ]
+  ],
+  "hierarchy": [
+    {
+      "name": "Background",
+      "path": [
+        "Background"
+      ],
+      "kind": "raster-layer",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 3500,
+        "bottom": 9341
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "name": "Hair Bk",
+      "path": [
+        "Hair Bk"
+      ],
+      "kind": "group",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "pass through",
+      "opacity": 1,
+      "children": [
+        {
+          "name": "Short Hair Bk",
+          "path": [
+            "Hair Bk",
+            "Short Hair Bk"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1068,
+            "top": 398,
+            "right": 2525,
+            "bottom": 1870
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Long Hair 2",
+          "path": [
+            "Hair Bk",
+            "Long Hair 2"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 602,
+            "top": 1581,
+            "right": 1709,
+            "bottom": 2520
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Long Hair",
+          "path": [
+            "Hair Bk",
+            "Long Hair"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 745,
+            "top": 1476,
+            "right": 1700,
+            "bottom": 2454
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Long Hair 2",
+          "path": [
+            "Hair Bk",
+            "Long Hair 2"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1791,
+            "top": 1581,
+            "right": 2898,
+            "bottom": 2520
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Long Hair",
+          "path": [
+            "Hair Bk",
+            "Long Hair"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1800,
+            "top": 1476,
+            "right": 2755,
+            "bottom": 2454
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "name": "lower body",
+      "path": [
+        "lower body"
+      ],
+      "kind": "group",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "pass through",
+      "opacity": 1,
+      "children": [
+        {
+          "name": "Cape",
+          "path": [
+            "lower body",
+            "Cape"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 716,
+            "top": 3567,
+            "right": 2784,
+            "bottom": 6185
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Leg r",
+          "path": [
+            "lower body",
+            "Leg r"
+          ],
+          "kind": "group",
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "pass through",
+          "opacity": 1,
+          "children": [
+            {
+              "name": "Sock",
+              "path": [
+                "lower body",
+                "Leg r",
+                "Sock"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 2134,
+                "top": 8115,
+                "right": 2408,
+                "bottom": 8593
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Shoe",
+              "path": [
+                "lower body",
+                "Leg r",
+                "Shoe"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 2094,
+                "top": 8295,
+                "right": 2689,
+                "bottom": 9225
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Leg r",
+              "path": [
+                "lower body",
+                "Leg r",
+                "Leg r"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1785,
+                "top": 3639,
+                "right": 2522,
+                "bottom": 8351
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "name": "leg l",
+          "path": [
+            "lower body",
+            "leg l"
+          ],
+          "kind": "group",
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "pass through",
+          "opacity": 1,
+          "children": [
+            {
+              "name": "Sock",
+              "path": [
+                "lower body",
+                "leg l",
+                "Sock"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1092,
+                "top": 8115,
+                "right": 1366,
+                "bottom": 8593
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Shoe",
+              "path": [
+                "lower body",
+                "leg l",
+                "Shoe"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 811,
+                "top": 8295,
+                "right": 1406,
+                "bottom": 9225
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Leg l",
+              "path": [
+                "lower body",
+                "leg l",
+                "Leg l"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 978,
+                "top": 3639,
+                "right": 1715,
+                "bottom": 8351
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Chain",
+              "path": [
+                "lower body",
+                "leg l",
+                "Chain"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 818,
+                "top": 4801,
+                "right": 1303,
+                "bottom": 5261
+              },
+              "hidden": false,
+              "clipping": true,
+              "blend_mode": "normal",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "name": "Croutch",
+          "path": [
+            "lower body",
+            "Croutch"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1077,
+            "top": 3679,
+            "right": 2424,
+            "bottom": 4839
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Leg Strap",
+          "path": [
+            "lower body",
+            "Leg Strap"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1025,
+            "top": 3643,
+            "right": 1687,
+            "bottom": 4905
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "name": "arms",
+      "path": [
+        "arms"
+      ],
+      "kind": "group",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "pass through",
+      "opacity": 1,
+      "children": [
+        {
+          "name": "Upper Arm",
+          "path": [
+            "arms",
+            "Upper Arm"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 2272,
+            "top": 2037,
+            "right": 2808,
+            "bottom": 3612
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Hand",
+          "path": [
+            "arms",
+            "Hand"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 2489,
+            "top": 4429,
+            "right": 2808,
+            "bottom": 5213
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Lower Arm",
+          "path": [
+            "arms",
+            "Lower Arm"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 2483,
+            "top": 3291,
+            "right": 2881,
+            "bottom": 4551
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Arm L v lazily not separateted",
+          "path": [
+            "arms",
+            "Arm L v lazily not separateted"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 94,
+            "top": 2055,
+            "right": 1077,
+            "bottom": 3734
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        }
+      ]
+    },
+    {
+      "name": "Neck",
+      "path": [
+        "Neck"
+      ],
+      "kind": "raster-layer",
+      "bounds": {
+        "left": 1570,
+        "top": 1294,
+        "right": 1932,
+        "bottom": 1993
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "normal",
+      "opacity": 1
+    },
+    {
+      "name": "Neck Tat",
+      "path": [
+        "Neck Tat"
+      ],
+      "kind": "raster-layer",
+      "bounds": {
+        "left": 1762,
+        "top": 1585,
+        "right": 2025,
+        "bottom": 2023
+      },
+      "hidden": false,
+      "clipping": true,
+      "blend_mode": "multiply",
+      "opacity": 0.7607843137254902
+    },
+    {
+      "name": "Torso",
+      "path": [
+        "Torso"
+      ],
+      "kind": "group",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "pass through",
+      "opacity": 1,
+      "children": [
+        {
+          "name": "Shirt",
+          "path": [
+            "Torso",
+            "Shirt"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 902,
+            "top": 1777,
+            "right": 2606,
+            "bottom": 3732
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Jacket",
+          "path": [
+            "Torso",
+            "Jacket"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1042,
+            "top": 1878,
+            "right": 2494,
+            "bottom": 3965
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Torso Accessories ",
+          "path": [
+            "Torso",
+            "Torso Accessories "
+          ],
+          "kind": "group",
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "pass through",
+          "opacity": 1,
+          "children": [
+            {
+              "name": "Chain L",
+              "path": [
+                "Torso",
+                "Torso Accessories ",
+                "Chain L"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1177,
+                "top": 2217,
+                "right": 1341,
+                "bottom": 2809
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Flower",
+              "path": [
+                "Torso",
+                "Torso Accessories ",
+                "Flower"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1196,
+                "top": 2041,
+                "right": 1427,
+                "bottom": 2247
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Chest Chain",
+              "path": [
+                "Torso",
+                "Torso Accessories ",
+                "Chest Chain"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1578,
+                "top": 2038,
+                "right": 1947,
+                "bottom": 2930
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Pin2",
+              "path": [
+                "Torso",
+                "Torso Accessories ",
+                "Pin2"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1894,
+                "top": 1991,
+                "right": 1943,
+                "bottom": 2076
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            },
+            {
+              "name": "Pin1",
+              "path": [
+                "Torso",
+                "Torso Accessories ",
+                "Pin1"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 1536,
+                "top": 1966,
+                "right": 1629,
+                "bottom": 2059
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            }
+          ]
+        },
+        {
+          "name": "Hand l v lazily separateted",
+          "path": [
+            "Torso",
+            "Hand l v lazily separateted"
+          ],
+          "kind": "group",
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "pass through",
+          "opacity": 1,
+          "children": [
+            {
+              "name": "Hand L",
+              "path": [
+                "Torso",
+                "Hand l v lazily separateted",
+                "Hand L"
+              ],
+              "kind": "raster-layer",
+              "bounds": {
+                "left": 916,
+                "top": 3214,
+                "right": 1609,
+                "bottom": 3723
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "normal",
+              "opacity": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Head",
+      "path": [
+        "Head"
+      ],
+      "kind": "group",
+      "bounds": {
+        "left": 0,
+        "top": 0,
+        "right": 0,
+        "bottom": 0
+      },
+      "hidden": false,
+      "clipping": false,
+      "blend_mode": "pass through",
+      "opacity": 1,
+      "children": [
+        {
+          "name": "Face Base",
+          "path": [
+            "Head",
+            "Face Base"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1291,
+            "top": 509,
+            "right": 2207,
+            "bottom": 1742
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Blush l",
+          "path": [
+            "Head",
+            "Blush l"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1218,
+            "top": 1178,
+            "right": 1698,
+            "bottom": 1583
+          },
+          "hidden": false,
+          "clipping": true,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Blush r",
+          "path": [
+            "Head",
+            "Blush r"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1802,
+            "top": 1178,
+            "right": 2282,
+            "bottom": 1583
+          },
+          "hidden": false,
+          "clipping": true,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Face Sh",
+          "path": [
+            "Head",
+            "Face Sh"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1051,
+            "top": 1041,
+            "right": 2447,
+            "bottom": 2006
+          },
+          "hidden": false,
+          "clipping": true,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Whisker Tat",
+          "path": [
+            "Head",
+            "Whisker Tat"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1350,
+            "top": 1377,
+            "right": 1494,
+            "bottom": 1456
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "Face Line",
+          "path": [
+            "Head",
+            "Face Line"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1286,
+            "top": 507,
+            "right": 2211,
+            "bottom": 1745
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "mask",
+          "path": [
+            "Head",
+            "mask"
+          ],
+          "kind": "raster-layer",
+          "bounds": {
+            "left": 1586,
+            "top": 1484,
+            "right": 1912,
+            "bottom": 1844
+          },
+          "hidden": true,
+          "clipping": false,
+          "blend_mode": "normal",
+          "opacity": 1
+        },
+        {
+          "name": "facial",
+          "path": [
+            "Head",
+            "facial"
+          ],
+          "kind": "group",
+          "bounds": {
+            "left": 0,
+            "top": 0,
+            "right": 0,
+            "bottom": 0
+          },
+          "hidden": false,
+          "clipping": false,
+          "blend_mode": "pass through",
+          "opacity": 1,
+          "children": [
+            {
+              "name": "Mouth",
+              "path": [
+                "Head",
+                "facial",
+                "Mouth"
+              ],
+              "kind": "group",
+              "bounds": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "pass through",
+              "opacity": 1,
+              "children": [
+                {
+                  "name": "Inner Mouth",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Mouth",
+                    "Inner Mouth"
+                  ],
+                  "kind": "group",
+                  "bounds": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "pass through",
+                  "opacity": 1,
+                  "children": [
+                    {
+                      "name": "Inner Mouth",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Inner Mouth"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1631,
+                        "top": 1516,
+                        "right": 1868,
+                        "bottom": 1641
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Tongue",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Tongue"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1678,
+                        "top": 1567,
+                        "right": 1819,
+                        "bottom": 1632
+                      },
+                      "hidden": false,
+                      "clipping": true,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Teeth Bk",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Teeth Bk"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1649,
+                        "top": 1559,
+                        "right": 1849,
+                        "bottom": 1646
+                      },
+                      "hidden": false,
+                      "clipping": true,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Teeth Low",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Teeth Low"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1675,
+                        "top": 1602,
+                        "right": 1822,
+                        "bottom": 1664
+                      },
+                      "hidden": false,
+                      "clipping": true,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Teeth Up",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Teeth Up"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1656,
+                        "top": 1499,
+                        "right": 1842,
+                        "bottom": 1572
+                      },
+                      "hidden": false,
+                      "clipping": true,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Tongue Out",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Mouth",
+                        "Inner Mouth",
+                        "Tongue Out"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1686,
+                        "top": 1567,
+                        "right": 1811,
+                        "bottom": 1708
+                      },
+                      "hidden": true,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    }
+                  ]
+                },
+                {
+                  "name": "Lip Low",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Mouth",
+                    "Lip Low"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1620,
+                    "top": 1540,
+                    "right": 1878,
+                    "bottom": 1651
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Lip Up",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Mouth",
+                    "Lip Up"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1619,
+                    "top": 1439,
+                    "right": 1879,
+                    "bottom": 1578
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Lip Sh",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Mouth",
+                    "Lip Sh"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1732,
+                    "top": 1583,
+                    "right": 1767,
+                    "bottom": 1604
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "name": "Eye",
+              "path": [
+                "Head",
+                "facial",
+                "Eye"
+              ],
+              "kind": "group",
+              "bounds": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "pass through",
+              "opacity": 1,
+              "children": [
+                {
+                  "name": "Eyebrow Sh",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyebrow Sh"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1289,
+                    "top": 1046,
+                    "right": 1705,
+                    "bottom": 1275
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Double Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Double Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1379,
+                    "top": 1141,
+                    "right": 1638,
+                    "bottom": 1212
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eye White",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eye White"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1376,
+                    "top": 1178,
+                    "right": 1621,
+                    "bottom": 1306
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Iris",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Iris"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1430,
+                    "top": 1142,
+                    "right": 1606,
+                    "bottom": 1308
+                  },
+                  "hidden": false,
+                  "clipping": true,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Iris",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Iris"
+                  ],
+                  "kind": "group",
+                  "bounds": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "pass through",
+                  "opacity": 1,
+                  "children": [
+                    {
+                      "name": "Big Light",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Big Light"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1452,
+                        "top": 1196,
+                        "right": 1592,
+                        "bottom": 1321
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 0.5686274509803921
+                    },
+                    {
+                      "name": "Lil Lights",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Lil Lights"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1482,
+                        "top": 1232,
+                        "right": 1570,
+                        "bottom": 1271
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Pupil",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Pupil"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1503,
+                        "top": 1192,
+                        "right": 1557,
+                        "bottom": 1244
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Highlight",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Highlight"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1502,
+                        "top": 1184,
+                        "right": 1549,
+                        "bottom": 1225
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Highlight",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Highlight"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1477,
+                        "top": 1231,
+                        "right": 1607,
+                        "bottom": 1274
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 0.5568627450980392
+                    }
+                  ]
+                },
+                {
+                  "name": "Lower Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Lower Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1341,
+                    "top": 1142,
+                    "right": 1639,
+                    "bottom": 1372
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Lower Eyelash",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Lower Eyelash"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1380,
+                    "top": 1270,
+                    "right": 1512,
+                    "bottom": 1327
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eye Corner",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eye Corner"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1362,
+                    "top": 1178,
+                    "right": 1403,
+                    "bottom": 1254
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1327,
+                    "top": 1158,
+                    "right": 1641,
+                    "bottom": 1270
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyelash",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyelash"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1499,
+                    "top": 1134,
+                    "right": 1542,
+                    "bottom": 1175
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyebrow",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyebrow"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1355,
+                    "top": 1057,
+                    "right": 1654,
+                    "bottom": 1153
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "name": "Eye",
+              "path": [
+                "Head",
+                "facial",
+                "Eye"
+              ],
+              "kind": "group",
+              "bounds": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "pass through",
+              "opacity": 1,
+              "children": [
+                {
+                  "name": "Eyebrow Sh",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyebrow Sh"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1792,
+                    "top": 1046,
+                    "right": 2209,
+                    "bottom": 1275
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Double Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Double Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1860,
+                    "top": 1141,
+                    "right": 2118,
+                    "bottom": 1212
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eye White",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eye White"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1877,
+                    "top": 1178,
+                    "right": 2121,
+                    "bottom": 1305
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Iris",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Iris"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1892,
+                    "top": 1142,
+                    "right": 2069,
+                    "bottom": 1308
+                  },
+                  "hidden": false,
+                  "clipping": true,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Iris",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Iris"
+                  ],
+                  "kind": "group",
+                  "bounds": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "pass through",
+                  "opacity": 1,
+                  "children": [
+                    {
+                      "name": "Big Light",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Big Light"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1906,
+                        "top": 1196,
+                        "right": 2046,
+                        "bottom": 1321
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 0.5686274509803921
+                    },
+                    {
+                      "name": "Lil Lights",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Lil Lights"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1928,
+                        "top": 1232,
+                        "right": 2016,
+                        "bottom": 1271
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Pupil",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Pupil"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1940,
+                        "top": 1192,
+                        "right": 1996,
+                        "bottom": 1244
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Highlight",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Highlight"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1948,
+                        "top": 1184,
+                        "right": 1997,
+                        "bottom": 1225
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Highlight",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Eye",
+                        "Iris",
+                        "Highlight"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1891,
+                        "top": 1231,
+                        "right": 2021,
+                        "bottom": 1274
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "linear dodge",
+                      "opacity": 0.5568627450980392
+                    }
+                  ]
+                },
+                {
+                  "name": "Lower Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Lower Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1859,
+                    "top": 1142,
+                    "right": 2157,
+                    "bottom": 1372
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Lower Eyelash",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Lower Eyelash"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1985,
+                    "top": 1270,
+                    "right": 2117,
+                    "bottom": 1327
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eye Corner",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eye Corner"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 2094,
+                    "top": 1178,
+                    "right": 2136,
+                    "bottom": 1254
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyelid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyelid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1857,
+                    "top": 1158,
+                    "right": 2171,
+                    "bottom": 1270
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyelash",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyelash"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1955,
+                    "top": 1134,
+                    "right": 2000,
+                    "bottom": 1175
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Eyebrow",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Eye",
+                    "Eyebrow"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1843,
+                    "top": 1057,
+                    "right": 2143,
+                    "bottom": 1153
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "name": "Nose",
+              "path": [
+                "Head",
+                "facial",
+                "Nose"
+              ],
+              "kind": "group",
+              "bounds": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "pass through",
+              "opacity": 1,
+              "children": [
+                {
+                  "name": "Nose Mask",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Nose",
+                    "Nose Mask"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1724,
+                    "top": 1422,
+                    "right": 1774,
+                    "bottom": 1467
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Nose Line",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Nose",
+                    "Nose Line"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1745,
+                    "top": 846,
+                    "right": 1754,
+                    "bottom": 1510
+                  },
+                  "hidden": false,
+                  "clipping": true,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Nose Blush",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Nose",
+                    "Nose Blush"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1633,
+                    "top": 1281,
+                    "right": 1866,
+                    "bottom": 1497
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Nose Hl",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Nose",
+                    "Nose Hl"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1722,
+                    "top": 1355,
+                    "right": 1776,
+                    "bottom": 1455
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                }
+              ]
+            },
+            {
+              "name": "Hair Fr",
+              "path": [
+                "Head",
+                "facial",
+                "Hair Fr"
+              ],
+              "kind": "group",
+              "bounds": {
+                "left": 0,
+                "top": 0,
+                "right": 0,
+                "bottom": 0
+              },
+              "hidden": false,
+              "clipping": false,
+              "blend_mode": "pass through",
+              "opacity": 1,
+              "children": [
+                {
+                  "name": "Hair Mid2",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Hair Mid2"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1061,
+                    "top": 423,
+                    "right": 2547,
+                    "bottom": 1395
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Hair Mid",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Hair Mid"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 963,
+                    "top": 493,
+                    "right": 2537,
+                    "bottom": 1285
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Ahoge3",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Ahoge3"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1711,
+                    "top": 254,
+                    "right": 1993,
+                    "bottom": 576
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Ahoge2",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Ahoge2"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1453,
+                    "top": 250,
+                    "right": 1774,
+                    "bottom": 486
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Ahoge",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Ahoge"
+                  ],
+                  "kind": "raster-layer",
+                  "bounds": {
+                    "left": 1617,
+                    "top": 182,
+                    "right": 1871,
+                    "bottom": 524
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "normal",
+                  "opacity": 1
+                },
+                {
+                  "name": "Ear",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "Ear"
+                  ],
+                  "kind": "group",
+                  "bounds": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "pass through",
+                  "opacity": 1,
+                  "children": [
+                    {
+                      "name": "ear l",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "Ear",
+                        "ear l"
+                      ],
+                      "kind": "group",
+                      "bounds": {
+                        "left": 0,
+                        "top": 0,
+                        "right": 0,
+                        "bottom": 0
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "pass through",
+                      "opacity": 1,
+                      "children": [
+                        {
+                          "name": "Inner Ear",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear l",
+                            "Inner Ear"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 1073,
+                            "top": 280,
+                            "right": 1384,
+                            "bottom": 674
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "Fluff",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear l",
+                            "Fluff"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 1129,
+                            "top": 441,
+                            "right": 1381,
+                            "bottom": 695
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "Ear Out",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear l",
+                            "Ear Out"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 1174,
+                            "top": 279,
+                            "right": 1488,
+                            "bottom": 653
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "earring l2",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear l",
+                            "earring l2"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 1127,
+                            "top": 595,
+                            "right": 1168,
+                            "bottom": 836
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "earring l",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear l",
+                            "earring l"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 1128,
+                            "top": 572,
+                            "right": 1176,
+                            "bottom": 631
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        }
+                      ]
+                    },
+                    {
+                      "name": "ear r",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "Ear",
+                        "ear r"
+                      ],
+                      "kind": "group",
+                      "bounds": {
+                        "left": 0,
+                        "top": 0,
+                        "right": 0,
+                        "bottom": 0
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "pass through",
+                      "opacity": 1,
+                      "children": [
+                        {
+                          "name": "Inner Ear",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear r",
+                            "Inner Ear"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 2113,
+                            "top": 280,
+                            "right": 2425,
+                            "bottom": 674
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "Fluff",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear r",
+                            "Fluff"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 2116,
+                            "top": 441,
+                            "right": 2369,
+                            "bottom": 695
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "Ear Out",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear r",
+                            "Ear Out"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 2010,
+                            "top": 279,
+                            "right": 2324,
+                            "bottom": 653
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "earring  r2",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear r",
+                            "earring  r2"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 2336,
+                            "top": 520,
+                            "right": 2431,
+                            "bottom": 628
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        },
+                        {
+                          "name": "earring  r",
+                          "path": [
+                            "Head",
+                            "facial",
+                            "Hair Fr",
+                            "Ear",
+                            "ear r",
+                            "earring  r"
+                          ],
+                          "kind": "raster-layer",
+                          "bounds": {
+                            "left": 2377,
+                            "top": 433,
+                            "right": 2462,
+                            "bottom": 490
+                          },
+                          "hidden": false,
+                          "clipping": false,
+                          "blend_mode": "normal",
+                          "opacity": 1
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "name": "bangs",
+                  "path": [
+                    "Head",
+                    "facial",
+                    "Hair Fr",
+                    "bangs"
+                  ],
+                  "kind": "group",
+                  "bounds": {
+                    "left": 0,
+                    "top": 0,
+                    "right": 0,
+                    "bottom": 0
+                  },
+                  "hidden": false,
+                  "clipping": false,
+                  "blend_mode": "pass through",
+                  "opacity": 1,
+                  "children": [
+                    {
+                      "name": "Bang R2",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang R2"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1778,
+                        "top": 476,
+                        "right": 2535,
+                        "bottom": 1322
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang Strand",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang Strand"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1889,
+                        "top": 496,
+                        "right": 2211,
+                        "bottom": 942
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Clips",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Clips"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 2029,
+                        "top": 928,
+                        "right": 2178,
+                        "bottom": 1065
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang L2",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang L2"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 893,
+                        "top": 709,
+                        "right": 1594,
+                        "bottom": 1272
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang R",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang R"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1775,
+                        "top": 553,
+                        "right": 2247,
+                        "bottom": 1108
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang L",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang L"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1325,
+                        "top": 518,
+                        "right": 1699,
+                        "bottom": 1019
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang L Up",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang L Up"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1181,
+                        "top": 650,
+                        "right": 1594,
+                        "bottom": 1109
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang Mid Sh",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang Mid Sh"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1542,
+                        "top": 543,
+                        "right": 1966,
+                        "bottom": 1499
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 0.23137254901960785
+                    },
+                    {
+                      "name": "Bang Mid2",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang Mid2"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1543,
+                        "top": 507,
+                        "right": 1974,
+                        "bottom": 1453
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    },
+                    {
+                      "name": "Bang Mid",
+                      "path": [
+                        "Head",
+                        "facial",
+                        "Hair Fr",
+                        "bangs",
+                        "Bang Mid"
+                      ],
+                      "kind": "raster-layer",
+                      "bounds": {
+                        "left": 1604,
+                        "top": 505,
+                        "right": 1884,
+                        "bottom": 1377
+                      },
+                      "hidden": false,
+                      "clipping": false,
+                      "blend_mode": "normal",
+                      "opacity": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

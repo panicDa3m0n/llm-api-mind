@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0",
+  "reference_set": "scarlet-reference-360-v1",
+  "purpose": "Supporting visual references for generating consistent static Scarlet portraits from angles not covered by the approved front images.",
+  "authority_policy": {
+    "approved_front_identity": "/prototype/scarlet-character-v1.png",
+    "approved_full_body_front": "/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png",
+    "generated_views": "The owner approved this supporting 360-degree pack on 2026-07-22. These views explain hidden geometry, but never override the approved face, front hair topology, body proportions, or front costume details."
+  },
+  "orientation": {
+    "side_names": "Scarlet's anatomical side, not the viewer's side",
+    "turntable_order": [
+      "front",
+      "front_right_three_quarter",
+      "right_profile",
+      "rear_right_three_quarter",
+      "back",
+      "rear_left_three_quarter",
+      "left_profile",
+      "front_left_three_quarter"
+    ]
+  },
+  "views": [
+    {
+      "id": "front",
+      "path": "/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png",
+      "status": "approved-authority",
+      "role": "Front full-body proportions, costume, hands, legs, and footwear"
+    },
+    {
+      "id": "front_right_three_quarter",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-front-right-three-quarter-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Right facial volume and front-to-right costume continuity"
+    },
+    {
+      "id": "right_profile",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-right-profile-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Right face silhouette, cyan lock depth, posture, and side costume"
+    },
+    {
+      "id": "rear_right_three_quarter",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-rear-right-three-quarter-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Right-side transition into natural rear hair and costume"
+    },
+    {
+      "id": "back",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-back-natural-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Natural rear silhouette, hair length, color distribution, and visible lower costume"
+    },
+    {
+      "id": "rear_left_three_quarter",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-rear-left-three-quarter-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Left-side transition into natural rear hair and costume"
+    },
+    {
+      "id": "left_profile",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-left-profile-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Left face silhouette, magenta hair depth, posture, and side costume"
+    },
+    {
+      "id": "front_left_three_quarter",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-front-left-three-quarter-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Left facial volume and front-to-left costume continuity"
+    }
+  ],
+  "supporting_details": [
+    {
+      "id": "back_costume_exposed",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-back-costume-exposed-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Hidden rear collar, shoulder, spine, waist, and hip panel reference; not a natural hairstyle pose"
+    },
+    {
+      "id": "hands_cuffs",
+      "path": "/prototype/avatar/static/reference-360/approved/scarlet-hands-cuffs-reference-v1.png",
+      "status": "approved-supporting-reference",
+      "role": "Left/right palms, hand backs, manicure, cuff geometry, and sleeve termination"
+    }
+  ],
+  "known_limits": [
+    "Approved supporting views can contain small rendering drift and remain subordinate to the two canonical front authorities.",
+    "The approved portrait remains the only authority for close facial identity and makeup.",
+    "The approved T-pose remains the authority for front body proportions and costume placement.",
+    "Views use a neutral studio background for comparison and are not application-ready portrait assets."
+  ]
+}

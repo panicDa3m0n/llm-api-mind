@@ -19,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current development target: **V1.54.0**. The closed, deployed Core baseline is
+Current development target: **V1.55.2**. The closed, deployed Core baseline is
 **V1.50.1**.
 
 The project has a working local baseline runtime:
@@ -54,6 +54,8 @@ The project has a working local baseline runtime:
   next-turn operational context;
 - provider-independent `scarlet-stream-v2` events with durable ids,
   session-global replay cursors, and deterministic recovery semantics;
+- an isolated `/prototype` Product UI approval surface with schema-realistic
+  V2 fixtures, mobile-first responsive flows, and a developer evidence lens;
 - strict Agentic Module manifest and typed Core Port V1 contracts with
   deterministic compatibility, permission, dependency, and mode planning;
 - an opt-in, operator-pinned Agentic Module Host with bounded out-of-process
@@ -130,6 +132,24 @@ than hidden Core blockers.
 
 ## Local Run
 
+For a fresh clone on another development machine, install Git LFS before
+materializing the checkout:
+
+```bash
+git lfs install
+git clone https://github.com/panicDa3m0n/llm-api-mind.git
+cd llm-api-mind
+git checkout <checkpoint-branch>
+git lfs pull
+git lfs ls-files
+```
+
+Git LFS carries the reviewed laboratory snapshot and large PSD research
+artifacts. Provider credentials and `.env` files are intentionally excluded:
+restore them separately through a secure channel and never add them to Git.
+The repository database is laboratory state only and must not be copied to the
+VPS production mount.
+
 Backend:
 
 ```bash
@@ -151,6 +171,25 @@ Open:
 ```txt
 http://127.0.0.1:5173
 ```
+
+Product UI entry-flow review:
+
+```txt
+http://127.0.0.1:5173/prototype
+http://127.0.0.1:5173/prototype?screen=splash
+http://127.0.0.1:5173/prototype?screen=login
+http://127.0.0.1:5173/prototype?screen=register
+http://127.0.0.1:5173/prototype?screen=home
+http://127.0.0.1:5173/prototype?screen=chat
+http://127.0.0.1:5173/prototype?screen=memory
+http://127.0.0.1:5173/prototype?screen=sessions
+http://127.0.0.1:5173/prototype?screen=profile
+```
+
+The prototype login is local and fake. Use `scarlet` / `scarlet`; no account
+or credential is sent to the backend. The post-login Home also uses only local
+demonstration data and simulated actions; it does not read or write the
+database.
 
 The local UI is a Tailwind-based Scarlet dashboard with recent sessions,
 conversation, live agent stream, semantic memories, user profile, and runtime

@@ -15,10 +15,7 @@ from app.llm.provider import (
 )
 from app.main import create_app
 from app.runtime.history_compaction import build_chronology_source_map
-from app.runtime.answer_obligations import (
-    NATIVE_FINAL_MARKER,
-    NATIVE_FINALITY_RECOVERY_ID,
-)
+from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage import repositories
 
 
@@ -624,20 +621,22 @@ class FakeAnswerBoundaryRecoveryProvider(FakeChatProvider):
         if self.__class__.calls == 1:
             text = "Controllo un momento e poi ti rispondo."
             provider_message_id = "provider_progress_only"
+            stop_reason = "max_tokens"
         else:
             text = f"Eccomi, ho concluso la risposta.\n{NATIVE_FINAL_MARKER}"
             provider_message_id = "provider_corrected_final"
+            stop_reason = "end_turn"
         return LLMTextResult(
             model=self.settings.minimax_model,
             text=text,
             usage={"input_tokens": 10, "output_tokens": 5},
             provider_message_id=provider_message_id,
             raw_content=[{"type": "text", "text": text}],
-            stop_reason="end_turn",
+            stop_reason=stop_reason,
             raw_provider_messages=[
                 {
                     "id": provider_message_id,
-                    "stop_reason": "end_turn",
+                    "stop_reason": stop_reason,
                     "content": [{"type": "text", "text": text}],
                 }
             ],
@@ -651,11 +650,11 @@ class FakeAnswerBoundaryRecoveryProvider(FakeChatProvider):
             text=text,
             provider_message_id="provider_progress_only",
             raw_content=[{"type": "text", "text": text}],
-            stop_reason="end_turn",
+            stop_reason="max_tokens",
             raw_provider_messages=[
                 {
                     "id": "provider_progress_only",
-                    "stop_reason": "end_turn",
+                    "stop_reason": "max_tokens",
                     "content": [{"type": "text", "text": text}],
                 }
             ],
@@ -687,11 +686,12 @@ class FakeAnswerBoundaryFailureProvider(FakeAnswerBoundaryRecoveryProvider):
         return result.model_copy(
             update={
                 "text": text,
+                "stop_reason": "max_tokens",
                 "raw_content": [{"type": "text", "text": text}],
                 "raw_provider_messages": [
                     {
                         "id": result.provider_message_id,
-                        "stop_reason": "end_turn",
+                        "stop_reason": "max_tokens",
                         "content": [{"type": "text", "text": text}],
                     }
                 ],
@@ -2400,6 +2400,11 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         event for event in events if event["event_type"] == "runtime.context.built"
     )
     assert "blocks" not in runtime_context_event["payload"]
+    thinking_event = next(
+        event for event in events if event["event_type"] == "llm.thinking.captured"
+    )
+    assert thinking_event["payload"]["has_text"] is True
+    assert "text" not in thinking_event["payload"]
     terminal = next(
         event for event in events if event["event_type"] == "turn.completed"
     )
@@ -2656,9 +2661,7 @@ def test_native_answer_boundary_fails_after_second_progress_only_draft(
     assert detail["code"] == "llm.incomplete_response"
     assert detail["details"]["reason"] == "answer_obligation_failed"
     assert detail["details"]["attempt_count"] == 2
-    assert detail["details"]["hard_failure_ids"] == [
-        NATIVE_FINALITY_RECOVERY_ID
-    ]
+    assert detail["details"]["hard_failure_ids"] == ["answer.final_boundary"]
     with Session(db_engine) as db:
         turns = repositories.list_turns_for_session(db, session_id=session["id"])
         messages = repositories.list_messages(db, session_id=session["id"])
@@ -2691,19 +2694,16 @@ def test_native_answer_boundary_accepts_conclusive_second_draft_without_marker(
     ][-1]["payload"]
     assert validation["accepted"] is True
     assert validation["structural_final_boundary"] == {
-        "accepted": False,
+        "accepted": True,
         "marker_stripped": False,
-        "semantic_recovery_attempted": True,
-        "semantic_recovery_accepted": True,
+        "provider_stop_reason": "end_turn",
+        "boundary_source": "provider_end_turn",
     }
     assert validation["semantic"]["accepted"] is True
-    assert validation["semantic"]["hard_failure_ids"] == []
-    assert NATIVE_FINALITY_RECOVERY_ID in {
-        item["id"] for item in validation["manifest"]["obligations"]
-    }
+    assert validation["semantic"]["validator_status"] == "not_required"
 
 
-def test_native_answer_boundary_never_sends_empty_second_draft_to_fallback_judge(
+def test_native_answer_boundary_rejects_empty_second_end_turn(
     db_engine: Engine,
 ) -> None:
     client = make_answer_boundary_client(
@@ -2729,9 +2729,12 @@ def test_native_answer_boundary_never_sends_empty_second_draft_to_fallback_judge
         trace for trace in traces if trace["kind"] == "answer.validation"
     ][-1]["payload"]
     assert validation["semantic"] is None
-    assert validation["structural_final_boundary"][
-        "semantic_recovery_attempted"
-    ] is False
+    assert validation["structural_final_boundary"] == {
+        "accepted": False,
+        "marker_stripped": False,
+        "provider_stop_reason": "end_turn",
+        "boundary_source": None,
+    }
 
 
 def test_streaming_answer_boundary_emits_only_the_accepted_final_answer(

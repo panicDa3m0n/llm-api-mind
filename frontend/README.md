@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-App baseline: V1.34.0.
+Development target: V1.55.3. Deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -17,7 +17,16 @@ Current scope:
   language;
 - developer model inspector for the exact system/runtime/provider/tool request;
 - separate `/mobile` consumer surface for chat, memory, profile, and settings;
-- Tailwind component styling with raw JSON kept in technical detail views.
+- isolated `/prototype` static V2 Product UI approval surface with no backend
+  calls, schema-realistic fixtures, responsive flows, deterministic preview
+  states, the fuchsia/scarlet/light-blue Scarlet Signal identity, self-hosted
+  variable typography, and an integrated developer lens;
+- Tailwind CSS 4 through the official Vite plugin, with raw JSON kept in
+  technical detail views for the real cockpit.
+
+The prototype contract, component equivalence notes, visual tokens, states,
+and screenshots live in `../docs/product-ui-prototype.md`. The prototype is
+not a real client and must not be connected to Core data before owner approval.
 
 ## Setup
 
@@ -48,6 +57,12 @@ Open:
 
 ```txt
 http://127.0.0.1:5173
+```
+
+Static Product UI prototype:
+
+```txt
+http://127.0.0.1:5173/prototype
 ```
 
 ## Build

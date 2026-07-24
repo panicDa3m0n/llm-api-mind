@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 deployed; V1.54.0 module SDK target implemented
+Architecture baseline: Core V1.50.1 deployed; V1.55.2 Product UI activity stream and evidence inspector tested
 Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-19
+Last updated: 2026-07-24
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -207,7 +207,7 @@ The initial stack should optimize for fast experiments, inspectability, and futu
 
 ### 4.1 Backend
 
-Preferred:
+Current product direction:
 
 ```txt
 Python
@@ -277,23 +277,26 @@ tool policy, or accounting.
 Preferred:
 
 ```txt
-Vite
-React
-TypeScript
-minimal debug cockpit
+Vite + React + TypeScript
+Tailwind CSS 4
+one responsive Product UI
+one integrated but separable developer lens
 ```
 
-Purpose:
+Product purpose:
 
-- chat with the agent;
-- inspect turn traces;
-- inspect tool calls;
-- inspect memories;
-- inspect events;
-- inspect current agent state;
-- compare baseline and mind-agent runs later.
+- keep chat as the first ordinary-user surface;
+- expose episodic continuity, semantic memory, current operating state, and
+  settings without requiring architecture knowledge;
+- reconstruct turns from provider-independent persisted events; and
+- let evaluators inspect traces, tool calls, events, and exact evidence through
+  the developer lens without duplicating the application.
 
-The frontend is not a landing page and not a polished product at first. It is an experimental cockpit.
+The V1 cockpit and mobile consumer remain active compatibility clients. The
+V1.52.0 `/prototype` route is an isolated, fixture-backed approval artifact;
+it is neither a landing page nor a real Core client. SCA-50 may extract an
+approved responsive foundation, and SCA-49 may connect it to Core only after
+explicit owner approval recorded on SCA-48.
 
 ### 4.4 Background Processes
 
