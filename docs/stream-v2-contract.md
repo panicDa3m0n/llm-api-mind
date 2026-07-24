@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-24
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.56.0
+Contract introduced: V1.51.0; current app target: V1.56.1
 Linear issue: SCA-47
 
 ## 1. Purpose
@@ -89,6 +89,8 @@ deduplicates by `event_id`.
 POST /api/chat/sessions/{session_id}/turn/stream-v2
 Content-Type: application/json
 Response: application/x-ndjson
+Cache-Control: no-cache, no-transform
+X-Accel-Buffering: no
 X-Scarlet-Stream-Schema: scarlet-stream-v2
 X-Scarlet-Turn-ID: turn_...
 ```
@@ -96,6 +98,9 @@ X-Scarlet-Turn-ID: turn_...
 The request body is the existing `ChatTurnRequest`. The response emits only
 persisted V2 events. A successful turn includes `turn.completed`; a failed
 turn includes `turn.failed`. Stream closure alone is never proof of success.
+The no-buffer/no-transform headers are part of the live-delivery contract:
+reverse proxies must forward each complete NDJSON event as it arrives rather
+than accumulating the turn until completion.
 
 ### Replay and reconnect
 
@@ -109,7 +114,8 @@ The initiating POST runs independently from the HTTP consumer. Closing the
 response therefore does not cancel the native turn. The GET emits only durable
 events after the exclusive cursor and stops at `turn.completed` or
 `turn.failed`. Product clients retain the returned turn id, deduplicate by
-`event_id`, and retry this GET at most five times.
+`event_id`, and retry this GET at most five times. The reconnect response uses
+the same no-buffer/no-transform headers as the initiating POST.
 
 Session-wide replay and gap repair remain available through:
 

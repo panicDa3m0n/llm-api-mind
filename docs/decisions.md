@@ -10,7 +10,7 @@ content and chronology were not rewritten.
 ## ADR-0133 - One Product UI Build, Explicit Web And Android Delivery Profiles
 
 Date: 2026-07-25
-Status: accepted for V1.56.0
+Status: accepted for V1.56.1
 
 Context:
 
@@ -29,10 +29,13 @@ Decision:
 - bundle web assets inside the Android application and point only API traffic
   at `https://honeylabs.cloud/scarlet-api`;
 - enable Capacitor HTTP for native cross-origin transport;
-- forward Basic Auth only from credentials actively entered in the native test
-  login, retain them only in memory, and require login again after a native
-  cold start;
-- never embed the preview password in source, generated assets, or the APK;
+- use the owner-approved `scarlet/scarlet` pair as an intentionally visible,
+  compiled test credential for both protected web and Android preview;
+- forward Basic Auth only after the pair is actively entered, retain the
+  resulting authorization value only in memory, and require login again after
+  a native cold start;
+- treat this known pair as a temporary single-owner preview gate, never as a
+  secret or production-grade account boundary;
 - emit only the approved runtime portrait and greeting video, leaving puppet,
   PSD, rig, and reference sources outside production bundles; and
 - use Capacitor 7 because the current cross-machine Node 20 baseline satisfies
@@ -43,7 +46,8 @@ Consequences:
 The APK and protected web preview now exercise the same Product UI and Core.
 The current login remains a private-preview gate, not production identity.
 Real account ownership, secure token issuance, release signing, Play Store
-delivery, and persistent native credential storage remain future work.
+delivery, revocable credentials, and persistent native credential storage
+remain future work.
 
 Links:
 

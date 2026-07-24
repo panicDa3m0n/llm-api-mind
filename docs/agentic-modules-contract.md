@@ -1,7 +1,7 @@
 # Agentic Modules Contract
 
 Last updated: 2026-07-19
-App target: V1.56.0 over the release-accepted V1.50.1 Core
+App target: V1.56.1 over the release-accepted V1.50.1 Core
 Contract status: accepted public V1 contract; opt-in host and SDK implemented
 Linear issues: SCA-53, SCA-54, SCA-55
 

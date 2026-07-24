@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-24
-App target: V1.56.0; V1.50.1 remains deployed and release-accepted
+App target: V1.56.1; V1.50.1 remains release-accepted
 
 ## Response Philosophy
 
@@ -1867,13 +1867,22 @@ Run the same native turn while exposing only persisted, replayable
 }
 ```
 
-The response media type is `application/x-ndjson` and includes header
-`X-Scarlet-Stream-Schema: scarlet-stream-v2` and
-`X-Scarlet-Turn-ID: turn_...`. `seq` is the durable
-session-global event cursor; `event_id` is the idempotency key. Token deltas
-and partial provider blocks are deliberately absent because they cannot be
-replayed. Completed notes, answers, tool states, errors, persisted messages,
-and terminal turn state remain available.
+The response media type is `application/x-ndjson` and includes:
+
+```txt
+Cache-Control: no-cache, no-transform
+X-Accel-Buffering: no
+X-Scarlet-Stream-Schema: scarlet-stream-v2
+X-Scarlet-Turn-ID: turn_...
+```
+
+`seq` is the durable session-global event cursor; `event_id` is the
+idempotency key. The no-buffer/no-transform headers require reverse proxies to
+deliver complete event lines as they are persisted instead of aggregating the
+turn until the final answer. Token deltas and partial provider blocks are
+deliberately absent because they cannot be replayed. Completed notes, answers,
+tool states, errors, persisted messages, and terminal turn state remain
+available.
 
 The projector is allowlist-based. Full tool result envelopes and full runtime
 context blocks remain available through linked tool/trace APIs rather than
@@ -1894,7 +1903,8 @@ GET /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2?after_seq=42
 ```
 
 The cursor is exclusive and the stream ends at that turn's durable terminal
-event. The frontend V2 transport retries this reconnection at most five times.
+event. Reconnect responses carry the same no-buffer/no-transform headers. The
+frontend V2 transport retries this reconnection at most five times.
 
 ### GET /api/chat/sessions/{session_id}/events
 

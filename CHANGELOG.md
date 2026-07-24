@@ -6,6 +6,37 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.56.1 - Android Preview Test Access
+
+#### Fixed
+
+- Make `scarlet/scarlet` the explicit Android preview account and verify that
+  pair against the protected VPS `/health` endpoint before opening the Product
+  UI.
+- Preserve the infrastructure boundary: unauthenticated VPS requests still
+  receive `401`, credentials stay in application memory only, and logout or a
+  failed verification clears them.
+- Document the known test pair truthfully as an intentionally compiled preview
+  credential, not as a secret or production account boundary.
+- Align Android, frontend, backend, OpenAPI, and module-conformance version
+  metadata to V1.56.1.
+- Prevent reverse-proxy buffering on Stream V2 so persisted context, memory,
+  thinking, tool, note, and state blocks reach Product Chat while Scarlet is
+  working instead of arriving together with the final answer.
+
+#### Verification
+
+- Protected VPS authentication returns `401` without credentials and `200`
+  with `scarlet/scarlet`.
+- Stream V2 response and reconnect contracts explicitly emit
+  `X-Accel-Buffering: no` and `Cache-Control: no-cache, no-transform`.
+- APK V1.56.1 installed on Samsung SM-S918B / Android 14, accepted
+  `scarlet/scarlet`, and hydrated Home from real VPS sessions and memories
+  without application `401`, `500`, JavaScript, or native errors.
+- Focused Stream V2 tests, VPS-profile build, and dependency audit pass; final
+  physical-device acceptance checks incremental block composition during a
+  real Scarlet turn.
+
 ### V1.56.0 - Product UI Web And Android Delivery
 
 #### Added

@@ -89,6 +89,8 @@ discovers common JDK 21 installations on macOS and Windows. The resulting APK
 is `android/app/build/outputs/apk/debug/app-debug.apk`.
 
 The Android application bundles the Product UI and calls
-`https://honeylabs.cloud/scarlet-api`. Its private-preview Basic Auth value is
-never compiled into the package: the native app forwards only the credentials
-entered during the current login and forgets them after a cold start.
+`https://honeylabs.cloud/scarlet-api`. The owner-approved
+`scarlet/scarlet` pair is an intentionally visible test credential compiled
+into the debug preview. The native app forwards it only after entry and
+forgets the resulting authorization value after a cold start. It is not a
+secret or a production account boundary.

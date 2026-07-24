@@ -42,8 +42,8 @@ export function AuthScreen({
   async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (
-      !nativeAuthentication &&
-      (username.trim() !== credentials.username || password !== credentials.password)
+      username.trim() !== credentials.username ||
+      password !== credentials.password
     ) {
       setFeedback({
         kind: "error",
@@ -168,7 +168,9 @@ export function AuthScreen({
 
             <p className="scarlet-auth__test-hint">
               {nativeAuthentication ? (
-                "Usa le credenziali del tuo spazio Scarlet"
+                <>
+                  Accesso di prova <code>scarlet</code> / <code>scarlet</code>
+                </>
               ) : (
                 <>
                   Accesso di prova <code>scarlet</code> / <code>scarlet</code>

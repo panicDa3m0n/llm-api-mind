@@ -45,6 +45,11 @@ from app.storage.models import ChatSession
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
+STREAM_V2_RESPONSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+    "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+}
 
 
 class ChatSessionCreate(BaseModel):
@@ -190,7 +195,7 @@ def build_chat_router(
             ),
             media_type="application/x-ndjson",
             headers={
-                "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+                **STREAM_V2_RESPONSE_HEADERS,
                 "X-Scarlet-Turn-ID": prepared.turn_id,
             },
         )
@@ -222,7 +227,7 @@ def build_chat_router(
             ),
             media_type="application/x-ndjson",
             headers={
-                "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+                **STREAM_V2_RESPONSE_HEADERS,
                 "X-Scarlet-Turn-ID": turn_id,
             },
         )

@@ -1,7 +1,7 @@
 # Scarlet Product UI
 
 Last updated: 2026-07-24
-Current app target: V1.56.0; Product UI is connected to Core on web and Android
+Current app target: V1.56.1; Product UI is connected to Core on web and Android
 Linear issue: SCA-48
 Status: implemented, connected, activity/evidence pass under owner evaluation
 
@@ -110,12 +110,15 @@ Registration has no Core contract. Submitting it opens the shared centered
 Successful `scarlet/scarlet` test authentication opens the Product dashboard;
 logout returns to the authentication card.
 
-The Android build does not use those demo values. It accepts the credentials
-for the protected Scarlet VPS, holds the resulting Basic authorization value
-only in application memory, validates it with `/health`, and opens the Product
-dashboard only after the Core accepts it. A failure clears the volatile
-authorization value. Logout also clears it, and a native cold start always
-returns to Login instead of restoring an unauthenticated local session.
+The Android preview uses the same `scarlet/scarlet` test pair. It holds the
+resulting Basic authorization value only in application memory, validates it
+with the protected VPS `/health`, and opens the Product dashboard only after
+the Core accepts it. A failure clears the volatile authorization value. Logout
+also clears it, and a native cold start always returns to Login instead of
+restoring an unauthenticated local session. This is a single-owner preview
+gate, not the future account and registration architecture. The pair is
+deliberately visible in the test UI and compiled into the debug APK; it is not
+a secret or a production-grade security boundary.
 
 Primary actions preserve white text above their animated Scarlet-color hover
 fill. The authentication card uses a clean perimeter without a decorative
@@ -217,6 +220,12 @@ final answer. Persisted V2 evidence is rendered in canonical sequence:
 user -> context -> memory -> reflection status -> public note
 -> action receipt(s) -> relevant state -> final answer
 ```
+
+Each complete durable event line is applied to React state immediately.
+Stream V2 responses declare `X-Accel-Buffering: no` and
+`Cache-Control: no-cache, no-transform`; the protected VPS location also keeps
+proxy buffering and proxy caching disabled. A proxy must never hold these
+blocks until terminal completion.
 
 Context, memory, bounded thinking status, action, and state bubbles are
 deterministic consumer projections of persisted events. They describe only

@@ -2222,6 +2222,8 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         json={"message": "inspect schema first"},
     ) as response:
         assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-cache, no-transform"
+        assert response.headers["x-accel-buffering"] == "no"
         assert response.headers["x-scarlet-stream-schema"] == "scarlet-stream-v2"
         turn_id = response.headers["x-scarlet-turn-id"]
         events = [json.loads(line) for line in response.iter_lines() if line]
@@ -2307,6 +2309,8 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         params={"after_seq": terminal["seq"] - 1},
     ) as resumed:
         assert resumed.status_code == 200
+        assert resumed.headers["cache-control"] == "no-cache, no-transform"
+        assert resumed.headers["x-accel-buffering"] == "no"
         assert resumed.headers["x-scarlet-turn-id"] == turn_id
         resumed_events = [
             json.loads(line) for line in resumed.iter_lines() if line

@@ -4,6 +4,54 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-25 - V1.56.1 Android Preview Test Access
+
+Area: Product UI Android / protected VPS preview authentication.
+
+Type: Fix on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Make the owner-approved `scarlet/scarlet` preview account work end to end on
+the physical Android test device without presenting it as production account
+infrastructure.
+
+Changes:
+
+- rotated the protected VPS preview Basic Auth to `scarlet/scarlet` after
+  preserving the previous htpasswd file;
+- made the Product UI gate accept only the canonical preview pair;
+- retained the real VPS `/health` verification before native entry;
+- kept credentials volatile and cleared on failure, logout, or cold start; and
+- made live and reconnect Stream V2 responses explicitly non-bufferable and
+  non-transformable so the proxy cannot hold incremental event blocks until
+  terminal completion;
+- advanced application and Android metadata to V1.56.1.
+
+Verification:
+
+- Nginx configuration test and reload passed;
+- `/scarlet-api/health` returns `401` unauthenticated and `200` with the
+  canonical preview pair;
+- read-only production evidence showed the affected real turn persisted
+  events incrementally from `22:51:43` through `22:52:48`, while the deployed
+  Nginx location retained default proxy buffering; this isolated delivery
+  buffering from Scarlet's cognitive runtime;
+- the corrected Nginx configuration is backed up at
+  `/var/backups/scarlet-mobile-test/honeylabs-20260724T225452Z-pre-stream-unbuffered.conf`;
+- connected Samsung SM-S918B, Android 14/API 34, accepted APK version code
+  `15601`, completed `scarlet/scarlet` login, and hydrated Home from the real
+  VPS with 65 active memories, 100 recent conversations, latest activity
+  `19 Jul`, and real recent-memory content;
+- no application `401`, `500`, JavaScript, or native error appeared during
+  Login-to-Home inspection; and
+- focused Stream V2 tests passed with no-buffer headers on live and reconnect
+  responses, the VPS-profile frontend build passed with 2,035 modules, and
+  `npm audit` reported zero vulnerabilities.
+
+The owner's next real Product Chat turn remains the acceptance check for
+incremental visual composition on the physical device.
+
 ## 2026-07-25 - V1.56.0 Product UI VPS And Android Packaging
 
 Area: Product UI / Capacitor Android / protected VPS delivery.

@@ -7,6 +7,48 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0116 - Product Chat Buffered Live Blocks Until Final Answer
+
+Date Found: 2026-07-25
+Status: fixed locally in V1.56.1; VPS/device verification pending
+
+Symptoms:
+
+- Product Chat showed no context, memory, thinking, action, or note blocks
+  while Scarlet worked;
+- all blocks appeared together only when the final answer completed.
+
+Root Cause:
+
+The Product client consumed and applied every NDJSON line incrementally, and
+the Core persisted events throughout the turn, but the protected Nginx proxy
+used its default response buffering. Stream V2 did not declare
+`X-Accel-Buffering: no`, so small durable event lines could be accumulated at
+the delivery boundary.
+
+Fix:
+
+- mark both live and reconnect Stream V2 responses with
+  `X-Accel-Buffering: no`;
+- add `Cache-Control: no-cache, no-transform`;
+- disable proxy buffering and proxy cache on the protected VPS API location;
+  and
+- retain the existing persisted-event contract and React incremental reducer.
+
+Regression Coverage:
+
+- focused API integration asserts both no-buffer headers on initial and
+  reconnect responses;
+- direct VPS timing verifies multiple event lines arrive before terminal
+  completion; and
+- physical-device Product Chat verifies blocks compose during the live turn.
+
+Related:
+
+- `docs/stream-v2-contract.md`
+- `backend/app/api/chat.py`
+- `frontend/src/api.ts`
+
 ## BUG-0114 - Product UI Hid Thinking And Invented Pending Cognition
 
 Date Found: 2026-07-24
