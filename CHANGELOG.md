@@ -36,6 +36,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Focused Stream V2 tests, VPS-profile build, and dependency audit pass; final
   physical-device acceptance checks incremental block composition during a
   real Scarlet turn.
+- V1.56.1 is deployed from commit `acffb10`; pre/post production DB preflights
+  remain direct and healthy, OpenAPI reports the new version, and the public
+  stream is chunked through an explicitly unbuffered Nginx location.
 
 ### V1.56.0 - Product UI Web And Android Delivery
 

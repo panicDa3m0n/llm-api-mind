@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0116 - Product Chat Buffered Live Blocks Until Final Answer
 
 Date Found: 2026-07-25
-Status: fixed locally in V1.56.1; VPS/device verification pending
+Status: fixed and deployed in V1.56.1; owner device acceptance pending
 
 Symptoms:
 
@@ -39,9 +39,9 @@ Regression Coverage:
 
 - focused API integration asserts both no-buffer headers on initial and
   reconnect responses;
-- direct VPS timing verifies multiple event lines arrive before terminal
-  completion; and
-- physical-device Product Chat verifies blocks compose during the live turn.
+- protected VPS responses are chunked, non-cacheable, and served through a
+  location with proxy buffering disabled; and
+- physical-device Product Chat visual acceptance remains with the owner.
 
 Related:
 

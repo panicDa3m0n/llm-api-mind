@@ -49,8 +49,30 @@ Verification:
   responses, the VPS-profile frontend build passed with 2,035 modules, and
   `npm audit` reported zero vulnerabilities.
 
-The owner's next real Product Chat turn remains the acceptance check for
-incremental visual composition on the physical device.
+Deployment:
+
+- commit `acffb1004870673c5a351769960c67cb95f31507` was pushed and recorded in
+  `/opt/scarlet-mobile-test/DEPLOYED_COMMIT`;
+- online production backup
+  `/var/backups/scarlet-mobile-test/v1561-20260724T225930Z/app.db.pre-v1561`
+  passed integrity and has SHA-256
+  `ee07084c29331c57020f26597a5a27a43e2f395aa5a11cb4c12d5a8c807c3873`;
+- new-image preflight passed before restart, and post-deploy preflight remained
+  `production`, `codex_test=false`, direct isolation, 29 tables, integrity
+  `ok`;
+- public health remained `401` unauthenticated and `200` with the canonical
+  preview pair; OpenAPI reports V1.56.1;
+- the protected V2 response is chunked and exposes
+  `Cache-Control: no-cache, no-transform`; Nginx consumes the upstream
+  no-buffer instruction and independently keeps `proxy_buffering off` and
+  `proxy_cache off`; and
+- the previous frontend is retained at
+  `/var/www/scarlet.pre-v1561-20260724T230341Z`, while a reproducible
+  `scarlet-mobile-api:rollback-v1560` image was rebuilt from the previously
+  deployed commit.
+
+The owner's next real Product Chat turn remains the visual acceptance check
+for incremental composition on the physical device.
 
 ## 2026-07-25 - V1.56.0 Product UI VPS And Android Packaging
 
