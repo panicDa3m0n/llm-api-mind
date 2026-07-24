@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 from contextlib import suppress
 from pathlib import Path
 from typing import Any
@@ -155,6 +156,26 @@ def resolve_entrypoint(
     directory: Path,
     manifest: AgenticModuleManifest,
 ) -> list[str]:
+    executable = resolve_entrypoint_file(directory, manifest)
+    command = [str(executable), *manifest.runtime.entrypoint[1:]]
+    if _is_python_entrypoint(executable):
+        return [sys.executable, *command]
+    return command
+
+
+def resolve_entrypoint_file(
+    directory: Path,
+    manifest: AgenticModuleManifest,
+) -> Path:
     first = Path(os.path.expanduser(manifest.runtime.entrypoint[0]))
-    executable = first if first.is_absolute() else (directory / first).resolve()
-    return [str(executable), *manifest.runtime.entrypoint[1:]]
+    return first if first.is_absolute() else (directory / first).resolve()
+
+
+def _is_python_entrypoint(path: Path) -> bool:
+    if path.suffix.casefold() in {".py", ".pyw"}:
+        return True
+    try:
+        first_line = path.open("rb").readline(256).decode("utf-8", errors="ignore")
+    except OSError:
+        return False
+    return first_line.startswith("#!") and "python" in first_line.casefold()

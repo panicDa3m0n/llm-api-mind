@@ -143,7 +143,7 @@ discussed before a new fix is attempted.
   proof, and incomplete-turn negative control.
 - `docs/evaluations/v1.50.1-native-finality-recovery.md`: historical production
   marker-omission evidence and the semantic fallback later superseded by the
-  provider-native `end_turn` contract in ADR-0125.
+  provider-native `end_turn` contract in ADR-0132.
 - `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
   regression gate for major reworks and architectural procedures.
 - `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,

@@ -24,12 +24,13 @@
       "fallback_asset": "/prototype/scarlet-character-v1.png",
       "media": "video",
       "playback": {
-        "autoplay": true,
-        "loop": {
-          "first_pass_start_seconds": 0,
-          "subsequent_pass_start_seconds": 2,
-          "end_seconds": "media-duration"
-        },
+        "preload": "auto",
+        "autoplay": false,
+        "trigger": "application_ready",
+        "start_seconds": 0,
+        "end_seconds": "media-duration",
+        "loop": false,
+        "on_ended": "transition_to_login",
         "muted": true,
         "plays_inline": true,
         "reduced_motion": "Use fallback_asset and do not load or play the video."

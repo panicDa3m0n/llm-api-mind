@@ -2257,6 +2257,7 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         event for event in events if event["event_type"] == "llm.thinking.captured"
     )
     assert thinking["visibility"] == "debug"
+    assert thinking["payload"]["text"] == "I should inspect the schema."
     assert not {
         "thinking_delta",
         "text_delta",

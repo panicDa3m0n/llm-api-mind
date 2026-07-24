@@ -24,7 +24,7 @@ import {
   X
 } from "lucide-react";
 import type { FormEvent, ReactNode } from "react";
-import { useMemo, useState } from "react";
+import { useLayoutEffect, useMemo, useState } from "react";
 
 import "@fontsource-variable/manrope";
 import "@fontsource-variable/space-grotesk";
@@ -60,7 +60,7 @@ import {
   type PrototypeView
 } from "./prototypeData";
 import { narrateActivity, narrationReceipt } from "./prototypeNarration";
-import { SplashScreen } from "./SplashScreen";
+import { AppEntryFlow } from "./AppEntryFlow";
 import "./prototype.css";
 
 type DetailSelection =
@@ -77,8 +77,18 @@ const navigation: Array<{ id: PrototypeView; label: string; icon: ReactNode }> =
 export function PrototypeApp() {
   const surface = new URLSearchParams(window.location.search).get("surface");
 
+  useLayoutEffect(() => {
+    document.documentElement.classList.add("scarlet-prototype-document");
+    document.body.classList.add("scarlet-prototype-document");
+
+    return () => {
+      document.documentElement.classList.remove("scarlet-prototype-document");
+      document.body.classList.remove("scarlet-prototype-document");
+    };
+  }, []);
+
   if (surface !== "product") {
-    return <SplashScreen />;
+    return <AppEntryFlow />;
   }
 
   return <ProductPreview />;

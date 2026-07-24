@@ -66,22 +66,26 @@ export type StreamEventData = Record<string, unknown> & {
   turn_id?: string;
 };
 
-export type ScarletStreamV2Event = {
+export type ScarletStreamVisibility = "public" | "debug" | "private";
+
+export type ScarletStreamPhase =
+  | "created"
+  | "streaming"
+  | "executing"
+  | "completed"
+  | "persisted"
+  | "failed";
+
+export type ScarletStreamEvent = {
   schema_version: "scarlet-stream-v2";
   event_id: string;
   seq: number;
   session_id: string;
   turn_id: string | null;
   event_type: string;
-  phase:
-    | "created"
-    | "streaming"
-    | "executing"
-    | "completed"
-    | "persisted"
-    | "failed";
+  phase: ScarletStreamPhase;
   timestamp: string;
-  visibility: "public" | "debug" | "private";
+  visibility: ScarletStreamVisibility;
   links: {
     parent_event_id: string | null;
     trace_id: string | null;
@@ -89,6 +93,18 @@ export type ScarletStreamV2Event = {
     message_id: string | null;
   };
   payload: Record<string, unknown>;
+};
+
+export type ScarletStreamReplay = {
+  schema_version: "scarlet-stream-v2";
+  session_id: string;
+  events: ScarletStreamEvent[];
+  cursor: {
+    requested_after_seq: number;
+    next_after_seq: number;
+    latest_seq: number;
+    has_more: boolean;
+  };
 };
 
 export type AgentStep = {

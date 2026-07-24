@@ -7,7 +7,46 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
-## BUG-0103 - Native Completion Used Private Conventions Instead Of Stop Reasons
+## BUG-0114 - Product UI Hid Thinking And Invented Pending Cognition
+
+Date Found: 2026-07-24
+Status: fixed locally in V1.55.4; deployment pending
+
+Symptoms:
+
+- Stream V2 stripped completed provider thinking even though the runtime
+  retained it as development evidence;
+- the evidence modal always replaced thinking text with a redaction message;
+- the UI inserted `ui.activity.pending` before any Core event existed; and
+- deterministic copy claimed Scarlet was separating known facts from checks
+  without evidence that this was the current reasoning operation.
+
+Root Cause:
+
+The Windows UI branch applied a production-style privacy assumption that the
+project owner had not adopted and used optimistic semantic narration to cover
+the interval before the first persisted event.
+
+Fix:
+
+V1.55.4 preserves completed provider thinking in Stream V2, enables the
+development-evidence view by default, keeps non-thinking private values
+redacted, removes the synthetic cognition bubble, and grounds context, memory,
+and thinking narration in actual event facts.
+
+Regression Coverage:
+
+- backend Stream V2 integration asserts the captured thinking text;
+- Product browser coverage rejects `ui.activity.pending`, checks the
+  development-evidence preference, and opens an unredacted thinking receipt;
+- replay and same-turn reconnect remain part of the integrated UI contract.
+
+Related:
+
+- ADR-0131
+- `docs/stream-v2-contract.md`
+
+## BUG-0115 - Native Completion Used Private Conventions Instead Of Stop Reasons
 
 Date Found: 2026-07-24
 Status: fixed locally in V1.55.0; deployment pending
@@ -50,6 +89,449 @@ Regression Coverage:
 - a file-backed concurrency case closes the first consumer and resumes the
   completed same turn;
 - full backend suite and frontend build pass.
+## BUG-0113 - Native Finality Ignored MiniMax M3 End Turn
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.3
+
+Symptoms:
+
+A Product Chat response could finish at MiniMax with non-empty public text and
+`stop_reason=end_turn`, then fail twice with `llm.incomplete_response` because
+M3 omitted the private `<scarlet-final/>` marker. The assistant message was not
+persisted even though the provider had explicitly completed the turn.
+
+Root Cause:
+
+The runtime treated a project-local prompt marker as more authoritative than
+the provider protocol. MiniMax documents `end_turn` as natural model
+completion, with final public text carried in the response content blocks.
+Marker compliance is stochastic and is not part of the MiniMax M3 API.
+
+Fix:
+
+- accept non-empty `end_turn` as the native structural final boundary;
+- strip the old marker when present, without requiring or prompting for it;
+- retain `max_tokens`, empty output, and semantic-obligation failures as
+  recoverable/rejectable cases; and
+- trace both provider stop reason and boundary source.
+
+Regression Coverage:
+
+Focused tests cover markerless `end_turn`, legacy marker stripping,
+`max_tokens`, empty terminal output, sync/stream recovery, semantic
+obligations, and the model-facing negative gate. A direct M3 Stream V2 turn
+completed markerless at attempt one and persisted its answer.
+
+Related:
+
+- ADR-0130
+- `backend/app/runtime/answer_obligations.py`
+- `backend/app/api/chat_native_turn.py`
+- MiniMax Anthropic-compatible Messages API documentation
+
+## BUG-0112 - Product Document Height And Stale Model Override Regressed The Approved Surface
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.2
+
+Symptoms:
+
+- the Product document root still declared `height` / `min-height` even though
+  long non-Chat pages were approved around natural document scrolling;
+- an unrequested Core/provider banner occupied the top of Product screens; and
+- the running laboratory reported MiniMax M2.7 although the repository and
+  accepted runtime target use MiniMax M3.
+
+Root Cause:
+
+The scoped document fix retained explicit height declarations instead of the
+approved overflow-only rule. The connected Product pass also surfaced health
+metadata as consumer chrome. Separately, ignored `backend/.env` still carried
+an old M2.7 override despite the M3 repository default and example.
+
+Fix:
+
+- remove height declarations from scoped `html` / `body`;
+- keep fixed-height behavior only inside the dedicated Chat route layout;
+- remove the Core/provider banner; and
+- restore the local `MINIMAX_MODEL=MiniMax-M3` override and restart the backend.
+
+Regression Coverage:
+
+The browser gate inspects loaded CSS rules to prohibit height/min-height on the
+Product document roots, programmatically scrolls the hydrated mobile Home, and
+checks Chat viewport geometry separately. Runtime health was directly verified
+as MiniMax M3.
+
+Related Files:
+
+- `frontend/src/prototype/prototype.css`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+
+## BUG-0111 - Product Chat Filtered Real Thinking And Activity Evidence
+
+Date Found: 2026-07-24
+Status: fixed in V1.55.2
+
+Symptoms:
+
+Real turns showed only user and final-answer bubbles. `Scarlet sta pensando`
+did not activate, context/memory movements were absent, and historical
+streaming reflection could remain marked live if exposed naively.
+
+Root Cause:
+
+Chat filtered every event except `visibility=public` and `turn.failed` before
+its existing context, memory, thinking, tool, and focus projectors ran. Real
+native lifecycle events are intentionally diagnostic even when their presence
+can be narrated safely. The memory bubble also read an optional `selected`
+array instead of canonical `selected_count`.
+
+Fix:
+
+- authorize an exact consumer-safe event allowlist and deterministic narration;
+- add a transient pending-thinking state before the first persisted activity;
+- derive live state from terminal evidence;
+- collapse each tool lifecycle into one evolving action bubble;
+- add centered, source-linked event receipts and a persisted protected-evidence
+  switch; and
+- strip `llm.thinking.captured.text` from Stream V2 while retaining proof that
+  the protected event exists.
+
+Regression Coverage:
+
+The browser harness observes live event appearance, asserts context/memory/
+thinking replay exactly once, checks private evidence is absent by default,
+opens coherent context and memory inspectors, unlocks and inspects the
+redacted captured-thinking receipt, and repeats modal geometry on mobile.
+Focused backend tests assert Stream V2 never includes captured-thinking text.
+
+Related Files:
+
+- `backend/app/api/chat_stream_v2.py`
+- `backend/tests/test_chat_api.py`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ChatEventDetailModal.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+- `docs/stream-v2-contract.md`
+
+## BUG-0110 - Product UI Emitted A Browser Favicon 404
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.1
+
+Symptoms:
+
+Every clean browser run logged one failed resource request even when all Core
+operations succeeded.
+
+Root Cause:
+
+The HTML document declared no favicon, so Chromium requested `/favicon.ico`,
+which does not exist in the Vite public tree.
+
+Fix:
+
+Use the existing versioned Scarlet portrait as the explicit PNG favicon.
+
+Regression Coverage:
+
+The Product UI browser smoke now treats every HTTP `4xx/5xx` response as a
+failure and completes with a clean network/console report.
+
+Related Files:
+
+- `frontend/index.html`
+- `frontend/scripts/test-product-ui.mjs`
+
+## BUG-0109 - Failed V2 Turns Disappeared Or Became Transport Errors In Chat
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.1
+
+Symptoms:
+
+A real browser turn persisted `turn.failed`, but Chat could only show the
+failure through its live catch fallback. Reopening that session filtered the
+terminal out, while suppressing the fallback would make the failure disappear.
+
+Root Cause:
+
+The Product projection filtered by `visibility=public` before interpreting
+terminal events. Runtime persists `turn.failed` with diagnostic visibility
+even though Stream V2 requires the terminal to reconstruct a failed turn.
+
+Fix:
+
+- allow the stable allowlisted `turn.failed` terminal through the consumer
+  projection while continuing to exclude all other debug/private events;
+- suppress the separate transport error when the canonical terminal was
+  received; and
+- translate `llm.incomplete_response` into consumer-facing Italian copy.
+
+Regression Coverage:
+
+The UI smoke reopens the real failed session, asserts exactly one
+`data-event-type=turn.failed` bubble, asserts no `ui.transport.error`, and
+checks the translated recovery message.
+
+Related Files:
+
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/scripts/test-product-ui.mjs`
+- `docs/stream-v2-contract.md`
+
+## BUG-0108 - Generated Agentic Module Could Not Launch On Windows
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.0
+
+Symptoms:
+
+Three existing SDK/real-host conformance tests failed with `WinError 193`
+after the full development environment was installed on Windows.
+
+Root Cause:
+
+The generated `run-module` launcher is a valid executable shebang script on
+POSIX. Windows `CreateProcess` does not interpret that shebang and attempted to
+execute the text file as a native Win32 binary.
+
+Fix:
+
+Resolve Python-suffix or Python-shebang entrypoints through
+`sys.executable` in the shared SDK resolver, and make the Core host reuse the
+same resolver before its Linux resource wrapper.
+
+Regression Coverage:
+
+The generated scaffold now passes standalone conformance, real Core Host
+conformance, and CLI conformance unchanged on Windows.
+
+Related Files:
+
+- `backend/scarlet_agentic_module_sdk/client.py`
+- `backend/scarlet_agentic_module_sdk/conformance.py`
+- `backend/app/agentic_modules/transport.py`
+- `backend/tests/test_agentic_module_sdk.py`
+
+## BUG-0107 - Dashboard Timezones Failed On Windows Without Tzdata
+
+Date Found: 2026-07-23
+Status: fixed in V1.55.0
+
+Symptoms:
+
+With the declared backend dependencies installed on Windows, `/health`,
+sessions, and memories returned 200, while `/api/dashboard/profile` and
+`/api/dashboard/settings` returned 500.
+
+Root Cause:
+
+`RuntimePreferences` validates `Europe/Rome` through Python `zoneinfo`.
+Windows does not ship the IANA timezone database used by `zoneinfo`, and the
+backend package did not declare the first-party `tzdata` fallback.
+
+Fix:
+
+Declare `tzdata>=2025.2` for Windows in `backend/pyproject.toml`.
+
+Regression Coverage:
+
+Direct isolated `CODEX_TEST` HTTP calls to profile/settings returned 200 after
+installing the declared package, and the browser saved runtime settings through
+the real endpoint.
+
+Related Files:
+
+- `backend/pyproject.toml`
+- `backend/app/runtime/preferences.py`
+- `backend/app/api/dashboard.py`
+
+## BUG-0106 - Artificial Splash Stages Delayed A Ready Application
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The splash always consumed its staged timer sequence even when the application
+portrait, fonts, and greeting media were already ready. The 5.163-second
+greeting then made the first entry feel substantially longer than necessary.
+
+Root Cause:
+
+Readiness was represented by fixed progress intervals rather than the assets
+that gate first paint and greeting playback. The greeting source also played at
+its authored duration even though only a short transition beat is needed.
+
+Fix:
+
+- join portrait decode, font readiness, two animation frames, and media
+  readiness instead of waiting through staged progress timers;
+- preload the greeting from splash start and begin it immediately when both
+  application and media are ready;
+- retain a six-second media fallback only for an unavailable greeting after
+  the application itself is ready;
+- play the source at natural `1x` speed and stop at `52%`, preserving the
+  authored greeting cadence while removing the unnecessary second half; and
+- navigate from either that bounded cut or the real media `ended` event with a
+  160ms leaving transition.
+
+Regression Coverage:
+
+Real Chrome at `390x844` measured greeting start after `1018ms`, natural-speed
+half greeting plus leaving transition at `2865ms`, and Login at `3883ms` total.
+The video reported duration `5.162993s`, playback rate `1`, and active playback.
+
+Related Files:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/ScarletMascot.tsx`
+- `frontend/src/prototype/SplashScreen.tsx`
+
+## BUG-0105 - Product Prototype Inherited The Cockpit's Locked Document Scroll
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The post-login Home was taller than a mobile viewport, but the browser window
+did not provide reliable page-level scrolling. Subsequent full pages would
+inherit the same behavior.
+
+Root Cause:
+
+The global Tailwind base in `frontend/src/styles.css` deliberately locks
+`body` with `overflow: hidden` for the three-pane cockpit. The first scoped
+prototype override correctly restored vertical overflow but also assigned
+`height: auto` and `min-height: 100%` to the root document elements. Those
+height declarations interfered with reliable page scrolling across the
+post-login screens.
+
+Fix:
+
+- apply a `scarlet-prototype-document` class to `html` and `body` while the
+  `/prototype` React surface is mounted;
+- set only horizontal/vertical overflow on `html` and `body`, without assigning
+  either `height` or `min-height`;
+- keep `#root` overflow visible without assigning document-level height or
+  minimum height;
+- remove the classes on unmount so the real cockpit/mobile overflow contracts
+  remain unchanged; and
+- reset window, document-element, and body scroll positions on post-login view
+  changes.
+
+Correction, 2026-07-23:
+
+The owner reproduced the remaining failure in browser DevTools and identified
+the prototype-level `height: auto` / `min-height: 100%` pair as the active
+blocker. Removing both declarations from all prototype document-root selectors
+is the accepted fix.
+
+Recurrence and final correction, V1.55.0:
+
+The global cockpit rule `html, body, #root { height: 100% }` remained active
+when the route-scoped declarations were omitted. Real Chrome measured the
+mobile Home document at exactly `844px`, clipping content below the viewport.
+The final scoped contract explicitly overrides inherited height with
+`height: auto` and `min-height: 100%` on the prototype document and root.
+Chrome then measured `2049px` of document height, reached `scrollY=1205`, kept
+document width equal to the `390px` viewport, and retained the intentional
+`844px` Chat viewport.
+
+Regression Coverage:
+
+Browser verification covers Home, Chat, Memory, Sessions, and Profile with the
+final scoped document override. The body becomes the effective page scroll
+container, retains exact horizontal document/client width, reaches its measured
+maximum scroll, and returns to the top after view navigation.
+
+Related Files:
+
+- `frontend/src/prototype/PrototypeApp.tsx`
+- `frontend/src/prototype/prototype.css`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/home.css`
+
+## BUG-0104 - Splash Greeting Played Invisibly During Startup
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+The startup greeting appeared not to play. Media diagnostics showed that the
+video was actually advancing behind the canonical portrait while its CSS
+opacity remained zero, and the automatic splash timer navigated to Login
+before the 5.163-second greeting could finish.
+
+Root Cause:
+
+Visibility depended exclusively on a React `onCanPlay` state update. On fast
+local media delivery the native readiness event could occur before that update
+was observed, leaving the `is-ready` class absent. More fundamentally, the
+video used autoplay during loading even though the intended experience was to
+show it only after startup completed.
+
+Fix:
+
+- preload the video while keeping it paused at zero and transparent;
+- verify readiness both from the element's current `readyState` and subsequent
+  media events;
+- start visible playback only when application and media readiness converge;
+- remove looping and route to Login from the full greeting's `ended` event;
+- retain explicit fallback behavior for reduced motion, media failure, or
+  readiness timeout.
+
+Regression Coverage:
+
+Real Edge mobile emulation proves the video ready/paused/hidden at `12%`,
+playing/visible at `100%`, and Login absent until after the full media ends.
+No runtime exception or horizontal overflow was observed.
+
+Related Files:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/SplashScreen.tsx`
+- `frontend/src/prototype/ScarletMascot.tsx`
+- `frontend/src/prototype/splash.css`
+
+## BUG-0103 - Animated Button Fill Covered Its Text
+
+Date Found: 2026-07-23
+Status: fixed
+
+Symptoms:
+
+Primary authentication button labels became unreadable when the colored hover
+fill expanded across the full button.
+
+Root Cause:
+
+The fill was an absolutely positioned pseudo-element. Only the arrow icon was
+an element with an explicit stacking position; the adjacent button label was a
+direct text node and therefore had no independent layer above the fill.
+
+Fix:
+
+Wrap every primary-button label in an element, place all label/icon children
+above the fill, and explicitly preserve white foreground color during hover.
+
+Regression Coverage:
+
+A real Edge hover at mobile emulation width expanded the pseudo-element to the
+full `309px` button width while computed foreground color remained
+`rgb(255, 255, 255)` for both child elements.
+
+Related Files:
+
+- `frontend/src/prototype/AuthScreen.tsx`
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/splash.css`
 
 ## BUG-0102 - Generated Anatomy Was Treated As Automatically Registerable
 
@@ -157,6 +639,10 @@ Regression Coverage:
 The reference-only inventory, hash checks, JSON parsing, and frontend build
 form the reset verification. Future avatar validation must fail if an
 unregistered raster or PSD appears in the canonical authoring workspace.
+The documentation checker recognizes only the exact retired artifact paths
+listed in its historical-reference registry, so the canonical BUG/ADR/EXP
+history remains readable while any other missing repository path still fails
+the quality gate.
 
 Related Files:
 

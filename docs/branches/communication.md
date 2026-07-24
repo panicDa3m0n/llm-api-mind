@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-07-19
-System version assessed: V1.50.1 deployed and release-accepted
+Last updated: 2026-07-24
+System version assessed: V1.50.1 deployed; V1.55.3 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -20,6 +20,17 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
   epistemica e obbligo di note pubbliche quando lavora su attivita non banali.
 - La UI mostra risposte finali, note, eventi, thinking provider-visible, tool
   calls e runtime context in forma leggibile.
+- V1.55.0 sostituisce le bolle Chat fixture con la proiezione dei soli eventi
+  `public` persistiti da `scarlet-stream-v2`; note e risposte restano autoriali,
+  i movimenti sono narrati in forma consumer e thinking/debug/private restano
+  esclusi.
+- V1.55.1 tratta `turn.failed` come eccezione terminale consumer-safe: una sola
+  bolla italiana resta visibile anche dopo replay, senza promuovere gli altri
+  eventi diagnostici o duplicare il fallimento come errore di trasporto.
+- V1.55.2 autorizza una allowlist stretta di movimenti diagnostici reali:
+  contesto, memoria, stato di pensiero, azioni Mind e organi rilevanti diventano
+  bolle ordinate e ispezionabili. Le note/risposte restano autoriali, mentre
+  `llm.thinking.captured` conserva solo metadati protetti nel Product stream.
 - V1.5.1 normalizza i blocchi MiniMax M3 in base alla struttura provider:
   thinking tecnico, note pubbliche pre-tool, tool exchange con input/output e
   risposta finale.
@@ -74,6 +85,14 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.50.1 mantiene il marker privato come confine primario ma, dopo la sola
   correzione consentita, usa un giudice LLM fail-closed per distinguere una
   risposta completa senza marker da una seconda nota di avanzamento.
+- V1.55.3 supersede quel confine per il runtime nativo: un contenuto pubblico
+  non vuoto con `stop_reason=end_turn` e la chiusura naturale documentata da
+  MiniMax M3. Il marker resta solo compatibilita ripulita; troncamento,
+  contenuto vuoto e obblighi semantici falliti restano bloccanti.
+- Il target Product UI V1.54.0 rende ora ogni turno fixture una sequenza di
+  bolle semantiche: contesto, memoria, stato di riflessione, nota pubblica,
+  azioni, focus e risposta finale. Le note/risposte restano autoriali; le
+  azioni sono proiezioni grounded e il thinking privato non viene mostrato.
 - Punto aperto: le note agentiche naturali sono presenti via prompt, ma non sono
   ancora equivalenti alla fluidita di agenti IDE maturi come Codex/Claude Code.
 
@@ -117,6 +136,15 @@ Aggiornamento V1.41.0: sync, stream e GPT bridge condividono manifest e
 validazione. Le bozze rifiutate non diventano messaggi canonici e lo streaming
 non rende visibile il testo conclusivo prima dell'accettazione; note operative
 legate a reali azioni restano visibili.
+Aggiornamento Product UI V1.55.1: il prototipo traduce la sequenza V2 reale in
+presenza conversazionale, conserva il confine tra testo autoriale e proiezione
+consumer e mantiene i terminali falliti leggibili dopo replay.
+Aggiornamento Product UI V1.55.2: thinking e movimenti diventano visibili live
+e ricostruibili al replay; ogni bolla semantica apre una ricevuta centrata e la
+modalita evidenze private sblocca solo ordine/metadati, mai chain-of-thought.
+Aggiornamento V1.55.3: la risposta finale nativa segue il terminale provider
+MiniMax M3. Un `end_turn` con testo viene persistito senza dipendere da marker
+stocastici, mentre i veri terminali incompleti restano espliciti.
 
 ## Sviluppi precedenti
 

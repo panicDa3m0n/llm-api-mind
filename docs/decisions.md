@@ -7,10 +7,50 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
-## ADR-0125 - Native Stop Reasons Own Turn Finality And Recovery
+## ADR-0131 - Development Thinking Is Inspectable Evidence, Not UI Speech
 
 Date: 2026-07-24
-Status: accepted for V1.55.0
+Status: accepted for V1.55.4; supersedes ADR-0129's thinking-redaction rule
+
+Context:
+
+The Windows Product UI removed `llm.thinking.captured.payload.text` from Stream
+V2 and inserted a synthetic "Scarlet sta pensando" bubble before the first
+Core event. The owner has explicitly kept provider thinking visible during
+development because suppression can hide runtime bugs. A synthetic activity
+label also violates the rule that UI presence must remain grounded in real
+system events.
+
+Decision:
+
+- preserve completed provider thinking in persisted debug events and Stream
+  V2 live/replay payloads during development;
+- show that evidence by default, allow a local user preference to hide it,
+  and keep other private payload values redacted;
+- label provider thinking as diagnostic evidence, never as a public note,
+  final answer, semantic memory, or proof of external facts;
+- render live thinking only after a corresponding Core event exists; and
+- keep deterministic narration bounded to facts actually established by the
+  event family.
+
+Consequences:
+
+Development can inspect model behavior end to end without allowing UI prose to
+masquerade as Scarlet's authored speech. A future production privacy policy may
+change the default presentation, but that is a separate product decision and
+must not silently alter the trace/runtime contract.
+
+Links:
+
+- BUG-0114
+- `backend/app/api/chat_stream_v2.py`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ChatEventDetailModal.tsx`
+
+## ADR-0132 - Native Stop Reasons Own Turn Finality And Recovery
+
+Date: 2026-07-24
+Status: accepted for V1.55.4; supersedes ADR-0130's compatibility-marker path
 
 Context:
 
@@ -60,10 +100,273 @@ Verification:
 
 Links:
 
-- BUG-0103
+- BUG-0115
 - `backend/app/llm/minimax_client.py`
 - `backend/app/api/chat_turn_runner.py`
 - `docs/stream-v2-contract.md`
+
+## ADR-0130 - Provider End Turn Owns Native Finality
+
+Date: 2026-07-24
+Status: historical V1.55.3 intermediate; superseded by ADR-0132
+
+Context:
+
+ADR-0106 kept `<scarlet-final/>` as the primary boundary and added semantic
+recovery after a second omission. Human Product testing reproduced the same
+availability failure: MiniMax M3 returned non-empty text with
+`stop_reason=end_turn`, omitted the project-local marker, and the fallback
+judge rejected the turn. Official MiniMax Anthropic-compatible documentation
+defines `end_turn` as the model ending naturally and places final public text
+in response content blocks.
+
+Decision:
+
+- a non-empty native response with `stop_reason=end_turn` is structurally final;
+- `<scarlet-final/>` remains optional backward compatibility and is stripped
+  when present, but is absent from model-facing obligations and recovery copy;
+- `max_tokens`, empty output, and other non-terminal results do not satisfy the
+  boundary and retain bounded correction followed by explicit failure;
+- semantic obligations remain independent and can still trigger correction or
+  rejection; and
+- validation traces record `provider_stop_reason` and `boundary_source`.
+
+Consequences:
+
+Native completion now follows the provider contract and cannot fail solely on
+stochastic marker formatting. Progress-like text returned with `end_turn` is a
+completed provider answer and is handled as content quality, not falsely
+classified as transport incompleteness. Existing semantic evidence checks,
+empty-output safety, provider-history preservation, and GPT finalize behavior
+remain intact.
+
+Links:
+
+- BUG-0113
+- `backend/app/runtime/answer_obligations.py`
+- `backend/app/api/chat_native_turn.py`
+- `docs/api-contract.md`
+
+## ADR-0129 - Product Activity Uses A Bounded Evidence Projection
+
+Date: 2026-07-24
+Status: accepted for bounded projection; thinking-redaction clause superseded by ADR-0131
+
+Context:
+
+Real native turns persist useful lifecycle evidence such as context assembly,
+memory retrieval, request start, thinking start, Mind tool calls, and organ
+state with diagnostic visibility. Rendering only `public` evidence hides
+Scarlet's actual movement; rendering all diagnostic/private payloads would
+expose implementation detail and protected reasoning.
+
+Decision:
+
+- keep Stream V2 persisted sequence and event identity as the source of truth;
+- render authentic public user/note/answer text unchanged;
+- authorize only exact diagnostic event types/families needed for consumer
+  context, memory, bounded thinking status, Mind actions, and relevant state;
+- narrate those lifecycle facts deterministically without deriving semantics
+  from provider-native content;
+- collapse duplicate tool lifecycle events into one source-linked consumer
+  bubble;
+- make every semantic movement bubble open a centered evidence receipt with
+  sequence, phase, visibility, links, bounded payload, and grouped source
+  events;
+- keep protected events hidden by default and gate their metadata receipts
+  behind a local, logout-cleared `Evidenze private` preference;
+- treat `llm.thinking.captured` as protected by type even when historical
+  native records label it `debug`; and
+- never expose captured-thinking text through Stream V2. Preserve only
+  `has_text`, model step/index, phase, sequence, and trace links; complete
+  internal evidence remains in the existing debug/trace boundary.
+
+Consequences:
+
+Product Chat can show Scarlet thinking and acting in real time without
+pretending that a UI status is her authored inner monologue. Replay rebuilds
+the same consumer flow and all receipts remain grounded in durable events.
+The local evidence setting is an interface preference, not authorization to
+read chain-of-thought, and does not add a cognitive API or mutate Scarlet's
+state. New diagnostic families require an explicit allowlist decision before
+they can become consumer bubbles.
+
+This decision refines ADR-0127's real-event projection and supersedes
+ADR-0128's narrower phrase "render only public evidence"; the honesty boundary
+remains unchanged because diagnostic payload text is not promoted to authored
+consumer content.
+
+Links:
+
+- `backend/app/api/chat_stream_v2.py`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ChatEventDetailModal.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/stream-v2-contract.md`
+
+## ADR-0128 - Product UI Executes Existing Core Contracts Or Declares Unavailability
+
+Date: 2026-07-23
+Status: accepted
+
+Context:
+
+The approved Product UI contained useful navigation and controls, but most
+post-login values and actions were fixtures. Connecting them by inventing
+client-only success states would make Scarlet appear to have capabilities that
+the Core cannot reproduce or trace.
+
+Decision:
+
+- use only existing consumer-safe health, chat, V2 replay/stream, dashboard
+  memory, profile, and settings contracts;
+- keep `scarlet/scarlet` as explicit local test access until account contracts
+  exist;
+- show one centered `Funzione non disponibile` modal for every visible action
+  without a matching consumer contract;
+- do not route Product controls to internal Mind, debug, or maintenance APIs
+  merely because those operational endpoints exist;
+- use V2 persisted sequence/event identity as the Chat source of truth, render
+  only public evidence, and require a terminal event;
+- expose offline/partial Core state without substituting fixtures.
+
+Consequences:
+
+The Product application is now honest about what Scarlet can execute. New
+features need an approved Core contract before their controls can stop opening
+the unavailable modal. Operator maintenance remains separated from consumer
+UX, and local login remains a test convenience rather than authentication.
+
+Links:
+
+- `frontend/src/api.ts`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/product-ui-prototype.md`
+
+## ADR-0127 - Product Chat Narrates Scarlet's Public Movements
+
+Date: 2026-07-23
+Status: accepted; real V2 projection implemented in V1.55.0
+
+Context:
+
+Scarlet is presented as a digital individual, not a final-answer service.
+Showing only user and assistant messages hides the real temporal structure of
+her work. Showing raw traces, tool payloads, provider thinking, or every
+protocol lifecycle duplicate would instead turn the conversation into a
+developer log and violate privacy/communication boundaries.
+
+Decision:
+
+- render a turn as an ordered conversation flow containing user text, semantic
+  context/memory movements, bounded reflection status, public notes, actions,
+  relevant state changes, and final answer;
+- narrate deterministic system movements in concise first-person language so
+  they remain part of Scarlet's visible presence;
+- preserve authentic `assistant.note.emitted` and
+  `assistant.answer.completed` text without UI rewriting;
+- group lifecycle duplicates into one consumer bubble and retain source event
+  families in the inspectable receipt;
+- never expose `llm.thinking.captured` text or infer chain-of-thought from
+  private/debug evidence;
+- order by the future V2 sequence contract and treat terminal events, not
+  stream closure, as completion; and
+- keep `ui.activity.projected` fixture-only until SCA-49 defines whether the
+  consumer-safe projection is backend-emitted or deterministically reduced by
+  an authorized client.
+
+Consequences:
+
+The user can follow Scarlet's actions without learning API Mind vocabulary.
+The authored/projection boundary remains inspectable, and raw evidence stays
+in the developer lens. The prototype does not yet prove real-time wording,
+visibility authorization, replay, errors, retries, cancellation, or unknown
+event behavior; those remain integration acceptance requirements.
+
+Links:
+
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `frontend/src/prototype/product.css`
+- `docs/stream-v2-contract.md`
+- `docs/product-ui-prototype.md`
+
+## ADR-0126 - Prototype Session Persists Locally Until Explicit Logout
+
+Date: 2026-07-23
+Status: accepted for the SCA-48 browser approval artifact
+
+Context:
+
+The future Capacitor application should resume where the authenticated user
+left it after a reload, browser close, Android backgrounding, or process
+recreation. The current prototype has no account backend and cannot claim
+secure authentication, but resetting to splash/login on every browser reload
+prevents evaluation of the intended application lifecycle.
+
+Decision:
+
+- persist only a prototype authentication marker, username, and last Product
+  view under the versioned local key `scarlet-prototype-session-v1`;
+- restore that view when `/prototype` opens without an explicit review query;
+- update the saved view whenever authenticated Product navigation changes;
+- remove the key only on explicit logout or invalid stored structure;
+- keep draft messages, fake registration credentials, preferences, and all
+  fixture data outside the persistent session; and
+- treat `?screen=...` routes as intentional visual-review overrides.
+
+Consequences:
+
+The browser prototype now models resume continuity and gives future Capacitor
+work a clear lifecycle expectation. It does not provide identity assurance,
+token expiry, encryption, revocation, multiuser isolation, or native storage
+semantics. Real authentication must replace the marker behind the approved UI
+without reusing it as a security contract.
+
+Links:
+
+- `frontend/src/prototype/AppEntryFlow.tsx`
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ProfileSettingsScreen.tsx`
+- `docs/product-ui-prototype.md`
+
+## ADR-0125 - Product Screens Use Local Fixtures Until Flow Approval
+
+Date: 2026-07-23
+Status: accepted for the sequential SCA-48 Product UI approval cycle
+
+Context:
+
+The application is being designed one user-facing screen at a time, with direct
+owner-agent discussion after each surface. Connecting partially approved
+screens to authentication, database, session, memory, or chat contracts would
+mix visual decisions with integration work and make iteration less bounded.
+
+Decision:
+
+- implement the complete browser screen sequence before real data integration;
+- use deterministic, realistic local fixtures and simulated interactions for
+  screens whose final Core wiring has not yet been approved;
+- make the fake boundary visible in the review UI and documentation;
+- prohibit fixture actions from reading or mutating the backend database;
+- preserve direct review URLs for individual screens; and
+- perform authentication, Core-port, persistence, and Capacitor integration as
+  separately declared work after the screen flow is approved.
+
+Consequences:
+
+The owner can evaluate navigation, hierarchy, responsive behavior, Scarlet's
+placement, and visual language without live-data risk. Displayed counts and
+records are not runtime evidence, and simulated actions do not prove chat or
+session lifecycle behavior. Later integration must replace fixtures behind the
+approved surface while preserving the relevant Core contracts.
+
+Links:
+
+- `frontend/src/prototype/HomeDashboard.tsx`
+- `frontend/src/prototype/ProductScreens.tsx`
+- `docs/product-ui-prototype.md`
 
 ## ADR-0124 - Scarlet Uses Identity-Locked Static Portrait States
 
@@ -115,6 +418,14 @@ Amendment, 2026-07-23:
 - audio remains muted for autoplay and the crop excludes the source watermark;
   and
 - the video remains a splash presentation asset, not a new avatar runtime.
+
+Later amendment, 2026-07-23:
+
+- the greeting is preloaded and held at zero while splash checks run;
+- playback starts only after application and video readiness converge;
+- it plays from zero to the end exactly once, without the previously proposed
+  repeated `2s -> end` loop; and
+- the full media `ended` event owns the transition from splash to Login.
 
 Links:
 

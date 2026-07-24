@@ -6,6 +6,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.55.4 - Native Runtime And Product UI Integration
+
+#### Changed
+
 - Rebuild the MiniMax/Anthropic-compatible turn lifecycle around native stop
   reasons: continue `max_tokens`, execute tools only on `tool_use`, close only
   on `end_turn`, remove `<scarlet-final/>` and semantic finality fallback, and
@@ -14,7 +18,239 @@ This project uses a practical changelog rather than a release-only log: each mea
   pathological `max_tokens` protection, connection-independent V2 turn
   execution, same-turn cursor resume, and a frontend V2 transport that
   reconnects at most five times after clean or exceptional stream closure.
-- Advance backend and frontend development targets to V1.55.0.
+- Integrate the Windows Product UI with the current native runtime, retaining
+  real Core hydration, replay, responsive flows, SDK Windows portability, and
+  the historical-documentation checker allowlist.
+- Advance backend and frontend development targets to V1.55.4.
+
+#### Fixed
+
+- Remove the UI-only fake thinking bubble and replace over-specific
+  deterministic narration with event-grounded consumer copy.
+- Preserve completed provider thinking in Stream V2 during development and
+  expose it through an enabled-by-default, locally hideable evidence view.
+- Combine paged event replay with same-turn reconnect instead of regressing to
+  the one-connection Windows transport.
+- Correct stale documentation that still described the connected Product UI
+  as fixture-only.
+- Upgrade the transitive PostCSS toolchain to remove the audited source-map
+  path-traversal vulnerability.
+
+#### Verification
+
+- The isolated Windows branch passed 305 backend tests, Ruff, frontend build,
+  and a real desktop/mobile browser smoke before integration.
+- The integrated branch passes 301 backend tests, full Ruff, incremental mypy,
+  documentation integrity, zero-vulnerability npm audit, frontend production
+  build, and an isolated desktop/mobile browser smoke.
+### V1.55.3 - MiniMax M3 Provider-Terminal Finality
+
+#### Changed
+
+- Treat a non-empty MiniMax M3 response with `stop_reason=end_turn` as the
+  authoritative native final-answer boundary.
+- Retain `<scarlet-final/>` only as backward-compatible input that is stripped
+  before persistence; the model is no longer instructed or required to emit it.
+- Record `provider_stop_reason` and `boundary_source` in answer-validation
+  traces.
+- Advance backend/frontend development identity to V1.55.3.
+
+#### Fixed
+
+- Stop rejecting complete M3 answers merely because they omit the project-local
+  private marker.
+- Keep `max_tokens`, empty terminal output, and failed semantic obligations on
+  the existing bounded recovery/failure path.
+- Restore the Linux quality gate by normalizing checker imports and preserving
+  the executable mode of the documentation checker.
+- Keep BUG-0100's 21 explicitly retired avatar artifact paths as historical
+  documentation references while continuing to reject other missing paths.
+
+#### Verification
+
+- Focused native answer, stream, obligation, model-facing, and SDK contracts
+  pass `62/62`; Ruff and focused mypy pass on the changed Python surface.
+- A real MiniMax M3 Stream V2 turn completed on its first markerless
+  `end_turn`, persisted the assistant response, and emitted `turn.completed`.
+- Frontend production build, database boundary, diff, and documentation
+  integrity checks pass; the checker explicitly excludes the 39 references to
+  21 avatar artifacts retired by BUG-0100.
+- The complete CI Ruff target passes with the same command used by GitHub
+  Actions.
+
+### V1.55.2 - Product Chat Activity Evidence
+
+#### Added
+
+- Render the real Stream V2 context, memory, thinking, tool, focus, affect,
+  volition, note, answer, and failure movements as ordered consumer bubbles.
+- Add an immediate live `Scarlet sta pensando` state while the first persisted
+  activity event is arriving, then reconcile it with the canonical stream.
+- Make every semantic movement bubble keyboard/click inspectable through a
+  centered responsive modal with sequence, phase, visibility, links, facts,
+  and the bounded Stream V2 receipt.
+- Add a persisted local `Evidenze private` setting. Protected events become
+  visible as metadata receipts when enabled and are removed again on logout.
+
+#### Changed
+
+- Group duplicate tool lifecycle events into one evolving action bubble and
+  derive completed/live state from canonical turn terminals.
+- Remove the unrequested Core/provider status banner from Product screens.
+- Remove `height` and `min-height` declarations from the scoped Product
+  document roots; long pages retain body/document scrolling while Chat keeps
+  its dedicated viewport-internal layout.
+- Advance backend/frontend development identity to V1.55.2.
+
+#### Fixed
+
+- Stop filtering consumer-safe diagnostic activity before Chat can narrate it.
+- Use the real `memory.context.built.selected_count` field instead of relying
+  on an optional selected-record array.
+- Strip `llm.thinking.captured.payload.text` from Stream V2 while preserving
+  `has_text`, order, phase, model step, links, and internal trace evidence.
+- Correct the local laboratory override from MiniMax M2.7 to MiniMax M3 and
+  verify the active backend model through `/health`.
+
+#### Verification
+
+- Focused Stream V2 and SDK tests pass `12/12`; the contract proves
+  captured-thinking text is absent from live and replay payloads.
+- Playwright/Edge passes live MiniMax M3 activity streaming and deterministic
+  replay, centered event inspectors on desktop/mobile, protected evidence
+  persistence/redaction, logout cleanup, failed-turn replay, fixed Chat
+  chrome, and real page scrolling.
+- Ruff, focused mypy, npm audit, frontend production build, and repository
+  diff checks pass.
+
+### V1.55.1 - Product UI Browser Regression Fixes
+
+#### Added
+
+- Add a repeatable Playwright/Edge Product UI smoke covering local
+  Splash/video-to-Login transition, local authentication, registration
+  unavailability, session persistence, Core hydration, real session creation,
+  optional live V2 chat, session replay, memory search/detail, settings save,
+  unavailable modals, logout, mobile scrolling, fixed Chat chrome, console
+  errors, HTTP failures, and horizontal overflow.
+
+#### Fixed
+
+- Preserve a failed V2 turn as one canonical consumer error bubble after
+  replay even though the persisted terminal retains diagnostic visibility;
+  do not duplicate it as a transport failure during the live stream.
+- Translate `llm.incomplete_response` into concise Italian consumer copy
+  without exposing validation/debug details.
+- Declare the existing Scarlet portrait as the application favicon so browser
+  runs no longer emit the pre-existing `/favicon.ico` 404.
+
+#### Verification
+
+- Repeatable desktop `1440x1000` and mobile `390x844` UI smoke passes against
+  the real local Core with clean console/network results.
+- One live MiniMax V2 greeting completes through the UI; one persisted failed
+  turn replays as exactly one translated error bubble.
+- Frontend production build, 10 focused Stream V2/SDK tests, Ruff, npm audit,
+  and repository diff checks pass.
+
+### V1.55.0 - Scarlet Product UI Core Integration
+
+#### Added
+
+- Connect `/prototype` Home, Chat, Memory, Sessions, Profile, Settings, and
+  health status to the existing Core contracts without adding new endpoints.
+- Add a typed `scarlet-stream-v2` browser consumer with paged replay,
+  envelope/idempotency/gap validation, public-event projection, persisted
+  history fallback, terminal-event enforcement, and reconnect replay.
+- Add one accessible centered `Funzione non disponibile` modal for
+  registration, behavioral switches, notifications, privacy export/account
+  deletion, consumer maintenance, voice, avatar preferences, and other
+  capabilities not implemented by the Core.
+
+#### Changed
+
+- Replace Product fixtures and fake success feedback with real session,
+  message, memory, profile, settings, and health data; offline mode remains
+  explicit and never substitutes demonstration records.
+- Persist the supported display-name, language, country, timezone, and privacy
+  fields through `/api/dashboard/settings`; keep local `scarlet/scarlet` login
+  only as the approved test-access boundary.
+- Advance backend/frontend development identity to V1.55.0 and declare
+  `tzdata` on Windows so real dashboard profile/settings routes can resolve
+  IANA timezones.
+- Launch Python Agentic Module entrypoints through the active interpreter so
+  standalone SDK and real-host conformance work on Windows as well as POSIX.
+- Restore explicit route-scoped `height: auto`/`min-height: 100%` overrides so
+  long Product pages scroll despite the cockpit's global fixed-height base,
+  while Chat retains its dedicated `100dvh` internal-scroller contract.
+
+#### Verification
+
+- Frontend TypeScript/Vite production build passes.
+- Real Chrome against an isolated `CODEX_TEST` Core passes login, real Home
+  hydration, session creation/resume, Chat V2 surface, real settings save,
+  unavailable-feature modals, mobile page scroll, and fixed Chat layout at
+  `1440x1000` and `390x844`, with no API `5xx` or horizontal overflow.
+- Focused and complete backend, SDK, lint/type, documentation, and database
+  boundary results are recorded in the V1.55.0 activity entry: 304 tests pass
+  at 82.32% coverage, Ruff/mypy pass, npm audit is clean, and OpenAPI remains
+  at 30 operations. The documentation checker retains only its 39 historical
+  missing avatar-workspace references.
+
+- Add the first complete semantic turn flow to prototype Chat: user message,
+  context, memory, bounded reflection status, authentic public note, grounded
+  action receipts, focus state, and Scarlet's final answer as ordered bubbles.
+- Preserve the authored/projection boundary in Chat: notes and answers remain
+  Scarlet's original text, operational bubbles use consumer-safe first-person
+  narration with their source event families retained in the inspectable JSON,
+  and private chain-of-thought is never rendered.
+- Make `/prototype` restore the locally authenticated user and last open
+  Product view after reload/reopen, while explicit logout removes that local
+  session and returns to authentication.
+- Replace staged splash timers with real portrait/font/media readiness, start
+  the already-preloaded greeting as soon as the application is ready, and play
+  its first `52%` at natural `1x` speed before the immediate Login transition.
+- Rebuild Chat as a viewport shell: compact fixed Scarlet header, internally
+  scrolling messages, persistent composer, non-overlapping mobile dock, and
+  desktop continuity/JSON rail.
+- Remove the repetitive shared Product header and use one five-destination
+  bottom dock on mobile and desktop; move the real logout control to the top of
+  Settings.
+- Add readable fixture JSON surfaces to Chat, Memory, Sessions, and Profile,
+  plus fake profile, privacy, maintenance, extra, export, deletion, and
+  prompt-rule preference controls.
+- Refine Memory for extended counts and numbered records, and replace the
+  Settings card grid with one grouped surface separated by lightweight Scarlet
+  rules, switches, and multi-command rows.
+- Fix prototype page scrolling with an explicit route-scoped overflow mode
+  while leaving `height` and `min-height` unset at the prototype document
+  level, preserving the existing real clients.
+- Add coherent fixture-backed Chat, Memory, Sessions, and Profile first passes
+  behind the Home navigation, including fake message send, memory search and
+  detail, session resume/new flows, local preferences, and logout.
+- Connect every existing Home destination: primary conversation actions,
+  summary cards, individual memories, recent-session resume buttons, desktop
+  navigation, mobile dock, and profile control.
+- Add the first post-login Home dashboard to `/prototype`: an integrated
+  Scarlet hero, three quick system summaries, latest-memory and recent-session
+  cards, responsive desktop/mobile navigation, and simulated new/resume
+  actions backed only by explicit local fixtures.
+- Route successful fake authentication to Home while keeping every dashboard
+  datum and interaction disconnected from the backend and database until the
+  complete screen flow is visually approved.
+- Preload the Scarlet greeting in parallel with splash startup, keep it paused
+  and hidden during checks, play it once from zero after application readiness,
+  and transition to Login only after the greeting ends.
+- Refine the application entry UI by preserving white primary-button labels
+  above the animated hover fill, removing the authentication card's decorative
+  left edge, and moving splash progress into Scarlet's spoken status while
+  reserving the page footer for copyright and version.
+- Extend `/prototype` from splash-only review into the first complete
+  application-entry sequence: bounded startup loader, simulated local update
+  check, automatic transition to authentication, and direct review URLs.
+- Add one responsive Scarlet-branded authentication card with Login and
+  Registrazione tabs, inline validation, password visibility, in-session fake
+  registration, and the test account `scarlet/scarlet`.
 - Pause the layered Scarlet puppet as active Product UI work while preserving
   its artifacts and findings for future research.
 - Add an identity-locked static portrait contract, initial emotional-state

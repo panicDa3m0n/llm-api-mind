@@ -78,9 +78,11 @@ and a lower-right generator watermark. The Product UI therefore:
 
 - center-crops it inside the bubble so the watermark and lateral background
   never enter the visible area;
-- plays it muted and inline for reliable mobile/Android WebView autoplay;
-- plays `0s -> end` once, then loops only `2s -> end` so the initial entrance
-  is not repeated;
+- preloads it muted and inline in parallel with the splash startup checks;
+- keeps it paused at `0s` beneath the canonical portrait until application and
+  media readiness converge;
+- plays `0s -> end` exactly once as the completed-splash transition to Login;
+- never loops inside the application-entry flow;
 - keeps the canonical portrait beneath the video while it loads; and
 - uses only the canonical portrait when reduced motion is requested or video
   playback fails.

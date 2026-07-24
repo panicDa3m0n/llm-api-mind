@@ -65,7 +65,7 @@ Before closing a task:
 Immediate milestone:
 
 ```txt
-A local chat agent using MiniMax M2.7 where every turn is inspectable, reproducible,
+A local chat agent using MiniMax M3 where every turn is inspectable, reproducible,
 and ready for cognitive API experiments.
 ```
 

@@ -6,7 +6,6 @@ import argparse
 import subprocess
 from pathlib import Path
 
-
 LABORATORY_SNAPSHOT = "backend/data/app.db"
 
 

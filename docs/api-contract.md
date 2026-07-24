@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-24
-App target: V1.55.0; V1.50.1 remains deployed and release-accepted
+App target: V1.55.4; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1581,7 +1581,7 @@ Provider execution policy: Anthropic-compatible model calls use provider
 streaming internally. This endpoint still returns one final response object; the
 stream is collected inside the backend.
 
-Completion invariant (V1.55.0): native finality comes only from the provider
+Completion invariant (V1.55.4): native finality comes only from the provider
 protocol. `max_tokens` appends the complete native assistant blocks unchanged,
 adds a technical continuation message, and returns the same turn to Scarlet.
 `tool_use` alone authorizes dispatch of parsed tool blocks. `end_turn` alone
@@ -1878,6 +1878,10 @@ and terminal turn state remain available.
 The projector is allowlist-based. Full tool result envelopes and full runtime
 context blocks remain available through linked tool/trace APIs rather than
 being copied into every Product UI event.
+During development, `llm.thinking.captured` retains the completed provider
+text together with `has_text`, model step/index, phase, sequence, and trace
+links in both live V2 and replay. The text remains diagnostic evidence: it is
+not a public note, final answer, or semantic memory.
 
 Terminal events are `turn.completed` and `turn.failed`. Transport closure is
 not a successful terminal state.
@@ -4088,8 +4092,9 @@ Contract:
 
 - obligations have `hard`, `warning`, or `advisory` severity and structural or
   semantic validation kind;
-- structural native completion uses a private marker that is removed before
-  canonical persistence and public delivery;
+- structural native completion requires non-empty public text and provider
+  `stop_reason=end_turn`; no project-local marker participates in finality or
+  output rewriting;
 - semantic validation uses a structured LLM judgment only when semantic
   obligations exist;
 - a hard failure permits one correction and then fails explicitly;
@@ -4195,6 +4200,39 @@ POST /api/maintenance/summary/reconcile                         implemented
 GET  /api/maintenance/jobs                                      implemented
 POST /api/maintenance/jobs/{job_id}/run                         implemented
 ```
+
+## Product UI Consumer Mapping
+
+Status: implemented in V1.55.0; activity/evidence projection refined in
+V1.55.2; no new HTTP operation added
+
+`/prototype` uses the existing consumer-safe surface:
+
+```txt
+GET  /health
+POST /api/chat/sessions
+GET  /api/chat/sessions
+GET  /api/chat/sessions/{session_id}/messages
+POST /api/chat/sessions/{session_id}/turn/stream-v2
+GET  /api/chat/sessions/{session_id}/events
+GET  /api/dashboard/memories
+GET  /api/dashboard/profile
+GET  /api/dashboard/settings
+PUT  /api/dashboard/settings
+```
+
+The Product client does not call debug, internal Mind, GPT bridge, or
+maintenance operations. A visible control without one of the approved
+consumer contracts must remain unavailable rather than synthesize a local
+success. Local `scarlet/scarlet` access is not an HTTP authentication contract.
+
+The Chat consumer validates `scarlet-stream-v2`, session identity, event-id
+idempotency, contiguous session sequence, replay cursor progress, visibility,
+and terminal events. Authored text remains public-only. An exact
+consumer-activity allowlist may narrate diagnostic lifecycle facts for
+context, memory, bounded thinking status, Mind actions, and relevant state.
+Protected events stay hidden by default and can expose only redacted metadata
+through the local evidence inspector.
 
 ## Agentic Module Public Contracts
 

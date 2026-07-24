@@ -205,8 +205,10 @@ the baseline.
 - uniqueness of canonical ADR, BUG, and EXP headings.
 
 External URLs, secrets/runtime files, database paths, and explicitly
-parametric references are not treated as repository artifacts. The script is
-deterministic and does not access the network.
+parametric references are not treated as repository artifacts. Exact paths for
+retired artifacts may be registered as historical references; broad active
+workspace exclusions are not permitted. The script is deterministic and does
+not access the network.
 
 ## GitHub Actions
 
