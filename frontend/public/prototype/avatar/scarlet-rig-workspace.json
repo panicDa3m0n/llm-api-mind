@@ -3,12 +3,12 @@
   "status": "poopoo-informed-structure-and-owner-placement",
   "canvas": { "width": 941, "height": 1672 },
   "reference": "public/prototype/scarlet-character-v1.png",
-  "output_psd": "public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd",
+  "output_psd": "avatar-authoring/psd/rig/scarlet-layered-rig-workspace-v2.psd",
   "psd_report": "public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2-report.json",
   "native_assets_report": "public/prototype/avatar/rig/scarlet-native-assets-v1-report.json",
   "placement_policy": "Generated parts are trimmed to their actual alpha silhouette and inserted hidden at canvas center. The owner controls all final transforms against the locked bottom reference.",
   "structural_reference": {
-    "source": "public/prototype/avatar/Poopoo.psd",
+    "source": "avatar-authoring/psd/Poopoo.psd",
     "sha256": "6041f9b2ef9db5fdea74aad79c3af4c2e0c9496916d2befb42e455e7fa4a6127",
     "audit": "public/prototype/avatar/poopoo-structural-reference.json",
     "usage": "Hierarchy, semantic asset inventory, clipping, blend modes, and z-order only. No source pixels or character design may enter Scarlet artwork."

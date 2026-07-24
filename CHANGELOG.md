@@ -22,9 +22,14 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Resolve Product UI media through the configured Vite base path so the same
   source works under `/scarlet/` and inside a Capacitor WebView.
+- Validate Android credentials against the protected VPS health endpoint
+  before opening the Product UI; native credentials remain memory-only and
+  the obsolete local-demo copy is not shown in the APK.
 - Package only the approved runtime portrait and greeting video. PSDs,
   references, rig workspaces, and other avatar-authoring assets remain in the
   repository but are excluded from web and Android delivery.
+- Move the four retained PSD research files out of `frontend/public` into the
+  Git LFS-backed `frontend/avatar-authoring/psd` archive.
 - Advance backend, frontend, OpenAPI, module-conformance, and Android version
   metadata to V1.56.0.
 
@@ -38,6 +43,11 @@ This project uses a practical changelog rather than a release-only log: each mea
   APK reports package `cloud.honeylabs.scarlet`, version code `15600`, version
   `1.56.0`, API 23 minimum, API 35 target, the HoneyLabs API URL, and no
   embedded Basic Auth credential.
+- Headless Android API 36 smoke reaches the native login after the startup
+  greeting and confirms the connected VPS authentication copy. A first
+  screenshot taken during media decoding was blank; a bounded follow-up
+  confirmed that WebView and assets loaded without a JavaScript or native
+  crash.
 
 ### V1.55.4 - Native Runtime And Product UI Integration
 

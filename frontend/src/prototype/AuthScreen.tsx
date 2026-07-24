@@ -13,12 +13,14 @@ export type AuthCredentials = {
 export function AuthScreen({
   credentials,
   initialTab,
+  nativeAuthentication,
   onLogin,
   onRegistrationUnavailable
 }: {
   credentials: AuthCredentials;
   initialTab: AuthTab;
-  onLogin: (username: string, password: string) => void;
+  nativeAuthentication?: boolean;
+  onLogin: (username: string, password: string) => Promise<void> | void;
   onRegistrationUnavailable: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<AuthTab>(initialTab);
@@ -29,6 +31,7 @@ export function AuthScreen({
   const [registerPassword, setRegisterPassword] = useState("");
   const [registerConfirmation, setRegisterConfirmation] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState<{ kind: "error" | "success"; message: string } | null>(null);
 
   function selectTab(tab: AuthTab) {
@@ -36,9 +39,12 @@ export function AuthScreen({
     setFeedback(null);
   }
 
-  function submitLogin(event: FormEvent<HTMLFormElement>) {
+  async function submitLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (username.trim() !== credentials.username || password !== credentials.password) {
+    if (
+      !nativeAuthentication &&
+      (username.trim() !== credentials.username || password !== credentials.password)
+    ) {
       setFeedback({
         kind: "error",
         message: "Credenziali non riconosciute. Per il test usa scarlet / scarlet."
@@ -47,7 +53,20 @@ export function AuthScreen({
     }
 
     setFeedback(null);
-    onLogin(username.trim(), password);
+    setSubmitting(true);
+    try {
+      await onLogin(username.trim(), password);
+    } catch (error) {
+      setFeedback({
+        kind: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "Non riesco a verificare l'accesso in questo momento."
+      });
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function submitRegistration(event: FormEvent<HTMLFormElement>) {
@@ -70,7 +89,11 @@ export function AuthScreen({
           <div>
             <p className="scarlet-auth__eyebrow">Il tuo spazio con Scarlet</p>
             <h1 id="scarlet-auth-title">Bentornato.</h1>
-            <p>Entra nel tuo spazio privato. Gli account reali arriveranno più avanti.</p>
+            <p>
+              {nativeAuthentication
+                ? "Connettiti al tuo spazio privato su API Mind."
+                : "Entra nel tuo spazio privato. Gli account reali arriveranno più avanti."}
+            </p>
           </div>
         </header>
 
@@ -133,13 +156,24 @@ export function AuthScreen({
 
             <Feedback feedback={feedback} />
 
-            <button className="scarlet-auth__primary" data-testid="login-submit" type="submit">
-              <span>Entra nel tuo spazio</span>
+            <button
+              className="scarlet-auth__primary"
+              data-testid="login-submit"
+              disabled={submitting}
+              type="submit"
+            >
+              <span>{submitting ? "Connessione..." : "Entra nel tuo spazio"}</span>
               <span aria-hidden="true">→</span>
             </button>
 
             <p className="scarlet-auth__test-hint">
-              Accesso di prova <code>scarlet</code> / <code>scarlet</code>
+              {nativeAuthentication ? (
+                "Usa le credenziali del tuo spazio Scarlet"
+              ) : (
+                <>
+                  Accesso di prova <code>scarlet</code> / <code>scarlet</code>
+                </>
+              )}
             </p>
           </form>
         ) : (
@@ -204,7 +238,11 @@ export function AuthScreen({
 
         <footer className="scarlet-auth__footer">
           <span aria-hidden="true" />
-          <p>Prototipo locale · nessun dato viene inviato</p>
+          <p>
+            {nativeAuthentication
+              ? "Connessione protetta a honeylabs.cloud"
+              : "Interfaccia prototipo di Scarlet"}
+          </p>
         </footer>
       </section>
     </main>

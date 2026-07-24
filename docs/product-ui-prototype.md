@@ -44,6 +44,8 @@ its OBJ preserved a general resemblance but introduced visible quality defects.
 The layered raster puppet path is paused after Live2D, PSD, and prepared APNG
 experiments proved too costly and identity-sensitive for the present Product
 UI. Its artifacts and findings remain available for future research. The
+retained PSD sources live outside the public asset tree under
+`frontend/avatar-authoring/psd` and are never runtime media. The
 active path is documented in `docs/scarlet-static-portraits.md`: an identity
 contract, an approved supporting 360-degree reference pack, and an incremental catalog of
 static semantic states. The first planned states are startup greeting,
@@ -95,8 +97,8 @@ status reads as Scarlet speaking. The loader and progress bar sit immediately
 beneath that message; the viewport bottom is reserved for copyright and the
 current application version.
 
-The authentication card contains Login and Registrazione tabs. The canonical
-test login is:
+The authentication card contains Login and Registrazione tabs. In a local web
+prototype the canonical test login is:
 
 ```txt
 username: scarlet
@@ -107,6 +109,13 @@ Registration has no Core contract. Submitting it opens the shared centered
 `Funzione non disponibile` modal and creates no local or server account.
 Successful `scarlet/scarlet` test authentication opens the Product dashboard;
 logout returns to the authentication card.
+
+The Android build does not use those demo values. It accepts the credentials
+for the protected Scarlet VPS, holds the resulting Basic authorization value
+only in application memory, validates it with `/health`, and opens the Product
+dashboard only after the Core accepts it. A failure clears the volatile
+authorization value. Logout also clears it, and a native cold start always
+returns to Login instead of restoring an unauthenticated local session.
 
 Primary actions preserve white text above their animated Scarlet-color hover
 fill. The authentication card uses a clean perimeter without a decorative

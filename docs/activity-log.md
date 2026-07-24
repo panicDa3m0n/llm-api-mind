@@ -25,8 +25,14 @@ Changes:
 - made runtime media base-path aware;
 - enabled Capacitor HTTP and native-only, volatile forwarding of credentials
   entered through the existing test login;
+- replaced the native demo credential gate with a real `/health` validation:
+  the Product UI opens only after the protected VPS accepts the supplied
+  credentials, which are cleared after failure or logout;
 - excluded all PSD, rig, work, reference, and authoring assets from delivery
   while retaining them in source control;
+- moved all four retained PSD files from the public asset tree to
+  `frontend/avatar-authoring/psd`, preserving them through Git LFS as paused
+  research evidence rather than application media;
 - added a cross-platform JDK 21 discovery/build runner; and
 - advanced development metadata to V1.56.0.
 
@@ -39,9 +45,27 @@ Verification:
 - APK inspection confirmed version `1.56.0`, version code `15600`, package
   `cloud.honeylabs.scarlet`, minimum API 23, target API 35, VPS API URL, and
   absence of embedded Basic Auth credentials.
+- Android API 36 emulator installation and launch passed. The greeting assets
+  loaded from the APK and the app reached native login with the expected
+  protected-VPS copy and no WebView or JavaScript crash.
 
-Deployment evidence is appended after the protected VPS rollout and Android
-device smoke.
+Protected VPS rollout evidence:
+
+- online SQLite backup:
+  `/var/backups/scarlet-mobile-test/v1560-20260724T222051Z/app.db.pre-v1560`,
+  SHA-256
+  `6dbbc7dbc0aa002fb599ac90731fbf1236e7d5791e5ae0cfb95cad1a09b8330b`,
+  integrity `ok`;
+- old image retained as
+  `sha256:a7fa5d1a45ee9dbb66e679f21f849f944a6c72562d8d17da4be7df8539510df8`;
+- preflight before and after restart both reported role `production`,
+  isolation `direct`, integrity `ok`, 29 tables, 308 memories, 239 sessions,
+  and 909 messages;
+- deployed backend image
+  `sha256:29cdf25ba9393a07f19639f15af0504a2260034104900882999cb6d661906273`
+  reported API version `1.56.0` and healthy MiniMax M3 production state;
+- Nginx retained the protected boundary (`401` without credentials), while
+  static Product UI files and loopback API health were verified on the VPS.
 
 ## 2026-07-24 - V1.55.4 Windows UI And Native Runtime Integration
 

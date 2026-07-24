@@ -7,7 +7,8 @@ import { readPsd } from "ag-psd";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const frontendDirectory = path.resolve(scriptDirectory, "..");
-const sourceArgument = process.argv[2] ?? "public/prototype/avatar/Poopoo.psd";
+const sourceArgument =
+  process.argv[2] ?? "avatar-authoring/psd/Poopoo.psd";
 const outputArgument = process.argv[3] ?? "public/prototype/avatar/poopoo-structural-reference.json";
 const sourcePath = path.resolve(frontendDirectory, sourceArgument);
 const outputPath = path.resolve(frontendDirectory, outputArgument);

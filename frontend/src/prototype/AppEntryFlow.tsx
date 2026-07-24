@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   clearNativeApiBasicAuth,
+  fetchHealth,
   setNativeApiBasicAuth
 } from "../api";
 import { publicAssetPath } from "../runtimeAssets";
@@ -299,9 +300,18 @@ export function AppEntryFlow() {
       <AuthScreen
         credentials={credentials}
         initialTab={initialAuthTab}
-        onLogin={(username, password) => {
+        nativeAuthentication={nativePlatform}
+        onLogin={async (username, password) => {
           if (nativePlatform) {
             setNativeApiBasicAuth(username, password);
+            try {
+              await fetchHealth();
+            } catch {
+              clearNativeApiBasicAuth();
+              throw new Error(
+                "Credenziali non riconosciute o connessione a Scarlet non disponibile."
+              );
+            }
           }
           setAuthenticatedUser(username);
           setSessionActive(true);
@@ -312,7 +322,7 @@ export function AppEntryFlow() {
           setUnavailable({
             label: "Registrazione",
             detail:
-              "Il Core non espone ancora account o registrazione. Per il test usa scarlet / scarlet."
+              "Il Core non espone ancora account o registrazione. Questa funzione arriverà in una versione futura."
           })
         }
       />

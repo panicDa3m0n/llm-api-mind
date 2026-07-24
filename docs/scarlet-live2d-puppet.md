@@ -27,7 +27,7 @@ frontend/public/prototype/scarlet-character-v1.png
 frontend/public/prototype/avatar/source/scarlet-full-body-tpose-reference-v1.png
 ```
 
-`frontend/public/prototype/avatar/Poopoo.psd` is a structural reference only.
+`frontend/avatar-authoring/psd/Poopoo.psd` is a structural reference only.
 Its pixels, colors, character identity, anatomy, costume, and textures cannot
 enter Scarlet artwork. Its parsed hierarchy is recorded in:
 
@@ -88,7 +88,7 @@ frontend/public/prototype/avatar/scarlet-rig-workspace.json
 The generated PSD is:
 
 ```text
-frontend/public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd
+frontend/avatar-authoring/psd/rig/scarlet-layered-rig-workspace-v2.psd
 ```
 
 ## Artwork Workflow

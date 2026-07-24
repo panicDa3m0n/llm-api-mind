@@ -519,10 +519,10 @@ rig is approved.
 
 Links:
 
-- `frontend/public/prototype/avatar/Poopoo.psd`
+- `frontend/avatar-authoring/psd/Poopoo.psd`
 - `frontend/public/prototype/avatar/poopoo-structural-reference.json`
 - `frontend/public/prototype/avatar/scarlet-rig-workspace.json`
-- `frontend/public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd`
+- `frontend/avatar-authoring/psd/rig/scarlet-layered-rig-workspace-v2.psd`
 - `frontend/scripts/analyze-avatar-psd-reference.mjs`
 - `frontend/scripts/build-scarlet-rig-psd.mjs`
 - `docs/scarlet-live2d-puppet.md`

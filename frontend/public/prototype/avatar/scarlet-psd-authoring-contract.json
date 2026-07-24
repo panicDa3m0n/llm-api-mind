@@ -31,7 +31,7 @@
     }
   },
   "structural_reference": {
-    "path": "Poopoo.psd",
+    "path": "../../../avatar-authoring/psd/Poopoo.psd",
     "sha256": "6041f9b2ef9db5fdea74aad79c3af4c2e0c9496916d2befb42e455e7fa4a6127",
     "audit": "poopoo-structural-reference.json",
     "role": "Reference for PSD hierarchy, anatomical separation, clipping, blend modes, and z-order only.",
@@ -83,7 +83,7 @@
   },
   "workspace": {
     "manifest": "scarlet-rig-workspace.json",
-    "output_psd": "rig/scarlet-layered-rig-workspace-v2.psd",
+    "output_psd": "../../../avatar-authoring/psd/rig/scarlet-layered-rig-workspace-v2.psd",
     "reference_layer": "REFERENCE__SCARLET_PORTRAIT__LOCKED_BOTTOM",
     "reference_order": "first in the bottom-to-top PSD child array",
     "candidate_state": "hidden and unregistered until owner placement",

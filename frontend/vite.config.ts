@@ -1,5 +1,6 @@
 import tailwindcss from "@tailwindcss/vite";
 import { readFileSync } from "node:fs";
+import { extname } from "node:path";
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 
@@ -21,6 +22,17 @@ const runtimePublicAssets = [
   }
 ];
 
+function runtimeAssetContentType(fileName: string): string {
+  switch (extname(fileName)) {
+    case ".mp4":
+      return "video/mp4";
+    case ".png":
+      return "image/png";
+    default:
+      return "application/octet-stream";
+  }
+}
+
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "");
 
@@ -32,7 +44,8 @@ export default defineConfig(({ mode }) => {
     publicDir: false,
     plugins: [
       {
-        name: "scarlet-runtime-public-assets",
+        name: "scarlet-runtime-public-assets-build",
+        apply: "build",
         buildStart() {
           for (const asset of runtimePublicAssets) {
             this.emitFile({
@@ -41,6 +54,30 @@ export default defineConfig(({ mode }) => {
               source: readFileSync(asset.source)
             });
           }
+        }
+      },
+      {
+        name: "scarlet-runtime-public-assets-serve",
+        apply: "serve",
+        configureServer(server) {
+          server.middlewares.use((request, response, next) => {
+            const pathname = new URL(
+              request.url || "/",
+              "http://scarlet.local"
+            ).pathname;
+            const asset = runtimePublicAssets.find(({ fileName }) =>
+              pathname.endsWith(`/${fileName}`)
+            );
+            if (!asset) {
+              next();
+              return;
+            }
+            response.setHeader(
+              "Content-Type",
+              runtimeAssetContentType(asset.fileName)
+            );
+            response.end(readFileSync(asset.source));
+          });
         }
       },
       react(),

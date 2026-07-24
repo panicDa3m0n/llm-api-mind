@@ -571,7 +571,7 @@ Related Files:
 - `frontend/scripts/prepare-scarlet-anatomical-part.mjs`
 - `frontend/scripts/build-scarlet-rig-psd.mjs`
 - `frontend/public/prototype/avatar/scarlet-rig-workspace.json`
-- `frontend/public/prototype/avatar/rig/scarlet-layered-rig-workspace-v2.psd`
+- `frontend/avatar-authoring/psd/rig/scarlet-layered-rig-workspace-v2.psd`
 
 ## BUG-0101 - Review PSD Reference Layer Was Serialized Above Anatomy
 
@@ -606,7 +606,7 @@ generation fails on any bottom-to-top order mismatch.
 Related Files:
 
 - `frontend/scripts/prepare-scarlet-anatomical-part.mjs`
-- `frontend/public/prototype/avatar/work/eye_scarlet_right_upper_lash_liner/v1/eye_scarlet_right_upper_lash_liner-v1-review.psd`
+- `frontend/avatar-authoring/psd/work/eye_scarlet_right_upper_lash_liner/v1/eye_scarlet_right_upper_lash_liner-v1-review.psd`
 
 ## BUG-0100 - Rejected Avatar Pipelines Remained Active Beside Canonical Sources
 
