@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-19
-App target: V1.54.0; V1.50.1 remains deployed and release-accepted
+Last reviewed: 2026-07-24
+App target: V1.55.0; V1.50.1 remains deployed and release-accepted
 
 ## Response Philosophy
 
@@ -1581,41 +1581,32 @@ Provider execution policy: Anthropic-compatible model calls use provider
 streaming internally. This endpoint still returns one final response object; the
 stream is collected inside the backend.
 
-Completion invariant (V1.36.1): a successful user-facing turn must contain
-non-empty public assistant text after any model-controlled tool calls. When a
-provider returns only private thinking with `stop_reason=end_turn`, the
-Anthropic-compatible tool loop may request one bounded continuation, configured
-by `INCOMPLETE_FINAL_MAX_RETRIES` (default `1`). The incomplete attempt is kept
-in `completion_recovery` trace metadata but is not appended to canonical
-provider history. Private thinking is never promoted into public text, memory,
-or a tool call.
+Completion invariant (V1.55.0): native finality comes only from the provider
+protocol. `max_tokens` appends the complete native assistant blocks unchanged,
+adds a technical continuation message, and returns the same turn to Scarlet.
+`tool_use` alone authorizes dispatch of parsed tool blocks. `end_turn` alone
+closes the request and must contain non-empty accumulated public text. Tool
+blocks paired with `max_tokens` or `end_turn` are never executed.
 
-If the continuation is exhausted, or an adapter returns any other empty final
-result, the endpoint returns HTTP `502` with code
-`llm.incomplete_response`. The turn is persisted as `failed`; no empty
-assistant message is created. Streaming turns emit a terminal `error` instead
-of `turn_complete`. A successful streamed recovery records
-`llm.completion.recovery.started`; both sync and stream response traces include
-the final `completion_recovery` object.
+`PROVIDER_MAX_TOKEN_CONTINUATIONS` defaults to `8` and fails explicitly if a
+pathological response never reaches `end_turn`; this does not limit the
+model-controlled tool loop. `PROVIDER_STREAM_MAX_ATTEMPTS` defaults to `5`.
+On an upstream streaming exception, the application retries the current model
+step from the last complete provider-history boundary with exponential backoff.
+The upstream API has no token resume cursor, so partial failed-attempt deltas
+remain transient diagnostics and are never promoted into durable semantic V2
+events.
 
-Final-boundary invariant (V1.50.1): the private `<scarlet-final/>` marker
-remains the primary native boundary and is stripped before persistence. The
-first marker miss triggers one bounded correction. If the corrected second
-draft is non-empty but still omits the marker, the runtime does not auto-accept
-or rewrite it: it adds the hard semantic obligation
-`answer.final_boundary.semantic_recovery` and uses the structured LLM judge to
-verify that the draft is complete, standalone, conclusive, and independent of
-rejected public text. The original draft is accepted unchanged only when all
-hard semantic obligations pass. A progress note, fragment, `unknown`/`fail`
-finding, or unavailable validator remains HTTP 502 and creates no assistant
-message. `answer.validation.structural_final_boundary` records whether semantic
-recovery was attempted and accepted.
+An `end_turn` containing thinking but no public text is terminal and invalid;
+the runtime does not reopen it. It returns HTTP `502`
+`llm.incomplete_response`, persists the failed turn, and creates no empty
+assistant message.
 
-Production acceptance at merge `676e560` verified the unchanged primary path:
-MiniMax emitted the marker on its first attempt, the runtime stripped it, and
-the native turn persisted a conclusive answer. The controlled V1.50.1 tests
-remain the evidence for second-miss semantic acceptance and rejection because
-the runtime does not force a provider failure in production.
+The historical private `<scarlet-final/>` convention and semantic finality
+fallback are removed. Semantic answer obligations continue to validate
+grounding, action outcomes, conflicts, and capability claims, but they do not
+decide whether a provider message is terminal. Validation traces record
+`provider_finality.source=provider_stop_reason`.
 
 The canonical history is built from `sessions.provider_history_json` when
 available. This field stores Anthropic-compatible `user`/`assistant` messages
@@ -1798,9 +1789,13 @@ Current event types:
 - `text_start`: final text block started.
 - `text_delta`: provider text delta before semantic classification.
 - `assistant_note`: completed public work note derived from provider text in a
-  message that also contains `tool_use`.
+  message whose stop reason is `tool_use`.
+- `assistant_continuation`: completed public response segment whose stop reason
+  is `max_tokens`; it remains part of the same eventual final answer.
 - `assistant_answer`: completed final answer derived from provider text in an
-  `end_turn` message without tool calls.
+  `end_turn` message.
+- `provider_retry`: an interrupted provider stream will restart the same model
+  step; includes current/next attempt and the limit.
 - `model_stop`: provider stop reason for the current model step.
 - `turn_complete`: final `ChatTurnResponse` after messages, traces, and turn status are persisted.
 - `error`: recoverable stream error object.
@@ -1873,7 +1868,8 @@ Run the same native turn while exposing only persisted, replayable
 ```
 
 The response media type is `application/x-ndjson` and includes header
-`X-Scarlet-Stream-Schema: scarlet-stream-v2`. `seq` is the durable
+`X-Scarlet-Stream-Schema: scarlet-stream-v2` and
+`X-Scarlet-Turn-ID: turn_...`. `seq` is the durable
 session-global event cursor; `event_id` is the idempotency key. Token deltas
 and partial provider blocks are deliberately absent because they cannot be
 replayed. Completed notes, answers, tool states, errors, persisted messages,
@@ -1885,6 +1881,16 @@ being copied into every Product UI event.
 
 Terminal events are `turn.completed` and `turn.failed`. Transport closure is
 not a successful terminal state.
+
+The native turn runner outlives the initiating HTTP response. A client that
+loses the POST stream reconnects to the same turn with:
+
+```txt
+GET /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2?after_seq=42
+```
+
+The cursor is exclusive and the stream ends at that turn's durable terminal
+event. The frontend V2 transport retries this reconnection at most five times.
 
 ### GET /api/chat/sessions/{session_id}/events
 

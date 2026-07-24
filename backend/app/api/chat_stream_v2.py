@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from collections.abc import Iterable, Iterator
 from copy import deepcopy
 from datetime import datetime
@@ -54,6 +55,9 @@ COMMON_CLIENT_PAYLOAD_FIELDS = {
     "stream",
     "reason",
     "status",
+    "provider_attempt",
+    "next_provider_attempt",
+    "provider_attempt_limit",
 }
 
 
@@ -210,6 +214,36 @@ def stream_v2_from_native_lines(
             projected = project_stream_event(db, event)
         emitted_ids.add(event_id)
         yield json.dumps(projected.model_dump(mode="json"), ensure_ascii=True) + "\n"
+
+
+def stream_persisted_turn_events(
+    *,
+    engine: Engine,
+    session_id: str,
+    turn_id: str,
+    after_seq: int = 0,
+    poll_interval_seconds: float = 0.1,
+) -> Iterator[str]:
+    """Follow one turn from durable events and allow cursor-based reconnection."""
+
+    cursor = after_seq
+    while True:
+        with Session(engine) as db:
+            events = [
+                event
+                for event in repositories.list_events_for_turn(db, turn_id=turn_id)
+                if event.session_id == session_id and event.seq > cursor
+            ]
+            projected = [project_stream_event(db, event) for event in events]
+            turn = repositories.get_turn(db, turn_id)
+        for event in projected:
+            cursor = max(cursor, event.seq)
+            yield json.dumps(event.model_dump(mode="json"), ensure_ascii=True) + "\n"
+            if event.event_type in TERMINAL_EVENT_TYPES:
+                return
+        if turn is None or turn.status in {"completed", "failed"}:
+            return
+        time.sleep(poll_interval_seconds)
 
 
 def reduce_stream_events(

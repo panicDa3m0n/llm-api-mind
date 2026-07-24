@@ -22,7 +22,6 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
-from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage.db import create_db_engine, init_db
 
 
@@ -121,7 +120,7 @@ class CalibrationProbeProvider:
         )
 
     def _result(self) -> LLMTextResult:
-        text = f"Calibration retrieval completed.\n{NATIVE_FINAL_MARKER}"
+        text = "Calibration retrieval completed."
         return LLMTextResult(
             model=self.settings.minimax_model,
             text=text,

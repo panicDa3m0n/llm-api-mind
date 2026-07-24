@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-19
-App target: V1.54.0; V1.50.1 remains deployed and release-accepted
+Last updated: 2026-07-24
+App target: V1.55.0; V1.50.1 remains deployed and release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -86,11 +86,15 @@ Implemented and verified:
   accounting owners behind the unchanged router facade;
 - native sync/stream preparation, execution, answer control, failure, and
   completion owned by one typed turn service behind the thin HTTP facade;
-- one bounded provider continuation for a thinking-only `end_turn`, followed
-  by explicit `llm.incomplete_response` failure if no public answer or real
-  tool call emerges; incomplete attempts remain trace-only evidence;
-- shared native/GPT answer obligations with hard, warning, and advisory
-  severity; one bounded correction for structural or semantic hard failures;
+- provider-native completion boundaries: `max_tokens` continues the same
+  response with exact native assistant blocks, `tool_use` alone authorizes
+  dispatch, and `end_turn` alone closes the native answer;
+- up to five application-level retries restart an interrupted provider step
+  from its last complete provider-history boundary; eight bounded
+  `max_tokens` continuations prevent pathological non-terminal loops without
+  limiting Scarlet's model-controlled tool loop;
+- shared native/GPT semantic answer obligations with hard, warning, and
+  advisory severity; one bounded correction for semantic hard failures;
   fail-closed validator handling without deterministic language matching; and
   V1.49.1 attempt-chain evidence that lets the validator recognize a
   materially equivalent successful retry without erasing the failed call;

@@ -1,8 +1,8 @@
 # API Mind Core Runtime Contract
 
-Last updated: 2026-07-19
+Last updated: 2026-07-24
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.54.0
+Current additive contract target: V1.55.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -51,10 +51,10 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.54.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.55.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
-| Product UI event port | `backend/app/api/chat_stream_v2.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable additive envelope, replay cursor, and reducer semantics. |
-| Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; provider implementations remain replaceable. |
+| Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
+| Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; native adapters use stop reasons for continuation, tool dispatch, and finality. |
 | Static Scarlet policy | `backend/app/prompts/scarlet_system.md`, `backend/app/prompts/system.py` | native selected provider | repository prompt plus resolved source | Stable policy surface; prompt changes are behavior changes. |
 | Provider-native continuity | `backend/app/api/chat_provider_history.py` and canonical session history | native selected provider | canonical provider messages | Stable authority; compaction never deletes canonical history. |
 | Dynamic model context | `backend/app/mind/context_contracts.py`, `context_projection.py` | native provider and GPT bootstrap | `scarlet-model-context-v2` | Stable model-facing schema; rich source evidence remains internal. |
@@ -64,7 +64,7 @@ the native runtime.
 | Database ownership | `backend/app/storage/database_boundary.py`, `docs/database-topology.md` | startup, tests, evaluation, deploy | production/laboratory/test/preliminary roles | Hard operational boundary. |
 | Trace and event evidence | `backend/app/runtime/events.py`, repositories, `docs/block-registry.md` | Core, developer UI, evaluation | ordered persisted events and typed trace kinds | Append-only evidence contract where practical. |
 | Context accounting/history | `backend/app/runtime/context_accounting.py`, `history_runtime.py`, `history_compaction.py` | native turn and maintenance | accounting v2, history routing/artifact versions | Canonical history is authoritative; derived artifacts fail back visibly. |
-| Answer obligations | `backend/app/runtime/answer_obligations.py` | native turn and GPT finalize | obligations v2 / validation v1 | Shared semantic/structural finality contract. |
+| Answer obligations | `backend/app/runtime/answer_obligations.py` | native turn and GPT finalize | obligations v3 / validation v1 | Shared semantic evidence contract; provider stop reasons, not the validator, own native finality. |
 | Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode. |
 | Runtime configuration | `backend/app/config.py` | application factory and domain owners | typed `Settings` | Additive compatibility by default; invalid safety combinations fail closed. |
 | Agentic Module contracts, host, and SDK | `backend/scarlet_agentic_module_sdk/*`, `backend/app/agentic_modules/*`, `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md`, `docs/agentic-module-sdk.md` | optional operator-installed modules and module authors | manifest/port/lifecycle V1, host V1.53, SDK 1.0.0 | One public contract source, standalone authoring/conformance kit, and opt-in approved-root process host; native Core path remains unchanged with zero modules. |

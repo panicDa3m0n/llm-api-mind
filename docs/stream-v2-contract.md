@@ -1,8 +1,8 @@
 # Scarlet Stream V2 Contract
 
-Last updated: 2026-07-19
+Last updated: 2026-07-24
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.54.0
+Contract introduced: V1.51.0; current app target: V1.55.0
 Linear issue: SCA-47
 
 ## 1. Purpose
@@ -85,6 +85,7 @@ POST /api/chat/sessions/{session_id}/turn/stream-v2
 Content-Type: application/json
 Response: application/x-ndjson
 X-Scarlet-Stream-Schema: scarlet-stream-v2
+X-Scarlet-Turn-ID: turn_...
 ```
 
 The request body is the existing `ChatTurnRequest`. The response emits only
@@ -92,6 +93,20 @@ persisted V2 events. A successful turn includes `turn.completed`; a failed
 turn includes `turn.failed`. Stream closure alone is never proof of success.
 
 ### Replay and reconnect
+
+An interrupted live consumer reconnects to the same active or terminal turn:
+
+```txt
+GET /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2?after_seq=42
+```
+
+The initiating POST runs independently from the HTTP consumer. Closing the
+response therefore does not cancel the native turn. The GET emits only durable
+events after the exclusive cursor and stops at `turn.completed` or
+`turn.failed`. Product clients retain the returned turn id, deduplicate by
+`event_id`, and retry this GET at most five times.
+
+Session-wide replay and gap repair remain available through:
 
 ```txt
 GET /api/chat/sessions/{session_id}/events?after_seq=42&limit=500
@@ -186,9 +201,12 @@ turn snapshot. No assistant answer is invented.
 ### Reconnect After A Missing Event
 
 If the client applied sequence 41 and receives 43, it holds 43, requests
-`after_seq=41`, applies 42 then 43, and advances its cursor. If the original
-provider call was canceled, replay reconstructs everything that was persisted;
-it does not pretend to resume generation. A new user retry is a new turn.
+`after_seq=41`, applies 42 then 43, and advances its cursor. A dropped client
+connection resumes the same running turn. A provider-side stream failure is
+different: the runtime retries the current provider step from the last complete
+provider-history boundary because the upstream protocol exposes no token
+resume cursor. Transient partial deltas are not canonical V2 events, preventing
+duplicate durable notes, thinking blocks, tool calls, or answers.
 
 ## 7. Visibility And Developer Evidence
 

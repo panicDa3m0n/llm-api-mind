@@ -24,7 +24,13 @@ class Settings(BaseSettings):
     qwen_model: str = "qwen3.7-max"
     qwen_max_tokens: int = Field(default=4096, ge=1)
 
-    incomplete_final_max_retries: int = Field(default=1, ge=0, le=1)
+    provider_stream_max_attempts: int = Field(default=5, ge=1, le=5)
+    provider_stream_retry_backoff_seconds: float = Field(
+        default=0.5,
+        ge=0.0,
+        le=10.0,
+    )
+    provider_max_token_continuations: int = Field(default=8, ge=1, le=16)
     answer_obligations_mode: Literal["off", "shadow", "active"] = "active"
     answer_validation_max_tokens: int = Field(default=4096, ge=256, le=16384)
 

@@ -1,4 +1,5 @@
 import json
+import time
 from collections.abc import Iterator
 from typing import Any
 
@@ -30,7 +31,9 @@ class AnthropicCompatibleProvider:
         model: str,
         max_tokens: int,
         provider_name: str,
-        incomplete_final_max_retries: int = 1,
+        stream_max_attempts: int = 5,
+        stream_retry_backoff_seconds: float = 0.5,
+        max_token_continuations: int = 8,
     ) -> None:
         if not api_key:
             raise LLMConfigurationError(f"{api_key_name} is not configured.")
@@ -39,10 +42,13 @@ class AnthropicCompatibleProvider:
         self._model = model
         self._max_tokens = max_tokens
         self._provider_name = provider_name
-        self._incomplete_final_max_retries = incomplete_final_max_retries
+        self._stream_max_attempts = stream_max_attempts
+        self._stream_retry_backoff_seconds = stream_retry_backoff_seconds
+        self._max_token_continuations = max_token_continuations
         self._client = anthropic.Anthropic(
             api_key=api_key,
             base_url=base_url,
+            max_retries=0,
         )
 
     def generate_text(
@@ -102,43 +108,89 @@ class AnthropicCompatibleProvider:
         max_tokens: int,
     ) -> LLMTextResult:
         provider_messages = [self._to_anthropic_message(item) for item in messages]
-        try:
-            stream_kwargs: dict[str, Any] = {
-                "model": self._model,
-                "max_tokens": max_tokens,
-                "system": system or "You are a concise assistant.",
-                "messages": provider_messages,
-            }
-            thinking_config = self._thinking_config()
-            if thinking_config is not None:
-                stream_kwargs["thinking"] = thinking_config
-            with self._client.messages.stream(
-                **stream_kwargs,
-            ) as stream:
-                for _event in stream:
-                    pass
-                message = stream.get_final_message()
-        except anthropic.AnthropicError as exc:
-            raise LLMRequestError(self._sanitize_error(str(exc))) from exc
+        raw_provider_messages: list[dict[str, Any]] = []
+        provider_history_tail: list[dict[str, Any]] = []
+        text_segments: list[str] = []
+        usage_totals: dict[str, Any] = {}
+        continuation_attempts: list[dict[str, Any]] = []
+        step = 0
 
-        raw_content = self._extract_raw_content(message.content)
-        return LLMTextResult(
-            model=getattr(message, "model", self._model),
-            text=self._extract_text(message.content),
-            usage=self._extract_usage(message),
-            provider_message_id=getattr(message, "id", None),
-            raw_content=raw_content,
-            stop_reason=getattr(message, "stop_reason", None),
-            raw_provider_messages=[
-                {
-                    "id": getattr(message, "id", None),
-                    "model": getattr(message, "model", self._model),
-                    "stop_reason": getattr(message, "stop_reason", None),
-                    "content": raw_content,
-                    "usage": self._extract_usage(message),
-                }
-            ],
-        )
+        while True:
+            step += 1
+            message = self._collect_provider_message(
+                self._stream_provider_message(
+                    provider_messages=provider_messages,
+                    system=system,
+                    max_tokens=max_tokens,
+                    tools=None,
+                    model_step=step,
+                )
+            )
+            raw_content = self._extract_raw_content(message.content)
+            stop_reason = getattr(message, "stop_reason", None)
+            provider_message_id = getattr(message, "id", None)
+            usage = self._extract_usage(message)
+            raw_message = {
+                "id": provider_message_id,
+                "model": getattr(message, "model", self._model),
+                "stop_reason": stop_reason,
+                "content": raw_content,
+                "usage": usage,
+            }
+            raw_provider_messages.append(raw_message)
+            usage_totals = self._merge_usage(usage_totals, usage)
+            segment = self._extract_text(message.content)
+            if segment:
+                text_segments.append(segment)
+
+            if stop_reason == "max_tokens":
+                if self._extract_tool_uses(message.content):
+                    raise self._truncated_tool_use_error(raw_message)
+                self._ensure_continuation_available(
+                    continuation_attempts,
+                    raw_message=raw_message,
+                )
+                continuation_attempts.append(
+                    {
+                        "provider_message_id": provider_message_id,
+                        "model_step": step,
+                        "stop_reason": stop_reason,
+                    }
+                )
+                assistant_history = {"role": "assistant", "content": raw_content}
+                continuation = self._max_tokens_continuation_message()
+                provider_messages.extend([assistant_history, continuation])
+                provider_history_tail.extend([assistant_history, continuation])
+                continue
+
+            if stop_reason != "end_turn":
+                raise LLMIncompleteResponseError(
+                    f"{self._provider_name} ended with unsupported stop reason.",
+                    details={
+                        "reason": "unexpected_stop_reason",
+                        "stop_reason": stop_reason,
+                        "provider_message_id": provider_message_id,
+                    },
+                )
+            final_text = "\n".join(text_segments).strip()
+            if not final_text:
+                raise self._empty_end_turn_error(raw_message)
+            provider_history_tail.append(
+                {"role": "assistant", "content": raw_content}
+            )
+            return LLMTextResult(
+                model=getattr(message, "model", self._model),
+                text=final_text,
+                usage=usage_totals,
+                provider_message_id=provider_message_id,
+                raw_content=raw_content,
+                stop_reason=stop_reason,
+                raw_provider_messages=raw_provider_messages,
+                completion_recovery=self._continuation_metadata(
+                    continuation_attempts
+                ),
+                provider_history_tail=provider_history_tail,
+            )
 
     @staticmethod
     def _collect_final_stream_result(events: Iterator[LLMStreamEvent]) -> LLMTextResult:
@@ -162,193 +214,254 @@ class AnthropicCompatibleProvider:
         provider_messages = [self._to_anthropic_message(item) for item in messages]
         executed_tool_calls: list[LLMExecutedToolCall] = []
         raw_provider_messages: list[dict[str, Any]] = []
-        completion_recovery_attempts: list[dict[str, Any]] = []
+        provider_history_tail: list[dict[str, Any]] = []
+        continuation_attempts: list[dict[str, Any]] = []
+        pending_text_segments: list[str] = []
         usage_totals: dict[str, Any] = {}
 
-        try:
-            step = 0
-            while max_tool_calls is None or step <= max_tool_calls:
-                step += 1
+        step = 0
+        tool_call_count = 0
+        while max_tool_calls is None or tool_call_count < max_tool_calls:
+            step += 1
+            message = yield from self._stream_provider_message(
+                provider_messages=provider_messages,
+                system=system,
+                max_tokens=effective_max_tokens,
+                tools=tools,
+                model_step=step,
+            )
+
+            raw_content = self._extract_raw_content(message.content)
+            stop_reason = getattr(message, "stop_reason", None)
+            provider_message_id = getattr(message, "id", None)
+            usage = self._extract_usage(message)
+            raw_message = {
+                "id": provider_message_id,
+                "model": getattr(message, "model", self._model),
+                "stop_reason": stop_reason,
+                "content": raw_content,
+                "usage": usage,
+            }
+            raw_provider_messages.append(raw_message)
+            usage_totals = self._merge_usage(usage_totals, usage)
+            tool_uses = self._extract_tool_uses(message.content)
+            segment = self._extract_text(message.content)
+
+            for semantic_event in self._semantic_events_from_raw_content(
+                raw_content,
+                provider_message_id=provider_message_id,
+                stop_reason=stop_reason,
+                model_step=step,
+            ):
+                yield semantic_event
+
+            if stop_reason == "max_tokens":
+                if tool_uses:
+                    raise self._truncated_tool_use_error(raw_message)
+                self._ensure_continuation_available(
+                    continuation_attempts,
+                    raw_message=raw_message,
+                )
+                if segment:
+                    pending_text_segments.append(segment)
+                continuation_attempts.append(
+                    {
+                        "provider_message_id": provider_message_id,
+                        "model_step": step,
+                        "stop_reason": stop_reason,
+                    }
+                )
                 yield LLMStreamEvent(
-                    type="model_request",
-                    data={"step": step, "model": self._model},
+                    type="completion_recovery",
+                    data={
+                        "model_step": step,
+                        "attempt": len(continuation_attempts),
+                        "reason": "max_tokens",
+                        "provider_message_id": provider_message_id,
+                        "stop_reason": stop_reason,
+                    },
                 )
-                stream_kwargs: dict[str, Any] = {
-                    "model": self._model,
-                    "max_tokens": effective_max_tokens,
-                    "system": system or "You are a concise assistant.",
-                    "messages": provider_messages,
-                    "tools": tools,
-                }
-                thinking_config = self._thinking_config()
-                if thinking_config is not None:
-                    stream_kwargs["thinking"] = thinking_config
-                with self._client.messages.stream(
-                    **stream_kwargs,
-                ) as stream:
-                    for event in stream:
-                        for stream_event in self._stream_events_from_raw_event(event):
-                            stream_event.data["model_step"] = step
-                            yield stream_event
-                    message = stream.get_final_message()
+                assistant_history = {"role": "assistant", "content": raw_content}
+                continuation = self._max_tokens_continuation_message()
+                provider_messages.extend([assistant_history, continuation])
+                provider_history_tail.extend([assistant_history, continuation])
+                continue
 
-                raw_content = self._extract_raw_content(message.content)
-                stop_reason = getattr(message, "stop_reason", None)
-                provider_message_id = getattr(message, "id", None)
-                raw_message = {
-                    "id": provider_message_id,
-                    "model": getattr(message, "model", self._model),
-                    "stop_reason": stop_reason,
-                    "content": raw_content,
-                    "usage": self._extract_usage(message),
-                }
-                usage_totals = self._merge_usage(
-                    usage_totals,
-                    self._extract_usage(message),
+            if stop_reason == "end_turn":
+                if tool_uses:
+                    raise LLMIncompleteResponseError(
+                        f"{self._provider_name} returned tool blocks at end_turn.",
+                        details={
+                            "reason": "tool_use_with_end_turn",
+                            "stop_reason": stop_reason,
+                            "provider_message_id": provider_message_id,
+                        },
+                    )
+                final_text = "\n".join(
+                    [*pending_text_segments, *([segment] if segment else [])]
+                ).strip()
+                if not final_text:
+                    raise self._empty_end_turn_error(raw_message)
+                provider_history_tail.append(
+                    {"role": "assistant", "content": raw_content}
                 )
-                tool_uses = self._extract_tool_uses(message.content)
-                for semantic_event in self._semantic_events_from_raw_content(
-                    raw_content,
-                    provider_message_id=provider_message_id,
-                    stop_reason=stop_reason,
-                    model_step=step,
-                ):
-                    yield semantic_event
-                if not tool_uses:
-                    final_text = self._extract_text(message.content)
-                    if not final_text:
-                        recovery_attempt_count = sum(
-                            1
-                            for attempt in completion_recovery_attempts
-                            if attempt.get("recoverable") is True
-                        )
-                        recoverable = (
-                            stop_reason == "end_turn"
-                            and self._has_thinking_content(raw_content)
-                            and recovery_attempt_count
-                            < self._incomplete_final_max_retries
-                        )
-                        incomplete = {
-                            **raw_message,
-                            "reason": "thinking_only_end_turn"
-                            if self._has_thinking_content(raw_content)
-                            else "empty_terminal_message",
-                            "recoverable": recoverable,
-                        }
-                        completion_recovery_attempts.append(incomplete)
-                        if recoverable:
-                            yield LLMStreamEvent(
-                                type="completion_recovery",
-                                data={
-                                    "model_step": step,
-                                    "attempt": len(completion_recovery_attempts),
-                                    "reason": incomplete["reason"],
-                                    "provider_message_id": provider_message_id,
-                                    "stop_reason": stop_reason,
-                                },
-                            )
-                            provider_messages.extend(
-                                [
-                                    {"role": "assistant", "content": raw_content},
-                                    self._completion_continuation_message(),
-                                ]
-                            )
-                            continue
-                        raise LLMIncompleteResponseError(
-                            (
-                                f"{self._provider_name} ended without public text "
-                                "or a tool call."
+                yield LLMStreamEvent(
+                    type="final_result",
+                    data={
+                        "result": LLMTextResult(
+                            model=getattr(message, "model", self._model),
+                            text=final_text,
+                            usage=usage_totals,
+                            provider_message_id=provider_message_id,
+                            raw_content=raw_content,
+                            stop_reason=stop_reason,
+                            tool_calls=executed_tool_calls,
+                            raw_provider_messages=raw_provider_messages,
+                            completion_recovery=self._continuation_metadata(
+                                continuation_attempts
                             ),
-                            details={
-                                "reason": incomplete["reason"],
-                                "stop_reason": stop_reason,
-                                "provider_message_id": provider_message_id,
-                                "recovery_attempt_count": sum(
-                                    1
-                                    for attempt in completion_recovery_attempts
-                                    if attempt.get("recoverable") is True
-                                ),
-                                "terminal_message_count": len(
-                                    completion_recovery_attempts
-                                ),
-                                "recovery_limit": self._incomplete_final_max_retries,
-                            },
-                        )
-                    raw_provider_messages.append(raw_message)
-                    yield LLMStreamEvent(
-                        type="final_result",
-                        data={
-                            "result": LLMTextResult(
-                                model=getattr(
-                                    message,
-                                    "model",
-                                    self._model,
-                                ),
-                                text=final_text,
-                                usage=usage_totals,
-                                provider_message_id=getattr(message, "id", None),
-                                raw_content=raw_content,
-                                stop_reason=getattr(message, "stop_reason", None),
-                                tool_calls=executed_tool_calls,
-                                raw_provider_messages=raw_provider_messages,
-                                completion_recovery={
-                                    "attempted": bool(completion_recovery_attempts),
-                                    "recovered": bool(completion_recovery_attempts),
-                                    "attempt_count": len(completion_recovery_attempts),
-                                    "attempts": completion_recovery_attempts,
-                                },
-                            ).model_dump(mode="json")
-                        },
-                    )
-                    return
+                            provider_history_tail=provider_history_tail,
+                        ).model_dump(mode="json")
+                    },
+                )
+                return
 
-                raw_provider_messages.append(raw_message)
-                provider_messages.append(
+            if stop_reason != "tool_use" or not tool_uses:
+                raise LLMIncompleteResponseError(
+                    f"{self._provider_name} returned an inconsistent tool response.",
+                    details={
+                        "reason": "tool_stop_mismatch",
+                        "stop_reason": stop_reason,
+                        "provider_message_id": provider_message_id,
+                        "tool_use_count": len(tool_uses),
+                    },
+                )
+
+            pending_text_segments.clear()
+            assistant_history = {"role": "assistant", "content": raw_content}
+            provider_messages.append(assistant_history)
+            provider_history_tail.append(assistant_history)
+            tool_results: list[dict[str, Any]] = []
+            for tool_use in tool_uses:
+                tool_call_count += 1
+                yield LLMStreamEvent(
+                    type="tool_call",
+                    data={
+                        "model_step": step,
+                        "provider_tool_use_id": tool_use.id,
+                        "tool_name": tool_use.name,
+                        "arguments": tool_use.input,
+                    },
+                )
+                executed = tool_runner(tool_use)
+                executed_tool_calls.append(executed)
+                yield LLMStreamEvent(
+                    type="tool_result",
+                    data={
+                        "model_step": step,
+                        **executed.model_dump(mode="json"),
+                    },
+                )
+                tool_results.append(
                     {
-                        "role": "assistant",
-                        "content": raw_content,
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": json.dumps(executed.result, ensure_ascii=True),
+                        "is_error": executed.status != "completed",
                     }
                 )
-                tool_results: list[dict[str, Any]] = []
-                for tool_use in tool_uses:
-                    yield LLMStreamEvent(
-                        type="tool_call",
-                        data={
-                            "model_step": step,
-                            "provider_tool_use_id": tool_use.id,
-                            "tool_name": tool_use.name,
-                            "arguments": tool_use.input,
-                        },
-                    )
-                    executed = tool_runner(tool_use)
-                    executed_tool_calls.append(executed)
-                    yield LLMStreamEvent(
-                        type="tool_result",
-                        data={
-                            "model_step": step,
-                            **executed.model_dump(mode="json"),
-                        },
-                    )
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": json.dumps(executed.result, ensure_ascii=True),
-                            "is_error": executed.status != "completed",
-                        }
-                    )
-                provider_messages.append(
-                    {
-                        "role": "user",
-                        "content": tool_results,
-                    }
-                )
-        except anthropic.AnthropicError as exc:
-            raise LLMRequestError(self._sanitize_error(str(exc))) from exc
+            tool_history = {"role": "user", "content": tool_results}
+            provider_messages.append(tool_history)
+            provider_history_tail.append(tool_history)
 
         raise LLMRequestError(
             f"{self._provider_name} tool loop exceeded max_tool_calls={max_tool_calls}."
         )
+
+    def _stream_provider_message(
+        self,
+        *,
+        provider_messages: list[dict[str, Any]],
+        system: str | None,
+        max_tokens: int,
+        tools: list[dict[str, Any]] | None,
+        model_step: int,
+    ) -> Iterator[LLMStreamEvent]:
+        for attempt in range(1, self._stream_max_attempts + 1):
+            yield LLMStreamEvent(
+                type="model_request",
+                data={
+                    "step": model_step,
+                    "model": self._model,
+                    "provider_attempt": attempt,
+                    "provider_attempt_limit": self._stream_max_attempts,
+                },
+            )
+            stream_kwargs: dict[str, Any] = {
+                "model": self._model,
+                "max_tokens": max_tokens,
+                "system": system or "You are a concise assistant.",
+                "messages": provider_messages,
+            }
+            if tools is not None:
+                stream_kwargs["tools"] = tools
+            thinking_config = self._thinking_config()
+            if thinking_config is not None:
+                stream_kwargs["thinking"] = thinking_config
+            try:
+                with self._client.messages.stream(**stream_kwargs) as stream:
+                    for event in stream:
+                        for stream_event in self._stream_events_from_raw_event(event):
+                            stream_event.data.update(
+                                {
+                                    "model_step": model_step,
+                                    "provider_attempt": attempt,
+                                }
+                            )
+                            yield stream_event
+                    return stream.get_final_message()
+            except anthropic.AnthropicError as exc:
+                sanitized_error = self._sanitize_error(str(exc))
+                if (
+                    attempt >= self._stream_max_attempts
+                    or not self._is_retryable_provider_error(exc)
+                ):
+                    raise LLMRequestError(sanitized_error) from exc
+                yield LLMStreamEvent(
+                    type="provider_retry",
+                    data={
+                        "model_step": model_step,
+                        "provider_attempt": attempt,
+                        "next_provider_attempt": attempt + 1,
+                        "provider_attempt_limit": self._stream_max_attempts,
+                        "error": sanitized_error,
+                    },
+                )
+                delay = self._stream_retry_backoff_seconds * (2 ** (attempt - 1))
+                if delay:
+                    time.sleep(delay)
+        raise AssertionError("provider retry loop must return or raise")
+
+    @staticmethod
+    def _is_retryable_provider_error(exc: anthropic.AnthropicError) -> bool:
+        if isinstance(
+            exc,
+            (anthropic.APIConnectionError, anthropic.APITimeoutError),
+        ):
+            return True
+        if isinstance(exc, anthropic.APIStatusError):
+            return exc.status_code in {408, 409, 429} or exc.status_code >= 500
+        return False
+
+    @staticmethod
+    def _collect_provider_message(
+        events: Iterator[LLMStreamEvent],
+    ) -> Any:
+        while True:
+            try:
+                next(events)
+            except StopIteration as completed:
+                return completed.value
 
     def _sanitize_error(self, message: str) -> str:
         if self._api_key:
@@ -361,24 +474,86 @@ class AnthropicCompatibleProvider:
         return None
 
     @staticmethod
-    def _has_thinking_content(raw_content: list[dict[str, Any]]) -> bool:
-        return any(block.get("type") == "thinking" for block in raw_content)
-
-    @staticmethod
-    def _completion_continuation_message() -> dict[str, Any]:
+    def _max_tokens_continuation_message() -> dict[str, Any]:
         return {
             "role": "user",
             "content": [
                 {
                     "type": "text",
                     "text": (
-                        "Your previous message ended without a public answer or "
-                        "a tool call. Continue the same turn now. Use a real tool "
-                        "call if one is required; otherwise provide the final public "
-                        "answer. Do not quote or expose private thinking."
+                        "Continue the same assistant response exactly from where it "
+                        "stopped because the previous provider response reached "
+                        "max_tokens. Do not repeat completed content. Continue using "
+                        "tools if the task requires them; otherwise finish the answer."
                     ),
                 }
             ],
+        }
+
+    def _empty_end_turn_error(
+        self,
+        raw_message: dict[str, Any],
+    ) -> LLMIncompleteResponseError:
+        raw_content = raw_message["content"]
+        reason = (
+            "thinking_only_end_turn"
+            if any(block.get("type") == "thinking" for block in raw_content)
+            else "empty_end_turn"
+        )
+        return LLMIncompleteResponseError(
+            f"{self._provider_name} ended the turn without public text.",
+            details={
+                "reason": reason,
+                "stop_reason": raw_message["stop_reason"],
+                "provider_message_id": raw_message["id"],
+                "recoverable": False,
+            },
+        )
+
+    def _truncated_tool_use_error(
+        self,
+        raw_message: dict[str, Any],
+    ) -> LLMIncompleteResponseError:
+        return LLMIncompleteResponseError(
+            f"{self._provider_name} truncated a tool request at max_tokens.",
+            details={
+                "reason": "truncated_tool_use",
+                "stop_reason": raw_message["stop_reason"],
+                "provider_message_id": raw_message["id"],
+                "recoverable": False,
+            },
+        )
+
+    def _ensure_continuation_available(
+        self,
+        attempts: list[dict[str, Any]],
+        *,
+        raw_message: dict[str, Any],
+    ) -> None:
+        if len(attempts) < self._max_token_continuations:
+            return
+        raise LLMIncompleteResponseError(
+            f"{self._provider_name} repeatedly exhausted max_tokens.",
+            details={
+                "reason": "max_tokens_continuation_limit",
+                "stop_reason": raw_message["stop_reason"],
+                "provider_message_id": raw_message["id"],
+                "continuation_count": len(attempts),
+                "continuation_limit": self._max_token_continuations,
+                "recoverable": False,
+            },
+        )
+
+    @staticmethod
+    def _continuation_metadata(
+        attempts: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        return {
+            "attempted": bool(attempts),
+            "recovered": bool(attempts),
+            "reason": "max_tokens" if attempts else None,
+            "attempt_count": len(attempts),
+            "attempts": attempts,
         }
 
     @staticmethod
@@ -515,8 +690,11 @@ class AnthropicCompatibleProvider:
         stop_reason: str | None,
         model_step: int,
     ) -> Iterator[LLMStreamEvent]:
-        has_tool_use = any(block.get("type") == "tool_use" for block in raw_content)
-        text_event_type = "assistant_note" if has_tool_use else "assistant_answer"
+        text_event_type = {
+            "tool_use": "assistant_note",
+            "end_turn": "assistant_answer",
+            "max_tokens": "assistant_continuation",
+        }.get(stop_reason)
         for index, block in enumerate(raw_content):
             block_type = block.get("type")
             if block_type == "thinking":
@@ -535,7 +713,11 @@ class AnthropicCompatibleProvider:
                 )
             elif block_type == "text":
                 text = block.get("text")
-                if not isinstance(text, str) or not text.strip():
+                if (
+                    text_event_type is None
+                    or not isinstance(text, str)
+                    or not text.strip()
+                ):
                     continue
                 yield LLMStreamEvent(
                     type=text_event_type,
@@ -575,5 +757,9 @@ class MiniMaxProvider(AnthropicCompatibleProvider):
             model=settings.minimax_model,
             max_tokens=settings.minimax_max_tokens,
             provider_name="MiniMax",
-            incomplete_final_max_retries=settings.incomplete_final_max_retries,
+            stream_max_attempts=settings.provider_stream_max_attempts,
+            stream_retry_backoff_seconds=(
+                settings.provider_stream_retry_backoff_seconds
+            ),
+            max_token_continuations=settings.provider_max_token_continuations,
         )

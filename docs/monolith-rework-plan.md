@@ -107,8 +107,9 @@ Issue: SCA-33, completed in the V1.45.0 candidate.
 
 Native preflight, execution, failure, completion, and scheduling now live in
 `chat_native_turn.py`; `build_chat_router` is a thin HTTP facade. Tool-loop
-order, thinking-only recovery, answer obligations, canonical provider history,
-and transport differences are preserved. Frozen pre/post gates pass 9/9,
+order, stop-reason finality, semantic answer obligations, canonical provider
+history, and transport differences are preserved. V1.55.0 additionally moves
+connection-independent V2 execution into `chat_turn_runner.py`. Frozen pre/post gates pass 9/9,
 OpenAPI is equal, and a directly inspected sync-to-stream MiniMax probe
 preserved continuity. The extraction also fixed BUG-0092, where stream created
 but did not link its model-context trace.

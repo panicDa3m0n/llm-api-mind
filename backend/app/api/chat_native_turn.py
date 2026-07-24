@@ -19,12 +19,9 @@ from app.api.chat_accounting import (
     record_context_accounting_preflight,
 )
 from app.api.chat_provider_history import (
-    ProviderHistory,
     provider_history_from_result,
     provider_messages_for_turn,
     updated_provider_history,
-    valid_content_blocks,
-    valid_provider_history,
 )
 from app.api.chat_serialization import (
     ChatMessageResponse,
@@ -63,15 +60,12 @@ from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.runtime.answer_obligations import (
-    NATIVE_FINAL_MARKER,
     AnswerObligationManifest,
     augment_with_tool_evidence,
     compile_answer_obligations,
     correction_instruction,
     render_answer_obligations,
-    strip_native_final_marker,
     validate_answer_semantics,
-    with_native_finality_recovery,
 )
 from app.runtime.events import (
     record_event,
@@ -342,7 +336,10 @@ def prepare_native_turn(
             trace_ids.append(answer_obligations_trace_id)
 
         answer_obligations_appendix = ""
-        if settings.answer_obligations_mode == "active":
+        if (
+            settings.answer_obligations_mode == "active"
+            and answer_manifest.obligations
+        ):
             answer_obligations_appendix = render_answer_obligations(answer_manifest)
             effective_system += answer_obligations_appendix
 
@@ -1031,6 +1028,16 @@ def _enforce_native_answer_obligations(
     turn_id: str,
     trace_ids: list[str],
 ) -> tuple[LLMTextResult, str | None]:
+    if result.stop_reason != "end_turn":
+        raise LLMIncompleteResponseError(
+            "The provider did not close the turn with end_turn.",
+            details={
+                "reason": "non_terminal_provider_result",
+                "stop_reason": result.stop_reason,
+                "provider_message_id": result.provider_message_id,
+                "recoverable": False,
+            },
+        )
     if settings.answer_obligations_mode != "active":
         return result, None
 
@@ -1050,32 +1057,15 @@ def _enforce_native_answer_obligations(
                 )
                 trace_ids.append(manifest_trace_id)
 
-        public_answer, structural_ok = strip_native_final_marker(current.text)
-        fallback_answer = current.text.strip()
-        semantic_finality_recovery = (
-            attempt == 1
-            and not structural_ok
-            and bool(fallback_answer)
-            and fallback_answer != NATIVE_FINAL_MARKER
+        if not current_manifest.semantic:
+            return current, final_validation_trace_id
+        semantic_validation = validate_answer_semantics(
+            provider=provider,
+            manifest=current_manifest,
+            answer=current.text,
+            max_tokens=settings.answer_validation_max_tokens,
         )
-        validation_manifest = (
-            with_native_finality_recovery(current_manifest)
-            if semantic_finality_recovery
-            else current_manifest
-        )
-        semantic_validation = (
-            validate_answer_semantics(
-                provider=provider,
-                manifest=validation_manifest,
-                answer=public_answer if structural_ok else current.text,
-                max_tokens=settings.answer_validation_max_tokens,
-            )
-            if structural_ok or semantic_finality_recovery
-            else None
-        )
-        accepted = (structural_ok or semantic_finality_recovery) and (
-            semantic_validation is None or semantic_validation.accepted
-        )
+        accepted = semantic_validation.accepted
         with Session(engine) as db:
             validation_trace = repositories.add_trace(
                 db,
@@ -1086,20 +1076,13 @@ def _enforce_native_answer_obligations(
                     "transport": "native",
                     "attempt": attempt + 1,
                     "accepted": accepted,
-                    "structural_final_boundary": {
-                        "accepted": structural_ok,
-                        "marker_stripped": structural_ok,
-                        "semantic_recovery_attempted": semantic_finality_recovery,
-                        "semantic_recovery_accepted": (
-                            semantic_finality_recovery
-                            and semantic_validation is not None
-                            and semantic_validation.accepted
-                        ),
+                    "provider_finality": {
+                        "accepted": current.stop_reason == "end_turn",
+                        "stop_reason": current.stop_reason,
+                        "source": "provider_stop_reason",
                     },
-                    "semantic": semantic_validation.model_dump(mode="json")
-                    if semantic_validation is not None
-                    else None,
-                    "manifest": validation_manifest.model_dump(mode="json"),
+                    "semantic": semantic_validation.model_dump(mode="json"),
+                    "manifest": current_manifest.model_dump(mode="json"),
                     "draft": {
                         "provider_message_id": current.provider_message_id,
                         "chars": len(current.text),
@@ -1119,13 +1102,8 @@ def _enforce_native_answer_obligations(
                 else "answer.validation.rejected",
                 payload={
                     "attempt": attempt + 1,
-                    "structural_ok": structural_ok,
-                    "semantic_finality_recovery": semantic_finality_recovery,
-                    "hard_failure_ids": (
-                        semantic_validation.hard_failure_ids
-                        if semantic_validation is not None
-                        else ["answer.final_boundary"]
-                    ),
+                    "provider_stop_reason": current.stop_reason,
+                    "hard_failure_ids": semantic_validation.hard_failure_ids,
                 },
                 source="answer_control",
                 actor="backend",
@@ -1133,10 +1111,7 @@ def _enforce_native_answer_obligations(
                 trace_id=validation_trace_id,
                 status="completed" if accepted else "error",
             )
-        if (
-            semantic_validation is not None
-            and semantic_validation.validator_status == "failed"
-        ):
+        if semantic_validation.validator_status == "failed":
             raise LLMIncompleteResponseError(
                 "The answer validator could not evaluate the hard obligations.",
                 details={
@@ -1150,7 +1125,6 @@ def _enforce_native_answer_obligations(
             return (
                 _accepted_native_result(
                     current,
-                    public_answer=public_answer,
                     validation_trace_id=final_validation_trace_id,
                 ),
                 final_validation_trace_id,
@@ -1161,12 +1135,7 @@ def _enforce_native_answer_obligations(
                 details={
                     "reason": "answer_obligation_failed",
                     "attempt_count": 2,
-                    "structural_failure": not structural_ok,
-                    "hard_failure_ids": (
-                        semantic_validation.hard_failure_ids
-                        if semantic_validation is not None
-                        else ["answer.final_boundary"]
-                    ),
+                    "hard_failure_ids": semantic_validation.hard_failure_ids,
                     "answer_validation_trace_id": final_validation_trace_id,
                 },
             )
@@ -1180,12 +1149,7 @@ def _enforce_native_answer_obligations(
                 payload={
                     "attempt": 1,
                     "validation_trace_id": final_validation_trace_id,
-                    "structural_failure": not structural_ok,
-                    "hard_failure_ids": (
-                        semantic_validation.hard_failure_ids
-                        if semantic_validation is not None
-                        else ["answer.final_boundary"]
-                    ),
+                    "hard_failure_ids": semantic_validation.hard_failure_ids,
                 },
                 source="answer_control",
                 actor="backend",
@@ -1196,7 +1160,6 @@ def _enforce_native_answer_obligations(
         recovery_instruction = correction_instruction(
             manifest=current_manifest,
             validation=semantic_validation,
-            structural_failure=not structural_ok,
         )
         continuation_messages = [
             *request_messages,
@@ -1229,57 +1192,25 @@ def _enforce_native_answer_obligations(
 def _accepted_native_result(
     result: LLMTextResult,
     *,
-    public_answer: str,
     validation_trace_id: str | None,
 ) -> LLMTextResult:
-    raw_content = _strip_marker_from_content(result.raw_content)
     raw_messages: list[dict[str, Any]] = []
     for index, raw_message in enumerate(result.raw_provider_messages):
         item = dict(raw_message)
         if index == len(result.raw_provider_messages) - 1:
-            item["content"] = _strip_marker_from_content(
-                valid_content_blocks(item.get("content"))
-            )
             item["answer_disposition"] = "accepted_final"
         raw_messages.append(item)
     recovery = dict(result.completion_recovery)
-    recovery_tail = valid_provider_history(result.provider_history_tail)
-    cleaned_tail: ProviderHistory = []
-    if recovery_tail:
-        for item in recovery_tail:
-            cleaned_tail.append(
-                {
-                    "role": item["role"],
-                    "content": _strip_marker_from_content(item["content"]),
-                }
-            )
     recovery["answer_obligations"] = {
         "recovered": len(raw_messages) > 1,
         "validation_trace_id": validation_trace_id,
     }
     return result.model_copy(
         update={
-            "text": public_answer,
-            "raw_content": raw_content,
             "raw_provider_messages": raw_messages,
             "completion_recovery": recovery,
-            "provider_history_tail": cleaned_tail,
         }
     )
-
-
-def _strip_marker_from_content(
-    content: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    cleaned: list[dict[str, Any]] = []
-    for block in content:
-        item = dict(block)
-        if item.get("type") == "text" and isinstance(item.get("text"), str):
-            text, accepted = strip_native_final_marker(item["text"])
-            if accepted:
-                item["text"] = text
-        cleaned.append(item)
-    return cleaned
 
 
 def _merge_answer_recovery_results(
@@ -1431,16 +1362,10 @@ def stream_native_turn(
                     in {"assistant_answer", "text_delta", "text_start"}
                 ):
                     continue
-                if stream_event.type in {"assistant_note", "assistant_answer"}:
-                    event_text = str(stream_event.data.get("text") or "")
-                    public_event_text, marker_found = strip_native_final_marker(
-                        event_text
-                    )
-                    if marker_found:
-                        stream_event.data["text"] = public_event_text
                 if stream_event.type in {
                     "assistant_note",
                     "assistant_answer",
+                    "assistant_continuation",
                     "thinking_captured",
                 }:
                     semantic_content_event_seen = True

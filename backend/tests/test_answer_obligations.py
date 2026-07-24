@@ -2,17 +2,13 @@ import json
 
 from app.llm.provider import LLMExecutedToolCall, LLMTextResult
 from app.runtime.answer_obligations import (
-    NATIVE_FINAL_MARKER,
-    NATIVE_FINALITY_RECOVERY_ID,
-    AnswerObligationManifest,
     AnswerObligation,
+    AnswerObligationManifest,
     augment_with_tool_evidence,
     compile_answer_obligations,
     correction_instruction,
     gpt_action_policy,
-    strip_native_final_marker,
     validate_answer_semantics,
-    with_native_finality_recovery,
 )
 
 
@@ -62,7 +58,7 @@ def _shell_attempt(
     )
 
 
-def test_native_manifest_compiles_structural_conflict_and_source_obligations() -> None:
+def test_native_manifest_compiles_conflict_and_source_obligations() -> None:
     manifest = compile_answer_obligations(
         transport="native",
         memory_context={
@@ -83,11 +79,10 @@ def test_native_manifest_compiles_structural_conflict_and_source_obligations() -
     )
 
     assert [item.id for item in manifest.obligations] == [
-        "answer.final_boundary",
         "memory.active_conflict_disclosure",
         "evidence.source_sensitive_claim",
     ]
-    assert manifest.obligations[0].validation_kind == "structural"
+    assert all(item.validation_kind == "semantic" for item in manifest.obligations)
     assert all(item.severity == "hard" for item in manifest.obligations)
 
 
@@ -450,36 +445,6 @@ def test_semantic_validator_accepts_natural_conflict_disclosure() -> None:
     assert validation.hard_failure_ids == []
 
 
-def test_native_final_marker_is_stripped_only_at_the_final_boundary() -> None:
-    public, accepted = strip_native_final_marker(
-        f"Risposta completa.\n{NATIVE_FINAL_MARKER}\n"
-    )
-    assert accepted is True
-    assert public == "Risposta completa."
-
-    unchanged, accepted = strip_native_final_marker(
-        f"Cito {NATIVE_FINAL_MARKER} ma continuo a scrivere."
-    )
-    assert accepted is False
-    assert unchanged.endswith("continuo a scrivere.")
-
-
-def test_native_finality_recovery_is_hard_semantic_and_deduplicated() -> None:
-    manifest = AnswerObligationManifest(transport="native")
-
-    recovered = with_native_finality_recovery(manifest)
-    recovered_twice = with_native_finality_recovery(recovered)
-
-    obligation = recovered.obligations[0]
-    assert obligation.id == NATIVE_FINALITY_RECOVERY_ID
-    assert obligation.severity == "hard"
-    assert obligation.validation_kind == "semantic"
-    assert obligation.evidence["automatic_rewrite"] is False
-    assert [item.id for item in recovered_twice.obligations] == [
-        NATIVE_FINALITY_RECOVERY_ID
-    ]
-
-
 def test_warning_and_advisory_findings_are_traced_without_blocking() -> None:
     manifest = AnswerObligationManifest(
         transport="gpt_bridge",
@@ -525,16 +490,10 @@ def test_warning_and_advisory_findings_are_traced_without_blocking() -> None:
     assert [item.status for item in validation.findings] == ["fail", "unknown"]
 
 
-def test_structural_recovery_repeats_unassessed_hard_semantic_obligations() -> None:
+def test_semantic_recovery_names_only_failed_hard_obligations() -> None:
     manifest = AnswerObligationManifest(
         transport="native",
         obligations=[
-            AnswerObligation(
-                id="answer.final_boundary",
-                severity="hard",
-                validation_kind="structural",
-                requirement="End with the private final marker.",
-            ),
             AnswerObligation(
                 id="action.outcome.failed",
                 severity="hard",
@@ -543,12 +502,26 @@ def test_structural_recovery_repeats_unassessed_hard_semantic_obligations() -> N
             ),
         ],
     )
+    provider = FakeAnswerValidator(
+        [
+            {
+                "obligation_id": "action.outcome.failed",
+                "status": "fail",
+                "reason": "The answer claims success.",
+            }
+        ]
+    )
+    validation = validate_answer_semantics(
+        provider=provider,
+        manifest=manifest,
+        answer="Operazione completata.",
+        max_tokens=1024,
+    )
 
     instruction = correction_instruction(
         manifest=manifest,
-        validation=None,
-        structural_failure=True,
+        validation=validation,
     )
 
-    assert "answer.final_boundary" in instruction
     assert "action.outcome.failed" in instruction
+    assert "scarlet-final" not in instruction

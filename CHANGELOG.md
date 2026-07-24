@@ -6,6 +6,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+- Rebuild the MiniMax/Anthropic-compatible turn lifecycle around native stop
+  reasons: continue `max_tokens`, execute tools only on `tool_use`, close only
+  on `end_turn`, remove `<scarlet-final/>` and semantic finality fallback, and
+  retain provider-exposed thinking as inspectable debug evidence.
+- Add five-attempt recovery for transient provider-stream failures, bounded
+  pathological `max_tokens` protection, connection-independent V2 turn
+  execution, same-turn cursor resume, and a frontend V2 transport that
+  reconnects at most five times after clean or exceptional stream closure.
+- Advance backend and frontend development targets to V1.55.0.
 - Pause the layered Scarlet puppet as active Product UI work while preserving
   its artifacts and findings for future research.
 - Add an identity-locked static portrait contract, initial emotional-state

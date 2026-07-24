@@ -17,9 +17,11 @@ STREAM_EVENT_TYPE_MAP = {
     "tool_result": "mind.tool_call.result_returned",
     "text_start": "llm.text.started",
     "assistant_note": "assistant.note.emitted",
+    "assistant_continuation": "assistant.response.continued",
     "assistant_answer": "assistant.answer.completed",
     "model_stop": "llm.request.stopped",
     "completion_recovery": "llm.completion.recovery.started",
+    "provider_retry": "llm.provider.retrying",
 }
 
 DELTA_STREAM_EVENTS = {
@@ -200,10 +202,7 @@ def record_response_content_events(
         content = provider_message.get("content")
         if not isinstance(content, list):
             continue
-        has_tool_use = any(
-            isinstance(block, dict) and block.get("type") == "tool_use"
-            for block in content
-        )
+        stop_reason = provider_message.get("stop_reason")
         answer_disposition = provider_message.get("answer_disposition")
         rejected_progress = answer_disposition == "rejected_progress"
         for index, block in enumerate(content):
@@ -218,9 +217,13 @@ def record_response_content_events(
                         db,
                         session_id=session_id,
                         turn_id=turn_id,
-                        event_type="assistant.note.emitted"
-                        if has_tool_use or rejected_progress
-                        else "assistant.answer.completed",
+                        event_type=(
+                            "assistant.note.emitted"
+                            if stop_reason == "tool_use" or rejected_progress
+                            else "assistant.response.continued"
+                            if stop_reason == "max_tokens"
+                            else "assistant.answer.completed"
+                        ),
                         payload={
                             "text": text,
                             "model_step": model_step,
@@ -258,7 +261,7 @@ def record_response_content_events(
                         },
                         source="provider",
                         actor="llm",
-                        visibility="private",
+                        visibility="debug",
                         status="completed",
                         trace_id=response_trace_id,
                     )
@@ -317,6 +320,7 @@ def _status_for_stream_event(stream_event: LLMStreamEvent) -> str:
         "thinking_start",
         "tool_use_start",
         "completion_recovery",
+        "provider_retry",
     }:
         return "active"
     status = stream_event.data.get("status")
@@ -324,7 +328,11 @@ def _status_for_stream_event(stream_event: LLMStreamEvent) -> str:
 
 
 def _stream_event_identity(stream_event: LLMStreamEvent) -> tuple[str, str, str]:
-    if stream_event.type in {"assistant_note", "assistant_answer"}:
+    if stream_event.type in {
+        "assistant_note",
+        "assistant_continuation",
+        "assistant_answer",
+    }:
         return ("assistant", "scarlet", "public")
     if stream_event.type == "thinking_captured":
         return ("provider", "llm", "debug")

@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.54.0. Closed deployed Core baseline: V1.50.1.
+Development target: V1.55.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -146,11 +146,12 @@ ANSWER_OBLIGATIONS_MODE=active
 ANSWER_VALIDATION_MAX_TOKENS=4096
 ```
 
-The native runtime requires a private final boundary and retries one rejected
-draft. Semantic validation is invoked only when a current hard obligation
-requires natural-language judgment. GPT bridge finalize returns a recoverable
-409 for the first hard rejection, fails the turn on the second, and never
-persists a rejected draft.
+The native runtime treats provider `end_turn` as the only successful completion
+boundary. `max_tokens` continues the same provider sequence, while semantic
+validation is invoked only when a current hard obligation requires
+natural-language judgment. GPT bridge finalize returns a recoverable 409 for
+the first hard rejection, fails the turn on the second, and never persists a
+rejected draft.
 
 Metacognitive context defaults to shadow mode:
 

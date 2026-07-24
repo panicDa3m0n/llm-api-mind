@@ -1,7 +1,7 @@
 # Development Process
 
-Last updated: 2026-07-18
-Current app target: V1.54.0; V1.50.1 remains deployed and release-accepted
+Last updated: 2026-07-24
+Current app target: V1.55.0; V1.50.1 remains deployed and release-accepted
 Process baseline: V1.0.1
 Status: accepted
 
@@ -238,9 +238,9 @@ line includes:
   and evaluation imports do not silently initialize a configured runtime DB.
 - executable shell-organ conformance across registry, help, parser, handlers,
   persistence, pagination, negative paths, and model-facing presentation.
-- a user-facing completion invariant with one bounded thinking-only recovery,
-  explicit failed-turn exhaustion, and no promotion of private thinking into
-  public or cognitive state.
+- provider-native completion where `max_tokens` continues, `tool_use`
+  dispatches, and `end_turn` closes; failed-turn exhaustion is explicit and
+  provider-exposed thinking remains inspectable debug evidence.
 - ordered mode-routing receipts that distinguish eligibility, actual delivery,
   and shadow `would_exclude` decisions for every automatic block.
 - a shared native/GPT answer-obligation contract with traced hard, warning,

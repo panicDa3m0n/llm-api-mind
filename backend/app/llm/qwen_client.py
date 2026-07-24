@@ -13,5 +13,9 @@ class QwenProvider(AnthropicCompatibleProvider):
             model=settings.qwen_model,
             max_tokens=settings.qwen_max_tokens,
             provider_name="Qwen",
-            incomplete_final_max_retries=settings.incomplete_final_max_retries,
+            stream_max_attempts=settings.provider_stream_max_attempts,
+            stream_retry_backoff_seconds=(
+                settings.provider_stream_retry_backoff_seconds
+            ),
+            max_token_continuations=settings.provider_max_token_continuations,
         )

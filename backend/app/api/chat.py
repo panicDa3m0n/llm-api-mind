@@ -27,8 +27,9 @@ from app.api.chat_native_turn import (
 from app.api.chat_stream_v2 import (
     StreamReplayResponse,
     replay_session_events,
-    stream_v2_from_native_lines,
+    stream_persisted_turn_events,
 )
+from app.api.chat_turn_runner import start_native_turn_runner
 from app.config import Settings
 from app.llm.factory import (
     build_llm_provider,
@@ -175,16 +176,55 @@ def build_chat_router(
                 status_code=exc.status_code,
                 detail=exc.detail,
             ) from exc
-        native_lines = stream_native_turn(
+        start_native_turn_runner(
             settings=settings,
             engine=engine,
             provider_factory=provider_factory,
             prepared=prepared,
         )
         return StreamingResponse(
-            stream_v2_from_native_lines(native_lines, engine=engine),
+            stream_persisted_turn_events(
+                engine=engine,
+                session_id=session_id,
+                turn_id=prepared.turn_id,
+            ),
             media_type="application/x-ndjson",
-            headers={"X-Scarlet-Stream-Schema": "scarlet-stream-v2"},
+            headers={
+                "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+                "X-Scarlet-Turn-ID": prepared.turn_id,
+            },
+        )
+
+    @router.get("/sessions/{session_id}/turns/{turn_id}/stream-v2")
+    def resume_streaming_turn_v2(
+        session_id: str,
+        turn_id: str,
+        after_seq: int = Query(default=0, ge=0),
+    ) -> StreamingResponse:
+        with Session(engine) as db:
+            _require_session(db, session_id)
+            turn = repositories.get_turn(db, turn_id)
+            if turn is None or turn.session_id != session_id:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail={
+                        "code": "turn.not_found",
+                        "message": f"Turn {turn_id} was not found in this session.",
+                        "recoverable": False,
+                    },
+                )
+        return StreamingResponse(
+            stream_persisted_turn_events(
+                engine=engine,
+                session_id=session_id,
+                turn_id=turn_id,
+                after_seq=after_seq,
+            ),
+            media_type="application/x-ndjson",
+            headers={
+                "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+                "X-Scarlet-Turn-ID": turn_id,
+            },
         )
 
     @router.get(

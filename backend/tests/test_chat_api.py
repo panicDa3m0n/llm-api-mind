@@ -15,10 +15,6 @@ from app.llm.provider import (
 )
 from app.main import create_app
 from app.runtime.history_compaction import build_chronology_source_map
-from app.runtime.answer_obligations import (
-    NATIVE_FINAL_MARKER,
-    NATIVE_FINALITY_RECOVERY_ID,
-)
 from app.storage import repositories
 
 
@@ -521,91 +517,6 @@ class FakeThinkingOnlyProvider(FakeChatProvider):
         )
 
 
-class FakeRecoveredFinalProvider(FakeChatProvider):
-    @staticmethod
-    def _result(model: str) -> LLMTextResult:
-        return LLMTextResult(
-            model=model,
-            text="Ora ti rispondo pubblicamente.",
-            usage={"input_tokens": 20, "output_tokens": 12},
-            provider_message_id="provider_recovered",
-            raw_content=[{"type": "text", "text": "Ora ti rispondo pubblicamente."}],
-            stop_reason="end_turn",
-            raw_provider_messages=[
-                {
-                    "id": "provider_recovered",
-                    "model": model,
-                    "stop_reason": "end_turn",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Ora ti rispondo pubblicamente.",
-                        }
-                    ],
-                    "usage": {"input_tokens": 12, "output_tokens": 5},
-                }
-            ],
-            completion_recovery={
-                "attempted": True,
-                "recovered": True,
-                "attempt_count": 1,
-                "attempts": [
-                    {
-                        "id": "provider_thinking_only",
-                        "stop_reason": "end_turn",
-                        "content": [
-                            {
-                                "type": "thinking",
-                                "thinking": "I omitted the public answer.",
-                                "signature": "test-signature",
-                            }
-                        ],
-                        "reason": "thinking_only_end_turn",
-                        "recoverable": True,
-                    }
-                ],
-            },
-        )
-
-    def generate_chat_with_tools(
-        self,
-        *,
-        messages: list[LLMMessage],
-        system: str | None = None,
-        max_tokens: int | None = None,
-        tools: list[dict],
-        tool_runner: LLMToolRunner,
-        max_tool_calls: int | None = None,
-    ) -> LLMTextResult:
-        return self._result(self.settings.minimax_model)
-
-    def stream_chat_with_tools(
-        self,
-        *,
-        messages: list[LLMMessage],
-        system: str | None = None,
-        max_tokens: int | None = None,
-        tools: list[dict],
-        tool_runner: LLMToolRunner,
-        max_tool_calls: int | None = None,
-    ):
-        result = self._result(self.settings.minimax_model)
-        yield LLMStreamEvent(
-            type="completion_recovery",
-            data={
-                "model_step": 1,
-                "attempt": 1,
-                "reason": "thinking_only_end_turn",
-                "provider_message_id": "provider_thinking_only",
-                "stop_reason": "end_turn",
-            },
-        )
-        yield LLMStreamEvent(
-            type="final_result",
-            data={"result": result.model_dump(mode="json")},
-        )
-
-
 class FakeAnswerBoundaryRecoveryProvider(FakeChatProvider):
     calls = 0
 
@@ -625,7 +536,7 @@ class FakeAnswerBoundaryRecoveryProvider(FakeChatProvider):
             text = "Controllo un momento e poi ti rispondo."
             provider_message_id = "provider_progress_only"
         else:
-            text = f"Eccomi, ho concluso la risposta.\n{NATIVE_FINAL_MARKER}"
+            text = "Eccomi, ho concluso la risposta."
             provider_message_id = "provider_corrected_final"
         return LLMTextResult(
             model=self.settings.minimax_model,
@@ -778,13 +689,10 @@ class FakeSemanticAnswerRecoveryProvider(FakeAnswerBoundaryRecoveryProvider):
     def generate_chat_with_tools(self, **_kwargs) -> LLMTextResult:
         self.__class__.calls += 1
         if self.__class__.calls == 1:
-            text = f"È tutto verificato.\n{NATIVE_FINAL_MARKER}"
+            text = "È tutto verificato."
             provider_message_id = "provider_unsupported_claim"
         else:
-            text = (
-                "Non ho evidenza sufficiente per confermarlo.\n"
-                f"{NATIVE_FINAL_MARKER}"
-            )
+            text = "Non ho evidenza sufficiente per confermarlo."
             provider_message_id = "provider_grounded_correction"
         return LLMTextResult(
             model=self.settings.minimax_model,
@@ -849,7 +757,7 @@ class FakeRecoveredActionProvider(FakeChatProvider):
                 },
             )
         )
-        text = f"Ho salvato la preferenza dopo aver corretto il comando.\n{NATIVE_FINAL_MARKER}"
+        text = "Ho salvato la preferenza dopo aver corretto il comando."
         return LLMTextResult(
             model=self.settings.minimax_model,
             text=text,
@@ -1011,25 +919,6 @@ def make_thinking_only_client(db_engine: Engine) -> TestClient:
         create_app(
             settings,
             llm_provider_factory=lambda active: FakeThinkingOnlyProvider(active),
-            db_engine=db_engine,
-        )
-    )
-
-
-def make_recovered_final_client(db_engine: Engine) -> TestClient:
-    settings = Settings(
-        app_name="Test Mind",
-        environment="test",
-        minimax_api_key="test-key",
-        minimax_model="MiniMax-M3",
-        minimax_max_tokens=4096,
-        maintenance_enabled=False,
-        answer_obligations_mode="off",
-    )
-    return TestClient(
-        create_app(
-            settings,
-            llm_provider_factory=lambda active: FakeRecoveredFinalProvider(active),
             db_engine=db_engine,
         )
     )
@@ -2334,6 +2223,7 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
     ) as response:
         assert response.status_code == 200
         assert response.headers["x-scarlet-stream-schema"] == "scarlet-stream-v2"
+        turn_id = response.headers["x-scarlet-turn-id"]
         events = [json.loads(line) for line in response.iter_lines() if line]
 
     required = {
@@ -2363,6 +2253,10 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
     assert "assistant.answer.completed" in event_types
     assert "message.assistant.persisted" in event_types
     assert "turn.completed" in event_types
+    thinking = next(
+        event for event in events if event["event_type"] == "llm.thinking.captured"
+    )
+    assert thinking["visibility"] == "debug"
     assert not {
         "thinking_delta",
         "text_delta",
@@ -2404,6 +2298,21 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         event for event in events if event["event_type"] == "turn.completed"
     )
     assert terminal["payload"]["turn"]["status"] == "completed"
+    assert terminal["turn_id"] == turn_id
+
+    with client.stream(
+        "GET",
+        f"/api/chat/sessions/{session['id']}/turns/{turn_id}/stream-v2",
+        params={"after_seq": terminal["seq"] - 1},
+    ) as resumed:
+        assert resumed.status_code == 200
+        assert resumed.headers["x-scarlet-turn-id"] == turn_id
+        resumed_events = [
+            json.loads(line) for line in resumed.iter_lines() if line
+        ]
+    assert [event["event_id"] for event in resumed_events] == [
+        terminal["event_id"]
+    ]
 
     first_page = client.get(
         f"/api/chat/sessions/{session['id']}/events",
@@ -2419,9 +2328,10 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         },
     ).json()
     replayed = [*first_page["events"], *second_page["events"]]
-    assert [event["event_id"] for event in replayed] == [
+    assert [event["event_id"] for event in replayed[: len(events)]] == [
         event["event_id"] for event in events
     ]
+    assert replayed[len(events)]["event_type"] == "maintenance.job.scheduled"
     assert second_page["cursor"]["has_more"] is False
     assert second_page["cursor"]["next_after_seq"] == second_page["cursor"][
         "latest_seq"
@@ -2543,244 +2453,6 @@ def test_streaming_chat_rejects_thinking_only_final_result(
     assert [message.role for message in messages] == ["user"]
 
 
-def test_streaming_chat_traces_recovered_public_final_without_history_pollution(
-    db_engine: Engine,
-) -> None:
-    client = make_recovered_final_client(db_engine)
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    with client.stream(
-        "POST",
-        f"/api/chat/sessions/{session['id']}/turn/stream",
-        json={"message": "Dimmi cosa ne pensi."},
-    ) as response:
-        assert response.status_code == 200
-        events = [json.loads(line) for line in response.iter_lines() if line]
-
-    assert events[-1]["type"] == "turn_complete"
-    turn_id = events[-1]["data"]["turn_id"]
-    recovery_runtime_events = [
-        event["data"]["event"]
-        for event in events
-        if event["type"] == "runtime_event"
-        and event["data"]["event"]["type"] == "llm.completion.recovery.started"
-    ]
-    assert len(recovery_runtime_events) == 1
-    assert recovery_runtime_events[0]["payload"]["reason"] == ("thinking_only_end_turn")
-
-    traces = client.get(f"/api/debug/traces/{turn_id}").json()
-    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
-    assert response_trace["payload"]["completion_recovery"]["recovered"] is True
-
-    with Session(db_engine) as db:
-        stored_session = repositories.get_chat_session(db, session["id"])
-        assert stored_session is not None
-        provider_history = stored_session.provider_history_json
-    assert [item["role"] for item in provider_history] == ["user", "assistant"]
-    assert provider_history[-1]["content"] == [
-        {"type": "text", "text": "Ora ti rispondo pubblicamente."}
-    ]
-
-
-def test_native_answer_boundary_recovers_progress_note_before_persistence(
-    db_engine: Engine,
-) -> None:
-    client = make_answer_boundary_client(db_engine)
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    response = client.post(
-        f"/api/chat/sessions/{session['id']}/turn",
-        json={"message": "Ciao Scarlet."},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["assistant_message"]["content"] == (
-        "Eccomi, ho concluso la risposta."
-    )
-    assert NATIVE_FINAL_MARKER not in payload["assistant_message"]["content"]
-    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
-    validations = [trace for trace in traces if trace["kind"] == "answer.validation"]
-    assert [trace["payload"]["accepted"] for trace in validations] == [False, True]
-    accounting = next(
-        trace for trace in traces if trace["kind"] == "context.accounting.preflight"
-    )
-    assert accounting["payload"]["channels"]["answer_obligations"][
-        "estimated_tokens"
-    ] > 0
-    events = client.get(
-        "/api/debug/events", params={"turn_id": payload["turn_id"]}
-    ).json()
-    assert [
-        event["type"]
-        for event in events
-        if event["type"] in {"assistant.note.emitted", "assistant.answer.completed"}
-    ] == ["assistant.note.emitted", "assistant.answer.completed"]
-    with Session(db_engine) as db:
-        messages = repositories.list_messages(db, session_id=session["id"])
-        stored_session = repositories.get_chat_session(db, session["id"])
-        assert stored_session is not None
-        provider_history = stored_session.provider_history_json
-    assert [message.content for message in messages] == [
-        "Ciao Scarlet.",
-        "Eccomi, ho concluso la risposta.",
-    ]
-    assert [item["role"] for item in provider_history] == [
-        "user",
-        "assistant",
-        "user",
-        "assistant",
-    ]
-    assert provider_history[1]["content"][0]["text"] == (
-        "Controllo un momento e poi ti rispondo."
-    )
-    assert NATIVE_FINAL_MARKER not in provider_history[-1]["content"][0]["text"]
-
-
-def test_native_answer_boundary_fails_after_second_progress_only_draft(
-    db_engine: Engine,
-) -> None:
-    client = make_answer_boundary_client(
-        db_engine,
-        provider_class=FakeAnswerBoundaryFailureProvider,
-    )
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    response = client.post(
-        f"/api/chat/sessions/{session['id']}/turn",
-        json={"message": "Ciao Scarlet."},
-    )
-
-    assert response.status_code == 502
-    detail = response.json()["detail"]
-    assert detail["code"] == "llm.incomplete_response"
-    assert detail["details"]["reason"] == "answer_obligation_failed"
-    assert detail["details"]["attempt_count"] == 2
-    assert detail["details"]["hard_failure_ids"] == [
-        NATIVE_FINALITY_RECOVERY_ID
-    ]
-    with Session(db_engine) as db:
-        turns = repositories.list_turns_for_session(db, session_id=session["id"])
-        messages = repositories.list_messages(db, session_id=session["id"])
-    assert turns[-1].status == "failed"
-    assert [message.role for message in messages] == ["user"]
-
-
-def test_native_answer_boundary_accepts_conclusive_second_draft_without_marker(
-    db_engine: Engine,
-) -> None:
-    client = make_answer_boundary_client(
-        db_engine,
-        provider_class=FakeMarkerlessConclusiveRecoveryProvider,
-    )
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    response = client.post(
-        f"/api/chat/sessions/{session['id']}/turn",
-        json={"message": "Ciao Scarlet."},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["assistant_message"]["content"] == (
-        "Eccomi, ho concluso la risposta senza dipendere dalla nota precedente."
-    )
-    traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
-    validation = [
-        trace for trace in traces if trace["kind"] == "answer.validation"
-    ][-1]["payload"]
-    assert validation["accepted"] is True
-    assert validation["structural_final_boundary"] == {
-        "accepted": False,
-        "marker_stripped": False,
-        "semantic_recovery_attempted": True,
-        "semantic_recovery_accepted": True,
-    }
-    assert validation["semantic"]["accepted"] is True
-    assert validation["semantic"]["hard_failure_ids"] == []
-    assert NATIVE_FINALITY_RECOVERY_ID in {
-        item["id"] for item in validation["manifest"]["obligations"]
-    }
-
-
-def test_native_answer_boundary_never_sends_empty_second_draft_to_fallback_judge(
-    db_engine: Engine,
-) -> None:
-    client = make_answer_boundary_client(
-        db_engine,
-        provider_class=FakeEmptyCorrectedBoundaryProvider,
-    )
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    response = client.post(
-        f"/api/chat/sessions/{session['id']}/turn",
-        json={"message": "Ciao Scarlet."},
-    )
-
-    assert response.status_code == 502
-    detail = response.json()["detail"]
-    assert detail["details"]["hard_failure_ids"] == ["answer.final_boundary"]
-    with Session(db_engine) as db:
-        messages = repositories.list_messages(db, session_id=session["id"])
-        turns = repositories.list_turns_for_session(db, session_id=session["id"])
-    assert [message.role for message in messages] == ["user"]
-    traces = client.get(f"/api/debug/traces/{turns[-1].id}").json()
-    validation = [
-        trace for trace in traces if trace["kind"] == "answer.validation"
-    ][-1]["payload"]
-    assert validation["semantic"] is None
-    assert validation["structural_final_boundary"][
-        "semantic_recovery_attempted"
-    ] is False
-
-
-def test_streaming_answer_boundary_emits_only_the_accepted_final_answer(
-    db_engine: Engine,
-) -> None:
-    client = make_answer_boundary_client(db_engine)
-    session = client.post("/api/chat/sessions", json={}).json()
-
-    with client.stream(
-        "POST",
-        f"/api/chat/sessions/{session['id']}/turn/stream",
-        json={"message": "Ciao Scarlet."},
-    ) as response:
-        assert response.status_code == 200
-        events = [json.loads(line) for line in response.iter_lines() if line]
-
-    final_answers = [
-        event for event in events if event["type"] == "assistant_answer"
-    ]
-    assert len(final_answers) == 1
-    assert final_answers[0]["data"]["text"] == (
-        "Eccomi, ho concluso la risposta."
-    )
-    assert not any(
-        event["type"] in {"text_start", "text_delta"}
-        for event in events
-    )
-    leaked_marker_events = [
-        event for event in events if NATIVE_FINAL_MARKER in json.dumps(event)
-    ]
-    assert leaked_marker_events == [], json.dumps(leaked_marker_events)
-    assert any(
-        event["type"] == "completion_recovery"
-        and event["data"]["reason"] == "answer_obligation_failed"
-        for event in events
-    )
-    assert events[-1]["type"] == "turn_complete"
-    traces = client.get(
-        f"/api/debug/traces/{events[-1]['data']['turn_id']}"
-    ).json()
-    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
-    validation_trace = [
-        trace for trace in traces if trace["kind"] == "answer.validation"
-    ][-1]
-    assert response_trace["payload"]["answer_validation_trace_id"] == (
-        validation_trace["id"]
-    )
-
-
 def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
     db_engine: Engine,
 ) -> None:
@@ -2803,7 +2475,11 @@ def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
     traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
     validations = [trace for trace in traces if trace["kind"] == "answer.validation"]
     assert len(validations) == 2
-    assert validations[0]["payload"]["structural_final_boundary"]["accepted"] is True
+    assert validations[0]["payload"]["provider_finality"] == {
+        "accepted": True,
+        "stop_reason": "end_turn",
+        "source": "provider_stop_reason",
+    }
     assert validations[0]["payload"]["semantic"]["accepted"] is False
     assert validations[1]["payload"]["semantic"]["accepted"] is True
 

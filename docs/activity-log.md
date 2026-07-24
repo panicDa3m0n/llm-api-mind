@@ -4,6 +4,89 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-24 - Companion Product And Embodiment Direction Checkpoint
+
+Area: consumer product direction / relational evolution / future embodiment.
+
+Type: Documentation checkpoint inside V1.55.0 on
+`feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Preserve the approved companion-first product discussion before the pending
+Windows UI merge, without presenting proposed capabilities as implemented.
+
+Changes:
+
+- added
+  `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`;
+- recorded current consumer surfaces, shared life threads, the proposed
+  relational-evolution domain and semantic pipeline, companion operativity,
+  embodiment-ready world/action contracts, Home Assistant and ROS boundaries,
+  capability-aware locked UI surfaces, evaluation requirements, and the
+  post-merge resume procedure;
+- kept `docs/project-state.md` authoritative for real implementation status.
+
+Verification:
+
+- inspected the checkpoint against the current project blueprint and organ
+  boundaries;
+- `git diff --check` passed for the documentation changes.
+
+Next step:
+
+After the Windows UI branch is merged into `main`, audit the resulting UI and
+resume from the checkpoint's section 14. Close the relational-evolution
+contract before implementing that branch.
+
+## 2026-07-24 - MiniMax M3 Native Turn Lifecycle And Resumable Stream
+
+Area: provider adapter / native turn / Stream V2 / frontend transport.
+
+Type: Implementation, V1.55.0, on
+`feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Align Scarlet with MiniMax M3's real Anthropic-compatible lifecycle and make
+long turns survive provider or client stream interruptions.
+
+Changes:
+
+- use `max_tokens` for same-response continuation, `tool_use` for dispatch, and
+  `end_turn` for finality;
+- preserve complete assistant blocks, including signed thinking, in canonical
+  provider history;
+- remove marker-based and semantic fallback finality;
+- classify provider text structurally as note, continuation segment, or final
+  answer from `stop_reason`;
+- retry only transient provider stream failures up to five attempts with
+  attempt metadata, failing authentication and invalid requests immediately;
+- keep the model-controlled tool loop unlimited and separately guard only
+  pathological `max_tokens` loops;
+- expose completed thinking consistently as `debug`;
+- detach V2 execution from HTTP, add same-turn cursor resume, and add the
+  frontend V2 reconnect transport for both clean and exceptional closure.
+
+Verification:
+
+- `backend/.venv/bin/ruff check backend/app backend/tests`
+- `backend/.venv/bin/pytest -q backend/tests`: 301 passed
+- `npm --prefix frontend run build`: passed
+- direct MiniMax M3 smoke: `end_turn`, exact public response, no unnecessary
+  continuation
+- low-budget live probe intentionally stopped after demonstrating repeated
+  thinking-only `max_tokens`; this evidence motivated the bounded
+  continuation guard and was not counted as a passing behavior test.
+
+Residual Risk:
+
+The upstream provider exposes no midstream token cursor. Provider recovery
+therefore restarts only the interrupted model step from the last complete
+history boundary. Current Product UI still uses the legacy stream function;
+the new `streamTurnV2` transport is ready to wire after the separate UI branch
+is merged.
+
 ## 2026-07-23 - Cross-Machine Product UI And Laboratory Checkpoint
 
 Area: repository continuity / Product UI / laboratory state.

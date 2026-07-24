@@ -7,6 +7,50 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0103 - Native Completion Used Private Conventions Instead Of Stop Reasons
+
+Date Found: 2026-07-24
+Status: fixed locally in V1.55.0; deployment pending
+
+Symptoms:
+
+- text could be accepted as final without checking the provider stop reason;
+- a valid `max_tokens` segment did not continue the same response;
+- thinking-only `end_turn` was reopened despite being terminal;
+- parsed tool blocks could be dispatched without requiring `tool_use`;
+- private `<scarlet-final/>` compliance could reject conclusive output;
+- provider and client stream interruptions had no bounded same-turn recovery;
+- non-stream thinking evidence was classified `private` while live evidence was
+  `debug`.
+
+Root Cause:
+
+Finality had accumulated project-local semantic conventions around an
+Anthropic-compatible protocol that already exposes structural stop reasons.
+The V2 HTTP response also consumed the generation iterator directly, coupling
+model execution to one client connection.
+
+Fix:
+
+V1.55.0 makes `max_tokens`, `tool_use`, and `end_turn` the continuation,
+dispatch, and terminal states respectively. It removes marker finality,
+preserves signed native history, adds five-attempt provider recovery and an
+eight-segment pathological continuation guard, keeps thinking visible as debug
+evidence, and detaches V2 turn execution from its HTTP follower with a
+turn-scoped resume endpoint. Provider retries are limited to connection,
+timeout, rate-limit, and transient HTTP failures; invalid requests and
+authentication failures fail immediately.
+
+Regression Coverage:
+
+- provider unit cases cover continuation, terminal emptiness, truncated tools,
+  correct tool dispatch, transient retry metadata, non-transient rejection,
+  and continuation exhaustion;
+- API cases cover V2 terminal replay and debug thinking visibility;
+- a file-backed concurrency case closes the first consumer and resumes the
+  completed same turn;
+- full backend suite and frontend build pass.
+
 ## BUG-0102 - Generated Anatomy Was Treated As Automatically Registerable
 
 Date Found: 2026-07-21

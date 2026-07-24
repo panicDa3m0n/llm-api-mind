@@ -83,7 +83,7 @@ def _evidence(*, delivered: bool, completed: bool = True) -> dict[str, Any]:
     }
 
 
-def test_controlled_providers_expose_final_boundary_difference() -> None:
+def test_controlled_providers_expose_stop_reason_boundary_difference() -> None:
     settings = Settings(environment="test")
     provider = gate.ModelFacingGateProvider(settings)
     gate.ModelFacingGateProvider.reset_observations()
@@ -94,7 +94,7 @@ def test_controlled_providers_expose_final_boundary_difference() -> None:
         tools=[],
         tool_runner=None,
     )
-    assert result.text.endswith("<scarlet-final/>")
+    assert result.stop_reason == "end_turn"
     assert gate.ModelFacingGateProvider.observed_systems == ["system packet"]
     streamed = list(
         provider.stream_chat_with_tools(
@@ -107,7 +107,7 @@ def test_controlled_providers_expose_final_boundary_difference() -> None:
     assert streamed[-1].type == "final_result"
 
     judge = provider.generate_text(
-        prompt=json.dumps({"obligations": [{"id": "answer.final_boundary"}]}),
+        prompt=json.dumps({"obligations": [{"id": "source.required"}]}),
         system="runtime answer-obligation judge",
     )
     assert json.loads(judge.text)["findings"][0]["status"] == "pass"
@@ -117,18 +117,7 @@ def test_controlled_providers_expose_final_boundary_difference() -> None:
     incomplete = gate.IncompleteGateProvider(settings)
     gate.IncompleteGateProvider.reset_observations()
     failed = incomplete.generate_chat(messages=[], system="negative")
-    assert "<scarlet-final/>" not in failed.text
-    rejected = incomplete.generate_text(
-        prompt=json.dumps(
-            {
-                "obligations": [
-                    {"id": "answer.final_boundary.semantic_recovery"}
-                ]
-            }
-        ),
-        system="runtime answer-obligation judge",
-    )
-    assert json.loads(rejected.text)["findings"][0]["status"] == "fail"
+    assert failed.stop_reason == "max_tokens"
 
 
 def test_delivery_oracle_distinguishes_projection_and_completion() -> None:

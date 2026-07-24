@@ -66,6 +66,31 @@ export type StreamEventData = Record<string, unknown> & {
   turn_id?: string;
 };
 
+export type ScarletStreamV2Event = {
+  schema_version: "scarlet-stream-v2";
+  event_id: string;
+  seq: number;
+  session_id: string;
+  turn_id: string | null;
+  event_type: string;
+  phase:
+    | "created"
+    | "streaming"
+    | "executing"
+    | "completed"
+    | "persisted"
+    | "failed";
+  timestamp: string;
+  visibility: "public" | "debug" | "private";
+  links: {
+    parent_event_id: string | null;
+    trace_id: string | null;
+    tool_call_id: string | null;
+    message_id: string | null;
+  };
+  payload: Record<string, unknown>;
+};
+
 export type AgentStep = {
   id: string;
   kind:

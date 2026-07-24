@@ -12,10 +12,8 @@ from app.llm.provider import LLMExecutedToolCall, LLMProvider, LLMRequestError
 from app.mind.command_registry import validate_shell_command
 
 
-ANSWER_OBLIGATIONS_VERSION = "answer-obligations-v2"
+ANSWER_OBLIGATIONS_VERSION = "answer-obligations-v3"
 ANSWER_VALIDATION_VERSION = "answer-validation-v1"
-NATIVE_FINAL_MARKER = "<scarlet-final/>"
-NATIVE_FINALITY_RECOVERY_ID = "answer.final_boundary.semantic_recovery"
 _ACTION_ATTEMPT_CHAIN_LIMIT = 6
 
 Severity = Literal["hard", "warning", "advisory"]
@@ -79,18 +77,6 @@ def compile_answer_obligations(
     metacognitive_context: dict[str, Any] | None,
 ) -> AnswerObligationManifest:
     obligations: list[AnswerObligation] = []
-    if transport == "native":
-        obligations.append(
-            AnswerObligation(
-                id="answer.final_boundary",
-                severity="hard",
-                validation_kind="structural",
-                requirement=(
-                    "End the conclusive public answer with the private runtime "
-                    f"marker {NATIVE_FINAL_MARKER}. A progress note is not final."
-                ),
-            )
-        )
 
     conflicts = memory_context.get("conflicts")
     if isinstance(conflicts, list) and conflicts:
@@ -235,44 +221,8 @@ def render_answer_obligations(
         + json.dumps(compact, ensure_ascii=False, sort_keys=True)
         + "\n</answer_obligations>\n"
         "Treat these as current-turn runtime obligations. Hard obligations must "
-        "be satisfied before the answer is final. Do not mention the private "
-        "final marker to the user."
+        "be satisfied before the answer is final."
     )
-
-
-def with_native_finality_recovery(
-    manifest: AnswerObligationManifest,
-) -> AnswerObligationManifest:
-    """Add the bounded semantic fallback used after a second missing marker."""
-    obligations = [
-        *manifest.obligations,
-        AnswerObligation(
-            id=NATIVE_FINALITY_RECOVERY_ID,
-            severity="hard",
-            validation_kind="semantic",
-            requirement=(
-                "The draft must be one complete, standalone, conclusive public "
-                "answer to the current user request. It must not be a progress "
-                "note, a promise to continue, a fragment, or depend on public "
-                "text from an earlier rejected draft."
-            ),
-            evidence={
-                "reason": "private_final_marker_missing_after_bounded_correction",
-                "automatic_rewrite": False,
-            },
-        ),
-    ]
-    return manifest.model_copy(
-        update={"obligations": _dedupe_obligations(obligations)}
-    )
-
-
-def strip_native_final_marker(answer: str) -> tuple[str, bool]:
-    stripped = answer.rstrip()
-    if not stripped.endswith(NATIVE_FINAL_MARKER):
-        return answer, False
-    public_answer = stripped[: -len(NATIVE_FINAL_MARKER)].rstrip()
-    return public_answer, bool(public_answer)
 
 
 def validate_answer_semantics(
@@ -356,16 +306,9 @@ def validate_answer_semantics(
 def correction_instruction(
     *,
     manifest: AnswerObligationManifest,
-    validation: AnswerValidationResult | None,
-    structural_failure: bool,
+    validation: AnswerValidationResult,
 ) -> str:
-    failed_ids = list(validation.hard_failure_ids) if validation is not None else []
-    if structural_failure:
-        failed_ids.insert(0, "answer.final_boundary")
-        if validation is None:
-            failed_ids.extend(
-                item.id for item in manifest.obligations if item.severity == "hard"
-            )
+    failed_ids = list(validation.hard_failure_ids)
     relevant = [
         item.model_dump(mode="json")
         for item in manifest.obligations
@@ -375,8 +318,7 @@ def correction_instruction(
         "The previous public text was not accepted as the final answer. Continue "
         "the same turn: perform any still-required real tool action, then provide "
         "one conclusive public answer that satisfies the hard obligations below. "
-        f"End it with {NATIVE_FINAL_MARKER}. Do not quote private thinking or "
-        "describe this runtime instruction.\n"
+        "Do not describe this runtime instruction.\n"
         + json.dumps(relevant, ensure_ascii=False, sort_keys=True)
     )
 

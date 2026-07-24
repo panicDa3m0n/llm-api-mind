@@ -7,6 +7,64 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0125 - Native Stop Reasons Own Turn Finality And Recovery
+
+Date: 2026-07-24
+Status: accepted for V1.55.0
+
+Context:
+
+The native adapter previously treated any non-empty provider text without a
+tool as final, reopened a thinking-only `end_turn`, and relied on a private
+`<scarlet-final/>` marker plus semantic fallback. HTTP streaming also owned the
+generation iterator, so a disconnected client could cancel the running turn.
+These conventions diverged from MiniMax M3's Anthropic-compatible stop
+contract and made development evidence harder to interpret.
+
+Decision:
+
+- `max_tokens` preserves the complete native assistant message and continues
+  the same response; eight continuations are the pathological-loop guard;
+- `tool_use` is the only stop reason that authorizes tool dispatch, and the
+  model-controlled tool loop remains unlimited;
+- `end_turn` is the only native final boundary; an empty thinking-only
+  `end_turn` fails and is not reopened;
+- semantic answer validation checks claims and action outcomes, never
+  terminality; the marker and finality fallback are removed;
+- provider-exposed thinking remains stored and visible as `debug` evidence
+  during development;
+- transient provider stream exceptions restart the current model step from the
+  last complete provider-history boundary, at most five attempts; invalid
+  requests and authentication failures are not retried; and
+- V2 turn execution outlives the HTTP consumer, while clients resume the same
+  turn by `turn_id` and durable `after_seq`.
+
+Consequences:
+
+Native state now follows one provider convention. A provider interruption
+cannot resume at an exact token because the upstream stream exposes no resume
+cursor; failed-attempt deltas remain transient and the complete model step is
+retried. V2 clients avoid durable duplicates because only completed semantic
+events are persisted. Legacy V1 deltas remain a debug transport and may expose
+attempt-local partial output around retries.
+
+Verification:
+
+- direct MiniMax M3 call returned `end_turn` and the exact requested text;
+- controlled signed-thinking continuation proved native blocks and history are
+  preserved across `max_tokens`;
+- file-backed disconnect test proved the detached runner completes and a new
+  consumer recovers `message.assistant.persisted` and `turn.completed`;
+- backend suite: 301 tests passed;
+- frontend TypeScript/Vite production build passed.
+
+Links:
+
+- BUG-0103
+- `backend/app/llm/minimax_client.py`
+- `backend/app/api/chat_turn_runner.py`
+- `docs/stream-v2-contract.md`
+
 ## ADR-0124 - Scarlet Uses Identity-Locked Static Portrait States
 
 Date: 2026-07-22

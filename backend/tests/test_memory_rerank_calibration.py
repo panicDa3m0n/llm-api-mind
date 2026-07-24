@@ -19,7 +19,6 @@ from app.mind.relevance_rerank import (
     MemoryRecallCandidate,
     run_memory_relevance_rerank,
 )
-from app.runtime.answer_obligations import NATIVE_FINAL_MARKER
 from app.storage.models import MemoryRecord
 
 
@@ -69,7 +68,7 @@ def test_calibration_cases_cover_positive_negative_graph_and_live_review() -> No
 def test_calibration_probe_provider_supports_sync_tools_and_streaming() -> None:
     provider = CalibrationProbeProvider(Settings(minimax_model="test-model"))
 
-    assert provider.generate_text(prompt="x").text.endswith(NATIVE_FINAL_MARKER)
+    assert provider.generate_text(prompt="x").text == "Calibration retrieval completed."
     assert provider.generate_chat(messages=[]).model == "test-model"
     assert (
         provider.generate_chat_with_tools(

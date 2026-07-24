@@ -1,10 +1,18 @@
 from types import SimpleNamespace
 from typing import Any
 
+import anthropic
+import httpx
 import pytest
 
 from app.llm.minimax_client import AnthropicCompatibleProvider
-from app.llm.provider import LLMIncompleteResponseError, LLMMessage, LLMTextResult
+from app.llm.provider import (
+    LLMExecutedToolCall,
+    LLMIncompleteResponseError,
+    LLMMessage,
+    LLMRequestError,
+    LLMTextResult,
+)
 
 
 class FakeContentBlock:
@@ -13,6 +21,33 @@ class FakeContentBlock:
 
     def model_dump(self) -> dict[str, str]:
         return {"type": "text", "text": "pong"}
+
+
+class FakeTextBlock:
+    type = "text"
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def model_dump(self) -> dict[str, str]:
+        return {"type": "text", "text": self.text}
+
+
+class FakeToolUseBlock:
+    type = "tool_use"
+
+    def __init__(self, *, tool_id: str = "tool_1") -> None:
+        self.id = tool_id
+        self.name = "mind_shell"
+        self.input = {"command": "help", "intent": "Inspect capabilities"}
+
+    def model_dump(self) -> dict[str, Any]:
+        return {
+            "type": "tool_use",
+            "id": self.id,
+            "name": self.name,
+            "input": self.input,
+        }
 
 
 class FakeStream:
@@ -92,6 +127,8 @@ def make_provider(
     *,
     model: str = "MiniMax-M2.7",
     max_tokens: int = 131072,
+    stream_max_attempts: int = 5,
+    max_token_continuations: int = 8,
 ) -> AnthropicCompatibleProvider:
     provider = AnthropicCompatibleProvider(
         api_key="test-key",
@@ -100,6 +137,9 @@ def make_provider(
         model=model,
         max_tokens=max_tokens,
         provider_name="MiniMax",
+        stream_max_attempts=stream_max_attempts,
+        stream_retry_backoff_seconds=0,
+        max_token_continuations=max_token_continuations,
     )
     provider._client = FakeAnthropicClient()
     return provider
@@ -176,21 +216,24 @@ def test_generate_chat_with_tools_enables_thinking_for_m3() -> None:
     assert provider._client.messages.stream_calls[0]["thinking"] == {"type": "adaptive"}
 
 
-def test_tool_chat_recovers_one_thinking_only_end_turn() -> None:
+def test_tool_chat_continues_max_tokens_and_preserves_provider_history() -> None:
     provider = make_provider(model="MiniMax-M3")
     sequence = FakeMessageSequence(
         [
             SimpleNamespace(
-                id="provider_thinking_only",
+                id="provider_truncated",
                 model="MiniMax-M3",
-                content=[FakeThinkingBlock()],
+                content=[
+                    FakeThinkingBlock(),
+                    FakeTextBlock("Prima parte della risposta,"),
+                ],
                 usage={"input_tokens": 10, "output_tokens": 7},
-                stop_reason="end_turn",
+                stop_reason="max_tokens",
             ),
             SimpleNamespace(
                 id="provider_recovered",
                 model="MiniMax-M3",
-                content=[FakeContentBlock()],
+                content=[FakeTextBlock("seguita dalla conclusione.")],
                 usage={"input_tokens": 12, "output_tokens": 1},
                 stop_reason="end_turn",
             ),
@@ -207,8 +250,12 @@ def test_tool_chat_recovers_one_thinking_only_end_turn() -> None:
     )
 
     assert [event.type for event in events].count("completion_recovery") == 1
+    assert [event.type for event in events].count("assistant_continuation") == 1
     result = LLMTextResult.model_validate(events[-1].data["result"])
-    assert result.text == "pong"
+    assert result.text == (
+        "Prima parte della risposta,\nseguita dalla conclusione."
+    )
+    assert result.stop_reason == "end_turn"
     assert result.completion_recovery["attempted"] is True
     assert result.completion_recovery["recovered"] is True
     assert result.completion_recovery["attempt_count"] == 1
@@ -217,13 +264,28 @@ def test_tool_chat_recovers_one_thinking_only_end_turn() -> None:
     assert continuation_messages[-2]["role"] == "assistant"
     assert continuation_messages[-2]["content"][0]["type"] == "thinking"
     assert continuation_messages[-1]["role"] == "user"
-    assert "public answer" in continuation_messages[-1]["content"][0]["text"]
+    assert "reached max_tokens" in continuation_messages[-1]["content"][0]["text"]
     assert [message["id"] for message in result.raw_provider_messages] == [
+        "provider_truncated",
         "provider_recovered"
+    ]
+    assert result.provider_history_tail == [
+        {
+            "role": "assistant",
+            "content": [
+                FakeThinkingBlock().model_dump(),
+                {"type": "text", "text": "Prima parte della risposta,"},
+            ],
+        },
+        continuation_messages[-1],
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": "seguita dalla conclusione."}],
+        },
     ]
 
 
-def test_tool_chat_fails_after_repeated_thinking_only_end_turn() -> None:
+def test_tool_chat_treats_thinking_only_end_turn_as_terminal_failure() -> None:
     provider = make_provider(model="MiniMax-M3")
     sequence = FakeMessageSequence(
         [
@@ -234,42 +296,7 @@ def test_tool_chat_fails_after_repeated_thinking_only_end_turn() -> None:
                 usage={"input_tokens": 10, "output_tokens": 7},
                 stop_reason="end_turn",
             )
-            for index in range(2)
-        ]
-    )
-    provider._client = SimpleNamespace(messages=sequence)
-
-    with pytest.raises(LLMIncompleteResponseError) as exc_info:
-        list(
-            provider.stream_chat_with_tools(
-                messages=[LLMMessage(role="user", content="ping")],
-                tools=[],
-                tool_runner=lambda _tool_use: None,
-            )
-        )
-
-    assert len(sequence.stream_calls) == 2
-    assert exc_info.value.details == {
-        "reason": "thinking_only_end_turn",
-        "stop_reason": "end_turn",
-        "provider_message_id": "provider_thinking_only_1",
-        "recovery_attempt_count": 1,
-        "terminal_message_count": 2,
-        "recovery_limit": 1,
-    }
-
-
-def test_tool_chat_does_not_retry_empty_non_thinking_terminal_message() -> None:
-    provider = make_provider(model="MiniMax-M3")
-    sequence = FakeMessageSequence(
-        [
-            SimpleNamespace(
-                id="provider_empty",
-                model="MiniMax-M3",
-                content=[],
-                usage={"input_tokens": 10, "output_tokens": 0},
-                stop_reason="end_turn",
-            )
+            for index in range(1)
         ]
     )
     provider._client = SimpleNamespace(messages=sequence)
@@ -285,10 +312,226 @@ def test_tool_chat_does_not_retry_empty_non_thinking_terminal_message() -> None:
 
     assert len(sequence.stream_calls) == 1
     assert exc_info.value.details == {
-        "reason": "empty_terminal_message",
+        "reason": "thinking_only_end_turn",
         "stop_reason": "end_turn",
-        "provider_message_id": "provider_empty",
-        "recovery_attempt_count": 0,
-        "terminal_message_count": 1,
-        "recovery_limit": 1,
+        "provider_message_id": "provider_thinking_only_0",
+        "recoverable": False,
     }
+
+
+def test_tool_chat_bounds_pathological_max_tokens_continuations() -> None:
+    provider = make_provider(
+        model="MiniMax-M3",
+        max_token_continuations=2,
+    )
+    sequence = FakeMessageSequence(
+        [
+            SimpleNamespace(
+                id=f"provider_max_{index}",
+                model="MiniMax-M3",
+                content=[FakeThinkingBlock()],
+                usage={"input_tokens": 10, "output_tokens": 7},
+                stop_reason="max_tokens",
+            )
+            for index in range(3)
+        ]
+    )
+    provider._client = SimpleNamespace(messages=sequence)
+
+    with pytest.raises(LLMIncompleteResponseError) as exc_info:
+        list(
+            provider.stream_chat_with_tools(
+                messages=[LLMMessage(role="user", content="ping")],
+                tools=[],
+                tool_runner=lambda _tool_use: None,
+            )
+        )
+
+    assert len(sequence.stream_calls) == 3
+    assert exc_info.value.details == {
+        "reason": "max_tokens_continuation_limit",
+        "stop_reason": "max_tokens",
+        "provider_message_id": "provider_max_2",
+        "continuation_count": 2,
+        "continuation_limit": 2,
+        "recoverable": False,
+    }
+
+
+def test_tool_chat_rejects_tool_use_when_stop_reason_is_max_tokens() -> None:
+    provider = make_provider(model="MiniMax-M3")
+    sequence = FakeMessageSequence(
+        [
+            SimpleNamespace(
+                id="provider_truncated_tool",
+                model="MiniMax-M3",
+                content=[FakeToolUseBlock()],
+                usage={"input_tokens": 10, "output_tokens": 5},
+                stop_reason="max_tokens",
+            )
+        ]
+    )
+    provider._client = SimpleNamespace(messages=sequence)
+    executed: list[str] = []
+
+    with pytest.raises(LLMIncompleteResponseError) as exc_info:
+        list(
+            provider.stream_chat_with_tools(
+                messages=[LLMMessage(role="user", content="ping")],
+                tools=[],
+                tool_runner=lambda tool_use: executed.append(tool_use.id),
+            )
+        )
+
+    assert executed == []
+    assert len(sequence.stream_calls) == 1
+    assert exc_info.value.details == {
+        "reason": "truncated_tool_use",
+        "stop_reason": "max_tokens",
+        "provider_message_id": "provider_truncated_tool",
+        "recoverable": False,
+    }
+
+
+def test_tool_chat_executes_tool_only_for_tool_use_stop_reason() -> None:
+    provider = make_provider()
+    sequence = FakeMessageSequence(
+        [
+            SimpleNamespace(
+                id="provider_tool",
+                model="MiniMax-M2.7",
+                content=[
+                    FakeTextBlock("Controllo le capacità."),
+                    FakeToolUseBlock(),
+                ],
+                usage={"input_tokens": 10, "output_tokens": 5},
+                stop_reason="tool_use",
+            ),
+            SimpleNamespace(
+                id="provider_final",
+                model="MiniMax-M2.7",
+                content=[FakeTextBlock("Controllo completato.")],
+                usage={"input_tokens": 12, "output_tokens": 2},
+                stop_reason="end_turn",
+            ),
+        ]
+    )
+    provider._client = SimpleNamespace(messages=sequence)
+
+    def run_tool(tool_use: Any) -> LLMExecutedToolCall:
+        return LLMExecutedToolCall(
+            provider_tool_use_id=tool_use.id,
+            tool_name=tool_use.name,
+            arguments=tool_use.input,
+            result={"ok": True},
+            status="completed",
+        )
+
+    events = list(
+        provider.stream_chat_with_tools(
+            messages=[LLMMessage(role="user", content="ping")],
+            tools=[],
+            tool_runner=run_tool,
+        )
+    )
+
+    assert [event.type for event in events].count("assistant_note") == 1
+    assert [event.type for event in events].count("assistant_answer") == 1
+    assert [event.type for event in events].count("tool_call") == 1
+    result = LLMTextResult.model_validate(events[-1].data["result"])
+    assert result.text == "Controllo completato."
+    assert len(result.tool_calls) == 1
+
+
+class FailingStream(FakeMessageStream):
+    def __init__(
+        self,
+        message: SimpleNamespace,
+        error: anthropic.AnthropicError,
+    ) -> None:
+        super().__init__(message)
+        self.error = error
+
+    def __iter__(self) -> "FailingStream":
+        raise self.error
+
+
+class RetryMessages:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def stream(self, **_kwargs: Any) -> FakeMessageStream:
+        self.calls += 1
+        message = SimpleNamespace(
+            id="provider_after_retry",
+            model="MiniMax-M3",
+            content=[FakeContentBlock()],
+            usage={"input_tokens": 1, "output_tokens": 1},
+            stop_reason="end_turn",
+        )
+        if self.calls == 1:
+            return FailingStream(
+                message,
+                anthropic.APIConnectionError(
+                    message="stream disconnected",
+                    request=httpx.Request("POST", "https://provider.test/messages"),
+                ),
+            )
+        return FakeMessageStream(message)
+
+
+def test_tool_chat_retries_interrupted_provider_stream() -> None:
+    provider = make_provider(model="MiniMax-M3", stream_max_attempts=5)
+    messages = RetryMessages()
+    provider._client = SimpleNamespace(messages=messages)
+
+    events = list(
+        provider.stream_chat_with_tools(
+            messages=[LLMMessage(role="user", content="ping")],
+            tools=[],
+            tool_runner=lambda _tool_use: None,
+        )
+    )
+
+    retry = next(event for event in events if event.type == "provider_retry")
+    assert retry.data["provider_attempt"] == 1
+    assert retry.data["next_provider_attempt"] == 2
+    assert retry.data["provider_attempt_limit"] == 5
+    assert messages.calls == 2
+    result = LLMTextResult.model_validate(events[-1].data["result"])
+    assert result.text == "pong"
+
+
+class BadRequestMessages:
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def stream(self, **_kwargs: Any) -> FakeMessageStream:
+        self.calls += 1
+        request = httpx.Request("POST", "https://provider.test/messages")
+        response = httpx.Response(400, request=request)
+        return FailingStream(
+            SimpleNamespace(),
+            anthropic.BadRequestError(
+                "invalid request",
+                response=response,
+                body={"error": "invalid request"},
+            ),
+        )
+
+
+def test_tool_chat_does_not_retry_non_transient_provider_error() -> None:
+    provider = make_provider(model="MiniMax-M3", stream_max_attempts=5)
+    messages = BadRequestMessages()
+    provider._client = SimpleNamespace(messages=messages)
+
+    with pytest.raises(LLMRequestError, match="invalid request"):
+        list(
+            provider.stream_chat_with_tools(
+                messages=[LLMMessage(role="user", content="ping")],
+                tools=[],
+                tool_runner=lambda _tool_use: None,
+            )
+        )
+
+    assert messages.calls == 1

@@ -1,7 +1,7 @@
 # Product UI Static Prototype
 
 Last updated: 2026-07-22
-Current app target: V1.54.0; prototype remains an unversioned approval artifact
+Current app target: V1.55.0; prototype remains an unversioned approval artifact
 Linear issue: SCA-48
 Status: implemented and awaiting explicit owner approval
 

@@ -9,6 +9,44 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0081 - MiniMax M3 Native Stop-State Continuation
+
+Status: accepted as focused V1.55.0 provider evidence
+
+Hypothesis:
+
+MiniMax M3 can continue a response truncated by `max_tokens` when its complete
+native assistant blocks are appended unchanged and the next message asks it to
+resume, while `end_turn` remains the sole terminal boundary.
+
+Method:
+
+- probe M3 at small output budgets and inspect raw thinking/text blocks,
+  signatures, and stop reasons;
+- append the complete `max_tokens` assistant response and a technical user
+  continuation;
+- verify that the next text continues rather than restarts;
+- encode controlled provider sequences for text continuation, signed thinking,
+  tool mismatch, correct tool dispatch, transient retry, non-transient
+  rejection, and exhaustion; and
+- run one normal direct M3 smoke after implementation.
+
+Result:
+
+The controlled continuation preserved signed thinking and exact native block
+order, resumed the public sequence without repetition, accumulated usage, and
+closed only on `end_turn`. The normal live smoke returned `MiniMax-M3`,
+`end_turn`, and exactly `verifica M3 completata`. A deliberately unrealistic
+64-token live budget repeatedly exhausted itself in thinking and was stopped
+manually; this falsified the assumption that continuation can be unbounded and
+justified the separate eight-segment pathological guard.
+
+Interpretation:
+
+The provider protocol is a reliable structural boundary. Semantic judging
+remains useful for evidence-bearing claims but is not a substitute for stop
+reasons. Tool-loop freedom and output-continuation safety are separate concerns.
+
 ## EXP-0080 - Canonical-Neutral APNG Greeting
 
 Status: V1 movement rejected; V2 local-rig method under visual review

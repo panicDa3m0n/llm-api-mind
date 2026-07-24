@@ -34,7 +34,6 @@ from app.evals.frozen_baseline import (
 )
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
-from app.runtime.answer_obligations import NATIVE_FINALITY_RECOVERY_ID
 from app.runtime.memory_provenance import (
     memory_provenance_audit,
     repair_exact_source_messages,
@@ -59,10 +58,10 @@ class CaseResult:
 
 
 class ModelFacingGateProvider:
-    """Controlled provider that satisfies the native final-answer boundary."""
+    """Controlled provider that closes with the native end_turn boundary."""
 
     observed_systems: ClassVar[list[str]] = []
-    include_final_marker: ClassVar[bool] = True
+    stop_reason: ClassVar[str] = "end_turn"
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -160,57 +159,19 @@ class ModelFacingGateProvider:
 
     def _chat_result(self, system: str | None) -> LLMTextResult:
         type(self).observed_systems.append(system or "")
-        marker = "<scarlet-final/>" if type(self).include_final_marker else ""
         return LLMTextResult(
             model="model-facing-gate-controlled",
-            text=f"Risposta controllata del gate model-facing.{marker}",
+            text="Risposta controllata del gate model-facing.",
             usage={"input_tokens": 1, "output_tokens": 6},
-            stop_reason="end_turn",
+            stop_reason=type(self).stop_reason,
         )
 
 
 class IncompleteGateProvider(ModelFacingGateProvider):
-    """Negative-control provider that never satisfies the final boundary."""
+    """Negative control that never reaches the provider end_turn boundary."""
 
     observed_systems: ClassVar[list[str]] = []
-    include_final_marker: ClassVar[bool] = False
-
-    def generate_text(
-        self,
-        *,
-        prompt: str,
-        system: str | None = None,
-        max_tokens: int | None = None,
-    ) -> LLMTextResult:
-        if system and "runtime answer-obligation judge" in system:
-            payload = json.loads(prompt)
-            findings = [
-                {
-                    "obligation_id": obligation["id"],
-                    "status": (
-                        "fail"
-                        if obligation["id"] == NATIVE_FINALITY_RECOVERY_ID
-                        else "pass"
-                    ),
-                    "reason": (
-                        "The negative-control draft is intentionally incomplete."
-                        if obligation["id"] == NATIVE_FINALITY_RECOVERY_ID
-                        else "Controlled non-finality obligation passed."
-                    ),
-                }
-                for obligation in payload.get("obligations", [])
-            ]
-            return LLMTextResult(
-                model="model-facing-gate-controlled",
-                text=json.dumps({"findings": findings}),
-                usage={"input_tokens": 1, "output_tokens": 1},
-                stop_reason="end_turn",
-            )
-        return super().generate_text(
-            prompt=prompt,
-            system=system,
-            max_tokens=max_tokens,
-        )
+    stop_reason: ClassVar[str] = "max_tokens"
 
 
 def main() -> int:
