@@ -1,5 +1,11 @@
+import { Capacitor } from "@capacitor/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import {
+  clearNativeApiBasicAuth,
+  setNativeApiBasicAuth
+} from "../api";
+import { publicAssetPath } from "../runtimeAssets";
 import { AuthScreen, type AuthCredentials, type AuthTab } from "./AuthScreen";
 import { HomeDashboard, type ProductView } from "./HomeDashboard";
 import { SplashScreen } from "./SplashScreen";
@@ -81,11 +87,15 @@ function readPrivateEvidencePreference(): boolean {
 }
 
 export function AppEntryFlow() {
+  const nativePlatform = Capacitor.isNativePlatform();
   const requestedScreen = useMemo(
     () => new URLSearchParams(window.location.search).get("screen"),
     []
   );
-  const storedSession = useMemo(readLocalSession, []);
+  const storedSession = useMemo(
+    () => (nativePlatform ? null : readLocalSession()),
+    [nativePlatform]
+  );
   const initialAuthTab: AuthTab =
     requestedScreen === "register" ? "register" : "login";
   const requestedProductView: ProductView = isProductView(requestedScreen)
@@ -149,7 +159,7 @@ export function AppEntryFlow() {
 
     let cancelled = false;
     const portrait = new Image();
-    portrait.src = "/prototype/scarlet-character-v1.png";
+    portrait.src = publicAssetPath("prototype/scarlet-character-v1.png");
     const portraitReady =
       typeof portrait.decode === "function"
         ? portrait.decode().catch(() => undefined)
@@ -247,6 +257,7 @@ export function AppEntryFlow() {
       <HomeDashboard
         initialView={initialProductView}
         onLogout={() => {
+          clearNativeApiBasicAuth();
           window.localStorage.removeItem(LOCAL_SESSION_KEY);
           window.localStorage.removeItem(LOCAL_PRIVATE_EVIDENCE_KEY);
           setSessionActive(false);
@@ -288,7 +299,10 @@ export function AppEntryFlow() {
       <AuthScreen
         credentials={credentials}
         initialTab={initialAuthTab}
-        onLogin={(username) => {
+        onLogin={(username, password) => {
+          if (nativePlatform) {
+            setNativeApiBasicAuth(username, password);
+          }
           setAuthenticatedUser(username);
           setSessionActive(true);
           writeLocalSession(username, "home");

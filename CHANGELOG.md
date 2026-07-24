@@ -6,6 +6,39 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.56.0 - Product UI Web And Android Delivery
+
+#### Added
+
+- Add a versioned Capacitor 7 Android project for package
+  `cloud.honeylabs.scarlet`, with API traffic directed to the protected
+  HoneyLabs VPS and a reproducible cross-platform debug build command.
+- Add explicit Vite `vps` and `android` build profiles that mount the connected
+  Product UI as the primary experience.
+- Add native-only in-memory Basic Auth forwarding from the existing test login;
+  no preview credential is embedded or persisted in the APK.
+
+#### Changed
+
+- Resolve Product UI media through the configured Vite base path so the same
+  source works under `/scarlet/` and inside a Capacitor WebView.
+- Package only the approved runtime portrait and greeting video. PSDs,
+  references, rig workspaces, and other avatar-authoring assets remain in the
+  repository but are excluded from web and Android delivery.
+- Advance backend, frontend, OpenAPI, module-conformance, and Android version
+  metadata to V1.56.0.
+
+#### Verification
+
+- VPS-profile Vite build passes with 2,035 transformed modules and a 4.2 MB
+  delivery directory.
+- Mobile browser smoke at `390x844` renders the splash with no console errors;
+  all Scarlet static and media assets return `200` or `206`.
+- Capacitor sync and clean Android debug assembly pass with JDK 21. The 7.5 MB
+  APK reports package `cloud.honeylabs.scarlet`, version code `15600`, version
+  `1.56.0`, API 23 minimum, API 35 target, the HoneyLabs API URL, and no
+  embedded Basic Auth credential.
+
 ### V1.55.4 - Native Runtime And Product UI Integration
 
 #### Changed

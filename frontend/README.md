@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-Development target: V1.55.4. Deployed Core baseline: V1.50.1.
+Development target: V1.56.0. Deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -60,7 +60,7 @@ Open:
 http://127.0.0.1:5173
 ```
 
-Static Product UI prototype:
+Connected Product UI:
 
 ```txt
 http://127.0.0.1:5173/prototype
@@ -71,3 +71,24 @@ http://127.0.0.1:5173/prototype
 ```bash
 npm run build
 ```
+
+Protected HoneyLabs web build:
+
+```bash
+npm run build:vps
+```
+
+Android debug APK:
+
+```bash
+npm run android:debug
+```
+
+The Android build requires Android Studio/SDK and JDK 21. The build runner
+discovers common JDK 21 installations on macOS and Windows. The resulting APK
+is `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+The Android application bundles the Product UI and calls
+`https://honeylabs.cloud/scarlet-api`. Its private-preview Basic Auth value is
+never compiled into the package: the native app forwards only the credentials
+entered during the current login and forgets them after a cold start.

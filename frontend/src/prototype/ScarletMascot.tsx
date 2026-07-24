@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { publicAssetPath } from "../runtimeAssets";
 import "./splash.css";
 
 import type { ScarletAvatarAction } from "./avatar/scarletAvatarContract";
@@ -126,7 +127,7 @@ export function ScarletMascot({
         className="scarlet-mascot__portrait"
         draggable="false"
         fetchPriority="high"
-        src="/prototype/scarlet-character-v1.png"
+        src={publicAssetPath("prototype/scarlet-character-v1.png")}
       />
       {showGreetingVideo ? (
         <video
@@ -146,7 +147,9 @@ export function ScarletMascot({
           tabIndex={-1}
         >
           <source
-            src="/prototype/avatar/static/motion/scarlet-startup-greeting-happyhorse-v1.mp4"
+            src={publicAssetPath(
+              "prototype/avatar/static/motion/scarlet-startup-greeting-happyhorse-v1.mp4"
+            )}
             type="video/mp4"
           />
         </video>

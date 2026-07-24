@@ -12,9 +12,11 @@ const PrototypeApp = React.lazy(() =>
 );
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
+const forceProduct = import.meta.env.VITE_PRODUCT_UI === "true";
 const forceMobile = import.meta.env.VITE_FORCE_MOBILE === "true";
 const path = window.location.pathname;
 const isPrototypeRoute =
+  forceProduct ||
   path.startsWith("/prototype") ||
   Boolean(basePath && path.startsWith(`${basePath}/prototype`));
 const isMobileRoute =

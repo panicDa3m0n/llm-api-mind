@@ -1,6 +1,8 @@
 import { Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 import { useState, type FormEvent } from "react";
 
+import { publicAssetPath } from "../runtimeAssets";
+
 export type AuthTab = "login" | "register";
 
 export type AuthCredentials = {
@@ -16,7 +18,7 @@ export function AuthScreen({
 }: {
   credentials: AuthCredentials;
   initialTab: AuthTab;
-  onLogin: (username: string) => void;
+  onLogin: (username: string, password: string) => void;
   onRegistrationUnavailable: () => void;
 }) {
   const [activeTab, setActiveTab] = useState<AuthTab>(initialTab);
@@ -45,7 +47,7 @@ export function AuthScreen({
     }
 
     setFeedback(null);
-    onLogin(username.trim());
+    onLogin(username.trim(), password);
   }
 
   function submitRegistration(event: FormEvent<HTMLFormElement>) {
@@ -57,13 +59,13 @@ export function AuthScreen({
     <main className="scarlet-auth">
       <div className="scarlet-entry__signal" aria-hidden="true"><i /><i /><i /></div>
       <div className="scarlet-auth__portrait" aria-hidden="true">
-        <img alt="" src="/prototype/scarlet-character-v1.png" />
+        <img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} />
       </div>
 
       <section className="scarlet-auth__card" aria-labelledby="scarlet-auth-title">
         <header className="scarlet-auth__header">
           <div className="scarlet-auth__avatar" aria-hidden="true">
-            <img alt="" src="/prototype/scarlet-character-v1.png" />
+            <img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} />
           </div>
           <div>
             <p className="scarlet-auth__eyebrow">Il tuo spazio con Scarlet</p>

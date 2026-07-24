@@ -19,6 +19,7 @@ import {
   fetchSessions,
   fetchUserProfile
 } from "../api";
+import { publicAssetPath } from "../runtimeAssets";
 import type {
   ChatSession,
   DashboardMemories,
@@ -345,7 +346,7 @@ function HomeContent({
 
         <div className="scarlet-home__scarlet" aria-hidden="true">
           <span />
-          <img alt="" src="/prototype/scarlet-character-v1.png" />
+          <img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} />
         </div>
       </section>
 

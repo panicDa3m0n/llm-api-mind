@@ -19,7 +19,7 @@ already reproduced human cognition or established consciousness.
 
 ## Current Status
 
-Current development target: **V1.55.4**. The closed, deployed Core baseline is
+Current development target: **V1.56.0**. The closed, deployed Core baseline is
 **V1.50.1**.
 
 The project has a working local baseline runtime:

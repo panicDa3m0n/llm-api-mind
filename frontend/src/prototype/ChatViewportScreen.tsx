@@ -31,6 +31,7 @@ import {
   fetchMessages,
   streamTurnV2
 } from "../api";
+import { publicAssetPath } from "../runtimeAssets";
 import type {
   ChatMessage,
   ChatSession,
@@ -306,7 +307,7 @@ export function ChatViewportScreen({
     <section className="scarlet-screen scarlet-chat" data-testid="chat-screen">
       <header className="scarlet-chat__header">
         <div className="scarlet-chat__header-avatar" aria-hidden="true">
-          <img alt="" src="/prototype/scarlet-character-v1.png" /><i />
+          <img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} /><i />
         </div>
         <div className="scarlet-chat__header-copy">
           <p><MessageCircleMore aria-hidden="true" size={13} /> Conversazione</p>
@@ -339,7 +340,7 @@ export function ChatViewportScreen({
             {flow.length === 0 ? (
               <div className="scarlet-chat__empty">
                 <div className="scarlet-chat__empty-avatar">
-                  <img alt="Scarlet" src="/prototype/scarlet-character-v1.png" />
+                  <img alt="Scarlet" src={publicAssetPath("prototype/scarlet-character-v1.png")} />
                 </div>
                 <p><Sparkles aria-hidden="true" size={14} /> Sono qui.</p>
                 <h2>{loading ? "Riapro il nostro filo…" : "Da cosa vuoi iniziare?"}</h2>
@@ -823,7 +824,7 @@ function ChatFlowBubble({
   if (block.kind === "answer") {
     return (
       <article className="scarlet-chat__message is-scarlet is-answer" data-flow-kind="answer">
-        <span><img alt="" src="/prototype/scarlet-character-v1.png" /></span>
+        <span><img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} /></span>
         <div><strong>Scarlet · risposta</strong><p>{block.text}</p></div>
       </article>
     );

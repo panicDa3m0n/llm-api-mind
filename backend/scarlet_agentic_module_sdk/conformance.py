@@ -142,7 +142,7 @@ def validate_manifest(
 async def run_conformance(
     module_directory: Path,
     *,
-    core_version: str = "1.55.4",
+    core_version: str = "1.56.0",
     active_mode_tag: str = "interactive",
     known_mode_tags: tuple[str, ...] = DEFAULT_AGENT_MODE_TAGS,
 ) -> ConformanceReport:

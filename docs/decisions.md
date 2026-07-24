@@ -7,6 +7,52 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0133 - One Product UI Build, Explicit Web And Android Delivery Profiles
+
+Date: 2026-07-25
+Status: accepted for V1.56.0
+
+Context:
+
+The connected Product UI existed only under `/prototype`, the historical VPS
+profile still selected the older mobile client, and the repository had no
+native Android project. The public preview is protected by Nginx Basic Auth.
+Embedding that credential in an APK would turn a trusted-preview boundary into
+a distributed secret. Copying the whole `public/` tree also packaged more than
+150 MB of retired avatar-authoring material.
+
+Decision:
+
+- keep one React Product UI over the same Core contracts for browser and
+  Android;
+- select it explicitly through versioned `vps` and `android` Vite profiles;
+- bundle web assets inside the Android application and point only API traffic
+  at `https://honeylabs.cloud/scarlet-api`;
+- enable Capacitor HTTP for native cross-origin transport;
+- forward Basic Auth only from credentials actively entered in the native test
+  login, retain them only in memory, and require login again after a native
+  cold start;
+- never embed the preview password in source, generated assets, or the APK;
+- emit only the approved runtime portrait and greeting video, leaving puppet,
+  PSD, rig, and reference sources outside production bundles; and
+- use Capacitor 7 because the current cross-machine Node 20 baseline satisfies
+  its supported environment, with JDK 21 used for Android compilation.
+
+Consequences:
+
+The APK and protected web preview now exercise the same Product UI and Core.
+The current login remains a private-preview gate, not production identity.
+Real account ownership, secure token issuance, release signing, Play Store
+delivery, and persistent native credential storage remain future work.
+
+Links:
+
+- `frontend/capacitor.config.ts`
+- `frontend/.env.vps`
+- `frontend/.env.android`
+- `frontend/scripts/build-android.mjs`
+- `frontend/src/api.ts`
+
 ## ADR-0131 - Development Thinking Is Inspectable Evidence, Not UI Speech
 
 Date: 2026-07-24

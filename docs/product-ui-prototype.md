@@ -1,13 +1,14 @@
 # Scarlet Product UI
 
 Last updated: 2026-07-24
-Current app target: V1.55.4; prototype is connected to the local Core
+Current app target: V1.56.0; Product UI is connected to Core on web and Android
 Linear issue: SCA-48
 Status: implemented, connected, activity/evidence pass under owner evaluation
 
 ## Purpose
 
-The `/prototype` route is the browser-first V2 Product UI. It is a
+The `/prototype` route is the local browser entry for the V2 Product UI. The
+VPS and Android build profiles mount the same experience as their root. It is a
 mobile-first React application connected to existing Core contracts. It does
 not alter the existing `/` cockpit or `/mobile` consumer and does not invent
 backend behavior for controls that the Core does not support.
@@ -18,8 +19,9 @@ post-login shell. Home, Chat, Memory, Sessions, and Profile use real health,
 session, message, event, memory, profile, and runtime-settings data. The prior
 multi-surface static preview remains available at
 `/prototype?surface=product` for comparison. Real account storage, update
-delivery, notifications, voice/avatar preferences, privacy workflows, and APK
-behavior are intentionally not represented yet.
+delivery, notifications, voice/avatar preferences, and production privacy
+workflows are intentionally not represented yet. V1.56.0 adds a private debug
+APK over the same Core contracts; it is not a signed store release.
 
 The splash introduces the approved character direction: Scarlet appears as an
 adult anime woman around age 25, with visible makeup, dark plum hair, pearl and

@@ -4,6 +4,45 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-25 - V1.56.0 Product UI VPS And Android Packaging
+
+Area: Product UI / Capacitor Android / protected VPS delivery.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Publish the integrated Product UI to the protected HoneyLabs preview and
+produce a real Android test application that consumes the same Core without
+turning the UI into a separate agent or embedding infrastructure credentials.
+
+Changes:
+
+- added Capacitor 7 and the generated Android project for
+  `cloud.honeylabs.scarlet`;
+- added explicit `vps` and `android` Vite profiles;
+- made the connected Product UI the primary experience in those profiles;
+- made runtime media base-path aware;
+- enabled Capacitor HTTP and native-only, volatile forwarding of credentials
+  entered through the existing test login;
+- excluded all PSD, rig, work, reference, and authoring assets from delivery
+  while retaining them in source control;
+- added a cross-platform JDK 21 discovery/build runner; and
+- advanced development metadata to V1.56.0.
+
+Verification:
+
+- `npm run build:vps` passed with 2,035 modules and a 4.2 MB output;
+- local path-hosted mobile browser smoke passed at `390x844`, with no console
+  errors and all static/media requests successful;
+- `npm run android:debug` plus clean Gradle assembly passed;
+- APK inspection confirmed version `1.56.0`, version code `15600`, package
+  `cloud.honeylabs.scarlet`, minimum API 23, target API 35, VPS API URL, and
+  absence of embedded Basic Auth credentials.
+
+Deployment evidence is appended after the protected VPS rollout and Android
+device smoke.
+
 ## 2026-07-24 - V1.55.4 Windows UI And Native Runtime Integration
 
 Area: Product UI / native MiniMax lifecycle / Stream V2 / SDK portability.

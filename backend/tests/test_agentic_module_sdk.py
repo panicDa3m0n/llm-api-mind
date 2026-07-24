@@ -53,7 +53,7 @@ def test_module_runtime_returns_typed_result_and_structured_error() -> None:
     context = PortCallContext(
         request_id="request-health",
         module_id="cloud.honeylabs.fixture",
-        core_version="1.55.4",
+        core_version="1.56.0",
         active_mode_tag="interactive",
         deadline_at=datetime.now(timezone.utc),
     )
@@ -188,7 +188,7 @@ def test_scaffold_runs_through_real_core_host_without_patch(tmp_path: Path) -> N
         )
         registry = discover_modules([root], approvals=[approval])
         assert registry.diagnostics == ()
-        host = AgenticModuleHost(registry, core_version="1.55.4")
+        host = AgenticModuleHost(registry, core_version="1.56.0")
         plan = await host.activate("interactive")
         assert plan.ordered_active_modules == [approval.module_id]
         context = await host.contribute_context(

@@ -15,14 +15,32 @@ import type {
 } from "./types";
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
+let nativeBasicAuthorization: string | null = null;
+
+export function setNativeApiBasicAuth(
+  username: string,
+  password: string
+): void {
+  nativeBasicAuthorization = `Basic ${window.btoa(`${username}:${password}`)}`;
+}
+
+export function clearNativeApiBasicAuth(): void {
+  nativeBasicAuthorization = null;
+}
+
+function apiHeaders(headers?: HeadersInit): Headers {
+  const resolved = new Headers(headers);
+  resolved.set("Content-Type", "application/json");
+  if (nativeBasicAuthorization) {
+    resolved.set("Authorization", nativeBasicAuthorization);
+  }
+  return resolved;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(resolveApiPath(path), {
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {})
-    },
-    ...init
+    ...init,
+    headers: apiHeaders(init?.headers)
   });
 
   if (!response.ok) {
@@ -89,7 +107,7 @@ export async function streamTurn(
 ): Promise<void> {
   const response = await fetch(resolveApiPath(`/api/chat/sessions/${sessionId}/turn/stream`), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: apiHeaders(),
     body: JSON.stringify({
       message,
       max_tokens: maxTokens || null
@@ -147,7 +165,7 @@ export async function streamTurnV2(
     resolveApiPath(`/api/chat/sessions/${sessionId}/turn/stream-v2`),
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: apiHeaders(),
       body: JSON.stringify({
         message,
         max_tokens: maxTokens || null
@@ -180,7 +198,8 @@ export async function streamTurnV2(
       const response = await fetch(
         resolveApiPath(
           `/api/chat/sessions/${sessionId}/turns/${turnId}/stream-v2?${query}`
-        )
+        ),
+        { headers: apiHeaders() }
       );
       await requireStreamingResponse(response);
       await consumeStreamV2(response, state, onEvent);
