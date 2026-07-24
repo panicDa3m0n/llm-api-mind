@@ -557,6 +557,10 @@ Regression Coverage:
 The reference-only inventory, hash checks, JSON parsing, and frontend build
 form the reset verification. Future avatar validation must fail if an
 unregistered raster or PSD appears in the canonical authoring workspace.
+The documentation checker recognizes only the exact retired artifact paths
+listed in its historical-reference registry, so the canonical BUG/ADR/EXP
+history remains readable while any other missing repository path still fails
+the quality gate.
 
 Related Files:
 

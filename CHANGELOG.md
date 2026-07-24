@@ -26,6 +26,8 @@ This project uses a practical changelog rather than a release-only log: each mea
   the existing bounded recovery/failure path.
 - Restore the Linux quality gate by normalizing checker imports and preserving
   the executable mode of the documentation checker.
+- Keep BUG-0100's 21 explicitly retired avatar artifact paths as historical
+  documentation references while continuing to reject other missing paths.
 
 #### Verification
 
@@ -33,9 +35,9 @@ This project uses a practical changelog rather than a release-only log: each mea
   pass `62/62`; Ruff and focused mypy pass on the changed Python surface.
 - A real MiniMax M3 Stream V2 turn completed on its first markerless
   `end_turn`, persisted the assistant response, and emitted `turn.completed`.
-- Frontend production build, database boundary, and diff checks pass;
-  documentation integrity retains only the 39 known historical avatar
-  references.
+- Frontend production build, database boundary, diff, and documentation
+  integrity checks pass; the checker explicitly excludes the 39 references to
+  21 avatar artifacts retired by BUG-0100.
 - The complete CI Ruff target passes with the same command used by GitHub
   Actions.
 

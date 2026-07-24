@@ -31,6 +31,30 @@ HISTORICAL_REFERENCE_PREFIXES = (
     "backend/app/mind/cognition.py",
     "backend/app/mind/hybrid_retrieval.py",
     "backend/app/providers/minimax.py",
+    "frontend/public/prototype/avatar/animations/greeting-v1/",
+    "frontend/public/prototype/avatar/animations/greeting-v2-motion-test/",
+    "frontend/public/prototype/avatar/scarlet-avatar-authoring.json",
+    "frontend/public/prototype/avatar/scarlet-eye-assets-contract.json",
+    "frontend/public/prototype/avatar/scarlet-fidelity-contract.json",
+    "frontend/public/prototype/avatar/scarlet-occlusion-contract.json",
+    "frontend/public/prototype/avatar/scarlet-puppet-v2-contract.json",
+    "frontend/public/prototype/avatar/scarlet-puppet-v3-contract.json",
+    "frontend/public/prototype/avatar/scarlet-right-iris-v2-contract.json",
+    "frontend/public/prototype/avatar/scarlet-visible-parts-matrix.json",
+    "frontend/public/prototype/avatar/source/fidelity-v1/semantic-parts/puppet-v2/",
+    (
+        "frontend/public/prototype/avatar/work/"
+        "eye_scarlet_right_upper_lash_liner/v1/part-config.json"
+    ),
+    "frontend/scripts/build-scarlet-greeting-apng.py",
+    "frontend/scripts/build-scarlet-greeting-motion-v2.py",
+    "frontend/scripts/inspect-scarlet-face-contour-v3.mjs",
+    "frontend/scripts/prepare-scarlet-face-base-v3.mjs",
+    "frontend/scripts/prepare-scarlet-puppet-v2.mjs",
+    "frontend/scripts/prepare-scarlet-right-iris-v2.mjs",
+    "frontend/scripts/prepare-scarlet-semantic-eyes.mjs",
+    "frontend/scripts/prepare-scarlet-visible-parts.mjs",
+    "frontend/scripts/validate-scarlet-avatar.mjs",
 )
 
 

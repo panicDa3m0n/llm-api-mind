@@ -38,6 +38,9 @@ Changes:
 - Restored the Linux quality gate after PR #20 exposed repository-level Ruff
   drift: normalized the two checker import blocks and restored the executable
   bit expected by `EXE001` for `scripts/check_documentation.py`.
+- Registered only the 21 exact avatar artifact paths retired by BUG-0100 as
+  historical documentation references. Their 39 canonical ledger occurrences
+  remain readable without weakening validation for other missing paths.
 
 Verification:
 
@@ -49,8 +52,9 @@ Verification:
   `resource`/`killpg` typing errors in Agentic Module host files; no changed
   file is implicated.
 - Frontend V1.55.3 production build passes with 2,033 transformed modules.
-- Database boundary and `git diff --check` pass. Documentation integrity
-  reports only the same 39 historical avatar-workspace references.
+- Database boundary, `git diff --check`, and documentation integrity pass; the
+  latter excludes the 39 canonical references to the 21 explicitly retired
+  avatar-workspace artifacts.
 - The complete GitHub Actions Ruff target passes locally with the exact CI
   command across backend, SDK, tests, and scripts.
 - Real session `ses_840244eb0fe84dda87c68ecf89c35bf2`, turn
