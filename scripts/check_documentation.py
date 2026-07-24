@@ -9,7 +9,6 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\((?P<target>[^)]+)\)")
 CODE_SPAN = re.compile(r"`(?P<content>[^`\n]+)`")

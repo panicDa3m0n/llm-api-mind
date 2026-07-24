@@ -35,6 +35,9 @@ Changes:
 - Updated deterministic negative controls to represent truncation with
   `max_tokens` instead of marker omission.
 - Advanced development identity to V1.55.3.
+- Restored the Linux quality gate after PR #20 exposed repository-level Ruff
+  drift: normalized the two checker import blocks and restored the executable
+  bit expected by `EXE001` for `scripts/check_documentation.py`.
 
 Verification:
 
@@ -48,6 +51,8 @@ Verification:
 - Frontend V1.55.3 production build passes with 2,033 transformed modules.
 - Database boundary and `git diff --check` pass. Documentation integrity
   reports only the same 39 historical avatar-workspace references.
+- The complete GitHub Actions Ruff target passes locally with the exact CI
+  command across backend, SDK, tests, and scripts.
 - Real session `ses_840244eb0fe84dda87c68ecf89c35bf2`, turn
   `turn_faaad8f836fa48f1a2df1a3b5f2f97ad`, completed through Stream V2 on the
   first response with `provider_stop_reason=end_turn`,

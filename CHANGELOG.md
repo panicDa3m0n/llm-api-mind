@@ -24,6 +24,8 @@ This project uses a practical changelog rather than a release-only log: each mea
   private marker.
 - Keep `max_tokens`, empty terminal output, and failed semantic obligations on
   the existing bounded recovery/failure path.
+- Restore the Linux quality gate by normalizing checker imports and preserving
+  the executable mode of the documentation checker.
 
 #### Verification
 
@@ -34,6 +36,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Frontend production build, database boundary, and diff checks pass;
   documentation integrity retains only the 39 known historical avatar
   references.
+- The complete CI Ruff target passes with the same command used by GitHub
+  Actions.
 
 ### V1.55.2 - Product Chat Activity Evidence
 
