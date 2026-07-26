@@ -4,6 +4,45 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - Companion Utility Follow-Up Checkpoint
+
+Area: companion product direction / relational continuity / device and personal
+information sources / future prompt composition.
+
+Type: documentation-only design preservation on
+`feature/pre-ui-merge-system-work`; V1.58.1 runtime unchanged.
+
+Goal:
+
+Preserve the owner's follow-up direction before staged implementation so useful
+details are not lost or accidentally converted into current capability claims.
+
+Recorded:
+
+- `Resta con me` as a proposed bounded safeguard companion with route/time
+  anomaly candidates, confirmations, notifications, and separately authorized
+  escalation;
+- shared life threads and contextual initiative as one relational continuity
+  domain;
+- a structured inventory direction for Android activity, location, calendar,
+  Health Connect, account APIs, Sharesheet imports, notification-derived
+  signals, and constrained WhatsApp ingress;
+- separation between raw personal sources, normalized events, semantic
+  adjudication, memories, episodes, and model context; and
+- a future composable system-prompt architecture with an immutable kernel,
+  typed policy blocks, exact composition traces, shadow equivalence, and
+  rollback to the working complete prompt.
+
+Boundary:
+
+- no new device signal, external app data, account source, or prompt block is
+  implemented or delivered to Scarlet by this checkpoint;
+- the current complete prompt and V1.58.1 runtime remain unchanged.
+
+Evidence:
+
+- `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`
+
 ## 2026-07-26 - V1.58.1 Foreground Device Signal Integrity
 
 Area: Product UI Android / Device Exploration.

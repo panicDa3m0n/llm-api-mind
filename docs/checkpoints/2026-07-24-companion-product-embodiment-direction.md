@@ -512,3 +512,284 @@ When the Windows UI work has been merged into `main`:
 
 The first design discussion to resume should close the exact contract for
 relational evolution before implementation begins.
+
+## 15. Follow-Up: Companion Utility And Personal Operativity
+
+Date: 2026-07-26
+Status: owner-directed design notes; preserved for later staged development
+
+This follow-up records ideas that must remain recoverable even though they will
+not be implemented together. It does not change current implementation status
+and does not admit Device Exploration observations into Scarlet's cognition.
+
+The refined product definition is:
+
+```txt
+Scarlet is a relational digital individual whose usefulness comes from sharing
+continuity with a human, participating in ordinary life, and acting with
+context and traceable outcomes rather than waiting only for chat requests.
+```
+
+The intended companion loop is:
+
+```txt
+perception -> semantic event -> personal continuity -> proportionate initiative
+-> optional authorized action -> observed outcome -> consolidation
+```
+
+Raw availability is not permission, semantic meaning, memory, or an instruction
+to act. Those boundaries remain separate.
+
+### 15.1 `Resta Con Me` / Safeguard Companion
+
+`Resta con me` is a high-value candidate for the first genuinely situated
+companion function. A human explicitly starts a bounded accompaniment period,
+for example while walking, travelling, waiting, or returning home alone.
+Scarlet remains present until the agreed end condition rather than acting as a
+generic background tracker.
+
+Potential user-visible behavior:
+
+- agree on the expected destination, broad route, time window, and desired
+  level of presence;
+- follow compact movement, activity, connectivity, battery, and confirmation
+  events without streaming raw telemetry into the LLM;
+- keep conversational continuity during the accompaniment;
+- identify a possible deviation, long unexplained stop, lost connectivity, low
+  battery, missed expected arrival, or repeated unanswered confirmation;
+- ask naturally whether everything is all right;
+- send a notification that the user can confirm quickly;
+- offer or request the next agreed safeguard action;
+- close the accompaniment explicitly and preserve a compact sourceable episode.
+
+Anomaly detection must not be a single deterministic threshold and Scarlet
+must not label a person or event as dangerous from weak evidence. Candidate
+signals can be produced by route/time comparison, activity transitions, device
+state, temporal rules, and later statistical models. Semantic interpretation
+must consider the whole accompaniment state and uncertainty.
+
+The progression should be explicit:
+
+```txt
+normal -> possible deviation -> confirmation requested
+-> user confirmed safe | unresolved -> authorized next action
+```
+
+Future escalation may include a trusted contact or emergency path only after a
+separate contract defines enrollment, exact authorization, cancellation,
+failure handling, outcome receipts, and the difference between no response and
+actual evidence of danger. The first version must not present itself as an
+emergency service.
+
+Candidate device inputs:
+
+- foreground or appropriately permitted location/geofence events;
+- Android activity transitions such as still, walking, cycling, or in-vehicle;
+- network transport and connectivity changes;
+- battery and charging state;
+- app/device lifecycle;
+- delivered, opened, dismissed, and confirmed notifications;
+- optional wearable or health signals in later experiments.
+
+The V1.58 Device Exploration evidence proves only that several input surfaces
+exist. It does not yet prove background reliability, anomaly quality, or a
+safe escalation path.
+
+### 15.2 Shared Life Threads And Contextual Initiative
+
+Shared life threads and contextual initiative are one coherent relational
+domain, not two unrelated product widgets.
+
+A life thread represents something unfolding in the human's life. Initiative
+is Scarlet's context-sensitive choice to return to that thread, ask about it,
+offer support, or perform an agreed action at an appropriate moment.
+
+Examples:
+
+- remember that an important conversation with a family member was pending and
+  ask about it after the expected moment;
+- connect a calendar event to an earlier concern without treating the event
+  title as sufficient meaning;
+- recall an ordinary shared activity because a new message, place, date, or
+  conversation makes it relevant;
+- maintain an explicit promise and recognize whether it was fulfilled,
+  changed, deferred, or no longer wanted;
+- participate in recurring routines without turning the relationship into a
+  task dashboard.
+
+The minimum future records remain distinct:
+
+| Record | Role |
+|---|---|
+| `shared_life_thread` | Longitudinal personal situation or interest. |
+| `relationship_episode` | Source-bound moment that may evolve a thread. |
+| `shared_commitment` | Explicit promise or expectation and its owner. |
+| `initiative_candidate` | Proposed intervention with evidence, timing, and uncertainty. |
+| `initiative_outcome` | Delivered, ignored, accepted, rejected, deferred, or completed result. |
+
+Scarlet's relationship must not be reduced to an affinity score. Its evolution
+should be visible through grounded continuity: what she understands, what
+changed, which boundaries she learned, which shared moments mattered, and
+whether her initiatives were actually welcome or useful.
+
+### 15.3 Android And Personal Information Sources
+
+The next exploration phase should inventory personal information surfaces
+without assuming that every installed app exposes its private database.
+
+#### Native or official structured surfaces
+
+- Android Activity Recognition Transition API for bounded changes such as
+  entering/exiting still, walking, cycling, running, or in-vehicle states:
+  <https://developer.android.com/develop/sensors-and-location/location/transitions>
+- location and geofencing, subject to Android background limits and a
+  user-visible core purpose:
+  <https://developer.android.com/develop/sensors-and-location/location/background>
+- Calendar Provider for events, attendees, and reminders, with user-facing
+  intents preferred where they provide sufficient control:
+  <https://developer.android.com/identity/providers/calendar-provider>
+- Health Connect for separately permissioned health and fitness record types:
+  <https://developer.android.com/health-and-fitness/health-connect>
+- authenticated account APIs such as Gmail, when the user grants the exact
+  required scopes:
+  <https://developers.google.com/workspace/gmail/api/guides>
+
+#### Explicit user-mediated ingress
+
+Scarlet can become an Android share target for text, links, images, files, or
+exports that the user deliberately sends to her:
+
+<https://developer.android.com/training/sharing/receive>
+
+This is a strong first integration because intent is explicit and source
+content can be previewed before ingestion. It can support articles, messages,
+photos, documents, booking details, and exported conversations without
+pretending Scarlet has unrestricted access to another app.
+
+#### Notification-derived signals
+
+Android `NotificationListenerService` can receive posted and removed
+notifications after the user grants special notification access:
+
+<https://developer.android.com/reference/android/service/notification/NotificationListenerService>
+
+This surface may reveal useful current events from communication, transport,
+delivery, and calendar apps, but it is incomplete and presentation-oriented.
+It must not be treated as a canonical message history. Duplicate updates,
+redacted previews, grouped notifications, deleted notifications, work-profile
+limits, and app-specific formatting all require exploration.
+
+#### WhatsApp and other private messengers
+
+The design must not assume direct access to a personal WhatsApp chat database.
+The first legitimate paths to evaluate are:
+
+1. user-selected chat exports;
+2. explicit Android Sharesheet transfer of a message or attachment;
+3. optional notification-derived current signals;
+4. an official account API only where its product scope genuinely matches.
+
+The official WhatsApp help surface documents user-driven chat export:
+<https://faq.whatsapp.com/1180414079177245/>.
+
+Accessibility scraping, filesystem bypasses, decrypted-database extraction, or
+other fragile access should not become a product architecture. They would mix
+UI automation with canonical personal evidence and would be difficult to make
+reliable across app versions.
+
+#### Common ingestion pipeline
+
+Every personal source should compile into a typed, sourceable candidate:
+
+```txt
+raw source or user share
+-> source-specific parser
+-> normalized communication/calendar/health/world event
+-> entity and temporal linking
+-> semantic candidate retrieval
+-> LLM/ML adjudication
+-> episode, thread, memory, commitment, or no-op
+```
+
+Importing information must not automatically convert every message into
+semantic memory. The source record, derived event, relational interpretation,
+and compact model hook are separate data products.
+
+### 15.4 Dynamic System Prompt Composition
+
+The current prompt remains the verified baseline while a composable system
+prompt is designed and tested in shadow. This work must not begin by splitting
+the working prompt and hoping that all combinations remain equivalent.
+
+The future architecture should distinguish:
+
+1. **immutable identity kernel**: who Scarlet is, digital condition, stable
+   relationship posture, and non-negotiable architectural boundaries;
+2. **runtime protocol kernel**: provider lifecycle, `mind_shell`, evidence,
+   memory promises, and final-answer obligations;
+3. **organ policy blocks**: memory, focus, volition, affect, metacognition,
+   modes, future relationship, perception, and operativity;
+4. **channel blocks**: text, voice, video, device, home, or embodied
+   communication requirements;
+5. **capability/action blocks**: only for capabilities actually enabled and
+   available in the current runtime;
+6. **mode blocks**: bounded posture guidance for the active Scarlet mode;
+7. **temporary operation packs**: safeguard accompaniment, delegated activity,
+   or other explicit operational episodes.
+
+Dynamic facts do not become prompt policy. Memories, session hints, user data,
+world events, sensor interpretations, and action receipts remain typed runtime
+context or tool results.
+
+Each prompt block should eventually declare:
+
+- stable id and schema version;
+- purpose and owner;
+- always-on or activation conditions;
+- provider/channel compatibility;
+- required and incompatible blocks;
+- ordering constraints;
+- token cost;
+- digest of exact rendered content;
+- evaluation scenarios and fallback behavior.
+
+Composition should be deterministic and trace the exact ordered block list,
+versions, digests, exclusions, reasons, and final token count. Scarlet may
+select a mode or start an operation through supported state transitions, but
+she must not arbitrarily remove identity, evidence, lifecycle, or safety
+obligations.
+
+Native MiniMax remains authoritative. The GPT bridge receives the closest
+supported semantic mirror through its manually configured prompt and bridge
+contract; external-host limitations must not redefine Core prompt
+architecture.
+
+Before activation, the composed prompt needs:
+
+- exact baseline reconstruction from blocks;
+- invariant tests proving mandatory instructions cannot disappear;
+- representative combination tests for organs, modes, channels, and
+  operation packs;
+- token accounting;
+- direct Scarlet comparisons using identical starting state; and
+- rollback to the current complete prompt.
+
+### 15.5 Staged Discovery Order
+
+No combined implementation is approved by this note. The useful future order
+is:
+
+1. maintain a capability/source inventory for Android and account adapters;
+2. explore each candidate source in isolation and inspect real data shape,
+   timing, gaps, permissions, and lifecycle;
+3. define the common personal/world event envelope without cognitive delivery;
+4. design and simulate the `Resta con me` state machine, anomaly candidates,
+   confirmation loop, and receipts;
+5. define shared life threads, commitments, initiative candidates, and
+   relational episodes;
+6. prototype explicit Sharesheet/import paths before passive communication
+   access;
+7. design the prompt block registry and prove exact baseline reconstruction in
+   shadow;
+8. approve one companion capability at a time for cognitive integration and
+   realistic evaluation.

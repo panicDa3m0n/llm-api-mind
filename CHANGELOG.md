@@ -6,6 +6,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Companion Product Planning
+
+- Preserve the `Resta con me` safeguard-companion concept, shared life threads
+  with contextual initiative, Android and personal-information source
+  exploration, and a future dynamically composed system-prompt architecture.
+- Keep every concept explicitly separate from current runtime capability:
+  V1.58.1 does not deliver device observations, communication data, or new
+  prompt blocks to Scarlet.
+
 ### V1.58.1 - Device Exploration Signal Integrity
 
 #### Fixed
