@@ -32,8 +32,10 @@ from app.api.chat_serialization import (
     message_response,
     metacognitive_context_event_payload,
     ndjson,
+    recent_memory_context_event_payload,
     response_event_messages,
     runtime_context_event_payload,
+    session_continuity_event_payload,
     session_response,
 )
 from app.config import Settings
@@ -252,6 +254,33 @@ def prepare_native_turn(
             visibility="debug",
             trace_id=memory_context.trace_id,
         )
+        if memory_context.model_context_payload is not None:
+            record_event(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                event_type="memory.recent_context.built",
+                payload=recent_memory_context_event_payload(
+                    memory_context.model_context_payload
+                ),
+                source="memory",
+                actor="backend",
+                visibility="debug",
+                trace_id=memory_context.model_context_trace_id,
+            )
+            record_event(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                event_type="session.continuity.built",
+                payload=session_continuity_event_payload(
+                    memory_context.model_context_payload
+                ),
+                source="session",
+                actor="backend",
+                visibility="debug",
+                trace_id=memory_context.model_context_trace_id,
+            )
         if memory_context.metacognitive_payload is not None:
             record_event(
                 db,
@@ -1059,6 +1088,18 @@ def _enforce_native_answer_obligations(
 
         if not current_manifest.semantic:
             return current, final_validation_trace_id
+        with Session(engine) as db:
+            record_event(
+                db,
+                session_id=session_id,
+                turn_id=turn_id,
+                event_type="answer.validation.started",
+                payload={"attempt": attempt + 1},
+                source="answer_control",
+                actor="backend",
+                visibility="debug",
+                status="active",
+            )
         semantic_validation = validate_answer_semantics(
             provider=provider,
             manifest=current_manifest,

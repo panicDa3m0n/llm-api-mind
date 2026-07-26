@@ -20,7 +20,9 @@ from app.api.chat_serialization import (
     memory_context_event_payload as _memory_context_event_payload,
     message_response as _message_response,
     metacognitive_context_event_payload as _metacognitive_context_event_payload,
+    recent_memory_context_event_payload as _recent_memory_context_event_payload,
     runtime_context_event_payload as _runtime_context_event_payload,
+    session_continuity_event_payload as _session_continuity_event_payload,
     session_response as _session_response,
 )
 from app.config import Settings
@@ -267,6 +269,33 @@ def build_gpt_bridge_router(
                 visibility="debug",
                 trace_id=memory_context.trace_id,
             )
+            if memory_context.model_context_payload is not None:
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="memory.recent_context.built",
+                    payload=_recent_memory_context_event_payload(
+                        memory_context.model_context_payload
+                    ),
+                    source="memory",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=memory_context.model_context_trace_id,
+                )
+                record_event(
+                    db,
+                    session_id=session_id,
+                    turn_id=turn_id,
+                    event_type="session.continuity.built",
+                    payload=_session_continuity_event_payload(
+                        memory_context.model_context_payload
+                    ),
+                    source="session",
+                    actor="backend",
+                    visibility="debug",
+                    trace_id=memory_context.model_context_trace_id,
+                )
             if memory_context.metacognitive_payload is not None:
                 record_event(
                     db,
@@ -294,8 +323,11 @@ def build_gpt_bridge_router(
                 visibility="debug",
                 trace_id=memory_context.runtime_trace_id,
             )
+            system_prompt_content = system_prompt.get("content")
+            if not isinstance(system_prompt_content, str):
+                raise RuntimeError("Scarlet system prompt content must be a string")
             effective_system = _compose_system_with_runtime_context(
-                system_prompt["content"],
+                system_prompt_content,
                 memory_context.runtime_context,
             )
             bootstrap_context = _gpt_bootstrap_context_payload(
@@ -956,7 +988,8 @@ def _compact_runtime_payload(runtime_payload: dict[str, Any]) -> dict[str, Any]:
     for block in blocks:
         if not isinstance(block, dict):
             continue
-        content = block.get("content") if isinstance(block.get("content"), dict) else {}
+        raw_content = block.get("content")
+        content: dict[str, Any] = raw_content if isinstance(raw_content, dict) else {}
         summary: dict[str, Any] = {
             "id": block.get("id"),
             "type": block.get("type"),

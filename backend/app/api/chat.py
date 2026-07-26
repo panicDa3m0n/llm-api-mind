@@ -24,6 +24,7 @@ from app.api.chat_native_turn import (
     prepare_native_turn,
     stream_native_turn,
 )
+from app.api.chat_live_stream import LiveTurnFeed, stream_live_turn_items
 from app.api.chat_stream_v2 import (
     StreamReplayResponse,
     replay_session_events,
@@ -49,6 +50,11 @@ STREAM_V2_RESPONSE_HEADERS = {
     "Cache-Control": "no-cache, no-transform",
     "X-Accel-Buffering": "no",
     "X-Scarlet-Stream-Schema": "scarlet-stream-v2",
+}
+LIVE_STREAM_RESPONSE_HEADERS = {
+    "Cache-Control": "no-cache, no-transform",
+    "X-Accel-Buffering": "no",
+    "X-Scarlet-Stream-Schema": "scarlet-live-v1",
 }
 
 
@@ -196,6 +202,49 @@ def build_chat_router(
             media_type="application/x-ndjson",
             headers={
                 **STREAM_V2_RESPONSE_HEADERS,
+                "X-Scarlet-Turn-ID": prepared.turn_id,
+            },
+        )
+
+    @router.post("/sessions/{session_id}/turn/stream-live")
+    def create_live_turn(
+        session_id: str,
+        request: ChatTurnRequest,
+    ) -> StreamingResponse:
+        try:
+            prepared = prepare_native_turn(
+                settings=settings,
+                engine=engine,
+                session_id=session_id,
+                message=request.message,
+                system_override=request.system,
+                requested_max_tokens=request.max_tokens,
+                stream=True,
+            )
+        except NativeTurnFailure as exc:
+            raise HTTPException(
+                status_code=exc.status_code,
+                detail=exc.detail,
+            ) from exc
+        feed = LiveTurnFeed()
+        start_native_turn_runner(
+            settings=settings,
+            engine=engine,
+            provider_factory=provider_factory,
+            prepared=prepared,
+            line_sink=feed.publish,
+            completion_sink=feed.finish,
+        )
+        return StreamingResponse(
+            stream_live_turn_items(
+                feed=feed,
+                engine=engine,
+                session_id=session_id,
+                turn_id=prepared.turn_id,
+            ),
+            media_type="application/x-ndjson",
+            headers={
+                **LIVE_STREAM_RESPONSE_HEADERS,
                 "X-Scarlet-Turn-ID": prepared.turn_id,
             },
         )

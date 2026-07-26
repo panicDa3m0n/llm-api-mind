@@ -1,7 +1,7 @@
 # Scarlet Product UI
 
 Last updated: 2026-07-24
-Current app target: V1.56.1; Product UI is connected to Core on web and Android
+Current app target: V1.57.0; Product UI is connected to Core on web and Android
 Linear issue: SCA-48
 Status: implemented, connected, activity/evidence pass under owner evaluation
 

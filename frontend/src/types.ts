@@ -107,6 +107,29 @@ export type ScarletStreamReplay = {
   };
 };
 
+export type ScarletLiveFrame = {
+  frame_id: string;
+  frame_type: "thinking_delta" | "text_delta" | "tool_input_delta";
+  turn_id: string;
+  model_step: number;
+  index: number;
+  payload: Record<string, unknown>;
+};
+
+export type ScarletLiveItem =
+  | {
+      schema_version: "scarlet-live-v1";
+      kind: "event";
+      event: ScarletStreamEvent;
+      frame: null;
+    }
+  | {
+      schema_version: "scarlet-live-v1";
+      kind: "frame";
+      event: null;
+      frame: ScarletLiveFrame;
+    };
+
 export type AgentStep = {
   id: string;
   kind:

@@ -7,6 +7,59 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0134 - Hybrid Live Frames Over Durable Stream V2
+
+Date: 2026-07-26
+Status: accepted for V1.57.0; supersedes ADR-0133's Capacitor HTTP transport clause
+
+Context:
+
+Production traces proved that Scarlet persisted context, thinking, Mind
+lifecycle, notes, and completion incrementally, yet the Android Product Chat
+rendered them only after the final answer or after remounting the screen.
+Disabling Nginx buffering in V1.56.1 was necessary but insufficient. The
+Capacitor HTTP plugin patched global `fetch()` and buffered the native response
+body, while detached Stream V2 execution consumed provider deltas without
+forwarding them because V2 intentionally persists only completed semantic
+events.
+
+Decision:
+
+- retain `scarlet-stream-v2` as the only durable replay, cursor, idempotency,
+  and reconnect authority;
+- add `scarlet-live-v1` as a tagged connection-local stream that interleaves
+  unchanged V2 events with transient thinking, text, and tool-input frames;
+- never persist transient frames, and reconnect an interrupted Product client
+  to the same turn through V2 at most five times;
+- use stable turn/model-step/content-index identities so live blocks mature in
+  place instead of duplicating at completion;
+- use browser `fetch()` inside the Capacitor WebView, disable the native HTTP
+  fetch patch, and explicitly allow packaged localhost origins through CORS;
+- show a bounded UI-owned orientation state before canonical preflight events
+  become available, without presenting it as Scarlet speech or cognition;
+- expose automatic recent-memory, previous-session, and answer-validation
+  lifecycle as compact persisted events; and
+- render the required model-authored `mind_shell.intent` as the preferred tool
+  explanation, keeping deterministic text as a factual fallback rather than
+  requiring a second LLM narration call.
+
+Consequences:
+
+Web and Android can compose live blocks while retaining exact durable recovery.
+The initial memory/runtime preflight remains synchronous, so its immediate
+placeholder is explicitly UI state and disappears when canonical evidence
+arrives. Final answer deltas may remain withheld while semantic validation is
+active; the UI instead shows a live validation block and publishes only the
+accepted answer.
+
+Links:
+
+- BUG-0116
+- `backend/app/api/chat_live_stream.py`
+- `frontend/src/api.ts`
+- `frontend/src/prototype/ChatViewportScreen.tsx`
+- `docs/stream-v2-contract.md`
+
 ## ADR-0133 - One Product UI Build, Explicit Web And Android Delivery Profiles
 
 Date: 2026-07-25
@@ -28,7 +81,8 @@ Decision:
 - select it explicitly through versioned `vps` and `android` Vite profiles;
 - bundle web assets inside the Android application and point only API traffic
   at `https://honeylabs.cloud/scarlet-api`;
-- enable Capacitor HTTP for native cross-origin transport;
+- use Capacitor HTTP for the first native preview; its global fetch-patching
+  transport is superseded by ADR-0134 for incremental streams;
 - use the owner-approved `scarlet/scarlet` pair as an intentionally visible,
   compiled test credential for both protected web and Android preview;
 - forward Basic Auth only after the pair is actively entered, retain the

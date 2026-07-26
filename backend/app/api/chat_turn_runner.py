@@ -19,6 +19,8 @@ from app.storage import repositories
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
+NativeLineSink = Callable[[str], None]
+CompletionSink = Callable[[], None]
 
 
 def start_native_turn_runner(
@@ -27,6 +29,8 @@ def start_native_turn_runner(
     engine: Engine,
     provider_factory: ProviderFactory,
     prepared: NativeTurnPreparation,
+    line_sink: NativeLineSink | None = None,
+    completion_sink: CompletionSink | None = None,
 ) -> threading.Thread | None:
     """Run a turn beyond the lifetime of the initiating HTTP connection."""
 
@@ -42,6 +46,8 @@ def start_native_turn_runner(
             engine=engine,
             provider_factory=provider_factory,
             prepared=prepared,
+            line_sink=line_sink,
+            completion_sink=completion_sink,
         )
         return None
 
@@ -52,6 +58,8 @@ def start_native_turn_runner(
             "engine": engine,
             "provider_factory": provider_factory,
             "prepared": prepared,
+            "line_sink": line_sink,
+            "completion_sink": completion_sink,
         },
         name=f"scarlet-turn-{prepared.turn_id}",
         daemon=True,
@@ -66,15 +74,18 @@ def _consume_native_turn(
     engine: Engine,
     provider_factory: ProviderFactory,
     prepared: NativeTurnPreparation,
+    line_sink: NativeLineSink | None = None,
+    completion_sink: CompletionSink | None = None,
 ) -> None:
     try:
-        for _line in stream_native_turn(
+        for line in stream_native_turn(
             settings=settings,
             engine=engine,
             provider_factory=provider_factory,
             prepared=prepared,
         ):
-            pass
+            if line_sink is not None:
+                line_sink(line)
     except BaseException as exc:
         # Native errors normally terminalize inside stream_native_turn. This guard
         # covers process-local implementation failures so a detached turn is not
@@ -93,3 +104,6 @@ def _consume_native_turn(
                     "recoverable": True,
                 },
             )
+    finally:
+        if completion_sink is not None:
+            completion_sink()

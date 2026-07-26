@@ -10,42 +10,66 @@ history were not rewritten.
 ## BUG-0116 - Product Chat Buffered Live Blocks Until Final Answer
 
 Date Found: 2026-07-25
-Status: fixed and deployed in V1.56.1; owner device acceptance pending
+Status: incomplete V1.56.1 mitigation; full V1.57.0 fix verified locally,
+deployment and owner device acceptance pending
 
 Symptoms:
 
 - Product Chat showed no context, memory, thinking, action, or note blocks
   while Scarlet worked;
-- all blocks appeared together only when the final answer completed.
+- all blocks appeared together only when the final answer completed; and
+- changing screen and reopening Chat could make already persisted blocks
+  appear, proving that UI hydration worked while live composition did not.
 
 Root Cause:
 
-The Product client consumed and applied every NDJSON line incrementally, and
-the Core persisted events throughout the turn, but the protected Nginx proxy
-used its default response buffering. Stream V2 did not declare
-`X-Accel-Buffering: no`, so small durable event lines could be accumulated at
-the delivery boundary.
+There were three independent delivery boundaries:
+
+1. the original protected Nginx location buffered small NDJSON lines;
+2. after that mitigation, Capacitor HTTP still patched global `fetch()` and
+   buffered the native response body instead of exposing incremental WebView
+   chunks; and
+3. the detached V2 runner consumed provider deltas but discarded them because
+   V2 correctly stores only durable completed events.
+
+The React surface also had secondary lifecycle defects: loading a newly
+created session could overwrite live state, start/completion events used
+different block identities, and autoscroll reacted to block count rather than
+text growth. Long semantic answer validation had no start event, so a healthy
+backend could still look inactive.
 
 Fix:
 
-- mark both live and reconnect Stream V2 responses with
-  `X-Accel-Buffering: no`;
-- add `Cache-Control: no-cache, no-transform`;
-- disable proxy buffering and proxy cache on the protected VPS API location;
+- retain the V1.56.1 no-buffer headers and proxy configuration;
+- add `scarlet-live-v1`, which interleaves transient provider frames with
+  unchanged durable V2 events while keeping V2 as reconnect/replay authority;
+- disable the Capacitor native fetch patch and use browser streaming with
+  explicit packaged-origin CORS;
+- give thinking, text, tool, and validation lifecycle blocks stable identities
+  and in-place status maturation;
+- protect current live state from stale session hydration, follow streaming
+  text growth near the viewport bottom, and reconcile against full V2 replay
+  after terminal completion;
+- persist compact recent-memory, previous-session, and validation-start events;
   and
-- retain the existing persisted-event contract and React incremental reducer.
+- use the model-authored `mind_shell.intent` in live tool blocks, with bounded
+  deterministic fallback copy.
 
 Regression Coverage:
 
-- focused API integration asserts both no-buffer headers on initial and
-  reconnect responses;
-- protected VPS responses are chunked, non-cacheable, and served through a
-  location with proxy buffering disabled; and
-- physical-device Product Chat visual acceptance remains with the owner.
+- 49 focused backend tests pass across runner, live/V2 streaming, chat API,
+  GPT bridge parity, and model context;
+- a blocking-provider test proves a thinking frame reaches the consumer while
+  the native runner is still active;
+- API integration proves ordered live frames/durable events, replay identity,
+  terminal completion, and Android WebView CORS preflight;
+- TypeScript/Vite production build passes; and
+- protected VPS plus physical-device Product Chat acceptance remains pending.
 
 Related:
 
 - `docs/stream-v2-contract.md`
+- `backend/app/api/chat_live_stream.py`
 - `backend/app/api/chat.py`
 - `frontend/src/api.ts`
 

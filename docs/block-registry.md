@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-24
-System version assessed: V1.56.1 development target over the V1.50.1 Core
+Last updated: 2026-07-26
+System version assessed: V1.57.0 development target over the V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -164,10 +164,12 @@ Destinations:
 
 ## 4. Stream And Historical UI Blocks
 
-`scarlet-stream-v2` is the Product UI event contract. Every V2 item projects
-one persisted `CognitiveEvent` with a durable event id and session-global
-sequence. Provider token/thinking/tool-input deltas remain transient V1/debug
-signals and are not replayable V2 blocks.
+`scarlet-stream-v2` is the durable Product UI event contract. Every V2 item
+projects one persisted `CognitiveEvent` with a durable event id and
+session-global sequence. `scarlet-live-v1` wraps those same events and may
+interleave connection-local provider text, thinking, and tool-input frames for
+smooth composition. Frames are never persisted or replayed; interruption
+falls back to V2 from the last durable cursor.
 
 The developer cockpit displays:
 
@@ -181,6 +183,24 @@ The developer cockpit displays:
 
 The mobile view converts the same flow into consumer-readable blocks and hides
 raw diagnostics behind the developer surface.
+
+Product Chat currently projects:
+
+- an immediate UI-owned orientation placeholder after message submission,
+  replaced as soon as canonical context evidence arrives;
+- `memory.context.built`, `memory.recent_context.built`,
+  `session.continuity.built`, and `runtime.context.built` as distinct compact
+  context blocks;
+- thinking and text frames into stable model-step/content-index blocks;
+- `mind.tool_use.started` through `mind.tool_call.completed` into one
+  in-place tool block, using the model-authored `mind_shell.intent` when
+  available;
+- `answer.validation.started` as a waiting block during the blocking semantic
+  check; and
+- accepted answer, persisted message, failure, and terminal events from V2.
+
+The orientation placeholder describes only the verified transport state. It is
+not model speech, hidden cognition, or durable evidence.
 
 Live lifecycle:
 

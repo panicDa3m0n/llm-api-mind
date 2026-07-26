@@ -6,6 +6,50 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.57.0 - Hybrid Product Chat Live Delivery
+
+#### Added
+
+- Add `scarlet-live-v1`, a connection-local NDJSON overlay that interleaves
+  transient thinking/text/tool-input frames with unchanged durable Stream V2
+  events.
+- Add compact recent-memory, previous-session, and answer-validation lifecycle
+  events for ordered consumer activity blocks.
+- Add Android WebView CORS support for packaged localhost origins and the
+  temporary preview authorization header.
+
+#### Changed
+
+- Keep Stream V2 as the sole durable replay/reconnect authority and recover an
+  interrupted live response on the same turn for at most five attempts.
+- Compose Product Chat blocks in place with stable lifecycle identities,
+  model-authored Mind action intent, near-bottom streaming autoscroll, and
+  terminal replay reconciliation.
+- Use an immediate UI-owned orientation state during synchronous turn
+  preflight; it is not Scarlet-authored speech or persisted cognition.
+- Disable Capacitor HTTP global fetch patching so the Android WebView receives
+  browser stream chunks instead of one buffered native response.
+- Advance backend, frontend, Android, OpenAPI, and module conformance metadata
+  to V1.57.0.
+
+#### Fixed
+
+- Prevent new-session hydration from overwriting live events and eliminate the
+  need to leave and reopen Chat to see persisted progress.
+- Prevent thinking, text, tool, and validator start/completion milestones from
+  rendering as duplicate blocks.
+- Show a pending validator block during long semantic answer checks instead of
+  presenting a silent healthy backend.
+
+#### Verification
+
+- 49 focused backend tests pass for runner, live/V2 stream, chat API, bridge,
+  and model-context behavior.
+- A blocking-provider test proves a transient frame arrives before the native
+  turn completes; API tests prove ordered frames/events, durable replay, and
+  Android WebView CORS preflight.
+- Ruff, focused mypy, and TypeScript/Vite production build pass.
+
 ### V1.56.1 - Android Preview Test Access
 
 #### Fixed

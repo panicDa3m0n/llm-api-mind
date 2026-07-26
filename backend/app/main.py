@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
 from app.api.chat import build_chat_router, build_trace_router
@@ -45,10 +46,25 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.56.1",
+        version="1.57.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "https://localhost",
+            "http://localhost",
+            "capacitor://localhost",
+        ],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PUT", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
+        expose_headers=[
+            "X-Scarlet-Stream-Schema",
+            "X-Scarlet-Turn-ID",
+        ],
     )
 
     app.include_router(build_system_router(runtime_settings))

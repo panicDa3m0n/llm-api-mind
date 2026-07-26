@@ -210,3 +210,35 @@ def runtime_context_event_payload(runtime_context: dict[str, Any]) -> dict[str, 
         "block_index": runtime_context.get("block_index", []),
         "blocks": blocks if isinstance(blocks, list) else [],
     }
+
+
+def session_continuity_event_payload(
+    model_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    session = model_context.get("session") if isinstance(model_context, dict) else None
+    previous = session.get("previous_sessions") if isinstance(session, dict) else None
+    return {
+        "operation": "session.continuity",
+        "previous_session_count": len(previous) if isinstance(previous, list) else 0,
+    }
+
+
+def recent_memory_context_event_payload(
+    model_context: dict[str, Any] | None,
+) -> dict[str, Any]:
+    memories = (
+        model_context.get("memories") if isinstance(model_context, dict) else None
+    )
+    relevant = memories.get("relevant") if isinstance(memories, dict) else None
+    recent_user = memories.get("recent_user") if isinstance(memories, dict) else None
+    recent_general = (
+        memories.get("recent_general") if isinstance(memories, dict) else None
+    )
+    return {
+        "operation": "memory.recent_context",
+        "relevant_count": len(relevant) if isinstance(relevant, list) else 0,
+        "recent_user_count": len(recent_user) if isinstance(recent_user, list) else 0,
+        "recent_general_count": (
+            len(recent_general) if isinstance(recent_general, list) else 0
+        ),
+    }

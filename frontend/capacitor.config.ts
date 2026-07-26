@@ -9,10 +9,9 @@ const config: CapacitorConfig = {
   android: {
     backgroundColor: "#b24592"
   },
-  plugins: {
-    CapacitorHttp: {
-      enabled: true
-    }
+  server: {
+    androidScheme: "https",
+    hostname: "localhost"
   }
 };
 

@@ -5,6 +5,7 @@ from pathlib import Path
 from sqlmodel import Session
 
 from app.api.chat_native_turn import prepare_native_turn
+from app.api.chat_live_stream import LiveTurnFeed, stream_live_turn_items
 from app.api.chat_stream_v2 import stream_persisted_turn_events
 from app.api.chat_turn_runner import start_native_turn_runner
 from app.config import Settings
@@ -52,6 +53,55 @@ class BlockingProvider:
             type="assistant_answer",
             data={
                 "model_step": 1,
+                "provider_message_id": result.provider_message_id,
+                "stop_reason": "end_turn",
+                "text": result.text,
+            },
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
+class IncrementalProvider:
+    frame_emitted = threading.Event()
+    release = threading.Event()
+
+    def __init__(self, _settings: Settings) -> None:
+        pass
+
+    def stream_chat_with_tools(self, **_kwargs):
+        yield LLMStreamEvent(
+            type="thinking_start",
+            data={"model_step": 1, "index": 0},
+        )
+        yield LLMStreamEvent(
+            type="thinking_delta",
+            data={"model_step": 1, "index": 0, "text": "Sto verificando."},
+        )
+        type(self).frame_emitted.set()
+        assert type(self).release.wait(timeout=5)
+        result = LLMTextResult(
+            model="incremental-provider",
+            text="Verifica completata.",
+            stop_reason="end_turn",
+            provider_message_id="provider_incremental",
+            raw_content=[{"type": "text", "text": "Verifica completata."}],
+            raw_provider_messages=[
+                {
+                    "id": "provider_incremental",
+                    "model": "incremental-provider",
+                    "stop_reason": "end_turn",
+                    "content": [{"type": "text", "text": "Verifica completata."}],
+                }
+            ],
+        )
+        yield LLMStreamEvent(
+            type="assistant_answer",
+            data={
+                "model_step": 1,
+                "index": 0,
                 "provider_message_id": result.provider_message_id,
                 "stop_reason": "end_turn",
                 "text": result.text,
@@ -125,3 +175,71 @@ def test_turn_runner_survives_stream_consumer_disconnect(tmp_path: Path) -> None
     assert any(
         event["event_type"] == "message.assistant.persisted" for event in resumed
     )
+
+
+def test_live_feed_delivers_a_frame_before_the_turn_finishes(tmp_path: Path) -> None:
+    IncrementalProvider.frame_emitted.clear()
+    IncrementalProvider.release.clear()
+    database = tmp_path / "incremental.db"
+    engine = create_db_engine(f"sqlite:///{database}")
+    init_db(engine)
+    settings = Settings(
+        environment="test",
+        database_url=f"sqlite:///{database}",
+        minimax_api_key="test-key",
+        agent_system_prompt="You are Scarlet.",
+        maintenance_enabled=False,
+        answer_obligations_mode="off",
+    )
+    with Session(engine) as db:
+        chat_session = repositories.create_chat_session(db, title="Live test")
+    prepared = prepare_native_turn(
+        settings=settings,
+        engine=engine,
+        session_id=chat_session.id,
+        message="Fammi vedere cosa succede.",
+        system_override=None,
+        requested_max_tokens=None,
+        stream=True,
+    )
+    feed = LiveTurnFeed()
+    runner = start_native_turn_runner(
+        settings=settings,
+        engine=engine,
+        provider_factory=IncrementalProvider,
+        prepared=prepared,
+        line_sink=feed.publish,
+        completion_sink=feed.finish,
+    )
+    assert runner is not None
+    stream = stream_live_turn_items(
+        feed=feed,
+        engine=engine,
+        session_id=chat_session.id,
+        turn_id=prepared.turn_id,
+        poll_interval_seconds=0.01,
+    )
+
+    before_release = []
+    for line in stream:
+        item = json.loads(line)
+        before_release.append(item)
+        if item["kind"] == "frame":
+            break
+
+    assert IncrementalProvider.frame_emitted.is_set()
+    assert runner.is_alive()
+    assert before_release[-1]["frame"]["frame_type"] == "thinking_delta"
+    assert before_release[-1]["frame"]["payload"]["text"] == "Sto verificando."
+
+    IncrementalProvider.release.set()
+    remaining = [json.loads(line) for line in stream]
+    runner.join(timeout=5)
+    assert not runner.is_alive()
+    terminal = next(
+        item["event"]
+        for item in remaining
+        if item["kind"] == "event"
+        and item["event"]["event_type"] == "turn.completed"
+    )
+    assert terminal["turn_id"] == prepared.turn_id

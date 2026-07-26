@@ -1192,6 +1192,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
         "turn.started",
         "message.user.persisted",
         "memory.context.built",
+        "memory.recent_context.built",
+        "session.continuity.built",
         "metacognitive.context.shadowed",
         "runtime.context.built",
         "llm.request.created",
@@ -1203,10 +1205,10 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     ]
     assert [event["seq"] for event in events] == list(range(1, len(events) + 1))
     assert events[2]["payload"]["negative_evidence"] == "no_relevant_memory_selected"
-    assert events[3]["payload"]["schema_version"] == ("metacognitive-context-shadow-v1")
-    assert events[4]["payload"]["schema_version"] == "runtime-context-v1"
-    assert events[8]["payload"]["text"] == "assistant:hello:history=1"
-    assert events[10]["payload"]["kind"] == "session.idle_maintenance"
+    assert events[5]["payload"]["schema_version"] == ("metacognitive-context-shadow-v1")
+    assert events[6]["payload"]["schema_version"] == "runtime-context-v1"
+    assert events[10]["payload"]["text"] == "assistant:hello:history=1"
+    assert events[12]["payload"]["kind"] == "session.idle_maintenance"
     with Session(db_engine) as db:
         stored_session = repositories.get_chat_session(db, session["id"])
         assert stored_session is not None
@@ -2107,17 +2109,21 @@ def test_streaming_chat_turn_emits_agentic_events_and_persists_traces(
         if event["type"] == "runtime_event"
     ]
     live_runtime_event_types = [event["type"] for event in live_runtime_events]
-    assert live_runtime_event_types[:5] == [
+    assert live_runtime_event_types[:7] == [
         "turn.started",
         "message.user.persisted",
         "memory.context.built",
+        "memory.recent_context.built",
+        "session.continuity.built",
         "metacognitive.context.shadowed",
         "runtime.context.built",
     ]
-    assert live_runtime_event_types[:6] == [
+    assert live_runtime_event_types[:8] == [
         "turn.started",
         "message.user.persisted",
         "memory.context.built",
+        "memory.recent_context.built",
+        "session.continuity.built",
         "metacognitive.context.shadowed",
         "runtime.context.built",
         "llm.request.created",
@@ -2319,6 +2325,57 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
         terminal["event_id"]
     ]
 
+
+def test_live_stream_interleaves_transient_frames_with_durable_events(
+    db_engine: Engine,
+) -> None:
+    client = make_tool_client(db_engine)
+    session = client.post("/api/chat/sessions", json={}).json()
+
+    with client.stream(
+        "POST",
+        f"/api/chat/sessions/{session['id']}/turn/stream-live",
+        json={"message": "inspect schema first"},
+    ) as response:
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-cache, no-transform"
+        assert response.headers["x-accel-buffering"] == "no"
+        assert response.headers["x-scarlet-stream-schema"] == "scarlet-live-v1"
+        turn_id = response.headers["x-scarlet-turn-id"]
+        items = [json.loads(line) for line in response.iter_lines() if line]
+
+    assert items
+    assert {item["schema_version"] for item in items} == {"scarlet-live-v1"}
+    events = [item["event"] for item in items if item["kind"] == "event"]
+    frames = [item["frame"] for item in items if item["kind"] == "frame"]
+    assert all(item["frame"] is None for item in items if item["kind"] == "event")
+    assert all(item["event"] is None for item in items if item["kind"] == "frame")
+    assert {frame["frame_type"] for frame in frames} == {
+        "thinking_delta",
+        "text_delta",
+        "tool_input_delta",
+    }
+    assert {
+        frame["frame_id"]
+        for frame in frames
+        if frame["frame_type"] == "text_delta"
+    } == {
+        f"content-{turn_id}-1-1",
+        f"content-{turn_id}-2-0",
+    }
+    event_types = [event["event_type"] for event in events]
+    assert "message.user.persisted" in event_types
+    assert "memory.context.built" in event_types
+    assert "memory.recent_context.built" in event_types
+    assert "session.continuity.built" in event_types
+    assert "mind.tool_call.started" in event_types
+    assert "mind.tool_call.completed" in event_types
+    assert "assistant.answer.completed" in event_types
+    assert event_types[-1] == "turn.completed"
+    assert [event["seq"] for event in events] == sorted(
+        event["seq"] for event in events
+    )
+
     first_page = client.get(
         f"/api/chat/sessions/{session['id']}/events",
         params={"after_seq": 0, "limit": 3},
@@ -2341,6 +2398,27 @@ def test_stream_v2_emits_only_replayable_provider_independent_events(
     assert second_page["cursor"]["next_after_seq"] == second_page["cursor"][
         "latest_seq"
     ]
+
+
+def test_live_stream_accepts_android_webview_cors_preflight(
+    db_engine: Engine,
+) -> None:
+    client = make_tool_client(db_engine)
+
+    response = client.options(
+        "/api/chat/sessions/session-placeholder/turn/stream-live",
+        headers={
+            "Origin": "https://localhost",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "https://localhost"
+    assert "POST" in response.headers["access-control-allow-methods"]
+    assert "Authorization" in response.headers["access-control-allow-headers"]
+    assert "Content-Type" in response.headers["access-control-allow-headers"]
 
 
 def test_stream_v2_persists_a_replayable_terminal_error(db_engine: Engine) -> None:

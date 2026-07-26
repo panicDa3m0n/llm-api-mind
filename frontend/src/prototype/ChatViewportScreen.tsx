@@ -29,13 +29,14 @@ import {
   createSession,
   fetchAllSessionEventsV2,
   fetchMessages,
-  streamTurnV2
+  streamTurnLive
 } from "../api";
 import { publicAssetPath } from "../runtimeAssets";
 import type {
   ChatMessage,
   ChatSession,
   DashboardMemory,
+  ScarletLiveFrame,
   ScarletStreamEvent
 } from "../types";
 import {
@@ -68,17 +69,26 @@ type ChatFlowBlock = {
   title: string;
 };
 
+type LiveFrameState = ScarletLiveFrame & {
+  text: string;
+};
+
 const CONSUMER_ACTIVITY_EVENT_TYPES = new Set([
   "agent.mode.changed",
   "llm.request.started",
   "llm.response.started",
   "llm.thinking.started",
+  "llm.text.started",
+  "mind.tool_use.started",
   "memory.context.built",
+  "memory.recent_context.built",
   "runtime.context.built",
+  "session.continuity.built",
   "turn.failed"
 ]);
 
 const CONSUMER_ACTIVITY_EVENT_PREFIXES = [
+  "answer.validation.",
   "mind.tool_call.",
   "organ.affect.",
   "organ.focus.",
@@ -108,8 +118,10 @@ export function ChatViewportScreen({
   const [draft, setDraft] = useState("");
   const [events, setEvents] = useState<ScarletStreamEvent[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [liveFrames, setLiveFrames] = useState<Record<string, LiveFrameState>>({});
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [awaitingInitialContext, setAwaitingInitialContext] = useState(false);
   const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inspection, setInspection] = useState<ChatEventInspection | null>(null);
@@ -124,10 +136,14 @@ export function ChatViewportScreen({
     if (!currentSession) {
       setEvents([]);
       setMessages([]);
+      setLiveFrames({});
       setError(null);
       return;
     }
     let cancelled = false;
+    setEvents([]);
+    setMessages([]);
+    setLiveFrames({});
     setLoading(true);
     setError(null);
     void Promise.all([
@@ -136,7 +152,12 @@ export function ChatViewportScreen({
     ])
       .then(([nextEvents, nextMessages]) => {
         if (cancelled) return;
-        setEvents(mergeEvents([], nextEvents));
+        setEvents((current) =>
+          mergeEvents(
+            current.filter((item) => item.session_id === currentSession.id),
+            nextEvents
+          )
+        );
         setMessages(nextMessages);
       })
       .catch((reason: unknown) => {
@@ -160,7 +181,8 @@ export function ChatViewportScreen({
     const projected = projectConversation(
       events,
       messages,
-      privateEvidenceUnlocked
+      privateEvidenceUnlocked,
+      liveFrames
     );
     if (optimisticMessage) {
       projected.push({
@@ -171,6 +193,17 @@ export function ChatViewportScreen({
         status: "live",
         text: optimisticMessage,
         title: "Tu"
+      });
+    }
+    if (awaitingInitialContext) {
+      projected.push({
+        eventType: "ui.context.pending",
+        id: "optimistic-context-assembly",
+        kind: "context",
+        sourceEvents: [],
+        status: "live",
+        text: "Scarlet sta raccogliendo il filo, i ricordi vicini e le conversazioni che potrebbero servire.",
+        title: "Scarlet si sta orientando"
       });
     }
     if (error) {
@@ -189,16 +222,28 @@ export function ChatViewportScreen({
     error,
     events,
     messages,
+    liveFrames,
     optimisticMessage,
     privateEvidenceUnlocked,
-    sending
+    sending,
+    awaitingInitialContext
   ]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
     if (!scroller) return;
-    scroller.scrollTop = scroller.scrollHeight;
-  }, [flow.length, sending]);
+    const distanceFromBottom =
+      scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    if (sending || distanceFromBottom < 120) {
+      scroller.scrollTop = scroller.scrollHeight;
+    }
+  }, [
+    flow.length,
+    flow[flow.length - 1]?.id,
+    flow[flow.length - 1]?.status,
+    flow[flow.length - 1]?.text.length,
+    sending
+  ]);
 
   async function submitMessage(event: FormEvent) {
     event.preventDefault();
@@ -206,6 +251,7 @@ export function ChatViewportScreen({
     if (!text || sending) return;
 
     setSending(true);
+    setAwaitingInitialContext(true);
     setError(null);
     setOptimisticMessage(text);
     setDraft("");
@@ -219,11 +265,42 @@ export function ChatViewportScreen({
         onSessionCreated?.(targetSession);
       }
 
-      await streamTurnV2(targetSession.id, text, undefined, (streamEvent) => {
-        received.push(streamEvent);
-        setOptimisticMessage(null);
-        setEvents((current) => mergeEvents(current, [streamEvent]));
-      });
+      await streamTurnLive(
+        targetSession.id,
+        text,
+        undefined,
+        (streamEvent) => {
+          received.push(streamEvent);
+          if (streamEvent.event_type === "message.user.persisted") {
+            setOptimisticMessage(null);
+          }
+          if (
+            streamEvent.event_type === "memory.context.built" ||
+            streamEvent.event_type === "runtime.context.built" ||
+            streamEvent.event_type === "llm.request.started"
+          ) {
+            setAwaitingInitialContext(false);
+          }
+          setEvents((current) => mergeEvents(current, [streamEvent]));
+        },
+        (frame) => {
+          const delta =
+            frame.frame_type === "tool_input_delta"
+              ? valueAsString(frame.payload.partial_json)
+              : valueAsString(frame.payload.text);
+          if (!delta) return;
+          setLiveFrames((current) => {
+            const previous = current[frame.frame_id];
+            return {
+              ...current,
+              [frame.frame_id]: {
+                ...frame,
+                text: `${previous?.text ?? ""}${delta}`
+              }
+            };
+          });
+        }
+      );
 
       const terminal = received.find(
         (item) =>
@@ -246,8 +323,10 @@ export function ChatViewportScreen({
       ]);
       setEvents(mergeEvents([], replayedEvents));
       setMessages(persistedMessages);
+      setLiveFrames({});
       onDataChanged();
     } catch (reason) {
+      setAwaitingInitialContext(false);
       setOptimisticMessage(null);
       const message =
         reason instanceof Error ? reason.message : "Invio non riuscito.";
@@ -263,11 +342,13 @@ export function ChatViewportScreen({
           ]);
           setEvents(mergeEvents([], replayedEvents));
           setMessages(persistedMessages);
+          setLiveFrames({});
         } catch {
           // Keep the original transport error visible.
         }
       }
     } finally {
+      setAwaitingInitialContext(false);
       setSending(false);
     }
   }
@@ -298,7 +379,8 @@ export function ChatViewportScreen({
     transport: {
       mode: "core",
       persistence: true,
-      schema_version: "scarlet-stream-v2",
+      live_schema_version: "scarlet-live-v1",
+      replay_schema_version: "scarlet-stream-v2",
       streaming: true
     }
   };
@@ -401,8 +483,8 @@ export function ChatViewportScreen({
             </div>
             <small>
               {sending
-                ? "Turno in corso · eventi persistiti in tempo reale"
-                : "Cronologia reale · stream Scarlet V2"}
+                ? "Turno in corso · attività e parole arrivano in tempo reale"
+                : "Cronologia reale · live stream con replay persistito"}
             </small>
           </form>
         </div>
@@ -436,7 +518,8 @@ export function ChatViewportScreen({
 function projectConversation(
   events: ScarletStreamEvent[],
   messages: ChatMessage[],
-  privateEvidenceUnlocked: boolean
+  privateEvidenceUnlocked: boolean,
+  liveFrames: Record<string, LiveFrameState>
 ): ChatFlowBlock[] {
   const terminalTurns = new Set(
     events
@@ -471,7 +554,7 @@ function projectConversation(
       .filter((turnId): turnId is string => typeof turnId === "string")
   );
   const blocks: ChatFlowBlock[] = [];
-  const toolBlockIndexes = new Map<string, number>();
+  const blockIndexes = new Map<string, number>();
 
   for (const event of flowEvents) {
     if (
@@ -493,23 +576,57 @@ function projectConversation(
     const projected = projectEvent(event, terminalTurns);
     if (!projected) continue;
 
-    if (event.event_type.startsWith("mind.tool_call.")) {
-      const lifecycleKey = toolLifecycleKey(event);
-      const existingIndex = toolBlockIndexes.get(lifecycleKey);
-      if (existingIndex !== undefined) {
-        blocks[existingIndex] = {
-          ...projected,
-          id: blocks[existingIndex].id,
-          sourceEvents: [
-            ...blocks[existingIndex].sourceEvents,
-            ...projected.sourceEvents
-          ]
-        };
-        continue;
-      }
-      toolBlockIndexes.set(lifecycleKey, blocks.length);
+    const existingIndex = blockIndexes.get(projected.id);
+    if (existingIndex !== undefined) {
+      blocks[existingIndex] = {
+        ...projected,
+        sourceEvents: [
+          ...blocks[existingIndex].sourceEvents,
+          ...projected.sourceEvents
+        ]
+      };
+      continue;
     }
+    blockIndexes.set(projected.id, blocks.length);
     blocks.push(projected);
+  }
+
+  for (const frame of Object.values(liveFrames)) {
+    if (frame.frame_type === "tool_input_delta") continue;
+    const existingIndex = blockIndexes.get(frame.frame_id);
+    if (existingIndex !== undefined) {
+      const existing = blocks[existingIndex];
+      if (existing.status === "live") {
+        blocks[existingIndex] = {
+          ...existing,
+          text:
+            frame.frame_type === "thinking_delta"
+              ? privateEvidenceUnlocked
+                ? compactText(frame.text, 600)
+                : existing.text
+              : frame.text
+        };
+      }
+      continue;
+    }
+    const liveBlock: ChatFlowBlock = {
+      authoredByScarlet: frame.frame_type === "text_delta",
+      eventType: frame.frame_type,
+      id: frame.frame_id,
+      kind: frame.frame_type === "thinking_delta" ? "reflection" : "note",
+      sourceEvents: [],
+      status: "live",
+      text:
+        frame.frame_type === "thinking_delta" && !privateEvidenceUnlocked
+          ? "Il pensiero di Scarlet è in corso."
+          : compactText(frame.text, frame.frame_type === "thinking_delta" ? 600 : 4000),
+      title:
+        frame.frame_type === "thinking_delta"
+          ? "Scarlet sta pensando"
+          : "Nota di Scarlet"
+    };
+    blockIndexes.set(liveBlock.id, blocks.length);
+    blocks.push(liveBlock);
   }
 
   for (const message of messages) {
@@ -567,7 +684,10 @@ function projectEvent(
         "Pensiero di Scarlet",
         text
           ? compactText(text, 240)
-          : "Il provider ha registrato questo passaggio di pensiero senza testo ispezionabile."
+          : "Il provider ha registrato questo passaggio di pensiero senza testo ispezionabile.",
+        false,
+        false,
+        contentLifecycleId("thinking", event)
       );
     }
     return block(
@@ -582,13 +702,40 @@ function projectEvent(
     return eventMessageBlock(event, message, "user");
   }
   if (event.event_type === "assistant.answer.completed" && text) {
-    return block(event, "answer", "Scarlet", text, true);
+    return block(
+      event,
+      "answer",
+      "Scarlet",
+      text,
+      true,
+      false,
+      contentLifecycleId("content", event)
+    );
   }
   if (event.event_type === "message.assistant.persisted" && message) {
     return eventMessageBlock(event, message, "answer");
   }
   if (event.event_type === "assistant.note.emitted" && text) {
-    return block(event, "note", "Nota di Scarlet", text, true);
+    return block(
+      event,
+      "note",
+      "Nota di Scarlet",
+      text,
+      true,
+      false,
+      contentLifecycleId("content", event)
+    );
+  }
+  if (event.event_type === "assistant.response.continued" && text) {
+    return block(
+      event,
+      "note",
+      "Scarlet continua",
+      text,
+      true,
+      false,
+      contentLifecycleId("content", event)
+    );
   }
   if (event.event_type === "runtime.context.built") {
     return block(
@@ -611,6 +758,30 @@ function projectEvent(
         : "La memoria disponibile è stata verificata per questo turno."
     );
   }
+  if (event.event_type === "memory.recent_context.built") {
+    const userCount = valueAsNumber(payload.recent_user_count) ?? 0;
+    const generalCount = valueAsNumber(payload.recent_general_count) ?? 0;
+    const total = userCount + generalCount;
+    return block(
+      event,
+      "memory",
+      "Ricordi vicini",
+      total
+        ? `${total} ${total === 1 ? "ricordo recente è rimasto" : "ricordi recenti sono rimasti"} a portata di pensiero.`
+        : "Non ci sono ricordi recenti aggiuntivi per questo passaggio."
+    );
+  }
+  if (event.event_type === "session.continuity.built") {
+    const count = valueAsNumber(payload.previous_session_count) ?? 0;
+    return block(
+      event,
+      "context",
+      "Fili recenti",
+      count
+        ? `${count} ${count === 1 ? "conversazione recente è pronta" : "conversazioni recenti sono pronte"} per essere riaperte se servono.`
+        : "Questo passaggio comincia senza altri fili recenti da riaprire."
+    );
+  }
   if (
     event.event_type === "llm.request.started" ||
     event.event_type === "llm.response.started" ||
@@ -622,14 +793,29 @@ function projectEvent(
       "Scarlet sta pensando",
       "Il pensiero di Scarlet è iniziato.",
       false,
-      turnIsOpen
+      turnIsOpen,
+      event.event_type === "llm.thinking.started"
+        ? contentLifecycleId("thinking", event)
+        : event.event_id
     );
   }
-  if (event.event_type.startsWith("mind.tool_call.")) {
+  if (event.event_type === "llm.text.started") {
+    return block(
+      event,
+      "note",
+      "Nota di Scarlet",
+      "Scarlet sta componendo questo passaggio.",
+      true,
+      turnIsOpen,
+      contentLifecycleId("content", event)
+    );
+  }
+  if (isToolLifecycleEvent(event)) {
     const live =
       turnIsOpen &&
-      event.event_type !== "mind.tool_call.completed" &&
-      event.event_type !== "mind.tool_call.failed";
+      (event.event_type === "mind.tool_use.started" ||
+        event.event_type === "mind.tool_call.requested" ||
+        event.event_type === "mind.tool_call.started");
     return block(
       event,
       "action",
@@ -640,7 +826,29 @@ function projectEvent(
           : "Azione completata",
       toolActivityText(payload, event.event_type, live),
       false,
+      live,
+      toolLifecycleId(event)
+    );
+  }
+  if (event.event_type.startsWith("answer.validation.")) {
+    const live =
+      turnIsOpen && event.event_type === "answer.validation.started";
+    return block(
+      event,
+      "reflection",
       live
+        ? "Scarlet sta rileggendo"
+        : event.event_type === "answer.validation.accepted"
+          ? "Risposta pronta"
+          : "Scarlet sta correggendo",
+      live
+        ? "Un ultimo controllo tiene insieme la risposta e ciò che è emerso nel turno."
+        : event.event_type === "answer.validation.accepted"
+          ? "Il controllo finale è completo."
+          : "Il primo testo non teneva insieme tutto: Scarlet sta preparando una versione più coerente.",
+      false,
+      live,
+      `answer-validation-${event.turn_id ?? "session"}`
     );
   }
   if (event.event_type.startsWith("organ.focus.")) {
@@ -697,6 +905,26 @@ function toolLifecycleKey(event: ScarletStreamEvent): string {
   );
 }
 
+function toolLifecycleId(event: ScarletStreamEvent): string {
+  return `tool-${event.turn_id ?? "session"}-${toolLifecycleKey(event)}`;
+}
+
+function isToolLifecycleEvent(event: ScarletStreamEvent): boolean {
+  return (
+    event.event_type === "mind.tool_use.started" ||
+    event.event_type.startsWith("mind.tool_call.")
+  );
+}
+
+function contentLifecycleId(
+  prefix: "thinking" | "content",
+  event: ScarletStreamEvent
+): string {
+  const modelStep = valueAsNumber(event.payload.model_step) ?? 1;
+  const index = valueAsNumber(event.payload.index) ?? 0;
+  return `${prefix}-${event.turn_id ?? "session"}-${modelStep}-${index}`;
+}
+
 function compactText(value: string, limit: number): string {
   if (value.length <= limit) return value;
   return `${value.slice(0, limit).trimEnd()}…`;
@@ -708,32 +936,46 @@ function toolActivityText(
   live: boolean
 ): string {
   const operation = valueAsRecord(payload.operation);
-  const intent = valueAsString(operation?.intent);
+  const argumentsValue = valueAsRecord(payload.arguments);
+  const intent =
+    valueAsString(operation?.intent) ||
+    valueAsString(argumentsValue?.intent);
   const directOperation = valueAsString(payload.operation);
   const result = valueAsRecord(payload.result_summary);
   const resultOperation = valueAsString(result?.operation);
   const objective =
-    intent ||
-    directOperation ||
-    resultOperation ||
-    "consultare le funzioni interne necessarie";
+    intent || directOperation || resultOperation || "aprire la funzione interna necessaria";
+  if (intent) {
+    if (eventType === "mind.tool_call.failed") {
+      return `${intent} Il passaggio non è riuscito.`;
+    }
+    if (live) {
+      return intent;
+    }
+    const count = valueAsNumber(result?.count);
+    const countSuffix =
+      count === null
+        ? ""
+        : ` ${count} ${count === 1 ? "risultato trovato" : "risultati trovati"}.`;
+    return `${intent} Passaggio completato.${countSuffix}`;
+  }
   const normalizedObjective =
     objective.length > 0
       ? `${objective.charAt(0).toLocaleLowerCase("it")}${objective.slice(1)}`
       : objective;
 
   if (eventType === "mind.tool_call.failed") {
-    return `Non sono riuscita a completare questo passaggio: ${normalizedObjective}.`;
+    return `Il passaggio non è riuscito: ${normalizedObjective}.`;
   }
   if (live) {
-    return `Mi occupo di questo passaggio: ${normalizedObjective}.`;
+    return `Scarlet sta usando una funzione interna: ${normalizedObjective}.`;
   }
   const count = valueAsNumber(result?.count);
   const countSuffix =
     count === null
       ? ""
       : ` Ho ottenuto ${count} ${count === 1 ? "risultato" : "risultati"}.`;
-  return `Ho completato questo passaggio: ${normalizedObjective}.${countSuffix}`;
+  return `Funzione interna completata: ${normalizedObjective}.${countSuffix}`;
 }
 
 function block(
@@ -742,12 +984,13 @@ function block(
   title: string,
   text: string,
   authoredByScarlet = false,
-  live = false
+  live = false,
+  id = event.event_id
 ): ChatFlowBlock {
   return {
     authoredByScarlet,
     eventType: event.event_type,
-    id: event.event_id,
+    id,
     kind,
     sourceEvents: [event],
     status: live ? "live" : "completed",

@@ -7,6 +7,8 @@ import type {
   DashboardMemories,
   HealthStatus,
   RuntimeSettings,
+  ScarletLiveFrame,
+  ScarletLiveItem,
   ScarletStreamEvent,
   ScarletStreamReplay,
   StreamEvent,
@@ -219,6 +221,115 @@ export async function streamTurnV2(
   return turnId;
 }
 
+export async function streamTurnLive(
+  sessionId: string,
+  message: string,
+  maxTokens: number | undefined,
+  onEvent: (event: ScarletStreamEvent) => void,
+  onFrame: (frame: ScarletLiveFrame) => void
+): Promise<string> {
+  const initialResponse = await fetch(
+    resolveApiPath(`/api/chat/sessions/${sessionId}/turn/stream-live`),
+    {
+      method: "POST",
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        message,
+        max_tokens: maxTokens || null
+      })
+    }
+  );
+  await requireLiveStreamingResponse(initialResponse);
+
+  const turnId = initialResponse.headers.get("X-Scarlet-Turn-ID");
+  if (!turnId) {
+    throw new Error("The live response did not identify its turn.");
+  }
+
+  const state = {
+    afterSeq: 0,
+    terminal: false,
+    seenEventIds: new Set<string>()
+  };
+  let lastStreamError: unknown = null;
+  try {
+    await consumeLiveStream(initialResponse, state, onEvent, onFrame);
+  } catch (error) {
+    lastStreamError = error;
+  }
+
+  for (let attempt = 1; !state.terminal && attempt <= 5; attempt += 1) {
+    await delay(250 * 2 ** (attempt - 1));
+    try {
+      const query = new URLSearchParams({ after_seq: String(state.afterSeq) });
+      const response = await fetch(
+        resolveApiPath(
+          `/api/chat/sessions/${sessionId}/turns/${turnId}/stream-v2?${query}`
+        ),
+        { headers: apiHeaders() }
+      );
+      await requireStreamingResponse(response);
+      await consumeStreamV2(response, state, onEvent);
+      lastStreamError = null;
+    } catch (error) {
+      lastStreamError = error;
+    }
+  }
+
+  if (!state.terminal) {
+    const detail =
+      lastStreamError instanceof Error ? ` ${lastStreamError.message}` : "";
+    throw new Error(
+      `The Scarlet live stream could not be resumed after 5 attempts.${detail}`
+    );
+  }
+  return turnId;
+}
+
+async function requireLiveStreamingResponse(response: Response): Promise<void> {
+  if (!response.ok) {
+    let error = `${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as ApiError;
+      error = body.detail?.message || body.detail?.code || error;
+    } catch {
+      // Keep the HTTP status fallback.
+    }
+    throw new Error(error);
+  }
+  if (
+    response.headers.get("X-Scarlet-Stream-Schema") !== "scarlet-live-v1"
+  ) {
+    throw new Error("Contratto live Scarlet non riconosciuto.");
+  }
+  if (!response.body) {
+    throw new Error("Live streaming response body is unavailable.");
+  }
+}
+
+async function consumeLiveStream(
+  response: Response,
+  state: {
+    afterSeq: number;
+    terminal: boolean;
+    seenEventIds: Set<string>;
+  },
+  onEvent: (event: ScarletStreamEvent) => void,
+  onFrame: (frame: ScarletLiveFrame) => void
+): Promise<void> {
+  await consumeNdjson(response, (line) => {
+    const item = JSON.parse(line) as ScarletLiveItem;
+    if (item.schema_version !== "scarlet-live-v1") {
+      throw new Error("Elemento live Scarlet non valido.");
+    }
+    if (item.kind === "frame") {
+      onFrame(item.frame);
+      return;
+    }
+    applyStreamV2Event(item.event, state, onEvent);
+  });
+}
+
 async function requireStreamingResponse(response: Response): Promise<void> {
   if (!response.ok) {
     let error = `${response.status} ${response.statusText}`;
@@ -249,29 +360,22 @@ async function consumeStreamV2(
   },
   onEvent: (event: ScarletStreamEvent) => void
 ): Promise<void> {
-  const reader = response.body!.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-
-  const applyLine = (line: string) => {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      return;
-    }
-    const event = JSON.parse(trimmed) as ScarletStreamEvent;
+  await consumeNdjson(response, (line) => {
+    const event = JSON.parse(line) as ScarletStreamEvent;
     if (event.schema_version !== "scarlet-stream-v2") {
       throw new Error("Evento stream Scarlet V2 non valido.");
     }
-    state.afterSeq = Math.max(state.afterSeq, event.seq);
-    if (state.seenEventIds.has(event.event_id)) {
-      return;
-    }
-    state.seenEventIds.add(event.event_id);
-    state.terminal =
-      event.event_type === "turn.completed" || event.event_type === "turn.failed";
-    onEvent(event);
-  };
+    applyStreamV2Event(event, state, onEvent);
+  });
+}
 
+async function consumeNdjson(
+  response: Response,
+  onLine: (line: string) => void
+): Promise<void> {
+  const reader = response.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
   while (true) {
     const { done, value } = await reader.read();
     if (done) {
@@ -280,9 +384,32 @@ async function consumeStreamV2(
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
-    lines.forEach(applyLine);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed) onLine(trimmed);
+    }
   }
-  applyLine(buffer);
+  const trimmed = buffer.trim();
+  if (trimmed) onLine(trimmed);
+}
+
+function applyStreamV2Event(
+  event: ScarletStreamEvent,
+  state: {
+    afterSeq: number;
+    terminal: boolean;
+    seenEventIds: Set<string>;
+  },
+  onEvent: (event: ScarletStreamEvent) => void
+): void {
+  state.afterSeq = Math.max(state.afterSeq, event.seq);
+  if (state.seenEventIds.has(event.event_id)) {
+    return;
+  }
+  state.seenEventIds.add(event.event_id);
+  state.terminal =
+    event.event_type === "turn.completed" || event.event_type === "turn.failed";
+  onEvent(event);
 }
 
 function delay(milliseconds: number): Promise<void> {

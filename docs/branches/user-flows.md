@@ -1,8 +1,8 @@
 # Branch: Gestione Flussi Utente
 
-Last updated: 2026-07-24
-System version assessed: V1.55.2 development target
-Status: first Product UI Core integration active
+Last updated: 2026-07-26
+System version assessed: V1.57.0 development target
+Status: Product UI Core integration and hybrid live delivery active
 
 ## Filosofia del ramo
 
@@ -71,6 +71,13 @@ identita, tempo, luogo, lingua, privacy e continuita.
   per regole prompt, privacy, manutenzione ed extra senza contratto consumer.
 - Ogni turno Chat usa eventi V2 reali e distingue testo autoriale, proiezione
   consumer, terminali falliti e confine debug/private.
+- V1.57.0 aggiunge un overlay live non persistito sopra Stream V2: pensiero,
+  testo e input tool compongono blocchi stabili mentre arrivano, mentre
+  reconnect e reload continuano a dipendere solo dagli eventi durevoli.
+- Il flusso mobile mostra subito l'orientamento iniziale, poi distingue memoria
+  rilevante, ricordi recenti, sessioni precedenti, pensiero, note, azioni Mind,
+  validazione e risposta finale. Le azioni preferiscono l'`intent` scritto da
+  Scarlet e non richiedono una seconda inferenza solo per la narrazione.
 
 ## Stato attuale
 
@@ -91,7 +98,20 @@ centrate e una preferenza locale per evidenze protette metadata-only. Le
 schermate lunghe mantengono scroll documento naturale; solo Chat usa il layout
 interno a viewport.
 
-Sistema valutato: V1.55.2 development target.
+Sistema valutato: V1.57.0 development target.
+
+## Verifica V1.57.0
+
+- Un provider bloccante dimostra che il frame di pensiero raggiunge il client
+  mentre il runner del turno e ancora attivo.
+- Il contratto API combina frame transitori ed eventi V2 in ordine, termina
+  solo su `turn.completed|turn.failed` e ricostruisce lo stesso turno dal
+  replay durevole.
+- Il preflight CORS accetta l'origine Android `https://localhost` con
+  `Authorization` e `Content-Type`.
+- Il Product UI compila con fetch browser nativo, lifecycle in-place e
+  autoscroll sensibile alla crescita del testo. Deploy e prova fisica restano
+  il gate di accettazione.
 
 ## Sviluppi precedenti
 

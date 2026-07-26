@@ -4,6 +4,45 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - V1.57.0 Hybrid Product Chat Live Delivery
+
+Area: native chat streaming / Product UI web and Android.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Make every real turn visibly progress without screen remounts: user submission,
+automatic context, recent memories, previous sessions, provider thinking,
+public notes, Mind actions, answer validation, and final answer.
+
+Changes:
+
+- added `scarlet-live-v1` as a non-persistent frame overlay around canonical
+  Stream V2 events;
+- forwarded native provider frames from the detached turn runner without
+  making the HTTP consumer own the turn;
+- retained same-turn V2 recovery for at most five reconnect attempts;
+- disabled Capacitor HTTP global fetch patching and added packaged-origin CORS;
+- added compact recent-memory, previous-session, and validation-start events;
+- rebuilt Product Chat lifecycle reduction around stable block ids, in-place
+  pending/completed maturation, safe session-load merging, streaming
+  autoscroll, and final replay reconciliation;
+- added an immediate, explicitly UI-owned orientation state before synchronous
+  context preflight finishes; and
+- used model-authored Mind `intent` as the preferred consumer explanation for
+  tool activity without adding another LLM call.
+
+Verification:
+
+- 49 focused backend tests passed across chat runner, Stream V2, live stream,
+  GPT bridge, chat API, and model context;
+- three focused live/CORS tests passed after the UI pending-state refinement;
+- Ruff and focused mypy checks passed;
+- TypeScript/Vite production build passed with 2,035 modules; and
+- deployment, protected CORS smoke, live MiniMax Product UI probe, and physical
+  APK acceptance remain the release boundary.
+
 ## 2026-07-25 - V1.56.1 Android Preview Test Access
 
 Area: Product UI Android / protected VPS preview authentication.

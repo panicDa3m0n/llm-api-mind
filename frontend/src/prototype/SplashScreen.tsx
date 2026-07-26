@@ -70,7 +70,7 @@ export function SplashScreen({
       <footer className="scarlet-splash__footer">
         <span>© 2026 Scarlet</span>
         <span aria-hidden="true">·</span>
-        <span>Versione 1.56.1</span>
+        <span>Versione 1.57.0</span>
       </footer>
     </main>
   );

@@ -188,7 +188,7 @@ async function runDesktop() {
         .fill("Ciao Scarlet.");
       const streamResponse = page.waitForResponse(
         (response) =>
-          response.url().includes("/turn/stream-v2") &&
+          response.url().includes("/turn/stream-live") &&
           response.request().method() === "POST",
         { timeout: 120_000 }
       );
@@ -259,7 +259,7 @@ async function runDesktop() {
         false,
         "Il composer deve tornare inattivo dopo aver svuotato il draft."
       );
-      steps.push(`real-v2-turn:${flowEventsSeen.join("|")}`);
+      steps.push(`real-live-turn:${flowEventsSeen.join("|")}`);
     }
 
     await clickDock(page, "Sessioni");

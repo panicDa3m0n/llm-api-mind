@@ -58,6 +58,11 @@ COMMON_CLIENT_PAYLOAD_FIELDS = {
     "provider_attempt",
     "next_provider_attempt",
     "provider_attempt_limit",
+    "attempt",
+    "previous_session_count",
+    "relevant_count",
+    "recent_user_count",
+    "recent_general_count",
 }
 
 

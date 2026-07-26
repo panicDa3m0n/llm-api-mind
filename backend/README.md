@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.56.1. Closed deployed Core baseline: V1.50.1.
+Development target: V1.57.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -58,6 +58,8 @@ Current scope:
   background maintenance triggers;
 - provider-independent `scarlet-stream-v2` live events plus session-global
   cursor replay and an executable idempotent reducer contract;
+- connection-local `scarlet-live-v1` frames for immediate Product UI
+  composition, with Stream V2 as the durable reconnect and replay boundary;
 - per-session idle maintenance that schedules summary refresh, missed-memory
   review, pending memory proposal creation, cautious resolution, and auditable
   proposal ledger updates after completed turns;

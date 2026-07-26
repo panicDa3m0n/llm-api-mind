@@ -1,16 +1,18 @@
 # Scarlet Stream V2 Contract
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.56.1
+Contract introduced: V1.51.0; current app target: V1.57.0
 Linear issue: SCA-47
 
 ## 1. Purpose
 
-Scarlet Stream V2 is the stable Product UI event port for web and future
-Android clients. It lets a client render a live turn, reconnect, replay missed
-events, and reconstruct the same persisted state without understanding MiniMax,
-Qwen, Anthropic, or any other provider-native block format.
+Scarlet Stream V2 is the stable Product UI event port for web and Android
+clients. It lets a client reconnect, replay missed events, and reconstruct the
+same persisted state without understanding MiniMax, Qwen, Anthropic, or any
+other provider-native block format. V1.57.0 adds the connection-local
+`scarlet-live-v1` overlay for smooth in-flight composition; V2 remains the
+canonical recovery and replay contract.
 
 The contract is additive. The V1 NDJSON endpoint remains available during
 migration, but new clients should use V2.
@@ -18,10 +20,12 @@ migration, but new clients should use V2.
 ## 2. Source Of Truth
 
 Every V2 line is a projection of one persisted `CognitiveEvent`. Provider
-deltas such as token text, partial thinking, and partial tool JSON are useful
-for diagnostics but are transient and are not V2 events. Completed public
-notes, completed answers, tool lifecycle, messages, errors, and turn terminal
-state are persisted before they enter V2.
+deltas such as token text, partial thinking, and partial tool JSON are
+transient and are not V2 events. The live overlay may carry those frames while
+one HTTP connection is open, but never persists them or treats them as replay
+evidence. Completed public notes, completed answers, tool lifecycle, messages,
+errors, and turn terminal state are persisted before they enter either
+transport.
 
 Native traces remain complete and separately inspectable. V2 carries event
 evidence needed by a Product UI and developer lens; it does not copy full
@@ -33,7 +37,7 @@ During development, `llm.thinking.captured` is an explicit diagnostic
 exception: V2 preserves its completed provider text together with model
 step/index, phase, sequence, and trace links. Clients may hide it locally, but
 must not relabel it as a public note or Scarlet-authored answer. Transient
-thinking deltas remain trace-only.
+deltas remain non-canonical connection data.
 
 ## 3. Event Envelope
 
@@ -83,7 +87,52 @@ deduplicates by `event_id`.
 
 ## 4. Endpoints
 
-### Live turn
+### Hybrid Product turn
+
+```txt
+POST /api/chat/sessions/{session_id}/turn/stream-live
+Content-Type: application/json
+Response: application/x-ndjson
+Cache-Control: no-cache, no-transform
+X-Accel-Buffering: no
+X-Scarlet-Stream-Schema: scarlet-live-v1
+X-Scarlet-Turn-ID: turn_...
+```
+
+This is the Product UI initiating endpoint from V1.57.0. Each line is a
+tagged union containing either one canonical `scarlet-stream-v2` event or one
+transient frame:
+
+```json
+{
+  "schema_version": "scarlet-live-v1",
+  "kind": "frame",
+  "event": null,
+  "frame": {
+    "frame_id": "thinking-turn_...-1-0",
+    "frame_type": "thinking_delta",
+    "turn_id": "turn_...",
+    "model_step": 1,
+    "index": 0,
+    "payload": {"text": "Sto controllando..."}
+  }
+}
+```
+
+Frame types are `thinking_delta`, `text_delta`, and `tool_input_delta`.
+Their stable id is derived from turn, model step, and content-block index so a
+client can mature one block without layout duplication. Frames are never
+replayed. If this response closes before a terminal event, the client
+reconnects to the same turn through the durable V2 GET endpoint, at most five
+times.
+
+The Android WebView uses standards-based `fetch()` streaming. Its packaged
+origin is `https://localhost`; CORS permits that origin and the temporary
+preview `Authorization` header. The Capacitor native HTTP fetch patch must
+remain disabled because it buffers the response body instead of exposing
+incremental browser stream chunks.
+
+### Durable-only live turn
 
 ```txt
 POST /api/chat/sessions/{session_id}/turn/stream-v2
@@ -95,8 +144,9 @@ X-Scarlet-Stream-Schema: scarlet-stream-v2
 X-Scarlet-Turn-ID: turn_...
 ```
 
-The request body is the existing `ChatTurnRequest`. The response emits only
-persisted V2 events. A successful turn includes `turn.completed`; a failed
+The request body is the existing `ChatTurnRequest`. This compatibility
+response emits only persisted V2 events. A successful turn includes
+`turn.completed`; a failed
 turn includes `turn.failed`. Stream closure alone is never proof of success.
 The no-buffer/no-transform headers are part of the live-delivery contract:
 reverse proxies must forward each complete NDJSON event as it arrives rather
@@ -226,6 +276,13 @@ consumer-activity allowlist for context, memory, bounded thinking status, Mind
 tool lifecycle, and relevant organ state. Allowlisted diagnostic events use
 deterministic narration from stable lifecycle facts; their payload text does
 not become Scarlet-authored speech. Unknown diagnostic events remain hidden.
+
+For a Mind call, `mind_shell` already requires a model-authored `intent`.
+Product UI tool blocks prefer that intent as the human-readable reason, then
+fall back to bounded deterministic lifecycle copy. Public notes remain
+Scarlet-authored text and are shown separately. The runtime does not perform
+an extra LLM call merely to narrate a tool, and liveness never depends on the
+model voluntarily emitting a note.
 
 The Product evidence inspector may expose sequence, phase, visibility, links,
 bounded payloads, and grouped lifecycle receipts. Protected events remain

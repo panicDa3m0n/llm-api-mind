@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-24
-App target: V1.56.1; V1.50.1 remains release-accepted
+Last reviewed: 2026-07-26
+App target: V1.57.0; V1.50.1 remains release-accepted
 
 ## Response Philosophy
 
@@ -1905,6 +1905,55 @@ GET /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2?after_seq=42
 The cursor is exclusive and the stream ends at that turn's durable terminal
 event. Reconnect responses carry the same no-buffer/no-transform headers. The
 frontend V2 transport retries this reconnection at most five times.
+
+### POST /api/chat/sessions/{session_id}/turn/stream-live
+
+Status: implemented in V1.57.0
+
+Purpose:
+
+Start the same connection-independent native turn while combining durable
+`scarlet-stream-v2` events with transient provider frames needed for fluid
+Product Chat composition.
+
+The response is NDJSON with:
+
+```txt
+Cache-Control: no-cache, no-transform
+X-Accel-Buffering: no
+X-Scarlet-Stream-Schema: scarlet-live-v1
+X-Scarlet-Turn-ID: turn_...
+```
+
+Each line has `schema_version=scarlet-live-v1` and `kind=event|frame`.
+`event` contains the unchanged durable V2 envelope. `frame` contains a stable
+`frame_id`, `turn_id`, `model_step`, content-block `index`, `frame_type`, and
+the current text or partial tool JSON delta. Supported frame types are
+`thinking_delta`, `text_delta`, and `tool_input_delta`.
+
+The live feed is connection-local and never owns or cancels the native turn.
+Transient frames are absent from persistence. After interruption, clients
+reconnect to
+`GET /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2` using the last
+durable `seq`; replay therefore cannot duplicate partial text.
+
+The endpoint supports CORS from the packaged Capacitor origins
+`https://localhost`, `http://localhost`, and `capacitor://localhost`, including
+the temporary preview `Authorization` header. Production reverse proxies must
+let preflight `OPTIONS` bypass Basic Auth and preserve the no-buffer delivery
+contract.
+
+Compact durable UI events distinguish automatic context assembly without
+opening full trace payloads:
+
+```txt
+memory.recent_context.built
+session.continuity.built
+answer.validation.started
+```
+
+The first two expose counts only. The validation-start event makes a blocking
+answer check visible until accepted/rejected lifecycle evidence arrives.
 
 ### GET /api/chat/sessions/{session_id}/events
 
@@ -4213,8 +4262,7 @@ POST /api/maintenance/jobs/{job_id}/run                         implemented
 
 ## Product UI Consumer Mapping
 
-Status: implemented in V1.55.0; activity/evidence projection refined in
-V1.55.2; no new HTTP operation added
+Status: implemented in V1.55.0; hybrid live composition added in V1.57.0
 
 `/prototype` uses the existing consumer-safe surface:
 
@@ -4223,7 +4271,8 @@ GET  /health
 POST /api/chat/sessions
 GET  /api/chat/sessions
 GET  /api/chat/sessions/{session_id}/messages
-POST /api/chat/sessions/{session_id}/turn/stream-v2
+POST /api/chat/sessions/{session_id}/turn/stream-live
+GET  /api/chat/sessions/{session_id}/turns/{turn_id}/stream-v2
 GET  /api/chat/sessions/{session_id}/events
 GET  /api/dashboard/memories
 GET  /api/dashboard/profile
@@ -4236,9 +4285,11 @@ maintenance operations. A visible control without one of the approved
 consumer contracts must remain unavailable rather than synthesize a local
 success. Local `scarlet/scarlet` access is not an HTTP authentication contract.
 
-The Chat consumer validates `scarlet-stream-v2`, session identity, event-id
-idempotency, contiguous session sequence, replay cursor progress, visibility,
-and terminal events. Authored text remains public-only. An exact
+The Chat consumer validates the `scarlet-live-v1` union and every nested
+`scarlet-stream-v2` event, then retains V2 session identity, event-id
+idempotency, replay cursor progress, visibility, and terminal rules. A dropped
+live connection resumes the same turn from its durable V2 cursor. Authored
+text remains public-only. An exact
 consumer-activity allowlist may narrate diagnostic lifecycle facts for
 context, memory, bounded thinking status, Mind actions, and relevant state.
 Protected events stay hidden by default and can expose only redacted metadata
