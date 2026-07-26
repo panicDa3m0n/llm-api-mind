@@ -64,6 +64,7 @@ export class DeviceExplorationController {
     await this.registerListeners();
     await this.flush();
     await this.captureSnapshot();
+    await this.flush();
     this.callbacks.onStatus("Osservazione attiva");
   }
 

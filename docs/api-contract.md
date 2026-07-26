@@ -1513,7 +1513,8 @@ Repeated `client_event_id` values return the existing record and increment
 
 Lists observations newest first. Optional filters are `device_id`, `run_id`,
 and `probe`; pagination uses `limit` and `offset`. Raw and normalized values are
-both returned for experimental comparison.
+both returned for experimental comparison. `total` counts the complete filtered
+result set before pagination, including the `probe` filter when present.
 
 ### GET /api/device-exploration/summary
 

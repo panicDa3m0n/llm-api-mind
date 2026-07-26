@@ -78,9 +78,16 @@ def test_device_observation_batch_is_append_only_and_idempotent(
         params={"device_id": "android-install-1", "probe": "network"},
     )
     assert listed.status_code == 200
-    assert listed.json()["total"] == 2
+    assert listed.json()["total"] == 1
     assert listed.json()["returned"] == 1
     assert listed.json()["observations"][0]["probe"] == "network"
+
+    unfiltered = client.get(
+        "/api/device-exploration/observations",
+        params={"device_id": "android-install-1"},
+    )
+    assert unfiltered.status_code == 200
+    assert unfiltered.json()["total"] == 2
 
 
 def test_device_exploration_summary_states_cognitive_isolation(

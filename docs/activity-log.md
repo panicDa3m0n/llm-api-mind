@@ -31,11 +31,21 @@ Changes:
 
 Verification:
 
-- focused API/isolation tests, Ruff, and the TypeScript/Vite build pass;
-- Android debug assembly passed before the final explicit location-permission
-  manifest adjustment;
-- final Capacitor sync, APK assembly, protected VPS rollout, physical-device
-  run, and evidence report remain to complete the experiment.
+- 307 backend tests, focused API/isolation tests, Ruff, the 44-file mypy gate,
+  TypeScript/Vite, Capacitor sync, and Android debug assembly pass;
+- protected VPS rollout, copied-DB canary, database integrity, public API, and
+  physical APK installation pass;
+- eight locked/background physical-device runs persisted 51 native
+  observations, recovered an 18-event offline outbox, and proved real
+  deduplication and haptic actuation;
+- direct use found and fixed probe-filter total drift and an initial
+  run-history refresh race; and
+- location, notification, motion, and lifecycle foreground questions are
+  recorded without overclassifying locked-device limitations as bugs.
+
+Evidence:
+
+- `docs/evaluations/v1.58-device-exploration.md`
 
 ## 2026-07-26 - Repository-Local Scarlet Workflow Skills
 

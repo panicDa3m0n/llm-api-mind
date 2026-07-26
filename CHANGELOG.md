@@ -22,6 +22,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Add the Capacitor App, Device, Geolocation, Haptics, Local Notifications,
   Motion, and Network integrations needed for bounded device experiments.
+- Make observation-list totals honor all active filters and flush the initial
+  native snapshot before loading the current run history.
 - Advance backend, frontend, Android, and module-conformance metadata to
   V1.58.0.
 
@@ -34,11 +36,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 #### Verification
 
-- Focused API tests prove append-only idempotency, summary aggregation,
-  unknown-field rejection, and absence of writes to sessions, memories, and
-  traces.
-- Ruff, focused backend tests, TypeScript/Vite build, Capacitor sync, Android
-  debug assembly, and physical-device evidence are required before release.
+- Focused API tests prove append-only idempotency, filtered totals, summary
+  aggregation, unknown-field rejection, and absence of writes to sessions,
+  memories, and traces.
+- Ruff, the blocking mypy gate, TypeScript/Vite, Capacitor sync, Android debug
+  assembly, protected VPS deployment, and physical-device use pass.
+- Eight physical-device runs produced 51 native records, recovered an 18-event
+  offline outbox, deduplicated a real replay, and completed a haptic effect.
+  Locked/background location timed out, one notification remained pending, and
+  foreground motion/lifecycle behavior remains explicitly unverified.
 
 ### V1.57.0 - Hybrid Product Chat Live Delivery
 

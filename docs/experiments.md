@@ -11,7 +11,7 @@ rewritten.
 
 ## EXP-0082 - Physical Android Device Exploration
 
-Status: implementation complete; physical run pending
+Status: first physical background run complete; foreground run pending
 
 Hypothesis:
 
@@ -40,7 +40,23 @@ technical-only fields.
 
 Results:
 
-Pending physical-device execution.
+Eight physical-device runs produced 51 `capacitor-native` observations from one
+Samsung SM-S918B. Device/app, battery, network, location permission,
+notification capability, and haptic payloads reached the append-only VPS
+ledger. Eighteen offline observations survived multiple app restarts and were
+delivered later; replaying a real client event produced one deduplication and
+no new row.
+
+The haptic effect completed. Precise location permission was granted but the
+background request timed out. Notification channel creation and scheduling
+completed, while a later snapshot still showed the item pending. Motion,
+active/resume lifecycle, notification interaction, and real connectivity
+transitions remain untested because the device was securely locked and
+reported no network transport.
+
+Production session, message, memory, fact, and cognitive-event totals remained
+unchanged while the isolated ledger grew to 51 rows. The detailed evidence and
+run identifiers are in `docs/evaluations/v1.58-device-exploration.md`.
 
 ## EXP-0081 - MiniMax M3 Native Stop-State Continuation
 

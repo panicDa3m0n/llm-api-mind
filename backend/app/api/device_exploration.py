@@ -143,6 +143,7 @@ def build_device_exploration_router(engine: Engine) -> APIRouter:
                 db,
                 device_id=device_id,
                 run_id=run_id,
+                probe=probe,
             )
             observations = repositories.list_device_observations(
                 db,

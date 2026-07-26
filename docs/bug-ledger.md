@@ -7,6 +7,42 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0117 - Device Exploration Totals And Initial Run History Drifted
+
+Date Found: 2026-07-26
+Status: fixed locally in V1.58.0; deployment verification pending
+
+Symptoms:
+
+- filtering observation history by `probe` returned only matching records but
+  reported the total across every probe; and
+- a fresh physical run briefly showed `Storico run = 0` even after its six
+  automatic observations were emitted and subsequently persisted.
+
+Root Cause:
+
+The repository count accepted device and run scope but not the API's probe
+filter. Separately, controller startup awaited snapshot capture but not the
+debounced upload before Product UI requested the run summary.
+
+Fix:
+
+- pass `probe` through the API and repository count query; and
+- flush the automatic snapshot before startup completes and history refreshes.
+
+Regression Coverage:
+
+- focused API tests distinguish filtered and unfiltered totals;
+- TypeScript/Vite and Android debug assembly pass; and
+- a post-deploy physical run must show the initial six-record run without a
+  remount.
+
+Related:
+
+- `backend/app/storage/repository/device_exploration.py`
+- `frontend/src/deviceExploration.ts`
+- `docs/evaluations/v1.58-device-exploration.md`
+
 ## BUG-0116 - Product Chat Buffered Live Blocks Until Final Answer
 
 Date Found: 2026-07-25

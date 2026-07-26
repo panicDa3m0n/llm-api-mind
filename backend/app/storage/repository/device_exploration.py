@@ -86,12 +86,15 @@ def count_device_observations(
     *,
     device_id: str | None = None,
     run_id: str | None = None,
+    probe: str | None = None,
 ) -> int:
     statement = select(func.count()).select_from(DeviceObservation)
     if device_id is not None:
         statement = statement.where(DeviceObservation.device_id == device_id)
     if run_id is not None:
         statement = statement.where(DeviceObservation.run_id == run_id)
+    if probe is not None:
+        statement = statement.where(DeviceObservation.probe == probe)
     return int(db.exec(statement).one())
 
 
