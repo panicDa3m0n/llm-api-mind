@@ -1,7 +1,7 @@
 # Branch: Operativita Su Mondo Esterno
 
 Last updated: 2026-07-26
-System version assessed: V1.58.1 development target
+System version assessed: V1.59.0 development target
 Status: planned branch with isolated device prototype
 
 ## Filosofia del ramo

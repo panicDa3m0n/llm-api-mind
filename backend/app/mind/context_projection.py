@@ -7,6 +7,10 @@ from typing import Any
 
 from sqlmodel import Session
 
+from app.mind.context_families import (
+    context_family_routing_plan,
+    current_model_context_family_ids,
+)
 from app.mind.context_contracts import ModelContextV2
 from app.mind.context_memories import project_memory_context
 from app.mind.context_preserved import (
@@ -81,4 +85,11 @@ def compile_model_context_v2_with_audit(
         ),
         preserved_context=preserved.blocks,
     )
-    return document.model_dump(mode="json"), preserved.audit
+    model_document = document.model_dump(mode="json")
+    projection_audit = dict(preserved.audit)
+    projection_audit["context_family_routing"] = context_family_routing_plan(
+        active_tag=str(resolved_agent_mode["active_tag"]),
+        candidate_family_ids=current_model_context_family_ids(model_document),
+        routing_mode="shadow",
+    )
+    return model_document, projection_audit

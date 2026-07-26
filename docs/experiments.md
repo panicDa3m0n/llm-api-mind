@@ -9,6 +9,60 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0083 - Context Family And Policy Composition Probe
+
+Status: accepted as bounded V1.59.0 shadow evidence
+
+Hypothesis:
+
+A typed family contract that separates subject, observer, evidence kind,
+mode eligibility, and interpretation policy can prevent common attribution
+errors before real device or embodiment data enters Scarlet.
+
+Method:
+
+- validate a versioned family and policy registry deterministically;
+- simulate phone location plus a derived route-deviation assessment inside a
+  bounded safeguard operation;
+- simulate a user-authorized phone-camera frame;
+- simulate haptic dispatch without a device completion receipt; and
+- inspect MiniMax M3 output directly, including source attribution,
+  observation/inference separation, authorization, and outcome claims.
+
+Result:
+
+All calls ended normally with `end_turn`. MiniMax kept phone location separate
+from human location, kept the phone camera separate from Scarlet's future
+sensors, stayed inside the operation's confirmation-only authorization, and
+did not claim haptic completion from dispatch.
+
+The first route-deviation probe embedded policy prose inside the JSON evidence.
+Its substantive answer was correct, but it used the metaphor "what I see".
+Strengthening the same JSON text did not remove the leak. Moving the exact
+policy blocks into a distinct instruction section while leaving packets in the
+evidence section produced a clean repeat: the response named the device,
+identified the derived assessment, preserved the unverified human/device
+coupling, and proposed only a confirmation question.
+
+Interpretation:
+
+Family classification and source metadata are necessary but not sufficient.
+Dynamic policy must be composed as policy, not serialized as another data
+field. The result supports the future composable-prompt architecture while
+leaving current V2 delivery unchanged.
+
+Limits:
+
+The probe used three isolated simulated scenarios. It does not validate
+continuous sensor ingestion, stale-event handling, batching, privacy,
+background reliability, anomaly quality, physical action safety, or live
+embodiment.
+
+Evidence:
+
+- `docs/context-family-registry.md`
+- `.tmp/context-family-probe.py` (ignored local harness)
+
 ## EXP-0082 - Physical Android Device Exploration
 
 Status: background and foreground physical runs complete

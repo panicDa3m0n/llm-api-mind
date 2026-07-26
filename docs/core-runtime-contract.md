@@ -1,8 +1,8 @@
 # API Mind Core Runtime Contract
 
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.57.0
+Current additive contract target: V1.59.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -51,13 +51,14 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.57.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.59.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; native adapters use stop reasons for continuation, tool dispatch, and finality. |
 | Static Scarlet policy | `backend/app/prompts/scarlet_system.md`, `backend/app/prompts/system.py` | native selected provider | repository prompt plus resolved source | Stable policy surface; prompt changes are behavior changes. |
 | Provider-native continuity | `backend/app/api/chat_provider_history.py` and canonical session history | native selected provider | canonical provider messages | Stable authority; compaction never deletes canonical history. |
 | Dynamic model context | `backend/app/mind/context_contracts.py`, `context_projection.py` | native provider and GPT bootstrap | `scarlet-model-context-v2` | Stable model-facing schema; rich source evidence remains internal. |
+| Semantic context families | `backend/app/mind/context_families.py`, `docs/context-family-registry.md` | V2 projection audit and future context composer | context families V1 / shadow | Typed subject, observer, evidence, mode, activation, and policy registry; no future source is live-admitted. |
 | Cognitive command surface | `backend/app/mind/command_registry.py`, `shell.py`, `schema.py` | native Scarlet and GPT action adapter | registry v2 / shell-organ schema | Single stable model-facing API Mind contract. |
 | Cognitive operation dispatch | `backend/app/mind/dispatcher.py` and domain owners | shell and internal callers | internal Mind request/response contracts | Internal compatibility boundary, not a second model tool. |
 | Persistence facade | `backend/app/storage/repositories.py` and `storage/repository/*` | Core domain owners | SQLModel/SQLite V1 schema | Stable facade; domain repositories are internal. |
@@ -76,9 +77,9 @@ contract change, never by silently choosing whichever description is newer.
 
 ## 4. HTTP Surface Classification
 
-The closed V1.50.1 Core OpenAPI contains 28 operations. V1.51.0 adds two
-Product UI operations for V2 live events and replay, bringing the current
-development target to 30. Their prefixes have different audiences and
+The closed V1.50.1 Core OpenAPI contains 28 operations. Additive Product UI,
+live-stream, and Device Exploration work brings the V1.59.0 development target
+to 35 operations across 33 paths. Their prefixes have different audiences and
 therefore different compatibility promises.
 
 | Surface | Audience | Classification | Compatibility policy |

@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.58.1. Closed deployed Core baseline: V1.50.1.
+Development target: V1.59.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -54,6 +54,8 @@ Current scope:
   guarded derived-history compaction with `off`, `shadow`, and `active` modes;
 - agent-mode registry, per-block automatic-routing receipts, persistent
   resumable posture, and `mode` shell family;
+- typed semantic context-family registry with subject/observer/evidence
+  separation, policy dependencies, and shadow-only future embodiment routing;
 - runtime event control plane for UI activity blocks, next-turn context, and
   background maintenance triggers;
 - provider-independent `scarlet-stream-v2` live events plus session-global

@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.57.0 Product UI live delivery integrated
+Architecture baseline: Core V1.50.1 closed; V1.59.0 context-family shadow target
 Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-24
+Last updated: 2026-07-26
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -653,10 +653,11 @@ The project should not solve context growth by injecting every organ and
 diagnostic surface into every turn. Scarlet needs a compact always-on spine
 plus mode-specific context packs.
 
-The always-on spine includes the current message, session/turn identity,
-operational time/profile/privacy, the model-facing cognitive tool contract,
-compact capability state, and the minimum memory/conflict/safety evidence
-needed for the current turn.
+The always-on dynamic spine includes compact current-session identity, user
+name, one local clock and configured locale, previous-session hooks, memory
+hooks, and Scarlet's agent posture. The current user message, provider history,
+static policy, and model-facing tool contract use their dedicated technical
+paths rather than being duplicated as dynamic packs.
 
 Mode packs add context for specific work:
 
@@ -672,10 +673,18 @@ degradation, and safety rules. The first implementation should be a shadow
 router that traces pack selection before changing model-facing prompt
 composition.
 
+V1.59.0 implements that first semantic shadow layer. A family identifies what
+the datum describes (`subject_domain`), what acquired it (`observer_domain`),
+the evidence kind, mode tags, activation condition, and required policy blocks.
+Policies are composed as instructions; packets remain evidence. In particular,
+the human's device is not the human, and its camera/audio is not Scarlet's own
+perception. Future families remain excluded from live model context.
+
 Canonical planning doc:
 
 ```txt
 docs/runtime-context-packs.md
+docs/context-family-registry.md
 ```
 
 ### 6.5 Memory Robustness Roadmap

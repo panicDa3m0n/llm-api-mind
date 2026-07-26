@@ -1,8 +1,8 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-19
-Status: Core V1 context projection and guarded token-partition compaction active
-App baseline: V1.50.1
+Last updated: 2026-07-26
+Status: Core V1 context active; V1.59 semantic family routing shadow
+App baseline: V1.50.1 release-accepted; V1.59.0 development target
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -25,6 +25,12 @@ database internals remain outside normal model input.
 
 The provider-history path is nevertheless included in total input accounting
 because its size competes with dynamic context inside the same model window.
+
+V1.59.0 adds a semantic context-family registry above the existing V2
+projection. It classifies who a datum is about, what observed it, its evidence
+kind, mode tags, activation contract, and required policy blocks. The router is
+shadow-only and changes no model input. The canonical contract is
+`docs/context-family-registry.md`.
 
 ## Context Budget
 
@@ -249,6 +255,12 @@ input block. Aggregate included/excluded fields describe actual delivery;
 delivered fail-open and surfaced for registry review. The receipt also records
 that background processes are excluded and on-demand shell commands remain
 available.
+
+V1.59 family routing is a second, semantic audit layer rather than a
+replacement for block routing. Block routing answers whether an existing
+runtime block is delivered. Family routing answers how model-usable evidence
+must be interpreted and which policy must accompany it. A mode match only
+makes a family eligible; the family's activation condition must also fire.
 
 ## Activation And Monitoring
 

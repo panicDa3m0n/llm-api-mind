@@ -573,6 +573,14 @@ function, on-demand commands, exact model field paths, excluded rich-source
 field paths, and the reason. The audit is diagnostics and is not serialized
 inside `<runtime_context>`.
 
+V1.59.0 adds `projection_audit.context_family_routing` to that same
+non-model-facing trace payload. It classifies the families already present in
+V2, records active-mode eligibility and required policy block ids, and
+explicitly reports `routing_applied_to_live_context=false` and
+`current_model_context_unchanged=true`. Future device, personal, environment,
+relationship, operation, and Scarlet-sensor families remain shadow-only and
+are not accepted by this audit as live model input.
+
 `POST /gpt/action`
 
 Input:

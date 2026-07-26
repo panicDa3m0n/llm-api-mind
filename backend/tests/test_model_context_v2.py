@@ -300,6 +300,19 @@ def test_v2_preserved_families_use_explicit_field_allowlists_and_audit() -> None
         "content.debug_summary.dominant_variables"
         in decisions["affective_context"]["excluded_source_fields"]
     )
+    family_routing = audit["context_family_routing"]
+    assert family_routing["routing_mode"] == "shadow"
+    assert family_routing["current_model_context_unchanged"] is True
+    assert family_routing["candidate_family_ids"] == [
+        "session_continuity",
+        "memory_continuity",
+        "operational_orientation",
+        "agent_posture",
+        "foreground_attention",
+        "affective_posture",
+        "metacognitive_guidance",
+    ]
+    assert family_routing["shadow_only_family_ids"] == []
 
 
 def test_v2_projection_cannot_restore_blocks_excluded_by_active_mode_routing() -> None:

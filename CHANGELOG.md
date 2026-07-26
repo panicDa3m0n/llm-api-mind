@@ -6,6 +6,37 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.59.0 - Semantic Context Families
+
+#### Added
+
+- Add a typed context-family registry for current V2 cognition and future
+  human, human-device, Scarlet-sensor, relationship, environment, and operation
+  evidence.
+- Add compact packet validation with offset-aware evidence time, navigable
+  source references, subject/observer separation, evidence kinds, mode tags,
+  activation contracts, and required policy blocks.
+- Add a shadow semantic-routing receipt to `model.context.projection_audit`
+  without changing Scarlet's live V2 payload.
+
+#### Safety Boundary
+
+- Unknown families and invalid source/evidence combinations fail closed.
+- Device location remains device evidence; human situated presence requires a
+  separate derived packet.
+- Human-device camera/audio is not Scarlet first-person perception.
+- Device Exploration observations and every newly registered future family
+  remain outside live model context.
+
+#### Verification
+
+- All 314 backend tests, Ruff, the 45-file mypy gate, documentation integrity,
+  database boundary, and the frontend production build pass.
+- Three bounded MiniMax scenarios preserve device/human, phone-camera/Scarlet,
+  and dispatch/receipt boundaries.
+- A repeated route-deviation probe confirms that policy blocks must be composed
+  as instructions while packets remain evidence.
+
 ### Companion Product Planning
 
 - Preserve the `Resta con me` safeguard-companion concept, shared life threads

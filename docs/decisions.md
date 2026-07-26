@@ -7,6 +7,48 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0137 - Context Families Separate Subject, Observer, Evidence, And Policy
+
+Date: 2026-07-26
+Status: accepted for V1.59.0 shadow architecture
+
+Context:
+
+Future companion and embodiment sources will include the human, the human's
+device, account services, shared environments, and Scarlet's own sensors.
+Routing only by sensor name or agent mode would blur who a datum is about, who
+observed it, how strong the evidence is, and which interpretation rules the
+model needs. Sending policy prose inside data JSON also weakens the distinction
+between instruction and evidence.
+
+Decision:
+
+- classify context through semantic families rather than one family per sensor;
+- keep `subject_domain`, `observer_domain`, and `evidence_kind` independent;
+- use multi-tag agent-mode eligibility plus a separate activation contract;
+- require every family to reference versioned interpretation policy blocks;
+- compose policy blocks as system instructions and family packets as dynamic
+  evidence;
+- fail closed on unknown families and invalid subject/source/evidence
+  combinations;
+- emit a shadow family-routing receipt for the current V2 model context; and
+- keep all future device, personal, environment, relationship, operation, and
+  Scarlet-sensor families out of live model context until separately admitted.
+
+Consequences:
+
+Phone location remains phone evidence until a sourceable derived assessment
+relates it to the human. Human-device camera/audio cannot become Scarlet
+first-person perception. Operation dispatch cannot become success without a
+receipt. The project gains a composable policy/context boundary without
+changing the working prompt or V2 payload in V1.59.0.
+
+Links:
+
+- `docs/context-family-registry.md`
+- `docs/runtime-context-packs.md`
+- `backend/app/mind/context_families.py`
+
 ## ADR-0136 - Device Signals Enter An Isolated Evidence Ledger First
 
 Date: 2026-07-26

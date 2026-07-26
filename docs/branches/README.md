@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-26
-App baseline: V1.50.1 deployed and release-accepted; V1.58.1 development target
+App baseline: V1.50.1 deployed and release-accepted; V1.59.0 development target
 Status: canonical branch map
 
 The V1.50.1 Core is closed and release-accepted. Branch maturity remains a
@@ -42,7 +42,7 @@ turns. Every branch document must state:
 |---|---:|---|---|---|
 | Communication | L4 | Prompt, stream semantics, public notes, completion and answer-obligation invariants, dev/mobile rendering, executable behavioral suite | active; V1.50.1 preserves the marker path and semantically judges only a corrected second miss | monitor validator quality and expand natural scenarios |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
-| Perception and context | L4 core + L2 device lab | shared V2, accounting v2, exact chronology map, mode router, recursive compaction artifacts, isolated Android observation ledger | core context active; device observations excluded from cognition pending evidence | evaluate physical-device signals before designing admission |
+| Perception and context | L4 core + L2 device lab | shared V2, accounting v2, exact chronology map, mode router, semantic family registry, recursive compaction artifacts, isolated Android observation ledger | core context active; family router shadow; device observations excluded from cognition | derive shadow family candidates from physical evidence before any admission |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
 | Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance; V1.50 verifies actual model delivery | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |

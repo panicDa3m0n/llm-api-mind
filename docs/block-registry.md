@@ -121,6 +121,12 @@ included/excluded field paths, cognitive function, reason, and relevant shell
 commands. It is visible to diagnostics and evaluation but is not embedded in
 the model document.
 
+V1.59.0 also records `projection_audit.context_family_routing`. This semantic
+shadow receipt classifies the already delivered V2 areas by subject, observer,
+evidence kind, mode eligibility, activation contract, and policy dependencies.
+It does not route or add future sensor/device families and explicitly reports
+that current model context is unchanged.
+
 Volition is never injected automatically.
 
 Before V2 projection, the agent-mode router emits one ordered decision per rich

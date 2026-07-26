@@ -1,7 +1,7 @@
 # Device Exploration Layer
 
 Last updated: 2026-07-26
-Target version: V1.58.1
+Target version: V1.59.0
 Status: experimental implementation
 
 ## Purpose
@@ -94,3 +94,25 @@ Deliberately moved-device motion remains a future physical comparison.
 
 Admission into Scarlet's perception will be designed only after these results
 have been reviewed.
+
+## V1.59 Semantic Classification Boundary
+
+V1.59.0 adds a separate typed context-family registry, but Device Exploration
+remains isolated exactly as above. The registry can classify simulated future
+packets and audit existing V2 families; it does not read or project
+`device_observations`.
+
+The accepted boundary is:
+
+- location, motion, battery, network, lifecycle, and app state first describe
+  `human_device_state`;
+- a claim about the human requires a separate
+  `human_situated_presence` derived packet with explicit source references;
+- camera or audio from the human's device belongs to
+  `human_device_observation`, never `scarlet_perceptual_scene`;
+- only a future `scarlet_sensor` source can represent Scarlet's direct vision
+  or hearing; and
+- haptic dispatch and device completion receipt remain distinct operation
+  evidence kinds.
+
+See `docs/context-family-registry.md`.

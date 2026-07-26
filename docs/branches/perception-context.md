@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-26
-System version assessed: V1.58.1 development target
+System version assessed: V1.59.0 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -68,6 +68,14 @@ stratificati.
 - V1.58.1 completa la verifica foreground di posizione, lifecycle, movimento,
   notifiche e rete, eliminando callback rete identici senza comprimere vere
   transizioni di trasporto.
+- V1.59.0 introduce il registry semantico delle famiglie di contesto in shadow:
+  distingue soggetto del dato, osservatore, tipo di evidenza, tag modalita,
+  contratto di attivazione e policy obbligatorie senza modificare il V2
+  model-facing.
+- Le simulazioni MiniMax separano posizione del telefono e posizione umana,
+  camera del device e futura visione di Scarlet, dispatch e receipt di una
+  azione. Le policy funzionano quando composte come istruzioni, non quando
+  nascoste dentro il JSON dei dati.
 
 ## Stato attuale
 
@@ -144,6 +152,14 @@ Aggiornamento V1.58.0: la futura percezione periferica viene esplorata prima in
 un ledger tecnico append-only. L'esistenza di un dato sul device non implica
 utilita cognitiva: ammissione, sintesi, frequenza e routing saranno progettati
 solo dopo osservazioni fisiche e valutazione umana/LLM dei payload reali.
+
+Aggiornamento V1.59.0: il ramo possiede ora un contratto tipizzato per
+classificare i futuri segnali prima della loro ammissione. Il router e
+shadow-only e aggiunge una receipt non model-facing al trace `model.context`;
+il ledger Device Exploration resta completamente isolato. La distinzione
+`subject_domain`/`observer_domain` impedisce di attribuire a Scarlet sensori del
+telefono o di trattare il GPS del device come prova diretta della posizione
+umana.
 
 ## Sviluppi precedenti
 

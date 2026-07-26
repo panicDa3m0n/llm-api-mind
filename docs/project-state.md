@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-26
-App target: V1.58.1; V1.50.1 remains release-accepted
+App target: V1.59.0; V1.50.1 remains release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -79,6 +79,10 @@ Implemented and verified:
 - an isolated V1.58 Device Exploration Layer can collect raw and normalized
   Android observations for technical evaluation; it is deliberately excluded
   from sessions, memory, runtime/model context, cognitive organs, and shell;
+- a V1.59 typed context-family registry classifies existing and future
+  model-usable evidence by subject, observer, evidence kind, agent-mode tags,
+  activation contract, and required policy blocks; it emits shadow receipts
+  only and admits no device signal to Scarlet;
 - one active model-facing cognitive tool:
   `mind_shell(command, intent)`;
 - internal `/mind/*` handlers retained for deterministic dispatch, tests,

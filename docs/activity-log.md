@@ -4,6 +4,46 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - V1.59.0 Semantic Context Families
+
+Area: Perception and Context / future companion device continuity and
+embodiment.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Create a typed, mode-aware semantic boundary for future dynamic context before
+admitting any real device, personal, environment, or Scarlet-sensor source.
+
+Changes:
+
+- added a versioned family and policy registry;
+- separated packet subject, observer, evidence kind, mode tags, activation,
+  status, source references, and policy dependencies;
+- classified the existing V2 spine and conditional organ families;
+- added shadow contracts for human-device state and media, derived human
+  presence, personal events, wellbeing, Scarlet perception, shared
+  environment, relationship continuity, and active operations;
+- added fail-closed packet validation and a non-model-facing family-routing
+  receipt inside `model.context.projection_audit`; and
+- kept Device Exploration and every future family outside live model context.
+
+Verification:
+
+- all 314 backend tests, Ruff, the 45-file mypy gate, documentation integrity,
+  database boundary, and the frontend production build pass;
+- bounded MiniMax simulations separate phone position from human position,
+  phone camera from Scarlet perception, and action dispatch from completion;
+- a first-person source metaphor exposed policy-in-JSON as too weak; composing
+  policy as instruction and packets as evidence corrected the repeat.
+
+Evidence:
+
+- `docs/context-family-registry.md`
+- `EXP-0083`
+- `ADR-0137`
+
 ## 2026-07-26 - Companion Utility Follow-Up Checkpoint
 
 Area: companion product direction / relational continuity / device and personal

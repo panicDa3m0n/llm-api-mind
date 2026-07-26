@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.58.1"
+version = "1.59.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -62,6 +62,7 @@ files = [
     "app/config.py",
     "app/mind/agent_modes.py",
     "app/mind/command_registry.py",
+    "app/mind/context_families.py",
     "app/mind/context_preserved.py",
     "app/mind/context_projection.py",
     "app/mind/context_retrieval.py",

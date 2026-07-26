@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-26
-App target: V1.58.1; V1.50.1 remains release-accepted
+App target: V1.59.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -61,6 +61,9 @@ discussed before a new fix is attempted.
   observation schema, probe inventory, Product UI surface, persistence
   boundary, and evidence required before any device signal can enter Scarlet's
   cognition.
+- `docs/context-family-registry.md`: typed semantic context families, subject
+  versus observer ownership, evidence kinds, mode tags, activation contracts,
+  policy dependencies, shadow routing, and embodiment simulation evidence.
 - `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
   permission/dependency model, lifecycle, activation rules, and compatibility
   boundary for optional V2 Agentic Modules.
