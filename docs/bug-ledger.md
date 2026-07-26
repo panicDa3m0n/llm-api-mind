@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0117 - Device Exploration Totals And Initial Run History Drifted
 
 Date Found: 2026-07-26
-Status: fixed locally in V1.58.0; deployment verification pending
+Status: fixed and physically verified in V1.58.0
 
 Symptoms:
 
@@ -34,8 +34,10 @@ Regression Coverage:
 
 - focused API tests distinguish filtered and unfiltered totals;
 - TypeScript/Vite and Android debug assembly pass; and
-- a post-deploy physical run must show the initial six-record run without a
-  remount.
+- production `probe=haptics` history reports `total=1`; and
+- post-deploy physical run
+  `device_run_3d3bf95d668544b68ac7e3490fb5a9ea` showed six automatic records
+  immediately, with outbox zero and no remount.
 
 Related:
 

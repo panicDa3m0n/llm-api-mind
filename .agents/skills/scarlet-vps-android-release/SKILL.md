@@ -97,6 +97,14 @@ incorrectly.
 The current `scarlet/scarlet` pair is a temporary owner-approved preview gate,
 not production identity or a secret.
 
+When a secure device lock prevents foreground interaction, never bypass it.
+CDP DOM evidence may confirm that a hidden WebView mounted and emitted native
+plugin data, but it is not visual acceptance; defer screenshot, motion,
+foreground lifecycle, and touch-flow claims until the owner unlocks the
+device. If the locked device has no transport, use the outbox as evidence.
+Any temporary host-side request forwarding must be documented as test
+transport and must not synthesize or rewrite observation payloads.
+
 ## Release Evidence
 
 Record:

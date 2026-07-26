@@ -42,6 +42,14 @@ Verification:
   run-history refresh race; and
 - location, notification, motion, and lifecycle foreground questions are
   recorded without overclassifying locked-device limitations as bugs.
+- commit `8e3f41db85d3cf1b6e0971e04a05e50bd1e068fa` is deployed as
+  `scarlet-mobile-api:v1.58.0-8e3f41d`, the rebuilt APK is installed, and a
+  ninth run showed six current-run records immediately with outbox zero;
+- production integrity remained `ok` with 241 sessions, 930 messages, 313
+  memories, 238 facts, 6,675 cognitive events, and 57 isolated device
+  observations; and
+- the secure lock allowed CDP DOM evidence but not an Android screenshot, so
+  foreground visual acceptance remains explicitly pending.
 
 Evidence:
 

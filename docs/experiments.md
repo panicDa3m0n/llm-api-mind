@@ -58,6 +58,10 @@ Production session, message, memory, fact, and cognitive-event totals remained
 unchanged while the isolated ledger grew to 51 rows. The detailed evidence and
 run identifiers are in `docs/evaluations/v1.58-device-exploration.md`.
 
+A ninth post-fix run raised the ledger to 57 rows and showed all six automatic
+records in the current run immediately, with an empty outbox. The production
+API also reported the correct filtered total for `probe=haptics`.
+
 ## EXP-0081 - MiniMax M3 Native Stop-State Continuation
 
 Status: accepted as focused V1.55.0 provider evidence

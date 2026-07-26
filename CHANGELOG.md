@@ -45,6 +45,9 @@ This project uses a practical changelog rather than a release-only log: each mea
   offline outbox, deduplicated a real replay, and completed a haptic effect.
   Locked/background location timed out, one notification remained pending, and
   foreground motion/lifecycle behavior remains explicitly unverified.
+- A ninth run against the deployed fix raised the ledger to 57 records and
+  showed the six-record current-run history immediately with an empty outbox;
+  secure-lock visual screenshot acceptance remains pending.
 
 ### V1.57.0 - Hybrid Product Chat Live Delivery
 
