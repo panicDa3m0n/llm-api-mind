@@ -5,6 +5,10 @@ import type {
   ChatTurn,
   CognitiveEvent,
   DashboardMemories,
+  DeviceExplorationSummary,
+  DeviceObservationBatchResponse,
+  DeviceObservationInput,
+  DeviceObservationList,
   HealthStatus,
   RuntimeSettings,
   ScarletLiveFrame,
@@ -85,6 +89,46 @@ export function createSession(title?: string): Promise<ChatSession> {
 
 export function fetchSessions(limit = 30): Promise<ChatSession[]> {
   return request<ChatSession[]>(`/api/chat/sessions?limit=${limit}`);
+}
+
+export function appendDeviceObservations(
+  observations: DeviceObservationInput[]
+): Promise<DeviceObservationBatchResponse> {
+  return request<DeviceObservationBatchResponse>(
+    "/api/device-exploration/observations/batch",
+    {
+      method: "POST",
+      body: JSON.stringify({ observations })
+    }
+  );
+}
+
+export function fetchDeviceObservations(options?: {
+  deviceId?: string;
+  runId?: string;
+  probe?: string;
+  limit?: number;
+}): Promise<DeviceObservationList> {
+  const query = new URLSearchParams();
+  if (options?.deviceId) query.set("device_id", options.deviceId);
+  if (options?.runId) query.set("run_id", options.runId);
+  if (options?.probe) query.set("probe", options.probe);
+  query.set("limit", String(options?.limit ?? 200));
+  return request<DeviceObservationList>(
+    `/api/device-exploration/observations?${query}`
+  );
+}
+
+export function fetchDeviceExplorationSummary(options?: {
+  deviceId?: string;
+  runId?: string;
+}): Promise<DeviceExplorationSummary> {
+  const query = new URLSearchParams();
+  if (options?.deviceId) query.set("device_id", options.deviceId);
+  if (options?.runId) query.set("run_id", options.runId);
+  return request<DeviceExplorationSummary>(
+    `/api/device-exploration/summary?${query}`
+  );
 }
 
 export function sendTurn(

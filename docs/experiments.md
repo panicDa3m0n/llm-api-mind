@@ -9,6 +9,39 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0082 - Physical Android Device Exploration
+
+Status: implementation complete; physical run pending
+
+Hypothesis:
+
+An isolated Capacitor layer can collect useful real device evidence, preserve
+offline/lifecycle observations, and expose enough raw detail to design future
+perception and peripheral capabilities without changing Scarlet's cognition.
+
+Method:
+
+- install V1.58.0 on the connected physical Samsung device;
+- capture automatic device, app, battery, network, permission, notification,
+  lifecycle, and sampled motion observations;
+- run explicit location, notification, haptic, background/resume, and
+  connectivity probes;
+- verify local-outbox recovery, server idempotency, timestamps, and per-run
+  history;
+- inspect raw and normalized payloads qualitatively, not only by counts; and
+- confirm that no session, memory, trace, context, or shell state is created.
+
+Acceptance:
+
+The Product UI updates without remounting, observations persist on the VPS,
+the same client event cannot duplicate, lifecycle events survive interruption,
+and the resulting evidence clearly separates useful candidate signals from
+technical-only fields.
+
+Results:
+
+Pending physical-device execution.
+
 ## EXP-0081 - MiniMax M3 Native Stop-State Continuation
 
 Status: accepted as focused V1.55.0 provider evidence

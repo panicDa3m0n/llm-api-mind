@@ -4,6 +4,39 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - V1.58.0 Device Exploration Layer
+
+Area: Perception and Context / External Operativity / Product UI Android.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Explore real Android capabilities non-destructively and accumulate inspectable
+evidence before deciding which signals can become Scarlet perception or
+agentic operations.
+
+Changes:
+
+- added a dedicated append-only observation model, repository, API, summary,
+  and strict input schemas;
+- added Capacitor probes for device/app, battery, lifecycle, network, motion,
+  explicit location, local notifications, and haptics;
+- added an idempotent install-local outbox and per-screen run identity;
+- added a real Product UI laboratory with current status, manual probes,
+  per-probe coverage, and expandable raw/normalized evidence;
+- documented the hard exclusion from sessions, memory, focus, affect,
+  volition, traces, runtime/model context, and shell; and
+- advanced the development target to V1.58.0.
+
+Verification:
+
+- focused API/isolation tests, Ruff, and the TypeScript/Vite build pass;
+- Android debug assembly passed before the final explicit location-permission
+  manifest adjustment;
+- final Capacitor sync, APK assembly, protected VPS rollout, physical-device
+  run, and evidence report remain to complete the experiment.
+
 ## 2026-07-26 - Repository-Local Scarlet Workflow Skills
 
 Area: engineering workflow / cross-machine project continuity.

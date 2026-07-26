@@ -7,6 +7,46 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0136 - Device Signals Enter An Isolated Evidence Ledger First
+
+Date: 2026-07-26
+Status: accepted for V1.58.0 exploration
+
+Context:
+
+Scarlet's future companion and embodied direction requires real device
+perception and peripheral action. Plugin documentation alone cannot establish
+which signals are available, timely, stable, cognitively useful, or safe on a
+physical Android device. Sending every available field directly to the model
+would create a noisy and architecturally premature context source.
+
+Decision:
+
+- introduce a non-destructive Device Exploration Layer before any cognitive
+  device integration;
+- preserve raw payloads and explicit normalized projections in a dedicated
+  append-only ledger;
+- identify observations by install-scoped device, exploration run, probe,
+  client event, device time, server receipt time, and app state;
+- use an idempotent local outbox so lifecycle and connectivity experiments can
+  survive temporary delivery failure;
+- exclude every observation from sessions, provider history, semantic memory,
+  focus, affect, volition, runtime/model context, traces, and `mind_shell`;
+- require separate evidence and owner approval before a signal becomes
+  perception, an agentic trigger, or an action capability.
+
+Consequences:
+
+The project can explore Android capabilities aggressively without silently
+changing Scarlet's mind or behavior. The ledger may contain sensitive raw
+experimental data and is not yet a final consumer privacy or ownership model.
+
+Links:
+
+- `docs/device-exploration-layer.md`
+- `docs/branches/perception-context.md`
+- `docs/branches/external-operativity.md`
+
 ## ADR-0135 - Repository Skills Encode Evidence-Driven Operating Workflows
 
 Date: 2026-07-26

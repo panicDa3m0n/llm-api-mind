@@ -29,6 +29,7 @@ type SettingsDraft = {
 
 export function ProfileSettingsScreen({
   onLogout,
+  onOpenDeviceExploration,
   onPrivateEvidenceChange,
   onSettingsChanged,
   onUnavailable,
@@ -38,6 +39,7 @@ export function ProfileSettingsScreen({
   username
 }: {
   onLogout: () => void;
+  onOpenDeviceExploration: () => void;
   onPrivateEvidenceChange: (unlocked: boolean) => void;
   onSettingsChanged: (settings: RuntimeSettings) => void;
   onUnavailable: (feature: UnavailableFeature) => void;
@@ -289,10 +291,10 @@ export function ProfileSettingsScreen({
               onClick={() => unavailable("Rivedi sessioni")}
             />
             <SettingsCommand
-              detail="Voce e promemoria non sono ancora implementati."
+              detail="Apre il laboratorio reale di percezione e attuazione Android."
               icon={<FlaskConical aria-hidden="true" size={16} />}
               label="Funzioni sperimentali"
-              onClick={() => unavailable("Funzioni sperimentali")}
+              onClick={onOpenDeviceExploration}
             />
             <SettingsCommand
               detail="Il catalogo statico non ha ancora preferenze runtime."

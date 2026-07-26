@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-26
-App target: V1.57.0; V1.50.1 remains release-accepted
+App target: V1.58.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -57,6 +57,10 @@ discussed before a new fix is attempted.
 - `docs/product-ui-prototype.md`: SCA-48 static Product UI information
   architecture, fixture boundary, preview states, visual tokens, component
   equivalence notes, browser evidence, screenshots, and approval gate.
+- `docs/device-exploration-layer.md`: isolated Android capability laboratory,
+  observation schema, probe inventory, Product UI surface, persistence
+  boundary, and evidence required before any device signal can enter Scarlet's
+  cognition.
 - `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
   permission/dependency model, lifecycle, activation rules, and compatibility
   boundary for optional V2 Agentic Modules.

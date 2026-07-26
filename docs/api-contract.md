@@ -1492,6 +1492,41 @@ Response includes:
 }
 ```
 
+## Implemented Device Exploration API
+
+This API is an authenticated, non-cognitive laboratory boundary. It records
+Android capability evidence without adding it to chat sessions, provider
+history, semantic memory, focus, affect, volition, runtime/model context,
+traces, or `mind_shell`.
+
+### POST /api/device-exploration/observations/batch
+
+Appends between 1 and 100 `device-observation-v1` objects. Each object contains
+an idempotent `client_event_id`, exploration `run_id`, install-scoped
+`device_id`, probe/event labels, device observation time, app state, raw
+payload, normalized payload, and technical metadata.
+
+Repeated `client_event_id` values return the existing record and increment
+`deduplicated`; they never create a second observation.
+
+### GET /api/device-exploration/observations
+
+Lists observations newest first. Optional filters are `device_id`, `run_id`,
+and `probe`; pagination uses `limit` and `offset`. Raw and normalized values are
+both returned for experimental comparison.
+
+### GET /api/device-exploration/summary
+
+Returns total observations, per-probe counts, latest observation time, and the
+requested device/run scope. The response explicitly declares:
+
+```json
+{
+  "model_context_delivery": false,
+  "cognitive_persistence": false
+}
+```
+
 ## Implemented Chat API
 
 ### GET /api/chat/sessions

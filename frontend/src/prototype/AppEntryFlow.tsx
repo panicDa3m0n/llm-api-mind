@@ -37,7 +37,8 @@ function isProductView(value: unknown): value is ProductView {
     value === "chat" ||
     value === "memory" ||
     value === "sessions" ||
-    value === "profile"
+    value === "profile" ||
+    value === "device"
   );
 }
 

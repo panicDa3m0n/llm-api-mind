@@ -1,8 +1,8 @@
 # Branch: Operativita Su Mondo Esterno
 
-Last updated: 2026-07-13
-System version assessed: V1.29.1
-Status: planned branch
+Last updated: 2026-07-26
+System version assessed: V1.58.0 development target
+Status: planned branch with isolated device prototype
 
 ## Filosofia del ramo
 
@@ -25,16 +25,24 @@ permessi, tracciabilita, rollback e conferme dove necessario.
   mondo esterno o corpo robotico richiedera perception, safety, conferme,
   attuatori e ricevute nello stesso pacchetto operativo.
 - Non esiste ancora una suite di tool esterni concessi a Scarlet runtime.
+- V1.58.0 aggiunge soltanto probe espliciti per notifica locale e feedback
+  aptico, con receipt nel ledger Device Exploration. Non sono tool concessi a
+  Scarlet e non costituiscono autonomia esterna.
 
 ## Stato attuale
 
-Valutazione: L1.
+Valutazione: L1 per Scarlet; L2 per il laboratorio device isolato.
 
 Il ramo e quasi interamente futuro. L'infrastruttura di eventi, trace, UI e
 schema potra supportarlo, ma oggi Scarlet non ha operativita esterna ampia
 integrata nella propria API Mind.
 
 Sistema valutato: V1.29.1.
+
+Aggiornamento V1.58.0: il Product UI puo richiedere manualmente una notifica
+locale o un feedback aptico e registrarne esito/errore. Il confine resta
+tecnico e umano-iniziato: nessun comando model-facing, policy di azione,
+scheduler agentico o collegamento ai context pack e stato introdotto.
 
 ## Sviluppi precedenti
 

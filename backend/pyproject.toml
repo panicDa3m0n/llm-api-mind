@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.57.0"
+version = "1.58.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -58,6 +58,7 @@ files = [
     "app/api/chat_provider_history.py",
     "app/api/chat_serialization.py",
     "app/api/chat_stream_v2.py",
+    "app/api/device_exploration.py",
     "app/config.py",
     "app/mind/agent_modes.py",
     "app/mind/command_registry.py",
@@ -79,6 +80,7 @@ files = [
     "app/runtime/maintenance_scheduler.py",
     "app/runtime/maintenance_shared.py",
     "app/storage/database_boundary.py",
+    "app/storage/repository/device_exploration.py",
     "scarlet_agentic_module_sdk/cli.py",
     "scarlet_agentic_module_sdk/client.py",
     "scarlet_agentic_module_sdk/conformance.py",

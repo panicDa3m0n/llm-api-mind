@@ -6,6 +6,40 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.58.0 - Device Exploration Layer
+
+#### Added
+
+- Add an isolated, append-only Device Exploration ledger and authenticated API
+  for raw and normalized Android observations.
+- Add an Android Product UI laboratory for device/app identity, battery,
+  lifecycle, network, sampled motion, explicit location, local notifications,
+  and haptic receipts.
+- Add an install-local retry outbox with idempotent batch delivery and
+  per-screen exploration run identifiers.
+
+#### Changed
+
+- Add the Capacitor App, Device, Geolocation, Haptics, Local Notifications,
+  Motion, and Network integrations needed for bounded device experiments.
+- Advance backend, frontend, Android, and module-conformance metadata to
+  V1.58.0.
+
+#### Safety Boundary
+
+- Device observations are not chat history, semantic memory, focus, affect,
+  volition, runtime context, provider history, traces, or model-facing tools.
+- No observed signal is routed into Scarlet automatically; future admission
+  requires separate evidence, design, and owner approval.
+
+#### Verification
+
+- Focused API tests prove append-only idempotency, summary aggregation,
+  unknown-field rejection, and absence of writes to sessions, memories, and
+  traces.
+- Ruff, focused backend tests, TypeScript/Vite build, Capacitor sync, Android
+  debug assembly, and physical-device evidence are required before release.
+
 ### V1.57.0 - Hybrid Product Chat Live Delivery
 
 #### Added

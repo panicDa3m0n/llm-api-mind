@@ -1,7 +1,7 @@
 # Agentic Branches
 
-Last updated: 2026-07-19
-App baseline: V1.50.1 deployed and release-accepted
+Last updated: 2026-07-26
+App baseline: V1.50.1 deployed and release-accepted; V1.58.0 development target
 Status: canonical branch map
 
 The V1.50.1 Core is closed and release-accepted. Branch maturity remains a
@@ -42,14 +42,14 @@ turns. Every branch document must state:
 |---|---:|---|---|---|
 | Communication | L4 | Prompt, stream semantics, public notes, completion and answer-obligation invariants, dev/mobile rendering, executable behavioral suite | active; V1.50.1 preserves the marker path and semantically judges only a corrected second miss | monitor validator quality and expand natural scenarios |
 | User flows | L2/L3 | dev cockpit and mobile prototype | active UI, incomplete lifecycle/product flows | onboarding/privacy/session workflows |
-| Perception and context | L4 | shared V2, accounting v2, exact chronology map, mode router, recursive compaction artifacts | active guarded derived routing with canonical fallback | monitor multi-cycle quality and calibrate token partitions |
+| Perception and context | L4 core + L2 device lab | shared V2, accounting v2, exact chronology map, mode router, recursive compaction artifacts, isolated Android observation ledger | core context active; device observations excluded from cognition pending evidence | evaluate physical-device signals before designing admission |
 | Identity and relationship | L3 | golden identity prompt, profile name, personal memory | active but mostly prompt/memory-driven | longitudinal relational model/eval |
 | Memory | L4+ | semantic, facts, episodic, KG, retrieval, lifecycle, maintenance; V1.50 verifies actual model delivery | active and best-tested | duplicate/conflict and ownership maturity |
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
 | Operational management | L3/L4 | focus organ, agent posture, events/maintenance | V1.40 focus lifecycle/control 6/6; V1.42 mode receipts and two-session resume passed | retain separation before goal/task organ |
 | Decision autonomy | L2/L3 | model-controlled shell, resumable mode, volition register, final-answer obligations | V1.42 clarifies exploratory mode selection; no autonomous cycle | risk/permission receipt policy |
-| External operativity | L1 | supporting traces/events only | no external-world action suite | permission/safety/rollback architecture |
+| External operativity | L1 core + L2 device lab | supporting traces/events plus isolated haptic and notification probes | no external-world action suite; lab receipts are not Scarlet actions | evaluate peripheral receipts before permission architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |
 | Computational affect | L3/L4 | appraisal, persistence, read-only shell, optional block | V1.40 model/shadow/neutral 10/10 after recovery fix; shadow default | prove model-facing benefit before activation |

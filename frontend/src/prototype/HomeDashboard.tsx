@@ -29,6 +29,7 @@ import type {
 } from "../types";
 import { ChatViewportScreen } from "./ChatViewportScreen";
 import { DataJsonPanel } from "./DataJsonPanel";
+import { DeviceExplorationScreen } from "./DeviceExplorationScreen";
 import { MemoryScreen, SessionsScreen } from "./ProductScreens";
 import { ProfileSettingsScreen } from "./ProfileSettingsScreen";
 import {
@@ -38,7 +39,13 @@ import {
 import "./home.css";
 import "./product.css";
 
-export type ProductView = "home" | "chat" | "memory" | "sessions" | "profile";
+export type ProductView =
+  | "home"
+  | "chat"
+  | "memory"
+  | "sessions"
+  | "profile"
+  | "device";
 
 type ProductData = {
   health: HealthStatus | null;
@@ -248,6 +255,7 @@ export function HomeDashboard({
         ) : null}
         {view === "profile" ? (
           <ProfileSettingsScreen
+            onOpenDeviceExploration={() => navigate("device")}
             onLogout={onLogout}
             onSettingsChanged={(settings) => {
               setData((current) => ({ ...current, settings }));
@@ -261,6 +269,7 @@ export function HomeDashboard({
             username={username}
           />
         ) : null}
+        {view === "device" ? <DeviceExplorationScreen /> : null}
 
         <p className="scarlet-home__fixture-note">
           {loading

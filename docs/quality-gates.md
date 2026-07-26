@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-26
-App target: V1.57.0; V1.50.1 remains release-accepted
+App target: V1.58.0; V1.50.1 remains release-accepted
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -44,7 +44,7 @@ reviewed cleanup.
 
 ## Mypy Baseline
 
-The blocking mypy gate covers twenty-five high-value modules that currently pass
+The blocking mypy gate covers a curated set of high-value modules that currently pass
 without suppressing their own errors:
 
 - native chat provider-history transformations;
@@ -66,6 +66,7 @@ without suppressing their own errors:
 - maintenance scheduling/dispatch, summary/history execution, memory review,
   and shared job contracts;
 - database ownership boundaries.
+- the isolated Device Exploration API and observation repository.
 
 Imports are treated as external to this first slice so SQLModel repository
 typing does not make a small clean module inherit unrelated errors. The full

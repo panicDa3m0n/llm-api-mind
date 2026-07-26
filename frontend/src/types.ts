@@ -247,3 +247,46 @@ export type HealthStatus = {
     seed_database_url: string;
   };
 };
+
+export type DeviceObservationInput = {
+  client_event_id: string;
+  schema_version: "device-observation-v1";
+  run_id: string;
+  device_id: string;
+  probe: string;
+  event_type: string;
+  source: string;
+  app_state: string | null;
+  observed_at: string;
+  payload: Record<string, unknown>;
+  normalized: Record<string, unknown>;
+  metadata: Record<string, unknown>;
+};
+
+export type DeviceObservation = DeviceObservationInput & {
+  id: string;
+  received_at: string;
+};
+
+export type DeviceObservationBatchResponse = {
+  accepted: number;
+  deduplicated: number;
+  observations: DeviceObservation[];
+};
+
+export type DeviceObservationList = {
+  total: number;
+  returned: number;
+  observations: DeviceObservation[];
+};
+
+export type DeviceExplorationSummary = {
+  schema_version: "device-exploration-summary-v1";
+  total: number;
+  device_id: string | null;
+  run_id: string | null;
+  probe_counts: Record<string, number>;
+  latest_observation_at: string | null;
+  model_context_delivery: false;
+  cognitive_persistence: false;
+};

@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
-Last updated: 2026-07-14
-System version assessed: V1.36.1
+Last updated: 2026-07-26
+System version assessed: V1.58.0 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -62,6 +62,9 @@ stratificati.
 - Ogni trace `model.context` registra ora un audit di inclusione/esclusione;
   Scarlet state legacy, dialogo duplicato, eventi generici e catalogo
   capability restano fuori dal documento V2.
+- V1.58.0 introduce un Device Exploration Layer isolato che registra segnali
+  Android raw e normalizzati per studio. Questi record non sono percezione di
+  Scarlet e non entrano in runtime context, provider history, memoria o shell.
 
 ## Stato attuale
 
@@ -133,6 +136,11 @@ la richiesta al modello usa `cronologia compattata + coda canonica esatta +
 messaggio corrente`, mentre persistenza e audit continuano a usare la storia
 canonica completa. Artifact mancanti, stale o non mappabili producono fallback
 esplicito alla cronologia canonica.
+
+Aggiornamento V1.58.0: la futura percezione periferica viene esplorata prima in
+un ledger tecnico append-only. L'esistenza di un dato sul device non implica
+utilita cognitiva: ammissione, sintesi, frequenza e routing saranno progettati
+solo dopo osservazioni fisiche e valutazione umana/LLM dei payload reali.
 
 ## Sviluppi precedenti
 

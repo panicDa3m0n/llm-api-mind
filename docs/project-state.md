@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-24
-App target: V1.57.0; V1.50.1 remains release-accepted
+Last updated: 2026-07-26
+App target: V1.58.0; V1.50.1 remains release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -76,6 +76,9 @@ Implemented and verified:
   databases, with side-effect-free app factory and read-only preflight;
 - native chat, streaming chat, developer cockpit, consumer mobile view, debug
   inspection, dashboard settings, and maintenance/evaluator routes;
+- an isolated V1.58 Device Exploration Layer can collect raw and normalized
+  Android observations for technical evaluation; it is deliberately excluded
+  from sessions, memory, runtime/model context, cognitive organs, and shell;
 - one active model-facing cognitive tool:
   `mind_shell(command, intent)`;
 - internal `/mind/*` handlers retained for deterministic dispatch, tests,

@@ -215,6 +215,42 @@ class AppSetting(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=utc_now, index=True)
 
 
+class DeviceObservation(SQLModel, table=True):
+    """Append-only evidence captured by the isolated device exploration lab."""
+
+    __tablename__ = "device_observations"
+    __table_args__ = (
+        UniqueConstraint(
+            "client_event_id",
+            name="uq_device_observations_client_event_id",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("dev_obs"), primary_key=True)
+    client_event_id: str = Field(index=True)
+    schema_version: str = Field(default="device-observation-v1", index=True)
+    run_id: str = Field(index=True)
+    device_id: str = Field(index=True)
+    probe: str = Field(index=True)
+    event_type: str = Field(index=True)
+    source: str = Field(default="capacitor", index=True)
+    app_state: str | None = Field(default=None, index=True)
+    observed_at: datetime = Field(index=True)
+    received_at: datetime = Field(default_factory=utc_now, index=True)
+    payload_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    normalized_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
 class MaintenanceJob(SQLModel, table=True):
     __tablename__ = "maintenance_jobs"
     __table_args__ = (
