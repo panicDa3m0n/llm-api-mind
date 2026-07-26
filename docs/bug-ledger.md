@@ -10,8 +10,7 @@ history were not rewritten.
 ## BUG-0116 - Product Chat Buffered Live Blocks Until Final Answer
 
 Date Found: 2026-07-25
-Status: incomplete V1.56.1 mitigation; full V1.57.0 fix verified locally,
-deployment and owner device acceptance pending
+Status: fixed and deployed in V1.57.0; owner device visual acceptance pending
 
 Symptoms:
 
@@ -57,14 +56,17 @@ Fix:
 
 Regression Coverage:
 
-- 49 focused backend tests pass across runner, live/V2 streaming, chat API,
-  GPT bridge parity, and model context;
+- 57 focused backend tests pass across runner, live/V2 streaming, chat API,
+  GPT bridge parity, model context, and the agentic module SDK;
 - a blocking-provider test proves a thinking frame reaches the consumer while
   the native runner is still active;
 - API integration proves ordered live frames/durable events, replay identity,
   terminal completion, and Android WebView CORS preflight;
-- TypeScript/Vite production build passes; and
-- protected VPS plus physical-device Product Chat acceptance remains pending.
+- TypeScript/Vite production build and Android debug assembly pass;
+- protected VPS preflight, isolated copied-DB canary, public OpenAPI, CORS,
+  Basic Auth, static Product UI, and post-deploy database integrity checks pass;
+  and
+- physical-device Product Chat visual acceptance remains pending.
 
 Related:
 

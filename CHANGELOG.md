@@ -43,12 +43,17 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 #### Verification
 
-- 49 focused backend tests pass for runner, live/V2 stream, chat API, bridge,
-  and model-context behavior.
+- 57 focused backend tests pass for runner, live/V2 stream, chat API, bridge,
+  model-context behavior, and the agentic module SDK.
 - A blocking-provider test proves a transient frame arrives before the native
   turn completes; API tests prove ordered frames/events, durable replay, and
   Android WebView CORS preflight.
-- Ruff, focused mypy, and TypeScript/Vite production build pass.
+- Ruff, focused mypy, TypeScript/Vite production build, Android debug assembly,
+  production database preflights, and isolated copied-DB canary pass.
+- V1.57.0 is deployed from commit `3a7d59e`; public OpenAPI exposes the live
+  endpoint, packaged-origin CORS works without weakening Basic Auth, the
+  Product UI is live, and the previous backend/config/database artifacts are
+  retained for rollback.
 
 ### V1.56.1 - Android Preview Test Access
 

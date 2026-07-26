@@ -35,13 +35,39 @@ Changes:
 
 Verification:
 
-- 49 focused backend tests passed across chat runner, Stream V2, live stream,
-  GPT bridge, chat API, and model context;
+- 57 focused backend tests passed across chat runner, Stream V2, live stream,
+  GPT bridge, chat API, model context, and the agentic module SDK;
 - three focused live/CORS tests passed after the UI pending-state refinement;
 - Ruff and focused mypy checks passed;
 - TypeScript/Vite production build passed with 2,035 modules; and
-- deployment, protected CORS smoke, live MiniMax Product UI probe, and physical
-  APK acceptance remain the release boundary.
+- Android debug assembly passed and APK version code `15700` was installed on
+  the connected Samsung SM-S918B.
+
+Deployment:
+
+- commit `3a7d59eb6b0c708f71e7ce61c5ce271e5b7bbbc7` is deployed and recorded in
+  `/opt/scarlet-mobile-test/DEPLOYED_COMMIT`;
+- Hostinger MCP OAuth and its 62-tool VPS surface were verified; a dedicated
+  SSH key restored shell access without changing the root password, and the
+  temporary bootstrap Compose project was removed;
+- online production backup
+  `/var/backups/scarlet-mobile-test/v1570-20260726T140220Z/app.db.pre-v1570`
+  passed integrity with SHA-256
+  `e9551ef1d5655c379b75f455e56dc10fcc29fd19c2967e0d977d70178457d0f3`;
+- separate-image preflight and an isolated canary against a copied production
+  database passed before the container switch;
+- post-deploy preflight remained `production`, `codex_test=false`, direct
+  isolation, 29 tables, integrity `ok`, 310 memories, 240 sessions, 920
+  messages, and 6,511 events;
+- Nginx now answers the packaged Android origin's unauthenticated CORS
+  preflight before preview Basic Auth while preserving `401` for unauthenticated
+  data requests and `200` for `scarlet/scarlet`;
+- public OpenAPI reports V1.57.0 and exposes the live endpoint, authenticated
+  responses carry the packaged-origin CORS headers, and the new VPS Product UI
+  build is live; and
+- physical-device visual acceptance of one real incremental MiniMax turn
+  remains pending because the connected device was locked during final
+  inspection.
 
 ## 2026-07-25 - V1.56.1 Android Preview Test Access
 
