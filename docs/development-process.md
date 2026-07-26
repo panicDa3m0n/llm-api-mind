@@ -82,6 +82,27 @@ When work is tracked in Linear, complete one issue before starting the next:
 Discoveries may be added to future issues while the current one is active, but
 they do not become implementation scope silently.
 
+### 3.2 Repository Skill Workflow
+
+The recurring project-specific workflows are encoded as repository-local Codex
+skills under `.agents/skills/`. Their index maps the accepted trigger
+boundaries for project stewardship, cognitive changes, runtime debugging,
+behavioral evaluation, and VPS/Android releases.
+
+Skills are operational derivatives, not independent architectural authority.
+Current code, executable contracts, `AGENTS.md`, and the canonical owner
+document remain stronger. When verified evidence, an owner correction, a
+production incident, or a successful workflow improvement makes a skill stale,
+update the canonical contract first when needed and update the affected skill
+in the same scoped task. Historical experiments and incidents remain in their
+own ledgers rather than being copied into skill instructions.
+
+Validate the repository skill set with:
+
+```bash
+backend/.venv/bin/python scripts/check_project_skills.py
+```
+
 ## 4. Testing Policy
 
 Ordinary task verification must stay proportionate. By default, Codex runs the

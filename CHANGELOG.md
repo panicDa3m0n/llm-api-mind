@@ -15,6 +15,9 @@ This project uses a practical changelog rather than a release-only log: each mea
   events.
 - Add compact recent-memory, previous-session, and answer-validation lifecycle
   events for ordered consumer activity blocks.
+- Add five repository-local Codex skills for Scarlet project stewardship,
+  cognitive changes, runtime debugging, E2E evaluation, and VPS/Android
+  releases, with evidence-driven maintenance contracts and CI validation.
 - Add Android WebView CORS support for packaged localhost origins and the
   temporary preview authorization header.
 

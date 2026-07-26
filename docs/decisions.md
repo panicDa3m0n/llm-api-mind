@@ -7,6 +7,54 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0135 - Repository Skills Encode Evidence-Driven Operating Workflows
+
+Date: 2026-07-26
+Status: accepted
+
+Context:
+
+Scarlet's repository now spans cognitive architecture, provider behavior,
+runtime diagnosis, natural behavioral evaluation, protected VPS deployment,
+Product UI, and Android delivery. `AGENTS.md` must remain short and always
+read, while canonical documents own architecture and historical evidence.
+Relying on conversational recollection for the detailed recurring procedures
+would reintroduce mistakes already corrected during real investigations and
+rollouts. Creating a skill for every narrow task would produce a second,
+conflicting documentation system.
+
+Decision:
+
+- maintain five focused repository-local Codex skills under `.agents/skills/`:
+  project stewardship, cognitive changes, runtime debugging, E2E evaluation,
+  and VPS/Android release;
+- keep Git, Linear, generic coding, and one-off command procedures in the
+  existing process instead of creating overlapping skills;
+- treat skills as operational derivatives below code, executable contracts,
+  `AGENTS.md`, and canonical owner documents;
+- require every skill to state trigger boundaries, authoritative sources,
+  workflow, safety limits, and an evidence-driven maintenance contract;
+- update a skill when verified code, traces, tests, incidents, owner
+  corrections, or successful releases establish a durable workflow lesson;
+- update canonical policy first when the lesson changes architecture, and
+  preserve historical evidence in its original ledger; and
+- validate skill presence, frontmatter, naming, source/maintenance sections,
+  and documentation links in CI.
+
+Consequences:
+
+Codex can recover high-risk project workflows from the repository on any
+machine without inflating the always-read guide. Skills must not become stale
+copies of architecture or incident histories, and new skills require a
+recurring, materially risky workflow rather than mere convenience.
+
+Links:
+
+- `.agents/skills/README.md`
+- `scripts/check_project_skills.py`
+- `docs/development-process.md`
+- `docs/quality-gates.md`
+
 ## ADR-0134 - Hybrid Live Frames Over Durable Stream V2
 
 Date: 2026-07-26

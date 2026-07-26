@@ -1,7 +1,7 @@
 # Quality Gates
 
-Last updated: 2026-07-19
-App baseline: V1.50.1 deployed and release-accepted
+Last updated: 2026-07-26
+App target: V1.57.0; V1.50.1 remains release-accepted
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -27,6 +27,7 @@ cd backend
 
 cd ..
 backend/.venv/bin/python scripts/check_documentation.py
+backend/.venv/bin/python scripts/check_project_skills.py
 npm --prefix frontend run build
 ```
 
@@ -202,7 +203,16 @@ the baseline.
 
 - local Markdown link targets;
 - repository file references inside inline-code spans;
-- uniqueness of canonical ADR, BUG, and EXP headings.
+- uniqueness of canonical ADR, BUG, and EXP headings; and
+- repository-local skill Markdown together with the canonical documentation.
+
+`scripts/check_project_skills.py` checks:
+
+- required repository skill presence;
+- unique names that match their directories;
+- mandatory `name` and trigger-focused `description` frontmatter;
+- authoritative-source and maintenance-contract sections; and
+- an explicit evidence-driven instruction to keep each skill current.
 
 External URLs, secrets/runtime files, database paths, and explicitly
 parametric references are not treated as repository artifacts. Exact paths for
@@ -212,7 +222,7 @@ not access the network.
 
 ## GitHub Actions
 
-`.github/workflows/quality.yml` runs the Ruff, mypy, documentation, backend
-coverage, and frontend production-build gates on every push and pull request.
-The workflow does not load production secrets, download the LFS laboratory
-database, or mutate any runtime database.
+`.github/workflows/quality.yml` runs Ruff, mypy, documentation and project-skill
+integrity, backend coverage, and the frontend production-build gate on every
+push and pull request. The workflow does not load production secrets, download
+the LFS laboratory database, or mutate any runtime database.

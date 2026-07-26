@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-07-19
-App baseline: V1.50.1 deployed and release-accepted
+Last updated: 2026-07-26
+App target: V1.57.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -43,6 +43,10 @@ discussed before a new fix is attempted.
 ## Core Project Documents
 
 - `AGENTS.md`: always-read operating guide for Codex/Scarlet.
+- `.agents/skills/README.md`: repository-local Codex workflow map for
+  stewardship, cognitive changes, runtime debugging, E2E evaluation, and
+  VPS/Android release work. Skills are maintained operational derivatives,
+  not replacements for canonical contracts.
 - `docs/project-blueprint.md`: durable philosophy and architecture principles.
 - `docs/project-state.md`: current implementation map and convergent roadmap.
 - `docs/core-runtime-contract.md`: canonical Core Runtime, Product UI,
@@ -166,6 +170,7 @@ discussed before a new fix is attempted.
 | Decisions | Accepted architectural choices | Append or supersede; do not erase the original context. |
 | Experiments, activity log, checkpoints | Historical evidence | Preserve results as recorded; add corrections or current links instead of rewriting outcomes. |
 | Implementation plans | Procedure and acceptance record | Mark completed/deferred phases; do not use as current-state authority after completion. |
+| Repository skills | Executable recurring workflow guidance derived from current contracts and evidence | Update when verified lessons change the workflow; update canonical policy first when semantics change. |
 
 ## Vertical Roadmaps
 

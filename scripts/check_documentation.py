@@ -61,6 +61,7 @@ HISTORICAL_REFERENCE_PREFIXES = (
 def markdown_files() -> list[Path]:
     roots = [ROOT / "AGENTS.md", ROOT / "README.md", ROOT / "CHANGELOG.md"]
     roots.extend((ROOT / "docs").rglob("*.md"))
+    roots.extend((ROOT / ".agents" / "skills").rglob("*.md"))
     return sorted(
         path
         for path in roots

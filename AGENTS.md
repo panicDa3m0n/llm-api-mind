@@ -18,6 +18,11 @@ Before any non-trivial change:
 8. Read `docs/project-documentation.md` and the relevant
    `docs/branches/*` file when changing Scarlet's agentic behavior.
 9. Identify the smallest useful implementation slice.
+10. Load the relevant repository skill under `.agents/skills/` for substantial
+    project stewardship, cognitive changes, runtime debugging, behavioral
+    evaluation, or VPS/Android release work. The skill index explains the
+    boundaries; skills complement canonical documentation rather than
+    replacing it.
 
 From V1.0.1 onward, before any repository change, declare the work area,
 branch, type (`Fix`, `Implementazione`, or `Major release`), target version,

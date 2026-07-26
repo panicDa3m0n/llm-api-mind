@@ -4,6 +4,39 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - Repository-Local Scarlet Workflow Skills
+
+Area: engineering workflow / cross-machine project continuity.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`; additive tooling
+for the V1.57.0 target with no runtime, app, API, prompt, or database change.
+
+Goal:
+
+Make the recurring high-risk workflows recoverable inside the repository while
+keeping `AGENTS.md` short and preserving canonical documents as authority.
+
+Changes:
+
+- added five focused Codex skills for project stewardship, cognitive changes,
+  runtime debugging, E2E evaluation, and VPS/Android release;
+- encoded explicit trigger boundaries, evidence ladders, ownership rules,
+  database safety, qualitative behavioral judgment, and completion gates;
+- required every skill to evolve from verified errors, owner corrections,
+  runtime evidence, and successful workflow lessons;
+- added a repository skill index and deterministic structure validator;
+- included skill Markdown in documentation integrity and skill validation in
+  GitHub Quality; and
+- documented skills as operational derivatives rather than a competing
+  architecture or historical ledger.
+
+Verification:
+
+- project skill validation passes for five unique skills;
+- documentation integrity includes the new skill Markdown and passes;
+- Ruff passes for both documentation/skill validators; and
+- diff and database-boundary checks are part of the final publication gate.
+
 ## 2026-07-26 - V1.57.0 Hybrid Product Chat Live Delivery
 
 Area: native chat streaming / Product UI web and Android.

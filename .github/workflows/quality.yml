@@ -31,7 +31,9 @@ jobs:
         run: python -m mypy
 
       - name: Documentation integrity
-        run: python scripts/check_documentation.py
+        run: |
+          python scripts/check_documentation.py
+          python scripts/check_project_skills.py
 
       - name: Backend tests and coverage
         working-directory: backend
