@@ -1,7 +1,7 @@
 # Device Exploration Layer
 
 Last updated: 2026-07-26
-Target version: V1.58.0
+Target version: V1.58.1
 Status: experimental implementation
 
 ## Purpose
@@ -54,6 +54,12 @@ lifecycle observations use a persistent local outbox so a background event can
 be delivered after resume. Location and notification permission requests are
 explicit experimental actions.
 
+Network observations retain each distinct connectivity/transport transition
+but suppress an immediately repeated identical pair. Physical testing showed
+that an upload can provoke an otherwise identical Android connectivity
+callback; preserving those duplicates would let the laboratory observe its
+own transport indefinitely without adding device-state information.
+
 ## API
 
 - `POST /api/device-exploration/observations/batch`
@@ -69,19 +75,22 @@ The summary response explicitly reports:
 }
 ```
 
-## Experimental Questions
+## Physical Evidence
 
-The first device run should establish:
+Background and unlocked foreground runs establish:
 
-1. which plugin payloads are available on the physical Samsung device;
-2. which observations survive background/resume through the local outbox;
-3. how frequently motion changes remain meaningful after sampling;
-4. location precision and latency under coarse and precise permission;
-5. notification scheduling, display, and interaction receipts;
-6. whether network and lifecycle transitions are timely enough to become
-   future peripheral triggers;
-7. which raw fields have no plausible cognitive use and should remain
-   technical evidence only.
+1. device, app, battery, network, permission, notification, lifecycle, motion,
+   explicit location, and haptic payloads are available;
+2. observations survive temporary loss of transport through the local outbox;
+3. foreground location works while the same request can time out when the app
+   is locked/backgrounded;
+4. notification scheduling, delivery, and user interaction are separately
+   observable;
+5. pause/background/resume and Wi-Fi/cellular transitions are timely and
+   ordered; and
+6. stationary motion is stable at the current three-second sample cadence.
+
+Deliberately moved-device motion remains a future physical comparison.
 
 Admission into Scarlet's perception will be designed only after these results
 have been reviewed.

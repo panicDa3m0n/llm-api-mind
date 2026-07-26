@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-26
-App target: V1.58.0; V1.50.1 remains release-accepted
+App target: V1.58.1; V1.50.1 remains release-accepted
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API

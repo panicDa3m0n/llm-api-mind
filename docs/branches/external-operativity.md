@@ -1,7 +1,7 @@
 # Branch: Operativita Su Mondo Esterno
 
 Last updated: 2026-07-26
-System version assessed: V1.58.0 development target
+System version assessed: V1.58.1 development target
 Status: planned branch with isolated device prototype
 
 ## Filosofia del ramo
@@ -28,6 +28,9 @@ permessi, tracciabilita, rollback e conferme dove necessario.
 - V1.58.0 aggiunge soltanto probe espliciti per notifica locale e feedback
   aptico, con receipt nel ledger Device Exploration. Non sono tool concessi a
   Scarlet e non costituiscono autonomia esterna.
+- V1.58.1 verifica sul device consegna e apertura della notifica, feedback
+  aptico e transizioni rete reali; nessuna di queste ricevute abilita ancora
+  operativita autonoma.
 
 ## Stato attuale
 

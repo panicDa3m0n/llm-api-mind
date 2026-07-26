@@ -4,6 +4,60 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-26 - V1.58.1 Foreground Device Signal Integrity
+
+Area: Product UI Android / Device Exploration.
+
+Type: Fix on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Complete the unlocked physical-device exploration and remove observation noise
+without hiding real peripheral state transitions.
+
+Changes:
+
+- deduplicated only consecutive identical Capacitor network states by
+  connectivity and transport;
+- preserved every distinct offline, cellular, and Wi-Fi transition;
+- advanced project, frontend, Android, backend, and module-conformance
+  metadata to V1.58.1; and
+- completed the foreground physical evaluation report.
+
+Verification:
+
+- unlocked foreground location completed at about 17-meter accuracy;
+- notification scheduling, receipt, and user tap produced correlated events;
+- Home/reopen produced pause, inactive, active, and resume lifecycle records;
+- stationary motion produced stable gravity/orientation samples at a
+  three-second ledger cadence;
+- before the fix, one run accumulated 67 network records from repeated
+  identical callbacks;
+- after the fix, network remained at one snapshot while motion grew from 8 to
+  20 samples over 35 seconds;
+- a second real Wi-Fi cycle still retained transitions through no transport
+  and cellular before recovery;
+- TypeScript/Vite Android build, Capacitor sync, and Android debug assembly
+  pass; and
+- the ledger stopped at 531 records after leaving the screen, with model
+  context and cognitive persistence still disabled.
+- the V1.58.1 APK is installed on the physical device; the VPS remains on the
+  verified V1.58.0 backend because this patch does not change server runtime
+  behavior and no production redeployment was required.
+
+Residual:
+
+- deliberate physical movement is still needed for a moved-versus-stationary
+  motion comparison;
+- the broad browser smoke currently reaches a pre-existing local API `500`
+  because the expected test backend is not running, while the affected
+  Android build and physical path pass.
+
+Evidence:
+
+- `docs/evaluations/v1.58-device-exploration.md`
+- `BUG-0118`
+
 ## 2026-07-26 - V1.58.0 Device Exploration Layer
 
 Area: Perception and Context / External Operativity / Product UI Android.

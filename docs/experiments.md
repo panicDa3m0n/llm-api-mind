@@ -11,7 +11,7 @@ rewritten.
 
 ## EXP-0082 - Physical Android Device Exploration
 
-Status: first physical background run complete; foreground run pending
+Status: background and foreground physical runs complete
 
 Hypothesis:
 
@@ -61,6 +61,21 @@ run identifiers are in `docs/evaluations/v1.58-device-exploration.md`.
 A ninth post-fix run raised the ledger to 57 rows and showed all six automatic
 records in the current run immediately, with an empty outbox. The production
 API also reported the correct filtered total for `probe=haptics`.
+
+Unlocked foreground use then verified high-accuracy location, local
+notification scheduling/delivery/tap, pause/background/resume lifecycle,
+three-second motion sampling, and real Wi-Fi/cellular transitions. Direct
+qualitative inspection found that identical network callbacks could observe
+their own upload traffic and continuously add noise. V1.58.1 now suppresses
+only consecutive identical connectivity/transport pairs.
+
+On the physical fix run, motion advanced from 8 to 20 samples over 35 seconds
+while network history remained at one snapshot. A subsequent Wi-Fi
+disable/enable cycle still retained every distinct transport state. The
+isolated ledger stabilized at 531 observations after leaving the screen; its
+summary continued to exclude model-context delivery and cognitive
+persistence. Deliberately moved-device motion comparison remains the only
+major foreground probe not yet measured.
 
 ## EXP-0081 - MiniMax M3 Native Stop-State Continuation
 

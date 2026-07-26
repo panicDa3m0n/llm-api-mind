@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-26
-System version assessed: V1.58.0 development target
+System version assessed: V1.58.1 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -65,6 +65,9 @@ stratificati.
 - V1.58.0 introduce un Device Exploration Layer isolato che registra segnali
   Android raw e normalizzati per studio. Questi record non sono percezione di
   Scarlet e non entrano in runtime context, provider history, memoria o shell.
+- V1.58.1 completa la verifica foreground di posizione, lifecycle, movimento,
+  notifiche e rete, eliminando callback rete identici senza comprimere vere
+  transizioni di trasporto.
 
 ## Stato attuale
 

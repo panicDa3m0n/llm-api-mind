@@ -11,7 +11,7 @@ import {
   type Importance
 } from "@capacitor/local-notifications";
 import { Motion, type AccelListenerEvent } from "@capacitor/motion";
-import { Network } from "@capacitor/network";
+import { Network, type ConnectionStatus } from "@capacitor/network";
 
 import { appendDeviceObservations } from "./api";
 import type { DeviceObservationInput } from "./types";
@@ -42,6 +42,7 @@ export class DeviceExplorationController {
     beta: number;
     gamma: number;
   } | null = null;
+  private lastNetworkState: string | null = null;
   private started = false;
 
   constructor(private readonly callbacks: ExplorerCallbacks) {}
@@ -143,6 +144,7 @@ export class DeviceExplorationController {
 
     await this.capture("network", "snapshot", async () => {
       const status = await Network.getStatus();
+      this.lastNetworkState = networkStateKey(status);
       return {
         payload: status,
         normalized: {
@@ -297,6 +299,9 @@ export class DeviceExplorationController {
         this.observe("lifecycle", "url_open", event, { url: event.url });
       }),
       await Network.addListener("networkStatusChange", (status) => {
+        const nextState = networkStateKey(status);
+        if (nextState === this.lastNetworkState) return;
+        this.lastNetworkState = nextState;
         this.observe("network", "status_change", status, {
           connected: status.connected,
           transport: status.connectionType
@@ -446,6 +451,10 @@ function magnitude(vector: { x: number; y: number; z: number }): number {
   return Number(
     Math.sqrt(vector.x ** 2 + vector.y ** 2 + vector.z ** 2).toFixed(4)
   );
+}
+
+function networkStateKey(status: ConnectionStatus): string {
+  return `${status.connected ? "connected" : "disconnected"}:${status.connectionType}`;
 }
 
 function jsonObject(value: unknown): Record<string, unknown> {

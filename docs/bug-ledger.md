@@ -7,6 +7,45 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0118 - Network Probe Could Observe Its Own Upload Traffic Indefinitely
+
+Date Found: 2026-07-26
+Status: fixed and physically verified in V1.58.1
+
+Symptoms:
+
+An unlocked foreground exploration run emitted repeated
+`network.status_change` observations every three to six seconds even though
+the device remained connected to the same Wi-Fi transport. The normalized
+payload was identical across callbacks.
+
+Root Cause:
+
+The Capacitor network listener forwarded every native callback. Persisting an
+observation itself performs network activity, and Android can emit another
+connectivity callback without changing the exposed `connected` or
+`connectionType` fields. Recording and uploading that duplicate could
+therefore sustain a technical self-observation loop.
+
+Fix:
+
+The controller now retains the last observed connectivity/transport pair and
+suppresses only an immediately repeated identical pair. It does not debounce
+or collapse different states.
+
+Regression Coverage:
+
+- after the fix, a stationary connected run kept exactly one network snapshot
+  while motion increased from 8 to 20 samples over 35 seconds;
+- a physical Wi-Fi disable/enable cycle still recorded transitions through
+  no transport and cellular before returning to Wi-Fi; and
+- Android TypeScript/Vite build, Capacitor sync, and APK assembly pass.
+
+Related:
+
+- `frontend/src/deviceExploration.ts`
+- `docs/evaluations/v1.58-device-exploration.md`
+
 ## BUG-0117 - Device Exploration Totals And Initial Run History Drifted
 
 Date Found: 2026-07-26

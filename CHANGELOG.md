@@ -6,6 +6,27 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.58.1 - Device Exploration Signal Integrity
+
+#### Fixed
+
+- Suppress only consecutive duplicate Capacitor network callbacks with the
+  same connectivity and transport state, preventing observation uploads from
+  producing a self-sustaining network-event loop.
+- Preserve real offline, cellular, and Wi-Fi transitions in their native
+  order.
+
+#### Verification
+
+- TypeScript/Vite Android production build and Capacitor sync pass.
+- The physical-device foreground run kept network history at one snapshot
+  while motion advanced from 8 to 20 samples over 35 seconds.
+- A real Wi-Fi disable/enable cycle still produced the complete
+  `wifi -> none -> cellular -> wifi` transition sequence.
+- Foreground location, notification delivery and interaction, lifecycle
+  background/resume, stationary motion, and haptic behavior were inspected
+  directly without admitting observations into Scarlet's cognition.
+
 ### V1.58.0 - Device Exploration Layer
 
 #### Added
