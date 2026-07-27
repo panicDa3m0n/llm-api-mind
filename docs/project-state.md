@@ -1,8 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-27
-App target: V1.60.1 deployed for autonomous field observation; V1.50.1 remains
-the closed-Core release baseline
+App target: V1.61.0 development; V1.60.1 deployed for autonomous field
+observation; V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -114,8 +114,12 @@ Implemented and verified:
   ordered per-block receipts that separate eligibility from delivery;
 - a V1.60 autonomous cognition lifecycle with one profile-scoped internal
   session, persisted scheduled activations, human-turn deferral and cooperative
-  mid-cycle yield, streaming model/tool evidence, compact organ/context
-  orientation, and a configurable 600-second observation cadence;
+  mid-cycle yield, streaming model/tool evidence, and a configurable
+  600-second observation cadence;
+- V1.61 routes human and autonomous turns through the same
+  `scarlet-model-context-v2`, automatic retrieval/rerank, organ projection,
+  static policy, and shell while retaining separate provider histories and
+  deterministic source provenance;
 - an append-only perception inbox with compact channel availability and
   `perception status|open|read`; no native device source is admitted yet;
 - a Product Chat header surface that replays each autonomous cycle as notes,
@@ -144,6 +148,11 @@ Implemented and verified:
 
 Current verification baseline:
 
+- V1.61.0 shared lifecycle context: 41 focused context/autonomy/shell/time
+  tests and all 36 Mind API tests pass; Ruff is clean and blocking typed
+  context/serialization surfaces pass mypy. A deterministic autonomous cycle
+  retrieves a real human-source memory through the common reranker, and shell
+  inspection identifies autonomous session/memory provenance;
 - V1.60.1 production autonomy: protected backup and copied-DB migration canary
   passed; deployed commit `0b37f7e8767adf16059e6c19291debff6eaa3779`
   reports version 1.60.1, production/direct database ownership, 34 tables, and
@@ -389,7 +398,7 @@ Current limits:
 | Organ | Code state | Default/runtime state | Evidence | Current limit |
 |---|---|---|---|---|
 | Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus V1.40 natural lifecycle and controls | 6/6 technical passes; automatic focus creation remains deliberately unimplemented |
-| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; due/open hints enter autonomous context but not normal chat automatically | complete shell lifecycle plus V1.40 separate-session continuity and ownership controls | autonomous choice and long-term review quality remain behaviorally unvalidated |
+| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; manually navigable through the same shell in both lifecycles, not automatically injected into V2 | complete shell lifecycle plus V1.40 separate-session continuity and ownership controls | autonomous choice and long-term review quality remain behaviorally unvalidated |
 | Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | `shadow` default; controlled `model` mode available | deterministic contracts plus V1.40 model/shadow/neutral transitions | 10/10 post-fix technical passes; model mode has not yet shown clear qualitative benefit over shadow |
 | Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding plus V1.40 broad-claim and direct-answer controls | 4/4 invocation controls passed; positive review can still overprocess and write low-value lessons |
 | Temporal experience | Registry/config reservation only | `off` | manifest tests only | no computation, persistence, shell, or behavioral experiment |
@@ -430,13 +439,13 @@ product opportunity, not an unfinished Core acceptance criterion.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype plus a readiness-driven natural-speed half greeting, locally persistent fake Login, bottom-dock navigation, semantic event-bubble Chat, inspectable fixture JSON, extended Memory layout, and grouped Settings flow | review event narration and remaining screens, then integrate V2 projection, real auth, memory/privacy management, prompt preferences and session lifecycle |
-| Perception and context | L4 | Shared human-turn V2 packet plus V1.60 compact autonomous context, append-only perception inbox, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | admit and evaluate one bounded real source without collapsing device evidence into Scarlet first-person perception |
+| Perception and context | L4 | One shared human/autonomous V2 packet, separate source-labelled histories, append-only external perception inbox, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | admit and evaluate one bounded real source without collapsing device evidence into Scarlet first-person perception |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
 | Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
 | Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
-| Decision autonomy | L3 | Model-controlled shell, volition register, answer obligations, bounded mode selection, and persisted periodic internal cycles | evaluate real-cycle choices and design initiative/action receipts before any external delivery |
+| Decision autonomy | L3/L4 | Model-controlled shell, volition register, answer obligations, bounded mode selection, persisted periodic internal cycles, and shared V2/retrieval continuity | evaluate longitudinal real-cycle choices and design initiative/action receipts before any external delivery |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |

@@ -39,7 +39,11 @@ because failed actions and capability inspection can add obligations.
 
 `context.runtime_context` contains the canonical `scarlet-model-context-v2` JSON inside `<runtime_context>`. Do not expect `context.model_context`.
 
-Use `session.now` as the only clock, `previous_sessions` as episodic hints, `memories.*` as compact hooks, and `preserved_context` only for enabled organ blocks.
+Use `session.now` as the only clock. Treat `previous_sessions`,
+`autonomous_session`, and `memories.*` as navigable hints. `source_origin`
+distinguishes human dialogue from autonomous cognition; never attribute
+autonomous work to the user. Use `social_day_boundary` for natural late-night
+phrasing without changing exact timestamps.
 
 Automatic hints omit facts, KG detail, lifecycle, conflicts, diagnostics, and full transcripts. Empty hints do not prove persistent-data absence.
 

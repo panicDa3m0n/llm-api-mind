@@ -18,6 +18,7 @@ from app.storage.models import (
 
 
 AUTONOMOUS_SESSION_KIND = "scarlet_autonomous"
+ARCHIVED_AUTONOMOUS_SESSION_KIND = "scarlet_autonomous_archive"
 HUMAN_SESSION_KIND = "human_dialogue"
 
 
@@ -64,6 +65,53 @@ def get_autonomous_session(
         ChatSession.autonomy_key == f"scarlet-autonomous:{profile_id}"
     )
     return db.exec(statement).first()
+
+
+def archive_autonomous_session(
+    db: Session,
+    *,
+    profile_id: str,
+    expected_session_id: str,
+    reason: str,
+    archived_at: datetime | None = None,
+) -> ChatSession:
+    """Detach the active chronology while preserving its canonical evidence."""
+
+    current = get_autonomous_session(db, profile_id=profile_id)
+    if current is None:
+        raise ValueError(f"No active autonomous session for profile: {profile_id}")
+    if current.id != expected_session_id:
+        raise ValueError(
+            "Active autonomous session changed: "
+            f"expected {expected_session_id}, received {current.id}."
+        )
+
+    timestamp = archived_at or utc_now()
+    current.kind = ARCHIVED_AUTONOMOUS_SESSION_KIND
+    current.autonomy_key = f"scarlet-autonomous-archive:{profile_id}:{current.id}"
+    current.updated_at = timestamp
+    current.metadata_json = {
+        **current.metadata_json,
+        "archived_at": timestamp.isoformat(),
+        "archive_reason": reason,
+        "visibility": "archived_internal_cognition",
+    }
+    db.add(current)
+    db.exec(
+        update(AutonomousActivation)
+        .where(AutonomousActivation.session_id == current.id)
+        .where(AutonomousActivation.status.in_(["pending", "running"]))
+        .values(
+            status="cancelled",
+            completed_at=timestamp,
+            lease_expires_at=None,
+            updated_at=timestamp,
+            error_json={"reason": "autonomous_chronology_archived"},
+        )
+    )
+    db.commit()
+    db.refresh(current)
+    return current
 
 
 def schedule_autonomous_activation(
@@ -232,6 +280,7 @@ def list_autonomous_activations(
     db: Session,
     *,
     profile_id: str | None = None,
+    session_id: str | None = None,
     status: str | None = None,
     limit: int = 20,
     offset: int = 0,
@@ -241,6 +290,8 @@ def list_autonomous_activations(
         statement = statement.where(
             AutonomousActivation.profile_id == profile_id
         )
+    if session_id is not None:
+        statement = statement.where(AutonomousActivation.session_id == session_id)
     if status is not None:
         statement = statement.where(AutonomousActivation.status == status)
     statement = (

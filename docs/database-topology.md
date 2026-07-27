@@ -209,6 +209,13 @@ For every deployment:
    `database.role=production` and `database.isolation=direct`.
 6. Never seed, reset, or run `codex_test_memory_harness.py` on the VPS.
 
+An explicit owner-requested autonomous chronology restart is not a database
+seed or a broad reset. Use only the guarded
+`python -m app.ops.reset_autonomous_chronology` command after a fresh online
+backup and copied-DB dry-run/apply canary. The command archives the current
+autonomous session and preserves all canonical evidence; it must never delete
+human sessions, semantic memory, perception, or backend maintenance records.
+
 The Dockerfile's `.dockerignore` already excludes `data/`, but that only
 protects image construction. The transfer exclusion and remote backup are
 separate mandatory safeguards because the compose service binds the remote

@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-27.autonomous-perception-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-27.autonomous-perception-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-27.unified-lifecycle-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-27.unified-lifecycle-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -166,8 +166,8 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
     {
         "namespace": "perception",
         "purpose": (
-            "Inspect available sensory channels and open source-labelled "
-            "observations without mutating the append-only ledger."
+            "Inspect external observation channels and open source-labelled "
+            "evidence. Autonomous cognition remains in session history."
         ),
         "commands": [
             "perception status",

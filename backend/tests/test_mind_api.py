@@ -273,7 +273,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "intent",
     ]
     assert body["result"]["schema_version"] == (
-        "2026-07-27.autonomous-perception-v1"
+        "2026-07-27.unified-lifecycle-v1"
     )
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]

@@ -1222,6 +1222,8 @@ def _get_or_create_bridge_session(
         db,
         title=request.title or "GPT Bridge Chat",
         metadata=metadata,
+        kind="human_dialogue",
+        profile_id=load_runtime_preferences(db, settings).profile_id,
     )
     schedule_summary_repairs(
         db,

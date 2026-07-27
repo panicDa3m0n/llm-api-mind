@@ -4,15 +4,25 @@ import json
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 from app.api.chat_provider_history import valid_content_blocks
 from app.llm.provider import LLMTextResult
 from app.runtime.events import event_payload
+from app.runtime.time import utc_isoformat
 from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
 
 
-class ChatSessionResponse(BaseModel):
+class UTCResponseModel(BaseModel):
+    @field_serializer("created_at", "updated_at", check_fields=False)
+    def serialize_timestamp(self, value: datetime) -> str:
+        serialized = utc_isoformat(value)
+        if serialized is None:
+            raise ValueError("Response timestamp cannot be null")
+        return serialized
+
+
+class ChatSessionResponse(UTCResponseModel):
     id: str
     title: str | None
     kind: str
@@ -22,7 +32,7 @@ class ChatSessionResponse(BaseModel):
     metadata: dict[str, Any]
 
 
-class ChatMessageResponse(BaseModel):
+class ChatMessageResponse(UTCResponseModel):
     id: str
     session_id: str
     turn_id: str | None
@@ -32,7 +42,7 @@ class ChatMessageResponse(BaseModel):
     metadata: dict[str, Any]
 
 
-class ChatTurnResponse(BaseModel):
+class ChatTurnResponse(UTCResponseModel):
     session: ChatSessionResponse
     turn_id: str
     status: str
@@ -44,7 +54,7 @@ class ChatTurnResponse(BaseModel):
     usage: dict[str, Any]
 
 
-class TraceResponse(BaseModel):
+class TraceResponse(UTCResponseModel):
     id: str
     session_id: str
     turn_id: str | None
@@ -53,7 +63,7 @@ class TraceResponse(BaseModel):
     created_at: datetime
 
 
-class EventResponse(BaseModel):
+class EventResponse(UTCResponseModel):
     id: str
     session_id: str
     turn_id: str | None

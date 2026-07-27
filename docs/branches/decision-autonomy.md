@@ -1,8 +1,9 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-07-18
-System version assessed: V1.43.0 (deployed; branch behavior unchanged)
-Status: volition continuity works when invoked; autonomous persistence remains variable
+Last updated: 2026-07-27
+System version assessed: V1.61.0 development target
+Status: periodic internal cognition implemented and production-observed;
+shared lifecycle context verified
 
 ## Filosofia del ramo
 
@@ -33,15 +34,17 @@ deragliare.
 
 ## Stato attuale
 
-Valutazione: L2/L3.
+Valutazione: L3/L4.
 
-Scarlet ha autonomia guidata da prompt e tool disponibili. Il registro
-volitivo aggiunge una prima forma di direzione interna tracciabile:
-`POST /mind/volition` gestisce intenzioni latenti e V1.21.0 aggiunge
-`list_due` per future code di cicli autonomi. Non esiste ancora esecuzione
-autonoma dei cicli.
+Scarlet possiede una sessione autonoma persistente, attivazioni periodiche,
+priorita ai turni umani, note/tool/thinking/checkpoint ispezionabili e accesso
+agli stessi organi delle conversazioni. V1.61 elimina il runtime context
+autonomo parallelo: la cronologia interna resta separata, ma compiler V2,
+retrieve/rerank, memorie, sessioni, focus, volition, affect, prompt e shell sono
+gli stessi del turno umano. Ogni dato dichiara la provenienza per evitare di
+attribuire all'utente un'elaborazione nata nei cicli interni.
 
-Sistema valutato: V1.32.0.
+Sistema valutato: V1.61.0.
 
 ## Sviluppi precedenti
 
@@ -120,6 +123,22 @@ human turns. Prompt policy now gives a positive selection rule for exploratory
 posture without treating missing sensors as a reason to force idle. This is
 bounded posture autonomy, not autonomous execution; the next decision gate is
 risk, authorization, reversibility, and action receipts.
+
+## Verifica V1.61.0
+
+Il ciclo autonomo deterministico usa il retriever/reranker automatico comune e
+recupera una memoria nata in una sessione umana, preservando
+`source_origin=human_interaction`. Nei turni umani il V2 include sempre la
+sessione autonoma come hint compatto e apribile; `session open` dichiara
+`kind=scarlet_autonomous`, mentre una memoria nata in un ciclo interno espone
+trigger, attore, ruolo messaggio e `source_origin=autonomous_cognition`.
+
+I provider history non vengono fusi: questa separazione impedisce
+contaminazione di transcript, mentre il contratto comune impedisce che Scarlet
+diventi un individuo diverso tra dialogo e cognizione interna. Le prove
+focalizzate passano 41/41, Mind API 36/36 e Ruff e pulito. Resta da osservare
+longitudinalmente il comportamento reale dopo il prossimo deploy; nessuna
+azione esterna o iniziativa verso l'utente viene introdotta da questo lavoro.
 
 ## Evolutive
 

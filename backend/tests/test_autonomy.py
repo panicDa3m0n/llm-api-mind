@@ -12,6 +12,7 @@ from app.llm.provider import (
     LLMToolUse,
 )
 from app.mind.contracts import MindAPIContext
+from app.mind.relevance_rerank import MemoryRerankEntry, MemoryRerankPlan
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.runtime.autonomy import (
     run_autonomous_activation,
@@ -192,6 +193,79 @@ def test_scheduler_creates_one_exclusive_session_and_waits_for_interval(
         assert delta == timedelta(seconds=600)
 
 
+def test_archived_autonomous_chronology_is_preserved_but_not_listed_as_active(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    settings = _settings()
+    now = utc_now()
+    with Session(db_engine) as db:
+        original = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+        )
+        completed = repositories.schedule_autonomous_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=original.id,
+            scheduled_at=now - timedelta(minutes=10),
+            schedule_key="archive-completed",
+        )
+        repositories.complete_autonomous_activation(
+            db,
+            activation_id=completed.id,
+            status="completed",
+            turn_id=None,
+            active_mode="idle",
+        )
+        pending = repositories.schedule_autonomous_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=original.id,
+            scheduled_at=now + timedelta(minutes=10),
+            schedule_key="archive-pending",
+        )
+
+        archived = repositories.archive_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+            expected_session_id=original.id,
+            reason="test_reset",
+            archived_at=now,
+        )
+        replacement = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+        )
+        next_activation = repositories.ensure_next_periodic_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=replacement.id,
+            interval_seconds=600,
+            from_time=now,
+        )
+
+        assert archived.kind == "scarlet_autonomous_archive"
+        assert archived.autonomy_key.endswith(original.id)
+        assert replacement.id != original.id
+        assert replacement.provider_history_json == []
+        assert db.get(type(pending), pending.id).status == "cancelled"
+        active_rows = repositories.list_autonomous_activations(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=replacement.id,
+            limit=10,
+        )
+        assert [item.id for item in active_rows] == [next_activation.id]
+        archived_rows = repositories.list_autonomous_activations(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=archived.id,
+            limit=10,
+        )
+        assert {item.id for item in archived_rows} == {completed.id, pending.id}
+
+
 def test_autonomous_cycle_persists_private_chronology_and_tool_actions(
     db_engine: Engine,
 ) -> None:
@@ -261,12 +335,125 @@ def test_autonomous_cycle_persists_private_chronology_and_tool_actions(
             "assistant",
         ]
 
-    assert "<autonomous_runtime_context>" in (
-        FakeAutonomyProvider.seen_systems[-1] or ""
+    delivered_system = FakeAutonomyProvider.seen_systems[-1] or ""
+    assert "<runtime_context>" in delivered_system
+    assert "<autonomous_runtime_context>" not in delivered_system
+    assert '"schema_version": "scarlet-model-context-v2"' in delivered_system
+    assert '"origin": "autonomous_cognition"' in delivered_system
+    assert '"session_kind": "scarlet_autonomous"' in delivered_system
+
+
+def test_autonomous_cycle_uses_shared_memory_rerank_with_human_continuity(
+    db_engine: Engine,
+    monkeypatch,
+) -> None:
+    init_db(db_engine)
+    settings = _settings().model_copy(
+        update={"retrieval_hybrid_mode": "active"}
     )
-    assert '"is_human_message": false' in (
-        FakeAutonomyProvider.seen_systems[-1] or ""
+    now = utc_now()
+    with Session(db_engine) as db:
+        human = repositories.create_chat_session(
+            db,
+            title="Musica serale",
+            profile_id=settings.user_profile_id,
+        )
+        human_turn = repositories.create_turn(
+            db,
+            session_id=human.id,
+            model="test",
+        )
+        source = repositories.add_message(
+            db,
+            session_id=human.id,
+            turn_id=human_turn.id,
+            role="user",
+            content="La sera ascolto spesso jazz mentre preparo la cena.",
+        )
+        repositories.add_message(
+            db,
+            session_id=human.id,
+            turn_id=human_turn.id,
+            role="assistant",
+            content="È un rituale serale che ti accompagna volentieri.",
+        )
+        repositories.complete_turn(db, turn_id=human_turn.id)
+        memory = repositories.add_memory(
+            db,
+            memory_type="user_preference",
+            scope="user",
+            content="L'utente ascolta spesso jazz mentre prepara la cena.",
+            reason_for_storage="Continuity fixture",
+            source_session_id=human.id,
+            source_turn_id=human_turn.id,
+            source_message_id=source.id,
+        )
+        memory_id = memory.id
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+        )
+        activation = repositories.schedule_autonomous_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=autonomous.id,
+            scheduled_at=now,
+            trigger_kind="manual_lab",
+            schedule_key="test-autonomy-shared-retrieval",
+        )
+
+    def accept_first_candidate(*, query, candidates, settings, selected_limit):
+        assert "jazz" in query.casefold()
+        assert candidates
+        entries = [
+            MemoryRerankEntry(
+                memory=item.memory,
+                memory_id=item.memory.id,
+                score=0.9 if item.memory.id == memory_id else 0.1,
+                rank=1 if item.memory.id == memory_id else None,
+                accepted=item.memory.id == memory_id,
+                evaluated=True,
+                routes=item.routes,
+                route_ranks=item.route_ranks,
+            )
+            for item in candidates
+        ]
+        return MemoryRerankPlan(
+            status={
+                "mode": "active",
+                "active": True,
+                "ok": True,
+                "status": "completed",
+            },
+            entries=entries,
+        )
+
+    monkeypatch.setattr(
+        "app.mind.context_retrieval.run_memory_relevance_rerank",
+        accept_first_candidate,
     )
+    result = run_autonomous_activation(
+        db_engine,
+        settings=settings,
+        provider_factory=FakeAutonomyProvider,
+        activation_id=activation.id,
+        now=now,
+    )
+
+    assert result["status"] == "completed"
+    delivered_system = FakeAutonomyProvider.seen_systems[-1] or ""
+    assert "L'utente ascolta spesso jazz mentre prepara la cena." in delivered_system
+    assert '"source_origin": "human_interaction"' in delivered_system
+    with Session(db_engine) as db:
+        trace = next(
+            item
+            for item in repositories.list_traces_for_turn(
+                db,
+                turn_id=result["turn_id"],
+            )
+            if item.kind == "memory.context"
+        )
+    assert [item["id"] for item in trace.payload_json["selected"]] == [memory_id]
 
 
 def test_started_autonomous_cycle_yields_when_human_turn_takes_priority(
@@ -397,6 +584,8 @@ def test_perception_is_an_availability_index_with_session_cursor(
         context=context,
     )
     assert status.ok is True
+    assert status.result["data"]["scope"] == "external_observation_channels"
+    assert "autonomous_cognition" in status.result["data"]["excludes"]
     assert status.result["data"]["channels"][0]["unseen_count"] == 1
 
     opened = dispatch_mind_shell(

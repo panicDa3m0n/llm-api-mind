@@ -6,6 +6,7 @@ from sqlmodel import Session
 from app.llm.provider import LLMExecutedToolCall, LLMStreamEvent
 from app.storage import repositories
 from app.storage.models import CognitiveEvent
+from app.runtime.time import utc_isoformat
 
 
 STREAM_EVENT_TYPE_MAP = {
@@ -289,7 +290,7 @@ def event_payload(event: CognitiveEvent) -> dict[str, Any]:
         "tool_call_id": event.tool_call_id,
         "message_id": event.message_id,
         "payload": event.payload_json,
-        "created_at": event.created_at.isoformat(),
+        "created_at": utc_isoformat(event.created_at),
     }
 
 
@@ -301,7 +302,7 @@ def compact_event_for_context(event: CognitiveEvent) -> dict[str, Any]:
         "actor": event.actor,
         "status": event.status,
         "visibility": event.visibility,
-        "created_at": event.created_at.isoformat(),
+        "created_at": utc_isoformat(event.created_at),
     }
     for key in (
         "operation",

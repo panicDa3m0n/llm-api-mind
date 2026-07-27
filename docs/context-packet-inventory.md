@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-18
-Code baseline reviewed: V1.50.0
+Last reviewed: 2026-07-27
+Code baseline reviewed: V1.61.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -27,6 +27,11 @@ ownership without changing any automatic or manual model packet shape in this
 inventory. Maintenance jobs, proposal internals, and their diagnostic evidence
 remain backend/trace concerns unless a resulting active memory later qualifies
 for normal context delivery.
+
+V1.61.0 applies this same V2 document to human and autonomous turns. Their
+provider-native histories stay separate, while `turn_origin`, the compact
+autonomous-session hint, and memory source labels make both continuity layers
+navigable without attribution drift.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
@@ -104,8 +109,9 @@ The active `model_context_profile=v2` sends one dynamic document:
 
 | Area | Model-facing data | System-only data |
 |---|---|---|
-| session | current session id/title/created time, user name, active/resumable agent mode, one user-local clock/timezone/location, two previous-session hints | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
-| memories | deduplicated relevant/recent-user/recent-general hooks with id/content/times/source session+message | facts, scores, KG, lifecycle, near misses, exclusions, query plans, maintenance |
+| turn origin | source-labelled current session/turn/message lifecycle | scheduler lease, retry state, transport internals |
+| session | current session id/title/created time, user name, active/resumable agent mode, one user-local clock/timezone/location, two previous-human-session hints, one compact autonomous-session hint | profile id/privacy, raw metadata, storage/update clocks, summary diagnostics |
+| memories | deduplicated relevant/recent-user/recent-general hooks with id/content/times/source session/turn/message and compact origin labels | facts, scores, KG, lifecycle, near misses, exclusions, query plans, maintenance |
 | preserved context | compact allowlisted focus, affect, or metacognitive fields when enabled | Scarlet state, duplicate dialogue, generic events, capability catalogs, organ diagnostics, and full rich runtime |
 
 The exact JSON is stored in `model.context`. Native MiniMax receives its

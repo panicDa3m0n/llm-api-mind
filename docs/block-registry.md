@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-26
-System version assessed: V1.57.0 development target over the V1.50.1 Core
+Last updated: 2026-07-27
+System version assessed: V1.61.0 development target over the V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -37,6 +37,16 @@ in a `model.context` trace.
 
 ```json
 {
+  "turn_origin": {
+    "origin": "human_interaction",
+    "session_id": "ses_...",
+    "session_kind": "human_dialogue",
+    "turn_id": "turn_...",
+    "turn_trigger": "human_message",
+    "turn_actor": "user",
+    "message_id": "msg_...",
+    "message_role": "user"
+  },
   "current_session": {
     "id": "ses_...",
     "title": "...",
@@ -54,7 +64,8 @@ in a `model.context` trace.
   "timezone": {
     "id": "Europe/Rome",
     "name": "CEST",
-    "utc_offset": "+02:00"
+    "utc_offset": "+02:00",
+    "social_day_boundary": "05:00"
   },
   "location": "Italia",
   "previous_sessions": [
@@ -64,13 +75,23 @@ in a `model.context` trace.
       "turn_count": 12,
       "summary": "..."
     }
-  ]
+  ],
+  "autonomous_session": {
+    "id": "ses_...",
+    "kind": "scarlet_autonomous",
+    "last_activity_at": "...",
+    "turn_count": 8,
+    "latest_checkpoint": "..."
+  }
 }
 ```
 
 Model-facing fields are intentionally minimal. Profile id, privacy scope,
 storage timestamps, raw session metadata, summary diagnostics, and maintenance
-timestamps remain systemic.
+timestamps remain systemic. Human and autonomous turns receive this same V2
+shape. Provider histories remain separate; `turn_origin` classifies the
+current lifecycle and the autonomous-session hint makes internal chronology
+navigable from human dialogue.
 
 ### 2.2 Memory Area
 
@@ -91,13 +112,22 @@ Each hook contains exactly:
   "created_at": "...",
   "updated_at": "...",
   "source_session_id": "ses_...",
-  "source_message_id": "msg_..."
+  "source_session_kind": "human_dialogue",
+  "source_turn_id": "turn_...",
+  "source_turn_trigger": "human_message",
+  "source_turn_actor": "user",
+  "source_message_id": "msg_...",
+  "source_message_role": "user",
+  "source_provenance_status": "complete",
+  "source_origin": "human_interaction"
 }
 ```
 
 The lists are deduplicated in priority order. Facts, scores, KG paths,
 classifications, lifecycle diagnostics, reason/future-use fields, near misses,
-excluded candidates, and raw provenance are not opened automatically.
+and excluded candidates are not opened automatically. Source ids and compact
+origin labels are model-facing because they distinguish human dialogue from
+autonomous cognition and support exact navigation.
 
 ### 2.3 Preserved Context
 

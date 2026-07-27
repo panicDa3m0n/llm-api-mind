@@ -6,6 +6,47 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.61.0 - Unified Human And Autonomous Cognition
+
+#### Changed
+
+- Route scheduled cognition through the same `scarlet-model-context-v2`,
+  automatic retrieval/rerank, organ projection, static prompt, and
+  `mind_shell` used by interactive turns.
+- Preserve separate provider chronologies while adding deterministic
+  `human_interaction` and `autonomous_cognition` provenance to current turns,
+  automatic memory hints, and shell results.
+- Include the autonomous chronology as a compact navigable session hint during
+  human interaction, and include normal human continuity during autonomous
+  activations.
+- Clarify that `perception` covers external observations rather than internal
+  cognition, session history, or semantic memory.
+- Serialize API and stream instants as UTC RFC 3339 with `Z`, retain
+  user-local model time with historical DST, and declare a 05:00 social-day
+  boundary.
+- Add a guarded archival reset for the active autonomous chronology. It
+  preserves prior cycles as canonical evidence, cancels only unfinished
+  activations from the archived chronology, starts an empty active session,
+  and keeps consumer history scoped to that current session.
+
+#### Compatibility
+
+- Human sessions retain their existing execution path and continue to force
+  `interactive`; autonomous turns alone preserve the resumable `idle` or
+  `scouting` posture.
+- No production data migration is required. Existing single-user sessions
+  remain discoverable across legacy technical profile ids without weakening
+  future private-profile filtering.
+
+#### Verification
+
+- Focused V2/autonomy/shell/time suite: 42 passed.
+- Full Mind API test file: 36 passed.
+- Ruff and blocking typed context/serialization mypy checks passed.
+- A deterministic autonomous cycle selected an expected human-source memory
+  through the common reranker; shell inspection verified session kind and
+  source provenance.
+
 ### V1.60.1 - Fresh Human-Turn Foreground Guard
 
 #### Fixed

@@ -11,7 +11,8 @@ rewritten.
 
 ## EXP-0084 - Autonomous Activation Lifecycle And Internal History
 
-Status: deterministic, isolated-live, and first production V1.60.1 evidence accepted
+Status: deterministic, isolated-live, first production V1.60.1 evidence, and
+V1.61 shared-context convergence accepted
 
 Hypothesis:
 
@@ -37,6 +38,16 @@ Method:
   routing.
 
 Result:
+
+V1.61 removes the autonomous-specific context projection while preserving the
+exclusive chronology and activation ledger. A deterministic cycle used the
+same automatic retrieval/rerank function as human chat and selected the
+expected human-source jazz memory from the database. The delivered V2 marked
+that memory `human_interaction`; a separate shell probe marked an
+autonomous-source memory `autonomous_cognition` with session kind, trigger,
+actor, and message role. The focused common-context suite passed 41/41 and all
+36 Mind API tests passed. A natural production run remains the next
+longitudinal attribution check, not a condition for the deterministic contract.
 
 The deterministic cycle reuses one `scarlet_autonomous` session, persists its
 private chronology and tool evidence, and schedules the next activation

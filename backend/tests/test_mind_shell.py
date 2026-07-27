@@ -222,6 +222,71 @@ def test_mind_shell_opens_source_message_and_public_turn_bundle(
     assert all("payload" not in trace for trace in data["trace_references"])
 
 
+def test_shell_exposes_autonomous_session_and_memory_provenance(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id="local-user",
+        )
+        turn = repositories.create_turn(
+            db,
+            session_id=autonomous.id,
+            model="MiniMax-M3",
+            trigger_kind="autonomous_activation",
+            actor="scarlet",
+        )
+        source = repositories.add_message(
+            db,
+            session_id=autonomous.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Ho collegato il rituale jazz alla preparazione della cena.",
+        )
+        memory = repositories.add_memory(
+            db,
+            memory_type="task_context",
+            scope="general",
+            content="Il rituale jazz è stato elaborato durante una cognizione autonoma.",
+            reason_for_storage="Verificare la provenienza autonoma.",
+            source_session_id=autonomous.id,
+            source_turn_id=turn.id,
+            source_message_id=source.id,
+        )
+        repositories.complete_turn(db, turn_id=turn.id)
+        human = repositories.create_chat_session(db, title="Human shell")
+        autonomous_id = autonomous.id
+        human_id = human.id
+        memory_id = memory.id
+
+    context = _context(db_engine, session_id=human_id)
+    opened = dispatch_mind_shell(
+        MindShellRequest(command=f"session open {autonomous_id}"),
+        context=context,
+    )
+    assert opened.ok is True
+    assert opened.result["data"]["session"]["kind"] == "scarlet_autonomous"
+
+    searched = dispatch_mind_shell(
+        MindShellRequest(command='memory search "rituale jazz cognizione autonoma"'),
+        context=context,
+    )
+    assert searched.ok is True
+    found = next(
+        item
+        for item in searched.result["data"]["memories"]
+        if item["id"] == memory_id
+    )
+    assert found["source"]["source_session_kind"] == "scarlet_autonomous"
+    assert found["source"]["source_turn_trigger"] == "autonomous_activation"
+    assert found["source"]["source_turn_actor"] == "scarlet"
+    assert found["source"]["source_message_role"] == "assistant"
+    assert found["source"]["source_provenance_status"] == "complete"
+    assert found["source"]["source_origin"] == "autonomous_cognition"
+
+
 def test_mind_shell_memory_write_and_search_use_command_arguments(
     db_engine: Engine,
 ) -> None:

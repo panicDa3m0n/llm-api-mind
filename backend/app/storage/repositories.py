@@ -19,8 +19,10 @@ from app.storage.repository.history import (
     list_history_compactions,
 )
 from app.storage.repository.autonomy import (
+    ARCHIVED_AUTONOMOUS_SESSION_KIND,
     AUTONOMOUS_SESSION_KIND,
     HUMAN_SESSION_KIND,
+    archive_autonomous_session,
     claim_autonomous_activation,
     complete_autonomous_activation,
     ensure_next_periodic_activation,
@@ -152,6 +154,7 @@ from app.storage.repository.sessions import (
 __all__ = [
     "ACTIVE_AFFECT_STATUSES",
     "ACTIVE_FOCUS_STATUSES",
+    "ARCHIVED_AUTONOMOUS_SESSION_KIND",
     "AUTONOMOUS_SESSION_KIND",
     "HUMAN_SESSION_KIND",
     "OPEN_INTENTION_STATUSES",
@@ -169,6 +172,7 @@ __all__ = [
     "add_tool_call",
     "add_trace",
     "archive_memory_proposal",
+    "archive_autonomous_session",
     "close_focus_record",
     "close_intention_record",
     "claim_autonomous_activation",

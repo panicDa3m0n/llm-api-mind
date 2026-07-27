@@ -1,9 +1,9 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Status: Core V1 context active; V1.59 semantic family routing shadow;
-V1.60 autonomous context active
-App baseline: V1.50.1 release-accepted; V1.60.0 development target
+V1.61 shared human/autonomous V2 active
+App baseline: V1.50.1 release-accepted; V1.61.0 development target
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -290,28 +290,27 @@ New agent modes or mode-tag enforcement require branch-specific behavioral
 scenarios. Native notification collection, continuous sensors, motor actions,
 Dream, and maintenance-mode concepts remain outside V1.60.0.
 
-## Autonomous Context Pack
+## Shared Human And Autonomous Context
 
-V1.60.0 introduces `scarlet-autonomous-context-v1` for a scheduled internal
-activation. It is not the human-turn V2 packet and it is not a maintenance
-payload.
+V1.61.0 retires the separate `scarlet-autonomous-context-v1` projection.
+Every model turn now receives the common `scarlet-model-context-v2`. The
+interactive path remains the behavioral baseline; autonomous activation calls
+the same compiler, automatic memory retrieval/rerank, organ projection,
+context-family audit, static prompt, and `mind_shell`.
 
-Automatic model-facing fields:
+The only lifecycle-specific model datum is source provenance. Current turns
+carry `turn_origin`; memory hooks and shell results carry source session,
+turn, message, session kind, trigger, actor, message role, and classified
+origin. `human_interaction` and `autonomous_cognition` therefore remain
+distinguishable without duplicating contracts.
 
-- activation id, trigger, schedule/start time, and non-human nature;
-- exclusive autonomous-session identity and compact human-session hooks;
-- recent relevant, user, and general memory hooks;
-- focus, open and due intentions, and affect;
-- active `idle|scouting` mode;
-- compact perception availability entries; and
-- the cycle's allowed, forbidden, tool-note, and completion contract.
+Provider-native histories remain physically separate. Human sessions preserve
+their own dialogue; one `scarlet_autonomous` session preserves all internal
+cycles. The common session packet places a compact navigable autonomous-session
+hint beside the two human `previous_sessions`, while an autonomous activation
+receives the same human session hints and common automatic memory blocks.
 
-System/trace-only fields include scheduler leases, retry state, rich candidate
-diagnostics, raw source payloads not opened by Scarlet, routing audits, and
-maintenance metadata. Exact event payloads enter model context only after
-Scarlet runs `perception open` or `perception read`.
-
-The autonomous context is intentionally a navigable map. It does not dump full
-human transcripts, memory graphs, or every queued perception event. Scarlet
-uses source ids and shell commands to triangulate detail when it could change
-the cycle.
+System/trace-only fields still include scheduler leases, retry state, rich
+candidate diagnostics, raw source payloads not opened by Scarlet, routing
+audits, and maintenance metadata. Perception remains an external-observation
+inbox and is not a second route to internal chronology.

@@ -12,12 +12,15 @@ import re
 import shlex
 from typing import Any
 
+from sqlmodel import Session
+
 from app.mind.command_registry import (
     COMMAND_REGISTRY_VERSION,
     canonical_command_namespace,
     validate_shell_command,
 )
 from app.mind.contracts import MindAPIContext
+from app.mind.context_provenance import project_source_provenance
 from app.mind.dispatcher import (
     MindAPIError,
     MindAPIRequest,
@@ -44,6 +47,7 @@ def dispatch_api_as_shell(
 
     api_response = dispatch_mind_api(api_request, context=context)
     sanitized_result = sanitize_for_shell(api_response.result)
+    sanitized_result = enrich_source_provenance(sanitized_result, context=context)
     model_data = model_facing_data(target, sanitized_result)
     return MindAPIResponse(
         ok=api_response.ok,
@@ -279,8 +283,16 @@ def compact_memory_payload(memory: dict[str, Any]) -> dict[str, Any]:
         "expected_future_use": memory.get("expected_future_use"),
         "source": {
             "source_session_id": memory.get("source_session_id"),
+            "source_session_kind": memory.get("source_session_kind"),
             "source_turn_id": memory.get("source_turn_id"),
+            "source_turn_trigger": memory.get("source_turn_trigger"),
+            "source_turn_actor": memory.get("source_turn_actor"),
             "source_message_id": memory.get("source_message_id"),
+            "source_message_role": memory.get("source_message_role"),
+            "source_provenance_status": memory.get(
+                "source_provenance_status"
+            ),
+            "source_origin": memory.get("source_origin"),
         },
         "score": memory.get("score"),
         "why_relevant": memory.get("why_relevant"),
@@ -291,6 +303,54 @@ def compact_memory_payload(memory: dict[str, Any]) -> dict[str, Any]:
         "last_used_at": memory.get("last_used_at"),
     }
     return {key: value for key, value in payload.items() if value not in (None, [], {})}
+
+
+def enrich_source_provenance(
+    value: Any,
+    *,
+    context: MindAPIContext | None,
+) -> Any:
+    """Add deterministic source labels without changing internal API payloads."""
+
+    if context is None or context.engine is None:
+        return value
+    cache: dict[tuple[str | None, str | None, str | None], dict[str, Any]] = {}
+
+    def visit(item: Any, db: Session) -> Any:
+        if isinstance(item, list):
+            return [visit(child, db) for child in item]
+        if not isinstance(item, dict):
+            return item
+        enriched = {key: visit(child, db) for key, child in item.items()}
+        source_key = (
+            _optional_string(item.get("source_session_id")),
+            _optional_string(item.get("source_turn_id")),
+            _optional_string(item.get("source_message_id")),
+        )
+        if not any(source_key):
+            return enriched
+        provenance = cache.get(source_key)
+        if provenance is None:
+            provenance = project_source_provenance(
+                db,
+                session_id=source_key[0],
+                turn_id=source_key[1],
+                message_id=source_key[2],
+            )
+            cache[source_key] = provenance
+        for key, child in provenance.items():
+            enriched.setdefault(key, child)
+        return enriched
+
+    with Session(context.engine) as db:
+        return visit(value, db)
+
+
+def _optional_string(value: Any) -> str | None:
+    if value is None:
+        return None
+    rendered = str(value).strip()
+    return rendered or None
 
 
 def compact_facts(value: Any) -> list[dict[str, Any]]:

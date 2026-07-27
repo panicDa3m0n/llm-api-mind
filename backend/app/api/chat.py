@@ -41,6 +41,7 @@ from app.llm.provider import (
 from app.runtime.maintenance import (
     schedule_summary_repairs,
 )
+from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.models import ChatSession
 
@@ -79,12 +80,13 @@ def build_chat_router(
     @router.post("/sessions", response_model=ChatSessionResponse)
     def create_session(request: ChatSessionCreate) -> ChatSessionResponse:
         with Session(engine) as db:
+            preferences = load_runtime_preferences(db, settings)
             chat_session = repositories.create_chat_session(
                 db,
                 title=request.title,
                 metadata=request.metadata,
                 kind="human_dialogue",
-                profile_id=settings.user_profile_id,
+                profile_id=preferences.profile_id,
             )
             schedule_summary_repairs(
                 db,

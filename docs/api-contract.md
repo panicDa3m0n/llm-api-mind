@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-26
-App target: V1.57.0; V1.50.1 remains release-accepted
+Last reviewed: 2026-07-27
+App target: V1.61.0; V1.60.1 remains deployed
 
 ## Response Philosophy
 
@@ -324,7 +324,8 @@ shell handler, enforces that only `idle` and `scouting` are resumable.
 
 ### Autonomous Cognition
 
-Status: implemented in V1.60.0; observation cadence active by configuration
+Status: implemented in V1.60.0; unified with the common cognitive runtime in
+V1.61.0; observation cadence active by configuration
 
 Autonomous cognition is a third lifecycle beside human turns and backend
 maintenance. One profile owns one session with `kind=scarlet_autonomous`.
@@ -359,15 +360,31 @@ freshness window. This prevents abandoned historical turns from disabling
 autonomous cognition forever while retaining a conservative six-hour boundary
 for genuinely long human work.
 
-The model receives `scarlet-autonomous-context-v1`, containing only:
+V1.61.0 removes the separate `scarlet-autonomous-context-v1` projection.
+Human and autonomous turns now compile the same
+`scarlet-model-context-v2`, use the same automatic retrieval/rerank pipeline,
+receive the same organ blocks and shell, and follow the same static Scarlet
+policy. The lifecycle distinction is deterministic metadata:
 
-- activation identity and user-local time;
-- the autonomous session plus compact latest-human-session hooks;
-- compact recent memory hooks;
-- current focus, open/due intentions, and affect;
-- the active `idle|scouting` posture;
-- a perception availability index; and
-- explicit autonomous allowed, forbidden, tool-note, and completion contracts.
+```txt
+turn_origin.origin = human_interaction | autonomous_cognition
+turn_origin.session_kind
+turn_origin.turn_trigger
+turn_origin.turn_actor
+```
+
+Human provider chronology remains in each human session. Autonomous provider
+chronology remains in the single `scarlet_autonomous` session. This is one
+individual with two source-labelled histories, not one mixed transcript and
+not two cognitive runtimes.
+
+Every human V2 session packet includes the autonomous session beside
+`previous_sessions`, with its id, kind, local last-activity time, turn count,
+and compact latest checkpoint. Scarlet can open that id with the ordinary
+session shell. Autonomous V2 packets receive the same recent human session
+hints. Memories exposed automatically or through the shell carry source
+session/turn/message ids plus origin, session kind, trigger, actor, and message
+role so autonomous work cannot be misattributed to the human.
 
 The autonomous provider chronology persists thinking, personal notes,
 `mind_shell` calls/results, and one internal checkpoint. These records have
@@ -384,9 +401,21 @@ POST /api/autonomy/run-now
 POST /api/autonomy/perception/events/batch
 ```
 
-`/history` groups activations with their messages, runtime events, and tool
-calls. Product UI reads this contract through the brain icon in the chat header
-and renders a read-only conversation-like internal chronology.
+`/overview` and `/history` list activations only for the current active
+autonomous session. `/history` groups those activations with their messages,
+runtime events, and tool calls. Product UI reads this contract through the
+brain icon in the chat header and renders a read-only conversation-like
+internal chronology.
+
+An owner-authorized chronology reset is archival, not destructive. The
+guarded `app.ops.reset_autonomous_chronology` command requires production
+database role, the exact active session id, an absolute pre-operation backup
+reference, `--apply`, and its approval token. It changes the old session kind
+to `scarlet_autonomous_archive`, detaches its unique active key, cancels only
+its pending/running activations, then creates an empty active autonomous
+session and schedules the next periodic wake. Archived messages, turns,
+events, traces, tools, activations, and provider history remain canonical and
+directly inspectable in the database.
 
 `/run-now` is a synchronous laboratory operation. It must not be treated as a
 consumer trigger or an external initiative API.
@@ -415,9 +444,17 @@ perception open <channel> --limit 10
 perception read <event_id>
 ```
 
-`status` does not count as inspection. `open` returns a bounded ordered batch
-and advances only the autonomous session's cursor. `read` inspects one exact
-event. No command deletes an event or changes its observation time.
+`status` does not count as inspection. It explicitly covers external
+observation channels and excludes autonomous chronology, session history, and
+semantic memory. `open` returns a bounded ordered batch and advances only the
+calling session's cursor. `read` inspects one exact event. No command deletes
+an event or changes its observation time.
+
+Model-facing local times always use the configured human timezone, including
+the historical DST offset for the event date. Transport-facing API and stream
+timestamps are unambiguous UTC RFC 3339 strings with `Z`. The V2 timezone
+packet declares `social_day_boundary=05:00`; this affects natural temporal
+phrasing, not stored timestamps or calendar dates.
 
 The batch ingestion API accepts one to 200 idempotent events with channel,
 event type, source, source event key, offset-aware observation time, payload,

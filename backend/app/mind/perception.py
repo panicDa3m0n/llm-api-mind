@@ -36,14 +36,21 @@ def handle_perception(
                 ok=True,
                 result={
                     "operation": "perception.status",
+                    "scope": "external_observation_channels",
+                    "excludes": [
+                        "autonomous_cognition",
+                        "session_history",
+                        "semantic_memory",
+                    ],
                     "profile_id": profile_id,
                     "channel_count": len(channels),
                     "channels": channels,
                     "intent": intent,
                 },
                 cognitive_hint=(
-                    "This is an availability index, not the sensory evidence "
-                    "itself. Open only channels useful to the current cognition."
+                    "This indexes external source-labelled observations only. "
+                    "It is not autonomous chronology, session history, or "
+                    "semantic memory. Open only channels useful now."
                 ),
                 suggested_next_actions=[
                     "perception open <channel> --limit 10",

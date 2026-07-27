@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-27
-App target: V1.60.1; V1.50.1 remains release-accepted
+App target: V1.61.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:

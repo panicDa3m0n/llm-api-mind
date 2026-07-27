@@ -7,6 +7,7 @@ from typing import Any
 from sqlmodel import Session
 
 from app.mind.context_contracts import CompactMemoryHint
+from app.mind.context_provenance import project_source_provenance
 from app.mind.context_time import render_user_time
 from app.storage import repositories
 from app.storage.models import MemoryRecord
@@ -103,6 +104,7 @@ def _project_records(
                 "created_at": memory.created_at,
                 "updated_at": memory.updated_at,
                 "source_session_id": memory.source_session_id,
+                "source_turn_id": memory.source_turn_id,
                 "source_message_id": memory.source_message_id,
             },
             timezone_id=timezone_id,
@@ -122,13 +124,31 @@ def _hint_from_values(
     *,
     timezone_id: str,
 ) -> CompactMemoryHint | None:
-    source_session_id = values.get("source_session_id")
-    source_message_id = values.get("source_message_id")
-    created_at = values.get("created_at")
-    updated_at = values.get("updated_at")
+    memory_id = values.get("id")
+    stored = (
+        repositories.get_memory(db, memory_id)
+        if isinstance(memory_id, str)
+        else None
+    )
+    source_session_id = values.get("source_session_id") or (
+        stored.source_session_id if stored is not None else None
+    )
+    source_turn_id = values.get("source_turn_id") or (
+        stored.source_turn_id if stored is not None else None
+    )
+    source_message_id = values.get("source_message_id") or (
+        stored.source_message_id if stored is not None else None
+    )
+    created_at = values.get("created_at") or (
+        stored.created_at if stored is not None else None
+    )
+    updated_at = values.get("updated_at") or (
+        stored.updated_at if stored is not None else None
+    )
     if not all(
         [
             isinstance(source_session_id, str),
+            isinstance(source_turn_id, str),
             isinstance(source_message_id, str),
             created_at is not None,
             updated_at is not None,
@@ -139,13 +159,27 @@ def _hint_from_values(
     if (
         source_message is None
         or source_message.session_id != source_session_id
+        or source_message.turn_id != source_turn_id
     ):
         return None
+    provenance = project_source_provenance(
+        db,
+        session_id=source_session_id,
+        turn_id=source_turn_id,
+        message_id=source_message_id,
+    )
     return CompactMemoryHint(
         id=str(values["id"]),
         content=str(values.get("content") or ""),
         created_at=render_user_time(created_at, timezone_id=timezone_id),
         updated_at=render_user_time(updated_at, timezone_id=timezone_id),
         source_session_id=source_session_id,
+        source_session_kind=provenance["source_session_kind"],
+        source_turn_id=source_turn_id,
+        source_turn_trigger=provenance["source_turn_trigger"],
+        source_turn_actor=provenance["source_turn_actor"],
         source_message_id=source_message_id,
+        source_message_role=provenance["source_message_role"],
+        source_provenance_status=provenance["source_provenance_status"],
+        source_origin=provenance["source_origin"],
     )

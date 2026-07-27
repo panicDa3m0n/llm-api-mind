@@ -4,6 +4,49 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-27 - V1.61.0 Shared Human/Autonomous Cognitive Runtime
+
+Area: Decision Autonomy / Perception And Context.
+
+Type: Implementazione on `feature/pre-ui-merge-system-work`.
+
+Change:
+
+- removed the parallel autonomous context builder and routed scheduled cycles
+  through the same V2 compiler, automatic memory retriever/reranker, organ
+  projection, static Scarlet prompt, and Mind shell used by human turns;
+- retained separate human and autonomous provider chronologies;
+- added deterministic origin and source provenance to current turns,
+  automatic memory hooks, and model-facing shell records;
+- added the autonomous session as a compact navigable hint beside previous
+  human sessions;
+- made single-user continuity tolerant of legacy technical profile ids while
+  retaining strict profile filtering for future private profiles;
+- clarified that perception indexes external observations only;
+- normalized UI/API stream timestamps to UTC `Z`, kept model time user-local,
+  and added the 05:00 social-day boundary; and
+- aligned native and GPT prompt policy with the common lifecycle contract.
+- added a guarded archival restart for autonomous chronology so production
+  observation can begin from an empty active provider history without deleting
+  prior cycle evidence or touching backend maintenance.
+
+Verification:
+
+- focused V2/autonomy/shell/time suite: `42 passed`;
+- complete Mind API test file: `36 passed`;
+- Ruff: passed;
+- blocking typed context/serialization mypy targets: passed;
+- direct deterministic cycle: common reranker selected the expected
+  human-source jazz memory and delivered it to the autonomous model context;
+- direct shell checks: autonomous session kind and autonomous memory source
+  provenance were present.
+
+Residual:
+
+The next protected deploy should inspect a real human turn and a naturally
+scheduled cycle to confirm longitudinal language attribution and UI time
+display. No production database was read or mutated during this implementation.
+
 ## 2026-07-27 - V1.60.1 Production Foreground Guard
 
 Area: Decision Autonomy / protected VPS rollout.

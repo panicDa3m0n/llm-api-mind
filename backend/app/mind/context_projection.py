@@ -32,6 +32,7 @@ def compile_model_context_v2(
     preferences: RuntimePreferences,
     settings: Any,
     agent_mode: dict[str, Any] | None = None,
+    turn_origin: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     document, _ = compile_model_context_v2_with_audit(
         db,
@@ -42,6 +43,7 @@ def compile_model_context_v2(
         preferences=preferences,
         settings=settings,
         agent_mode=agent_mode,
+        turn_origin=turn_origin,
     )
     return document
 
@@ -56,6 +58,7 @@ def compile_model_context_v2_with_audit(
     preferences: RuntimePreferences,
     settings: Any,
     agent_mode: dict[str, Any] | None = None,
+    turn_origin: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     resolved_agent_mode = agent_mode or {
         "active_tag": "idle",
@@ -67,6 +70,21 @@ def compile_model_context_v2_with_audit(
         timezone_id=preferences.timezone,
     )
     document = ModelContextV2(
+        turn_origin=turn_origin
+        or {
+            "origin": (
+                "autonomous_cognition"
+                if chat_session.kind == "scarlet_autonomous"
+                else "human_interaction"
+            ),
+            "session_id": chat_session.id,
+            "session_kind": chat_session.kind,
+            "turn_id": None,
+            "turn_trigger": None,
+            "turn_actor": None,
+            "message_id": None,
+            "message_role": None,
+        },
         session=project_session_context(
             db,
             chat_session=chat_session,

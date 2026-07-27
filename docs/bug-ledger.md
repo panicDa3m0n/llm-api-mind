@@ -7,6 +7,75 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0124 - Naive Transport Timestamps Produced Wrong Local Display
+
+Date Found: 2026-07-27
+Status: fixed in V1.61.0
+
+Symptoms:
+
+Stored UTC timestamps without an offset could reach Product UI as strings such
+as `2026-07-27T13:08:00`. JavaScript interprets that shape as local time, so an
+actual 15:08 Europe/Rome event could be displayed as 13:08. Multiple context
+surfaces also risked mixing raw storage time and user-local time.
+
+Root Cause:
+
+SQLite persists some UTC values as offset-naive datetimes. Model-facing and
+transport-facing boundaries did not share one serialization utility.
+
+Fix:
+
+- interpret offset-naive storage timestamps as UTC;
+- emit API, event-stream, and autonomy inspection times as RFC 3339 UTC with
+  `Z`;
+- keep model-facing time in the configured user timezone with the historical
+  DST offset for each event date; and
+- declare a `05:00` social-day boundary for natural late-night phrasing
+  without changing exact timestamps.
+
+Regression Coverage:
+
+July and December both render 15:30 with the correct `+02:00`/`+01:00`
+historical offset; 00:05 maps conversationally to the preceding evening while
+05:00 starts the current social day; transport serialization includes `Z`.
+
+## BUG-0123 - Autonomous Cycles Used A Parallel Context Contract
+
+Date Found: 2026-07-27
+Status: fixed in V1.61.0
+
+Symptoms:
+
+Scarlet could inspect human continuity during an internal cycle only through a
+smaller autonomous-specific packet, while human conversations did not always
+receive a navigable hint to the autonomous chronology. Data created during
+internal cognition lacked consistent model-facing origin labels, allowing
+Scarlet to describe an internal elaboration as prior discussion with the user.
+Legacy technical profile ids could further hide human sessions in the current
+single-user runtime.
+
+Root Cause:
+
+V1.60 introduced `scarlet-autonomous-context-v1` beside the established human
+`scarlet-model-context-v2`. The lifecycle separation correctly protected
+provider history, but accidentally duplicated the cognitive context contract.
+
+Fix:
+
+Route autonomous activations through the common V2 compiler and automatic
+retrieval/rerank path. Preserve separate provider histories while adding
+deterministic current/source provenance and a compact autonomous-session hint.
+In `local_single_user`, previous human sessions remain visible across legacy
+technical profile ids; future authenticated profile privacy still filters.
+
+Regression Coverage:
+
+One deterministic autonomous cycle retrieves a human-source memory through the
+common reranker. Automatic and shell memory packets classify both origins,
+ordinary session navigation opens the autonomous history, and focused
+human/autonomous context tests pass without replacing the human turn path.
+
 ## BUG-0122 - Volition Review Interval Does Not Advance The Review Date
 
 Date Found: 2026-07-27

@@ -25,6 +25,7 @@ from app.runtime.events import compact_event_for_context
 from app.runtime.preferences import RuntimePreferences
 from app.mind.command_registry import COMMAND_FAMILIES
 from app.mind.context_projection import compile_model_context_v2_with_audit
+from app.mind.context_provenance import project_turn_origin
 from app.mind.schema import build_mind_shell_catalog, shell_metadata
 from app.storage import repositories
 from app.storage.models import ChatSession, MemoryRecord, Message, utc_now
@@ -60,6 +61,9 @@ def build_memory_context(
     now: datetime | None = None,
     runtime_preferences: RuntimePreferences | None = None,
     settings: Any | None = None,
+    runtime_trigger: str = "human_message",
+    retrieval_input: str | None = None,
+    retrieval_dialogue: list[dict[str, Any]] | None = None,
 ) -> MemoryContextBuild:
     timestamp = now or utc_now()
     preferences = runtime_preferences or RuntimePreferences(
@@ -74,12 +78,20 @@ def build_memory_context(
         source="context_default",
     )
     recent_dialogue = _recent_dialogue(history)
+    turn_origin = project_turn_origin(
+        db,
+        chat_session=chat_session,
+        turn_id=turn_id,
+        message=current_user_message,
+        runtime_trigger=runtime_trigger,
+    )
+    human_turn = runtime_trigger == "human_message"
     agent_mode = resolve_agent_mode(
         db,
         profile_id=preferences.profile_id,
         default=str(getattr(settings, "agent_mode_default", "idle")),
-        system_mode="interactive",
-        system_reason="A human-facing turn is active.",
+        system_mode="interactive" if human_turn else None,
+        system_reason="A human-facing turn is active." if human_turn else None,
     )
     recent_events = _recent_runtime_events(
         db,
@@ -97,11 +109,16 @@ def build_memory_context(
         "active_project_scope": "project",
         "available_capabilities": capabilities,
         "time": timestamp.isoformat(),
+        "turn_origin": turn_origin,
     }
     retrieval = build_automatic_memory_retrieval(
         db,
-        current_user_message=current_user_message.content,
-        recent_dialogue=recent_dialogue,
+        current_user_message=retrieval_input or current_user_message.content,
+        recent_dialogue=(
+            retrieval_dialogue
+            if retrieval_dialogue is not None
+            else recent_dialogue
+        ),
         settings=settings,
     )
     temporal_context = _temporal_context(timestamp, preferences)
@@ -176,6 +193,7 @@ def build_memory_context(
         timestamp=timestamp,
         runtime_preferences=preferences,
         agent_mode=agent_mode,
+        turn_origin=turn_origin,
         metacognitive_context=metacognitive_payload,
         settings=settings,
     )
@@ -204,6 +222,7 @@ def build_memory_context(
             preferences=preferences,
             settings=settings,
             agent_mode=agent_mode,
+            turn_origin=turn_origin,
         )
         model_trace = repositories.add_trace(
             db,
@@ -258,6 +277,7 @@ def build_runtime_context_payload(
     timestamp: datetime,
     runtime_preferences: RuntimePreferences,
     agent_mode: dict[str, Any] | None = None,
+    turn_origin: dict[str, Any] | None = None,
     metacognitive_context: dict[str, Any] | None = None,
     settings: Any | None = None,
 ) -> dict[str, Any]:
@@ -327,6 +347,13 @@ def build_runtime_context_payload(
         "generated_at": _aware_datetime(timestamp).astimezone(timezone.utc).isoformat(),
         "session_id": chat_session.id,
         "turn_id": turn_id,
+        "turn_origin": turn_origin
+        or project_turn_origin(
+            db,
+            chat_session=chat_session,
+            turn_id=turn_id,
+            message=current_user_message,
+        ),
         "agent_mode": resolved_agent_mode,
         "mode_routing": mode_routing,
         "context_policy": {

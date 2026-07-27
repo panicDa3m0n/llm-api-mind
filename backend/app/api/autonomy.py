@@ -15,6 +15,7 @@ from app.config import Settings
 from app.llm.factory import build_llm_provider
 from app.runtime.autonomy import run_autonomous_activation
 from app.runtime.events import event_payload
+from app.runtime.time import utc_isoformat
 from app.storage import repositories
 from app.storage.models import AutonomousActivation, PerceptionEvent, utc_now
 
@@ -61,6 +62,7 @@ def build_autonomy_router(
             recent = repositories.list_autonomous_activations(
                 db,
                 profile_id=settings.user_profile_id,
+                session_id=session.id,
                 limit=5,
             )
             channels = repositories.perception_availability_index(
@@ -96,6 +98,7 @@ def build_autonomy_router(
             activations = repositories.list_autonomous_activations(
                 db,
                 profile_id=settings.user_profile_id,
+                session_id=session.id,
                 limit=limit + 1,
                 offset=offset,
             )
@@ -202,7 +205,7 @@ def _cycle_payload(
                 "id": item.id,
                 "role": item.role,
                 "content": item.content,
-                "created_at": item.created_at.isoformat(),
+                "created_at": utc_isoformat(item.created_at),
                 "metadata": item.metadata_json,
             }
             for item in messages
@@ -216,7 +219,7 @@ def _cycle_payload(
                 "result": item.result_json,
                 "status": item.status,
                 "latency_ms": item.latency_ms,
-                "created_at": item.created_at.isoformat(),
+                "created_at": utc_isoformat(item.created_at),
             }
             for item in tool_calls
         ],
@@ -232,13 +235,9 @@ def _activation_payload(activation: AutonomousActivation) -> dict[str, Any]:
         "trigger_kind": activation.trigger_kind,
         "status": activation.status,
         "active_mode": activation.active_mode,
-        "scheduled_at": activation.scheduled_at.isoformat(),
-        "started_at": activation.started_at.isoformat()
-        if activation.started_at
-        else None,
-        "completed_at": activation.completed_at.isoformat()
-        if activation.completed_at
-        else None,
+        "scheduled_at": utc_isoformat(activation.scheduled_at),
+        "started_at": utc_isoformat(activation.started_at),
+        "completed_at": utc_isoformat(activation.completed_at),
         "attempt_count": activation.attempt_count,
         "outcome": activation.outcome_json,
         "error": activation.error_json,
@@ -251,8 +250,8 @@ def _session_payload(session: Any) -> dict[str, Any]:
         "title": session.title,
         "kind": session.kind,
         "profile_id": session.profile_id,
-        "created_at": session.created_at.isoformat(),
-        "updated_at": session.updated_at.isoformat(),
+        "created_at": utc_isoformat(session.created_at),
+        "updated_at": utc_isoformat(session.updated_at),
     }
 
 
@@ -262,6 +261,6 @@ def _perception_payload(event: PerceptionEvent) -> dict[str, Any]:
         "channel": event.channel,
         "event_type": event.event_type,
         "source": event.source,
-        "observed_at": event.observed_at.isoformat(),
-        "received_at": event.received_at.isoformat(),
+        "observed_at": utc_isoformat(event.observed_at),
+        "received_at": utc_isoformat(event.received_at),
     }

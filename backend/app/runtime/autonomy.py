@@ -16,6 +16,12 @@ from app.api.chat_native_turn import (
     build_mind_tool_runner,
     compose_system_with_runtime_context,
 )
+from app.api.chat_serialization import (
+    memory_context_event_payload,
+    recent_memory_context_event_payload,
+    runtime_context_event_payload,
+    session_continuity_event_payload,
+)
 from app.api.chat_provider_history import (
     updated_provider_history,
     valid_provider_history,
@@ -23,11 +29,8 @@ from app.api.chat_provider_history import (
 from app.config import Settings
 from app.llm.factory import active_provider_max_tokens, active_provider_model
 from app.llm.provider import LLMMessage, LLMProvider, LLMTextResult
-from app.mind.autonomous_context import (
-    autonomous_activation_envelope,
-    build_autonomous_model_context,
-    render_autonomous_context,
-)
+from app.mind.context import build_memory_context
+from app.mind.context_time import render_user_time
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.prompts.system import resolve_agent_system_prompt
 from app.runtime.events import (
@@ -40,27 +43,11 @@ from app.runtime.history_runtime import route_history_for_model
 from app.runtime.maintenance import schedule_history_compaction
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import AutonomousActivation, Message, utc_now
+from app.storage.models import AutonomousActivation, ChatSession, Message, utc_now
 
 
 logger = logging.getLogger(__name__)
 ProviderFactory = Callable[[Settings], LLMProvider]
-AUTONOMOUS_PROMPT_APPENDIX = """
-## Autonomous Activation Runtime
-
-The current input may be a backend-scheduled autonomous activation rather than
-a human message. When `<autonomous_runtime_context>` is present, treat the
-activation as a real interval of your own internal cognitive continuity.
-
-Do not answer an absent user and do not turn the interval into generic
-maintenance. Orient yourself, inspect or change your cognitive state through
-mind_shell when useful, and use only source-labelled evidence. Before every
-tool call, emit one brief personal note explaining what you are doing and why.
-Finish with a concise internal checkpoint. That checkpoint belongs to your
-private autonomous chronology and is not a user-facing chat answer.
-""".strip()
-
-
 class AutonomousYieldToHuman(RuntimeError):
     """Stop an internal cycle when a human turn takes foreground priority."""
 
@@ -76,13 +63,14 @@ def run_due_autonomous_activations(
         return []
     current = now or utc_now()
     with Session(engine) as db:
+        preferences = load_runtime_preferences(db, settings)
         autonomous_session = repositories.get_or_create_autonomous_session(
             db,
-            profile_id=settings.user_profile_id,
+            profile_id=preferences.profile_id,
         )
         repositories.ensure_next_periodic_activation(
             db,
-            profile_id=settings.user_profile_id,
+            profile_id=preferences.profile_id,
             session_id=autonomous_session.id,
             interval_seconds=settings.autonomous_activation_interval_seconds,
             from_time=current,
@@ -198,9 +186,10 @@ def run_autonomous_activation(
                 visibility="private",
                 status="active",
             )
-            envelope = autonomous_activation_envelope(
+            envelope = _autonomous_activation_envelope(
                 activation=activation,
                 now=started_at,
+                timezone_id=preferences.timezone,
             )
             activation_message = repositories.add_message(
                 db,
@@ -229,22 +218,56 @@ def run_autonomous_activation(
                 visibility="private",
                 message_id=activation_message.id,
             )
-            context, context_audit = build_autonomous_model_context(
+            history = repositories.list_messages(db, session_id=chat_session.id)
+            retrieval_dialogue = _autonomous_retrieval_dialogue(
                 db,
-                activation=activation,
+                autonomous_session=chat_session,
+                profile_id=preferences.profile_id,
+                privacy_scope=preferences.privacy_scope,
+            )
+            memory_context = build_memory_context(
+                db,
                 chat_session=chat_session,
-                now=started_at,
-                preferences=preferences,
-                settings=settings,
-            )
-            context_trace = repositories.add_trace(
-                db,
-                session_id=chat_session.id,
                 turn_id=turn_id,
-                kind="autonomy.context",
-                payload={"document": context, "audit": context_audit},
+                current_user_message=activation_message,
+                history=history,
+                now=started_at,
+                runtime_preferences=preferences,
+                settings=settings,
+                runtime_trigger="autonomous_activation",
+                retrieval_dialogue=retrieval_dialogue,
             )
-            trace_ids.append(context_trace.id)
+            trace_ids.extend(
+                [
+                    memory_context.trace_id,
+                    memory_context.runtime_trace_id,
+                ]
+            )
+            if memory_context.metacognitive_trace_id is not None:
+                trace_ids.append(memory_context.metacognitive_trace_id)
+            if memory_context.model_context_trace_id is not None:
+                trace_ids.append(memory_context.model_context_trace_id)
+            model_context = memory_context.model_context_payload or {}
+            context_audit = {
+                "profile": memory_context.model_context_profile,
+                "turn_origin": model_context.get("turn_origin"),
+                "previous_session_count": len(
+                    model_context.get("session", {}).get("previous_sessions", [])
+                ),
+                "autonomous_session_present": (
+                    model_context.get("session", {}).get("autonomous_session")
+                    is not None
+                ),
+                "memory_counts": {
+                    key: len(value)
+                    for key, value in model_context.get("memories", {}).items()
+                },
+                "source_trace_ids": [
+                    memory_context.trace_id,
+                    memory_context.runtime_trace_id,
+                    memory_context.model_context_trace_id,
+                ],
+            }
             record_event(
                 db,
                 session_id=chat_session.id,
@@ -254,11 +277,62 @@ def run_autonomous_activation(
                 source="autonomy",
                 actor="backend",
                 visibility="private",
-                trace_id=context_trace.id,
+                trace_id=memory_context.model_context_trace_id,
+            )
+            record_event(
+                db,
+                session_id=chat_session.id,
+                turn_id=turn_id,
+                event_type="memory.context.built",
+                payload=memory_context_event_payload(memory_context.payload),
+                source="memory",
+                actor="backend",
+                visibility="private",
+                trace_id=memory_context.trace_id,
+            )
+            if memory_context.model_context_payload is not None:
+                record_event(
+                    db,
+                    session_id=chat_session.id,
+                    turn_id=turn_id,
+                    event_type="memory.recent_context.built",
+                    payload=recent_memory_context_event_payload(
+                        memory_context.model_context_payload
+                    ),
+                    source="memory",
+                    actor="backend",
+                    visibility="private",
+                    trace_id=memory_context.model_context_trace_id,
+                )
+                record_event(
+                    db,
+                    session_id=chat_session.id,
+                    turn_id=turn_id,
+                    event_type="session.continuity.built",
+                    payload=session_continuity_event_payload(
+                        memory_context.model_context_payload
+                    ),
+                    source="session",
+                    actor="backend",
+                    visibility="private",
+                    trace_id=memory_context.model_context_trace_id,
+                )
+            record_event(
+                db,
+                session_id=chat_session.id,
+                turn_id=turn_id,
+                event_type="runtime.context.built",
+                payload=runtime_context_event_payload(
+                    memory_context.runtime_payload
+                ),
+                source="runtime",
+                actor="backend",
+                visibility="private",
+                trace_id=memory_context.runtime_trace_id,
             )
             canonical_messages = _autonomous_provider_messages(
                 chat_session.provider_history_json,
-                repositories.list_messages(db, session_id=chat_session.id),
+                history,
                 activation_message,
             )
             history_routing = route_history_for_model(
@@ -271,8 +345,8 @@ def run_autonomous_activation(
             system_prompt = resolve_agent_system_prompt(settings)
             effective_system = (
                 compose_system_with_runtime_context(
-                    f"{system_prompt.content.rstrip()}\n\n{AUTONOMOUS_PROMPT_APPENDIX}",
-                    render_autonomous_context(context),
+                    system_prompt.content,
+                    memory_context.runtime_context,
                 )
                 + history_routing.system_appendix
             )
@@ -287,7 +361,8 @@ def run_autonomous_activation(
                     "model": model,
                     "max_tokens": active_provider_max_tokens(settings),
                     "system_source": system_prompt.source,
-                    "context_trace_id": context_trace.id,
+                    "context_trace_id": memory_context.model_context_trace_id
+                    or memory_context.runtime_trace_id,
                     "history_routing": history_routing.payload,
                     "provider_messages": [
                         item.model_dump(mode="json")
@@ -480,7 +555,11 @@ def run_autonomous_activation(
                 activation_id=activation_id,
                 status="completed",
                 turn_id=turn_id,
-                active_mode=context["operating_contract"]["active_mode"],
+                active_mode=(
+                    model_context.get("session", {})
+                    .get("agent_mode", {})
+                    .get("active_tag")
+                ),
                 outcome={
                     "latency_ms": latency_ms,
                     "tool_call_count": len(result.tool_calls),
@@ -494,7 +573,7 @@ def run_autonomous_activation(
                 activation=completed,
                 turn_id=turn_id,
                 trigger_event_id=completed_event.id,
-                context=context,
+                context=model_context or memory_context.runtime_payload,
             )
             repositories.ensure_next_periodic_activation(
                 db,
@@ -578,13 +657,14 @@ def start_autonomous_activation_worker(
         return lambda: None
 
     with Session(engine) as db:
+        preferences = load_runtime_preferences(db, settings)
         autonomous_session = repositories.get_or_create_autonomous_session(
             db,
-            profile_id=settings.user_profile_id,
+            profile_id=preferences.profile_id,
         )
         repositories.ensure_next_periodic_activation(
             db,
-            profile_id=settings.user_profile_id,
+            profile_id=preferences.profile_id,
             session_id=autonomous_session.id,
             interval_seconds=settings.autonomous_activation_interval_seconds,
         )
@@ -729,6 +809,78 @@ def _autonomous_provider_messages(
         elif message.role == "assistant":
             messages.append(LLMMessage(role="assistant", content=message.content))
     return messages
+
+
+def _autonomous_activation_envelope(
+    *,
+    activation: AutonomousActivation,
+    now: Any,
+    timezone_id: str,
+) -> str:
+    return (
+        "[SCARLET INTERNAL COGNITIVE ACTIVATION]\n"
+        f"Activation id: {activation.id}\n"
+        f"Trigger: {activation.trigger_kind}\n"
+        f"Runtime time: {render_user_time(now, timezone_id=timezone_id)}\n"
+        "Origin: autonomous_cognition. This is not a human message. Use the "
+        "same runtime context and API Mind available in interactive turns, "
+        "then leave one concise internal checkpoint instead of a user-facing "
+        "answer."
+    )
+
+
+def _autonomous_retrieval_dialogue(
+    db: Session,
+    *,
+    autonomous_session: ChatSession,
+    profile_id: str,
+    privacy_scope: str,
+) -> list[dict[str, Any]]:
+    """Provide the shared retriever with recent source-labelled continuity."""
+
+    candidates: list[Message] = []
+    human_states = repositories.list_session_summary_states(
+        db,
+        exclude_session_id=autonomous_session.id,
+        kind="human_dialogue",
+        profile_id=None if privacy_scope == "local_single_user" else profile_id,
+        limit=2,
+    )
+    for state in human_states:
+        human_messages = repositories.list_messages(
+            db,
+            session_id=state.chat_session.id,
+        )
+        candidates.extend(
+            message
+            for message in human_messages[-4:]
+            if message.role in {"user", "assistant"}
+        )
+    autonomous_messages = repositories.list_messages(
+        db,
+        session_id=autonomous_session.id,
+    )
+    candidates.extend(
+        message
+        for message in autonomous_messages[-6:]
+        if message.role == "assistant"
+    )
+    candidates.sort(key=lambda item: (item.created_at, item.id))
+    return [
+        {
+            "id": message.id,
+            "session_id": message.session_id,
+            "turn_id": message.turn_id,
+            "role": message.role,
+            "content": message.content[:1200],
+            "source_origin": (
+                "autonomous_cognition"
+                if message.session_id == autonomous_session.id
+                else "human_interaction"
+            ),
+        }
+        for message in candidates[-8:]
+    ]
 
 
 def _schedule_autonomous_compaction(

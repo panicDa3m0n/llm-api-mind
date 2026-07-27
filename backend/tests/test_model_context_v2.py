@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from sqlalchemy.pool import StaticPool
@@ -9,6 +10,7 @@ from app.mind.context_projection import (
     compile_model_context_v2,
     compile_model_context_v2_with_audit,
 )
+from app.mind.context_provenance import project_source_provenance
 from app.mind.context_sessions import MISSING_SUMMARY, STALE_SUMMARY
 from app.mind.contracts import MindAPIContext
 from app.mind.memory import handle_memory_read
@@ -129,6 +131,7 @@ def test_v2_session_packet_uses_last_message_time_and_summary_fallbacks() -> Non
         "id": "Europe/Rome",
         "name": "CEST",
         "utc_offset": "+02:00",
+        "social_day_boundary": "05:00",
     }
     assert set(document["session"]["current_session"]) == {
         "id",
@@ -136,6 +139,92 @@ def test_v2_session_packet_uses_last_message_time_and_summary_fallbacks() -> Non
         "created_at",
     }
     assert all("updated_at" not in item for item in by_id.values())
+
+
+def test_v2_local_single_user_keeps_legacy_human_profile_visible() -> None:
+    engine = _engine()
+    init_db(engine)
+    with Session(engine) as db:
+        current = repositories.create_chat_session(
+            db,
+            title="Current",
+            profile_id="active-profile",
+        )
+        legacy = repositories.create_chat_session(
+            db,
+            title="Legacy human continuity",
+            profile_id="local-user",
+        )
+        turn = repositories.create_turn(db, session_id=legacy.id, model="test")
+        user = repositories.add_message(
+            db,
+            session_id=legacy.id,
+            turn_id=turn.id,
+            role="user",
+            content="Contesto umano precedente.",
+        )
+        repositories.add_message(
+            db,
+            session_id=legacy.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Continuità conservata.",
+        )
+        repositories.complete_turn(db, turn_id=turn.id)
+        repositories.upsert_session_summary(
+            db,
+            session_id=legacy.id,
+            summary="Una sessione umana precedente.",
+            last_message_id=user.id,
+        )
+        preferences = replace(_preferences(), profile_id="active-profile")
+        document = compile_model_context_v2(
+            db,
+            chat_session=current,
+            rich_memory_context={"selected": []},
+            legacy_runtime_payload={"blocks": []},
+            now=datetime.now(timezone.utc),
+            preferences=preferences,
+            settings=_settings(),
+        )
+
+    assert legacy.id in {
+        item["id"] for item in document["session"]["previous_sessions"]
+    }
+
+
+def test_inconsistent_legacy_source_is_not_attributed_to_a_lifecycle() -> None:
+    engine = _engine()
+    init_db(engine)
+    with Session(engine) as db:
+        human = repositories.create_chat_session(db, title="Human")
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id="local-user",
+        )
+        turn = repositories.create_turn(
+            db,
+            session_id=autonomous.id,
+            model="test",
+            trigger_kind="autonomous_activation",
+            actor="scarlet",
+        )
+        message = repositories.add_message(
+            db,
+            session_id=autonomous.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Checkpoint.",
+        )
+        provenance = project_source_provenance(
+            db,
+            session_id=human.id,
+            turn_id=turn.id,
+            message_id=message.id,
+        )
+
+    assert provenance["source_provenance_status"] == "inconsistent"
+    assert provenance["source_origin"] == "unknown_legacy"
 
 
 def test_v2_memory_blocks_are_compact_deduplicated_and_activity_ordered() -> None:
@@ -196,10 +285,90 @@ def test_v2_memory_blocks_are_compact_deduplicated_and_activity_ordered() -> Non
             "created_at",
             "updated_at",
             "source_session_id",
+            "source_session_kind",
+            "source_turn_id",
+            "source_turn_trigger",
+            "source_turn_actor",
             "source_message_id",
+            "source_message_role",
+            "source_provenance_status",
+            "source_origin",
         }
         for item in all_items
     )
+    assert all(item["source_origin"] == "human_interaction" for item in all_items)
+    assert all(item["source_provenance_status"] == "complete" for item in all_items)
+    assert all(item["source_session_kind"] == "human_dialogue" for item in all_items)
+
+
+def test_v2_common_contract_links_autonomous_chronology_and_provenance() -> None:
+    engine = _engine()
+    init_db(engine)
+    with Session(engine) as db:
+        current = repositories.create_chat_session(db, title="Current")
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id="local-user",
+        )
+        turn = repositories.create_turn(
+            db,
+            session_id=autonomous.id,
+            model="test",
+            trigger_kind="autonomous_activation",
+            actor="scarlet",
+        )
+        activation = repositories.add_message(
+            db,
+            session_id=autonomous.id,
+            turn_id=turn.id,
+            role="activation",
+            content="Internal activation",
+        )
+        repositories.add_message(
+            db,
+            session_id=autonomous.id,
+            turn_id=turn.id,
+            role="assistant",
+            content="Checkpoint autonomo",
+        )
+        repositories.complete_turn(db, turn_id=turn.id)
+        memory = repositories.add_memory(
+            db,
+            memory_type="task_context",
+            scope="general",
+            content="Elaborazione nata durante la cognizione autonoma",
+            reason_for_storage="Provenance fixture",
+            source_session_id=autonomous.id,
+            source_turn_id=turn.id,
+            source_message_id=activation.id,
+        )
+        document = compile_model_context_v2(
+            db,
+            chat_session=current,
+            rich_memory_context={"selected": []},
+            legacy_runtime_payload={"blocks": []},
+            now=datetime(2026, 7, 27, 13, 8, tzinfo=timezone.utc),
+            preferences=_preferences(),
+            settings=_settings(),
+        )
+
+    autonomous_hint = document["session"]["autonomous_session"]
+    assert autonomous_hint["id"] == autonomous.id
+    assert autonomous_hint["kind"] == "scarlet_autonomous"
+    assert autonomous_hint["last_activity_at"].endswith("+02:00")
+    assert autonomous_hint["turn_count"] == 1
+    assert autonomous_hint["latest_checkpoint"] == "Checkpoint autonomo"
+    all_memories = [
+        *document["memories"]["relevant"],
+        *document["memories"]["recent_user"],
+        *document["memories"]["recent_general"],
+    ]
+    projected = next(item for item in all_memories if item["id"] == memory.id)
+    assert projected["source_origin"] == "autonomous_cognition"
+    assert projected["source_session_kind"] == "scarlet_autonomous"
+    assert projected["source_turn_trigger"] == "autonomous_activation"
+    assert projected["source_turn_actor"] == "scarlet"
+    assert projected["source_message_role"] == "activation"
 
 
 def test_v2_preserved_families_use_explicit_field_allowlists_and_audit() -> None:

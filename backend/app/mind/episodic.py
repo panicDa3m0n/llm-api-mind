@@ -848,6 +848,8 @@ def _session_payload(chat_session: ChatSession) -> dict[str, Any]:
     return {
         "id": chat_session.id,
         "title": chat_session.title,
+        "kind": chat_session.kind,
+        "profile_id": chat_session.profile_id,
         "created_at": _isoformat(chat_session.created_at),
         "updated_at": _isoformat(chat_session.updated_at),
         "metadata": chat_session.metadata_json,

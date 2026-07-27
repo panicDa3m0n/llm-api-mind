@@ -7,10 +7,60 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0139 - Human And Autonomous Turns Share One Cognitive Runtime Contract
+
+Date: 2026-07-27
+Status: accepted for V1.61.0
+
+Context:
+
+V1.60 correctly introduced a separate autonomous chronology and activation
+lifecycle, but also introduced a second model-context projection. That made
+the same Scarlet receive different memory, session, organ, and policy shapes
+depending on whether a human or the scheduler activated her. Production
+observation then showed that human turns could not reliably orient to internal
+cycles and autonomous work could be misread as prior user dialogue.
+
+Decision:
+
+- preserve one provider-native history for every human session and one
+  long-lived provider-native history for all autonomous cycles;
+- compile both lifecycles through `scarlet-model-context-v2`;
+- use the same automatic memory retrieval/rerank, organ projection, static
+  system prompt, context-family audit, and `mind_shell`;
+- classify the current turn and every sourceable memory through deterministic
+  origin, session kind, turn trigger/actor, and message role;
+- place a compact, navigable autonomous-session hint beside human
+  `previous_sessions`;
+- let autonomous retrieval use recent human and autonomous dialogue as
+  source-labelled query evidence, without mixing those messages into one
+  provider transcript;
+- treat `perception` as external-observation navigation only; and
+- render model time in the configured user timezone while serializing API and
+  stream timestamps as unambiguous UTC RFC 3339.
+
+Consequences:
+
+There is one Scarlet cognitive runtime with two explicit lifecycle origins.
+Interactive behavior remains the baseline and is not reimplemented.
+Autonomous cognition gains the same contracts instead of a parallel subset.
+The histories remain independently auditable, and provenance prevents Scarlet
+from claiming that an internal elaboration was discussed with the user.
+An explicit chronology restart archives the old autonomous session rather
+than deleting its canonical evidence. Only the current session appears in
+consumer autonomous history and receives new scheduled cycles.
+
+Links:
+
+- `backend/app/mind/context_provenance.py`
+- `backend/app/mind/context_projection.py`
+- `backend/app/runtime/autonomy.py`
+- `docs/runtime-context-packs.md`
+
 ## ADR-0138 - Autonomous Cognition Uses A Separate Persistent Lifecycle
 
 Date: 2026-07-27
-Status: accepted for V1.60.0
+Status: accepted for V1.60.0; context projection refined by ADR-0139
 
 Context:
 
@@ -62,7 +112,8 @@ requires bounded evaluation before the cadence is promoted beyond testing.
 Links:
 
 - `backend/app/runtime/autonomy.py`
-- `backend/app/mind/autonomous_context.py`
+- historical V1.60 autonomous context builder, removed by ADR-0139; current
+  context owner: `backend/app/mind/context_projection.py`
 - `backend/app/storage/repository/autonomy.py`
 - `backend/app/storage/repository/perception.py`
 - `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`

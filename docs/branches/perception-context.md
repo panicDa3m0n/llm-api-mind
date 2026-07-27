@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-27
-System version assessed: V1.60.0 development target
+System version assessed: V1.61.0 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -173,6 +173,16 @@ Aggiornamento V1.60.0: le attivazioni autonome ricevono un pack compatto
 separato dal turno umano, con disponibilita percettiva navigabile. I payload
 esatti entrano nel ciclo solo dopo apertura esplicita; trace, lease, diagnostica
 e dati raw non aperti restano sistemici.
+
+Aggiornamento V1.61.0: il pack autonomo separato e stato ritirato. Turni umani
+e attivazioni autonome usano lo stesso `scarlet-model-context-v2`, lo stesso
+retrieve/rerank automatico, gli stessi organi e la stessa shell. Restano
+separate soltanto le cronologie provider e la provenienza deterministica. Il
+pack sessione umano include sempre un hint navigabile della cronologia
+autonoma; memorie automatiche e risultati shell dichiarano origine, kind
+sessione, trigger, attore e ruolo messaggio. `perception` indica ora
+esplicitamente soltanto osservazioni esterne e non va usato per cercare cicli
+interni, sessioni o memoria.
 
 ## Sviluppi precedenti
 
