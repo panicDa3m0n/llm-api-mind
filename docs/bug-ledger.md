@@ -7,10 +7,52 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0122 - Volition Review Interval Does Not Advance The Review Date
+
+Date Found: 2026-07-27
+Status: open; production behavior recovered by Scarlet
+
+Symptoms:
+
+During the first completed production autonomous cycle, Scarlet ran
+`volition review ... --review-interval-seconds 86400`. The command recorded
+the review and interval but retained the already-due `next_review_at`. Scarlet
+noticed the mismatch and issued a separate `volition update
+--next-review-at ...` before closing the cycle.
+
+Root Cause:
+
+The shell help presents a review command with `--review-interval-seconds`, but
+the review handler treats that value as stored metadata only. It does not
+derive the next review date from `last_reviewed_at`, and the model-facing
+description calls the interval only a hint. The resulting contract is
+internally consistent at persistence level but ambiguous and needlessly
+requires a second cognitive action.
+
+Required Decision:
+
+Choose and document one semantic contract:
+
+- a successful review with an interval automatically schedules the next review
+  relative to the review timestamp; or
+- review intervals never schedule anything, in which case remove the
+  misleading standalone interval example and require `--next-review-at`.
+
+Do not change the production intention or its semantic memory as part of this
+documentation finding. Both are valid evidence of Scarlet's successful
+recovery.
+
+Related:
+
+- `backend/app/mind/volition.py`
+- `backend/app/mind/schema.py`
+- `backend/app/storage/repository/organs.py`
+- `docs/experiments.md` EXP-0084
+
 ## BUG-0121 - Historical Started Turns Disabled Autonomous Cognition
 
 Date Found: 2026-07-27
-Status: fixed in V1.60.1; VPS verification in progress
+Status: fixed and production-verified in V1.60.1
 
 Symptoms:
 
@@ -35,7 +77,8 @@ Regression Coverage:
 
 - a seven-hour-old `started` human turn does not block autonomy;
 - the same turn with a current `started_at` does block autonomy; and
-- the real VPS activation must complete after the V1.60.1 rollout.
+- production activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
+  completed with nine shell calls after the V1.60.1 rollout.
 
 Related:
 

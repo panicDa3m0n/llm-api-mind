@@ -1,7 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-27
-App target: V1.60.1; V1.50.1 remains release-accepted
+App target: V1.60.1 deployed for autonomous field observation; V1.50.1 remains
+the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -143,6 +144,12 @@ Implemented and verified:
 
 Current verification baseline:
 
+- V1.60.1 production autonomy: protected backup and copied-DB migration canary
+  passed; deployed commit `0b37f7e8767adf16059e6c19291debff6eaa3779`
+  reports version 1.60.1, production/direct database ownership, 34 tables, and
+  integrity `ok`; the first scheduled MiniMax M3 cycle completed with nine
+  shell calls, seven notes, an internal checkpoint, and an exact 600-second
+  successor schedule;
 - V1.60.0 autonomous cognition: all 320 backend tests, Ruff, the 45-file mypy
   gate, documentation and skill integrity, and frontend production build pass;
   one isolated M3 activation completed five shell actions and a private

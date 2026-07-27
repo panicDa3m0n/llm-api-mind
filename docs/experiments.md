@@ -11,7 +11,7 @@ rewritten.
 
 ## EXP-0084 - Autonomous Activation Lifecycle And Internal History
 
-Status: deterministic and bounded live V1.60.0 evidence accepted
+Status: deterministic, isolated-live, and first production V1.60.1 evidence accepted
 
 Hypothesis:
 
@@ -70,21 +70,38 @@ left an internal no-op checkpoint. Reasserting `idle` was coherent but mildly
 ritualistic and remains a qualitative calibration note rather than a runtime
 failure.
 
+The protected V1.60.1 production rollout then supplied the first real periodic
+field observation. Activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
+completed in 93.1 seconds with nine shell actions, seven public notes, eight
+thinking blocks, and `end_turn`. It used 26,302 input tokens, 176,000 cached
+input tokens, and 5,475 output tokens. Scarlet:
+
+- explicitly recognized autonomous cognition with no human present;
+- inspected volition, focus, mode, and memory through the shell;
+- reviewed one due intention and left the not-due intention untouched;
+- remained in `idle` and did not invent a reason to notify the owner;
+- persisted a compact internal checkpoint; and
+- noticed that `volition review --review-interval-seconds 86400` had not
+  advanced `next_review_at`, then repaired the schedule with
+  `volition update`.
+
+The last point is tracked as BUG-0122. It is a shell-contract problem, not a
+failure of autonomous reasoning: Scarlet detected and recovered from it.
+
 Interpretation:
 
 The storage, lifecycle, shell-recovery, and UI-inspection substrate is strong
-enough for continued bounded field use. One clean empty-state probe is not
-longitudinal proof that Scarlet will choose useful autonomous work, avoid
-ritual organ scans, or calibrate initiative correctly when real evidence is
-present.
+enough for continued bounded field use. The first production cycle made a
+coherent maintenance choice against real organ state, but one cycle is not
+longitudinal proof that Scarlet will consistently choose useful work, avoid
+ritual organ scans, calibrate initiative, or justify its provider cost.
 
 Limits:
 
 No native Android notification listener, external action, user notification,
-long-duration cadence run, autonomous-history compaction calibration, or
-production deployment is included. The initial 120-second test interval was
-raised to a 600-second observation cadence after the bounded implementation
-probe; neither value is a fixed final product cadence.
+long-duration cadence run, or autonomous-history compaction calibration is
+included. Production observation currently uses 600 seconds; this is an
+instrumented field cadence, not a fixed final product cadence.
 
 Evidence:
 
@@ -93,6 +110,7 @@ Evidence:
 - `frontend/src/MobileApp.tsx`
 - `frontend/src/prototype/AutonomyHistoryPanel.tsx`
 - isolated DB `/tmp/scarlet-autonomy-live-v160-retry.db` (local disposable evidence)
+- production activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
 
 ## EXP-0083 - Context Family And Policy Composition Probe
 

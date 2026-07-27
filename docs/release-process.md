@@ -230,3 +230,9 @@ post-smoke DB integrity at merge
 `676e560a713610ff884631f70bbe6d9e6d8bc375`. Annotated tag `v1.50.1` points
 to that exact deployed runtime commit; later documentation-only commits do not
 move it.
+V1.60.1 passed local quality gates, protected production backup, copied-DB
+migration canary, new-image and post-restart preflights, public authentication
+checks, and one real scheduled autonomous MiniMax M3 cycle at runtime commit
+`0b37f7e8767adf16059e6c19291debff6eaa3779`. The VPS
+`DEPLOYED_COMMIT` marker remains on that runtime commit; any later
+documentation-only closure commit must not replace it.

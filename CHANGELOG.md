@@ -16,6 +16,18 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Preserve the underlying historical records as evidence rather than mutating
   production data during deployment.
 
+#### Verification
+
+- Deploy commit `0b37f7e8767adf16059e6c19291debff6eaa3779` as
+  `scarlet-mobile-api:v1.60.1-0b37f7e` with protected production backup,
+  copied-DB migration canary, read-only preflight, public authentication
+  checks, and post-cycle SQLite integrity `ok`.
+- Complete the first real scheduled production cycle in 93.1 seconds with nine
+  shell actions, seven public notes, persistent organ changes, a private
+  checkpoint, and a next activation exactly 600 seconds later.
+- Record BUG-0122 after Scarlet correctly recovered from the ambiguous
+  `volition review --review-interval-seconds` scheduling behavior.
+
 ### V1.60.0 - Autonomous Cognitive Cycles
 
 #### Added

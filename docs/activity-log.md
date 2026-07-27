@@ -25,8 +25,36 @@ Change:
 
 Verification:
 
-- pending local gates and protected V1.60.1 VPS rollout;
-- final acceptance requires one completed real scheduled MiniMax cycle.
+- full backend suite: `321 passed`;
+- Ruff, 45-file blocking mypy, documentation integrity, project-skill
+  validation, and database-boundary checks passed;
+- protected production backup:
+  `/var/backups/scarlet-mobile-test/v1601-20260727T105618Z/app.db.pre-v1601`
+  with SHA-256
+  `a582e07bbf91c1a03ca5f1160489aed0242b1052294f964bcbae56d00c1d14fe`
+  and SQLite integrity `ok`;
+- deployed commit
+  `0b37f7e8767adf16059e6c19291debff6eaa3779` as image
+  `scarlet-mobile-api:v1.60.1-0b37f7e`;
+- post-deploy production preflight remained direct, contained 34 tables, and
+  reported integrity `ok`; authenticated UI, health, and autonomy overview
+  returned `200`, while unauthenticated UI and health correctly returned
+  `401`;
+- scheduled activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
+  completed on the real production database in 93.1 seconds with nine shell
+  actions, seven public notes, eight thinking blocks, one volition review and
+  update, one deduplicated memory search/write sequence, and `end_turn`;
+- provider usage for that cycle was 26,302 input tokens, 176,000 cached input
+  tokens, and 5,475 output tokens; and
+- the next activation was persisted exactly 600 seconds after completion.
+
+Qualitative Finding:
+
+Scarlet correctly recognized an internal activation with no human present,
+kept `idle`, avoided a user notification, and performed bounded cognitive
+maintenance. The cycle also exposed an open volition-contract ambiguity:
+`review --review-interval-seconds` stores the interval but does not advance
+`next_review_at`, so Scarlet corrected it with a second `volition update`.
 
 ## 2026-07-27 - Autonomous Observation Cadence Set To Ten Minutes
 

@@ -57,15 +57,18 @@ unreviewed source to copy back into the repository.
 3. Run import, configuration, migration-readiness, and health checks against
    the new image.
 4. Run a copied-DB canary when data behavior changed.
-5. Back up active Nginx configuration and Product UI static output when those
+5. Before enabling coordination logic that treats persisted rows as live
+   foreground state, audit production for stale active statuses and verify the
+   lease or freshness rule against a copied database.
+6. Back up active Nginx configuration and Product UI static output when those
    surfaces change.
-6. Switch the service only after preflight succeeds.
-7. Verify local container health, public authenticated health, OpenAPI/version,
+7. Switch the service only after preflight succeeds.
+8. Verify local container health, public authenticated health, OpenAPI/version,
    and affected endpoints.
-8. For streaming changes, verify headers, early chunk delivery, durable replay,
+9. For streaming changes, verify headers, early chunk delivery, durable replay,
    same-turn recovery, and no proxy buffering.
-9. Retain the previous image/config/static/database backup until acceptance.
-10. Record the deployed commit rather than copying a later documentation-only
+10. Retain the previous image/config/static/database backup until acceptance.
+11. Record the deployed commit rather than copying a later documentation-only
     commit into runtime metadata.
 
 Rollback immediately when health, migration, authentication, streaming, or

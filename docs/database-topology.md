@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-19
-Backend baseline: V1.50.1 (deployed and release-accepted)
+Last updated: 2026-07-27
+Backend baseline: V1.60.1 (deployed for autonomous field observation)
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -50,7 +50,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.50.1 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.50.1 online backup is `/var/backups/scarlet-mobile-test/v1501-20260719T124726Z/app.db.pre-v1501` (SHA-256 `52840c206862ea9a781338d73c0d273de2e307847c79cfeb5155bde3620dda3f`). After the two accepted release smokes the DB contained 308 memories, 237 facts, 239 sessions, 909 messages, and 6,356 events. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.60.1 is deployed with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The verified pre-V1.60.1 online backup is `/var/backups/scarlet-mobile-test/v1601-20260727T105618Z/app.db.pre-v1601` (SHA-256 `a582e07bbf91c1a03ca5f1160489aed0242b1052294f964bcbae56d00c1d14fe`). After the first completed autonomous field cycle the DB contained 316 memories, 239 facts, 242 sessions, 938 messages, 6,860 events, and 34 tables. |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; Git LFS-tracked file | The explicit 2026-07-23 cross-machine checkpoint publishes SHA-256 `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`: integrity `ok`, 27 tables, 36 memories, 26 facts, 163 sessions, 598 messages, and 3,597 events. It is not production, a test target, or a deployment seed. Future changes still require a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -185,6 +185,14 @@ mount. Post-restart and post-smoke preflights remained `production`,
 `codex_test=false`, direct isolation, 29 tables, and integrity `ok`. The only
 expected data changes were two release-verification sessions and their four
 user/assistant messages; no memory or fact count changed.
+
+V1.60.1 preserves the same production ownership boundary while adding four
+autonomy/perception tables and session/turn lifecycle columns through normal
+schema initialization. The rollout backed up the online database, proved the
+migration against an isolated copy, and passed read-only preflight before and
+after restart. The first real periodic cycle added only its expected
+autonomous chronology and one model-authored semantic lesson; post-cycle
+preflight remained direct with 34 tables and integrity `ok`.
 
 For every deployment:
 
