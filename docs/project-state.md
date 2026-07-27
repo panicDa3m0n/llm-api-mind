@@ -1,8 +1,8 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-27
-App target: V1.62.0 implemented locally with Cognitive Workspace active;
-V1.61.0 remains the deployed unified human/autonomous runtime;
+Last updated: 2026-07-28
+App target: V1.63.0 implemented locally with Endogenous Cognition over the
+Cognitive Workspace; V1.61.0 remains deployed pending the approved rollout;
 V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
@@ -127,8 +127,16 @@ Implemented and verified:
   source-backed candidates, deterministic wake conditions, and M3
   Scarlet-owned cognitive episodes. `active` is the field-verification
   default; `shadow` remains the non-waking rollback and replay mode;
+- V1.63 adds adaptive source-backed free cognitive windows over the same
+  workspace. M2.7 can propose provisional endogenous seeds from canonical
+  sessions, memories/KG, focus, volition, episodes, affect, and admitted
+  perception; only M3 Scarlet may adopt them through existing episode or
+  volition lifecycle, and empty windows back off without forcing work;
 - an append-only perception inbox with compact channel availability and
-  `perception status|open|read`; no native device source is admitted yet;
+  `perception status|open|read`; a narrow V1 adapter now derives lifecycle,
+  network, explicit-location, and notification-interaction transitions from
+  the raw Device Exploration ledger without injecting them into chat context
+  or treating the phone as Scarlet's own sensor;
 - a Product Chat header surface that replays each autonomous cycle as notes,
   tools, expandable thinking, and an internal checkpoint without presenting it
   as human dialogue;
@@ -155,6 +163,11 @@ Implemented and verified:
 
 Current verification baseline:
 
+- V1.63.0 local Endogenous Cognition: all `350` backend tests pass; Ruff,
+  compileall, typed-file mypy, documentation/skill checks, frontend build, and
+  legacy copied-SQLite migration pass. A complete simulated M3 activation
+  adopts a source-backed seed as a linked volition. Production evidence remains
+  the final release gate;
 - V1.62.0 local Cognitive Workspace: full backend suite `345 passed`,
   frozen regression `9/9` before and after, frontend production build, Ruff,
   compileall, changed-file mypy, and a legacy-SQLite migration canary pass. A

@@ -90,6 +90,30 @@ class Settings(BaseSettings):
     )
     cognitive_workspace_max_deferrals: int = Field(default=3, ge=1, le=20)
     cognitive_workspace_watchdog_seconds: int = Field(default=3600, ge=300)
+    endogenous_cognition_enabled: bool = True
+    endogenous_cognition_min_interval_seconds: int = Field(
+        default=900,
+        ge=300,
+    )
+    endogenous_cognition_base_interval_seconds: int = Field(
+        default=3600,
+        ge=300,
+    )
+    endogenous_cognition_max_interval_seconds: int = Field(
+        default=21600,
+        ge=900,
+    )
+    endogenous_cognition_productive_followup_seconds: int = Field(
+        default=1800,
+        ge=300,
+    )
+    endogenous_cognition_max_seeds: int = Field(default=4, ge=1, le=8)
+    endogenous_cognition_max_tokens: int = Field(
+        default=8192,
+        ge=512,
+        le=32768,
+    )
+    device_perception_admission_mode: Literal["off", "shadow", "active"] = "active"
 
     model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
     model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
@@ -201,6 +225,24 @@ class Settings(BaseSettings):
         if self.history_compaction_mode == "active" and not self.maintenance_enabled:
             raise ValueError(
                 "active history compaction requires the maintenance worker"
+            )
+        if not (
+            self.endogenous_cognition_min_interval_seconds
+            <= self.endogenous_cognition_productive_followup_seconds
+            <= self.endogenous_cognition_max_interval_seconds
+        ):
+            raise ValueError(
+                "endogenous productive follow-up must stay between the minimum "
+                "and maximum cognitive-window intervals"
+            )
+        if not (
+            self.endogenous_cognition_min_interval_seconds
+            <= self.endogenous_cognition_base_interval_seconds
+            <= self.endogenous_cognition_max_interval_seconds
+        ):
+            raise ValueError(
+                "endogenous base interval must stay between the minimum and "
+                "maximum cognitive-window intervals"
             )
         return self
 

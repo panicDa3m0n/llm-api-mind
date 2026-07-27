@@ -1,8 +1,8 @@
 # API Mind Core Runtime Contract
 
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.62.0
+Current additive contract target: V1.63.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.62.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.63.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | Scarlet turns and auxiliary semantic workers | `LLMProvider` | MiniMax M3 is Scarlet; non-Scarlet LLM work uses the fixed M2.7 auxiliary profile. Native adapters use stop reasons for continuation, tool dispatch, and finality. |
@@ -69,8 +69,9 @@ the native runtime.
 | Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode. |
 | Autonomous cognition lifecycle | `backend/app/runtime/autonomy.py`, `storage/repository/autonomy.py` | Scarlet internal cycles and Product UI inspection | `scarlet_autonomous` session plus activation ledger V1 | Separate provider chronology and trigger provenance; same V2 compiler, retrieval, organs, policy, and shell as human turns. |
 | Cognitive Workspace | `backend/app/runtime/cognitive_workspace.py`, `mind/wake_registry.py`, `mind/workspace_contracts.py` | autonomous admission and developer inspection | source registry/appraisal/ignition V1 | Shadow-first M2.7 proposals over canonical evidence; cannot impersonate Scarlet or mutate organs. |
+| Endogenous cognition | `backend/app/runtime/endogenous_cognition.py`, `mind/endogenous_contracts.py`, `storage/repository/endogenous.py` | free cognitive windows and existing workspace | endogenous seeds/windows V1 | Adaptive source-backed opportunities; M2.7 proposes only, M3 must explicitly endorse through existing episodes or volition. |
 | Cognitive episodes | `backend/app/mind/episode.py`, `storage/repository/cognitive_workspace.py` | M3 Scarlet through `mind_shell` | episode lifecycle V1 | Scarlet owns open/checkpoint/suspend/resolve/reject and deterministic wake contracts. |
-| Perception inbox | `backend/app/storage/repository/perception.py`, `backend/app/mind/perception.py` | common `mind_shell` | availability/index/open/read V1 | External observations only; append-only events, derived channel state, and per-session inspection cursors; no native Android source adapter yet. |
+| Perception inbox | `backend/app/storage/repository/perception.py`, `backend/app/mind/perception.py`, `backend/app/runtime/device_perception_adapter.py` | common `mind_shell` and workspace | availability/index/open/read plus device adapter V1 | External observations only; a narrow Android adapter admits bounded transitions while raw laboratory evidence remains separate and no event is auto-injected into chat context. |
 | Runtime configuration | `backend/app/config.py` | application factory and domain owners | typed `Settings` | Additive compatibility by default; invalid safety combinations fail closed. |
 | Agentic Module contracts, host, and SDK | `backend/scarlet_agentic_module_sdk/*`, `backend/app/agentic_modules/*`, `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md`, `docs/agentic-module-sdk.md` | optional operator-installed modules and module authors | manifest/port/lifecycle V1, host V1.53, SDK 1.0.0 | One public contract source, standalone authoring/conformance kit, and opt-in approved-root process host; native Core path remains unchanged with zero modules. |
 | Deployment boundary | `backend/Dockerfile`, release process, database preflight | VPS runtime | tagged app release plus remote environment | Runtime code may deploy; databases and secrets never travel with code. |

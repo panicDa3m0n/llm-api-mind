@@ -39,6 +39,7 @@ from app.runtime.events import (
     record_provider_stream_event,
     record_response_content_events,
 )
+from app.runtime.endogenous_cognition import record_endogenous_activation_feedback
 from app.runtime.history_compaction import build_chronology_source_map
 from app.runtime.history_runtime import route_history_for_model
 from app.runtime.maintenance import schedule_history_compaction
@@ -592,6 +593,10 @@ def run_autonomous_activation(
                 settings=settings,
                 activation=completed,
             )
+            record_endogenous_activation_feedback(
+                db,
+                activation=completed,
+            )
             _schedule_autonomous_compaction(
                 db,
                 settings=settings,
@@ -661,6 +666,10 @@ def run_autonomous_activation(
                 _reconcile_workspace_activation(
                     db,
                     settings=settings,
+                    activation=failed,
+                )
+                record_endogenous_activation_feedback(
+                    db,
                     activation=failed,
                 )
                 if settings.cognitive_workspace_mode != "active":
@@ -901,38 +910,78 @@ def _reconcile_workspace_activation(
     settings: Settings,
     activation: AutonomousActivation,
 ) -> None:
-    if activation.candidate_id is None:
+    candidate_ids = [
+        item
+        for item in activation.workspace_json.get("selected_candidate_ids", [])
+        if isinstance(item, str)
+    ]
+    if activation.candidate_id is not None:
+        candidate_ids.insert(0, activation.candidate_id)
+    candidate_ids = list(dict.fromkeys(candidate_ids))
+    if not candidate_ids:
         return
-    candidate = repositories.get_candidate(db, activation.candidate_id)
-    if candidate is None or candidate.status in {
-        "selected",
-        "resolved",
-        "rejected",
-        "invalidated",
-    }:
-        return
-    repositories.update_candidate(
+    volition_links = repositories.list_intention_links_by_targets(
         db,
-        candidate_id=candidate.id,
-        status="suspended",
-        deferred_until=utc_now()
-        + timedelta(seconds=settings.autonomous_activation_interval_seconds),
-        increment_deferral=True,
+        target_type="candidate",
+        target_ids=candidate_ids,
     )
-    record_event(
-        db,
-        session_id=activation.session_id,
-        turn_id=activation.turn_id,
-        event_type="cognition.candidate.suspended",
-        payload={
-            "candidate_id": candidate.id,
-            "activation_id": activation.id,
-            "reason": "no_explicit_episode_decision",
-        },
-        source="cognitive_workspace",
-        actor="backend",
-        visibility="private",
-    )
+    volition_by_candidate = {
+        item.target_id: item.intention_id for item in volition_links
+    }
+    for candidate_id in candidate_ids:
+        candidate = repositories.get_candidate(db, candidate_id)
+        if candidate is None or candidate.status in {
+            "selected",
+            "resolved",
+            "rejected",
+            "invalidated",
+        }:
+            continue
+        intention_id = volition_by_candidate.get(candidate.id)
+        if intention_id is not None:
+            repositories.update_candidate(
+                db,
+                candidate_id=candidate.id,
+                status="resolved",
+                resolution=f"endorsed_as_volition:{intention_id}",
+            )
+            record_event(
+                db,
+                session_id=activation.session_id,
+                turn_id=activation.turn_id,
+                event_type="cognition.candidate.endorsed_as_volition",
+                payload={
+                    "candidate_id": candidate.id,
+                    "intention_id": intention_id,
+                    "activation_id": activation.id,
+                },
+                source="cognitive_workspace",
+                actor="backend",
+                visibility="private",
+            )
+            continue
+        repositories.update_candidate(
+            db,
+            candidate_id=candidate.id,
+            status="suspended",
+            deferred_until=utc_now()
+            + timedelta(seconds=settings.autonomous_activation_interval_seconds),
+            increment_deferral=True,
+        )
+        record_event(
+            db,
+            session_id=activation.session_id,
+            turn_id=activation.turn_id,
+            event_type="cognition.candidate.suspended",
+            payload={
+                "candidate_id": candidate.id,
+                "activation_id": activation.id,
+                "reason": "no_explicit_episode_or_volition_decision",
+            },
+            source="cognitive_workspace",
+            actor="backend",
+            visibility="private",
+        )
 
 
 def _autonomous_activation_envelope(

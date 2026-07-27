@@ -6,6 +6,53 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.63.0 - Endogenous Cognition V1
+
+#### Added
+
+- Add idempotent adaptive cognitive windows with source snapshots, traces,
+  activation linkage, descriptive outcomes, and empty-window backoff.
+- Add a strict MiniMax M2.7 contract for source-backed endogenous seeds across
+  personal continuity, curiosity, growth, relationship, responsibility,
+  exploration, creativity, and regulation.
+- Add explicit candidate-to-volition linkage through
+  `volition ... --candidate-id cand_...`.
+- Add a bounded Device Exploration adapter for lifecycle, network, explicit
+  location, and notification-interaction transitions.
+- Expose endogenous cadence and window history on autonomy inspection APIs.
+
+#### Changed
+
+- Delegate the active workspace watchdog to adaptive cognitive windows while
+  retaining the old watchdog when Endogenous Cognition is disabled.
+- Route endogenous seeds through the existing candidate, arbitration,
+  activation, episode, volition, context, history, and shell owners.
+- Reconcile every selected workspace candidate after an M3 activation rather
+  than only the first candidate in a coalition.
+- Advance backend, frontend, Android, and SDK compatibility metadata to
+  V1.63.0.
+
+#### Safety Boundary
+
+- A free window is not boredom, and an M2.7 seed is not Scarlet's desire,
+  emotion, intention, fact, or command.
+- Only MiniMax M3 Scarlet may adopt a seed. No explicit episode, volition, or
+  rejection decision leaves the candidate suspended.
+- Raw Device Exploration payloads remain separate technical evidence. Derived
+  events retain phone/device perspective and are not auto-injected into chat.
+- No external action, notification dispatch, authenticated multi-user
+  ownership, or embodiment control is introduced.
+
+#### Verification
+
+- Complete backend suite: `350 passed`.
+- Focused endogenous/workspace/shell/autonomy/volition tests: `51 passed`.
+- Ruff, compileall, mypy over 56 typed files, documentation integrity, project
+  skill validation, and frontend production build pass.
+- A legacy 27-table laboratory SQLite copy migrates to the current 45-table
+  schema with the 17-field endogenous-window contract and integrity `ok`.
+- Deployment preflight and production observation remain in progress.
+
 ### V1.62.0 - Cognitive Workspace And Event-Driven Wake
 
 #### Added

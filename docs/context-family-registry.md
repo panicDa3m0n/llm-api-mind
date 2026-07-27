@@ -1,9 +1,9 @@
 # Context Family Registry
 
-Last updated: 2026-07-27
-Target version: V1.62.0
-Status: typed registry and shadow routing active; perception inbox exists but
-native future sources are not admitted
+Last updated: 2026-07-28
+Target version: V1.63.0
+Status: typed registry and model-context routing remain shadow; a narrow device
+adapter admits bounded transitions to the perception inbox, not to chat context
 
 ## Purpose
 
@@ -24,8 +24,10 @@ raw source
 ```
 
 V1.59.0 implements the registry, packet validation, policy dependencies,
-mode-tag planning, model-context audit, and isolated simulations. It does not
-admit Device Exploration records or any new source to Scarlet.
+mode-tag planning, model-context audit, and isolated simulations. V1.63 adds a
+separate bounded adapter from selected Device Exploration transitions into the
+perception inbox. This does not activate family packet delivery in ordinary
+model context.
 
 ## Classification Axes
 
@@ -68,17 +70,20 @@ available sensor.
 | `foreground_attention` | Scarlet / focus organ | all | source present | existing conditional |
 | `affective_posture` | Scarlet / affect appraisal | interactive, scouting | source present | existing conditional |
 | `metacognitive_guidance` | Scarlet / derived cognition | interactive, scouting | source present | existing conditional |
-| `human_device_state` | human device / human device | all | relevant or operation | shadow |
+| `human_device_state` | human device / human device | all | relevant or operation | perception adapter active; model packet shadow |
 | `human_device_observation` | human or environment / human-device media | interactive, scouting | relevant or operation | shadow |
 | `human_situated_presence` | human / explicit derived cognition | all | relevant or operation | shadow |
-| `human_personal_events` | human or relationship / device or account record | idle, interactive | relevant or operation | shadow |
+| `human_personal_events` | human or relationship / device or account record | idle, interactive | relevant or operation | notification interaction can enter perception; model packet shadow |
 | `human_wellbeing` | human / device, account, or derived evidence | all | relevant or operation | shadow |
 | `scarlet_perceptual_scene` | Scarlet, human, or environment / Scarlet sensor | interactive, scouting | relevant or operation | shadow |
 | `shared_environment` | environment / Scarlet sensor, home system, or service | all | relevant or operation | shadow |
 | `relationship_continuity` | relationship / Core and derived cognition | idle, interactive | relevant or operation | shadow |
 | `active_operation` | operation / Core, device, service, or home receipt | all | active operation | shadow |
 
-`shadow` means classified and testable, not model-facing.
+`shadow` means classified and testable, not automatically model-facing. The
+V1.63 device adapter creates navigable perception evidence only; Scarlet sees
+it when the workspace selects a candidate or when she opens the perception
+channel through the shell.
 
 ## Packet Contract
 
@@ -202,8 +207,8 @@ background reliability, anomaly detection, or safe embodiment.
 
 ## Next Gates
 
-1. Derive a shadow adapter from real Device Exploration observations while
-   keeping its output outside model context.
+1. Observe the bounded V1 perception adapter against real device transitions
+   and preserve immediate `shadow`/`off` rollback.
 2. Define freshness, coalescing, change detection, and per-family token
    budgets from physical evidence.
 3. Add a policy-block composer behind a shadow equivalence trace for the

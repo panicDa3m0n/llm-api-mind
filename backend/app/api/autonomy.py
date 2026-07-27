@@ -81,6 +81,10 @@ def build_autonomy_router(
                 profile_id=settings.user_profile_id,
                 session_id=session.id,
             )
+            endogenous_window = repositories.latest_endogenous_window(
+                db,
+                profile_id=settings.user_profile_id,
+            )
         return {
             "operation": "autonomy.overview",
             "enabled": settings.autonomous_activation_enabled,
@@ -101,6 +105,23 @@ def build_autonomy_router(
                 _activation_payload(item) for item in recent
             ],
             "perception_channels": channels,
+            "endogenous_cognition": {
+                "enabled": settings.endogenous_cognition_enabled,
+                "minimum_interval_seconds": (
+                    settings.endogenous_cognition_min_interval_seconds
+                ),
+                "base_interval_seconds": (
+                    settings.endogenous_cognition_base_interval_seconds
+                ),
+                "maximum_interval_seconds": (
+                    settings.endogenous_cognition_max_interval_seconds
+                ),
+                "latest_window": (
+                    _endogenous_window_payload(endogenous_window)
+                    if endogenous_window is not None
+                    else None
+                ),
+            },
         }
 
     @router.get("/workspace")
@@ -129,6 +150,11 @@ def build_autonomy_router(
                 limit=limit,
             )
             arbitrations = repositories.list_arbitrations(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            endogenous_windows = repositories.list_endogenous_windows(
                 db,
                 profile_id=settings.user_profile_id,
                 limit=limit,
@@ -164,6 +190,10 @@ def build_autonomy_router(
                         "created_at": utc_isoformat(item.created_at),
                     }
                     for item in arbitrations
+                ],
+                "endogenous_windows": [
+                    _endogenous_window_payload(item)
+                    for item in endogenous_windows
                 ],
             }
 
@@ -439,4 +469,23 @@ def _signal_receipt_payload(receipt: Any) -> dict[str, Any]:
         "registry_version": receipt.registry_version,
         "observed_at": utc_isoformat(receipt.observed_at),
         "processed_at": utc_isoformat(receipt.processed_at),
+    }
+
+
+def _endogenous_window_payload(window: Any) -> dict[str, Any]:
+    return {
+        "id": window.id,
+        "schedule_key": window.schedule_key,
+        "profile_id": window.profile_id,
+        "status": window.status,
+        "opened_at": utc_isoformat(window.opened_at),
+        "closed_at": utc_isoformat(window.closed_at),
+        "cadence_seconds": window.cadence_seconds,
+        "next_window_at": utc_isoformat(window.next_window_at),
+        "consecutive_empty_windows": window.consecutive_empty_windows,
+        "source_refs": window.source_refs_json,
+        "candidate_ids": window.candidate_ids_json,
+        "activation_id": window.activation_id,
+        "trace_id": window.trace_id,
+        "outcome": window.outcome_json,
     }

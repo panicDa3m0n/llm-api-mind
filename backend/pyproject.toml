@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.62.0"
+version = "1.63.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -68,6 +68,7 @@ files = [
     "app/mind/context_projection.py",
     "app/mind/context_retrieval.py",
     "app/mind/episode.py",
+    "app/mind/endogenous_contracts.py",
     "app/mind/memory_lifecycle.py",
     "app/mind/memory_proposals.py",
     "app/mind/memory_read.py",
@@ -79,6 +80,8 @@ files = [
     "app/mind/workspace_contracts.py",
     "app/runtime/autonomy.py",
     "app/runtime/cognitive_workspace.py",
+    "app/runtime/device_perception_adapter.py",
+    "app/runtime/endogenous_cognition.py",
     "app/runtime/context_accounting.py",
     "app/runtime/answer_obligations.py",
     "app/runtime/history_compaction.py",
@@ -89,6 +92,7 @@ files = [
     "app/storage/database_boundary.py",
     "app/storage/repository/cognitive_workspace.py",
     "app/storage/repository/device_exploration.py",
+    "app/storage/repository/endogenous.py",
     "scarlet_agentic_module_sdk/cli.py",
     "scarlet_agentic_module_sdk/client.py",
     "scarlet_agentic_module_sdk/conformance.py",

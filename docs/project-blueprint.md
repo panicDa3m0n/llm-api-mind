@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.62.0 Cognitive Workspace target
+Architecture baseline: Core V1.50.1 closed; V1.63.0 Endogenous Cognition target
 Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-27
+Last updated: 2026-07-28
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -50,7 +50,11 @@ autonomous cognition lifecycle. V1.62 adds a reversible Cognitive Workspace
 that converts source-backed changes into provisional questions before an
 autonomous wake. Active field verification is the default; shadow remains the
 non-waking rollback and replay mode. The workspace does not replace organs or
-make external-world actions available.
+make external-world actions available. V1.63 adds adaptive free cognitive
+windows over that same workspace: M2.7 may propose source-backed endogenous
+seeds, while M3 Scarlet alone may adopt them through existing episodes or
+volition. No second Scarlet, context compiler, or deterministic desire engine
+is introduced.
 
 The canonical integrated status and convergent roadmap now live in:
 
@@ -68,6 +72,7 @@ The canonical event-driven autonomy and cognitive-episode contract lives in:
 
 ```txt
 docs/cognitive-workspace.md
+docs/endogenous-cognition.md
 ```
 
 The accepted public contract for optional Agentic Modules lives in:
@@ -1566,13 +1571,13 @@ Avoid:
 
 The Core V1 foundation described by the original implementation sequence is
 closed on V1.50.1. Product UI, Stream V2, and the Agentic Module contract/host/
-SDK now exist. The active research sequence after V1.62.0 is:
+SDK now exist. The active research sequence after V1.63.0 is:
 
 ```txt
-1. Observe Cognitive Workspace receipts, no-wake decisions, and M3 outcomes in active mode.
-2. Validate episode selection and non-repetition in bounded autonomous runs.
-3. Roll back to shadow/advisory/off if longitudinal evidence exposes regressions.
-4. Admit one bounded, sourceable device-perception channel through the inbox.
+1. Deploy and observe endogenous windows, seeds, no-work choices, and M3 outcomes.
+2. Validate variation, non-repetition, explicit volition adoption, and cadence cost.
+3. Roll back endogenous cognition or workspace mode if field evidence regresses.
+4. Expand device admission only from real source contracts and observer boundaries.
 5. Design initiative delivery and external action only with separate permission and receipt contracts.
 ```
 

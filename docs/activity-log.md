@@ -4,6 +4,49 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-28 - V1.63.0 Endogenous Cognition V1
+
+Area: Decision Autonomy / Perception / Cognitive Runtime.
+
+Type: Implementazione on `feature/cognitive-workspace`.
+
+Change:
+
+- added idempotent adaptive cognitive windows with productive and empty
+  cadence, source snapshots, traces, activation links, and outcomes;
+- added a strict M2.7 endogenous-seed contract over canonical session,
+  memory/KG, focus, volition, episode, affect, and admitted perception data;
+- routed valid seeds into the existing Cognitive Workspace rather than
+  creating a second agent, context, organ, or priority system;
+- retained MiniMax M3 as the only Scarlet and required explicit episode,
+  rejection, suspension, or candidate-linked volition decisions;
+- added shell support for `volition ... --candidate-id cand_...` and
+  deterministic reconciliation of all selected workspace candidates;
+- added a narrow Device Exploration adapter for lifecycle, network, explicit
+  location, and notification-interaction transitions while preserving the raw
+  ledger and device observer boundary;
+- added autonomy inspection fields and rollback settings; and
+- advanced backend, frontend, Android, and SDK compatibility metadata to
+  V1.63.0.
+
+Verification:
+
+- focused endogenous/workspace/shell/autonomy/volition suite: `51 passed`;
+- complete backend suite: `350 passed`;
+- Ruff, compileall, mypy over 56 typed files, documentation integrity, project
+  skill validation, and frontend production build: passed;
+- legacy SQLite copied-DB canary: 27 to 45 tables, endogenous-window schema
+  present, integrity `ok`;
+- database boundary, deployment preflight, and production observation:
+  pending in this release procedure.
+
+Residual:
+
+- inspect real M2.7 seed quality and actual M3 decisions longitudinally;
+- measure cadence and token cost before tuning;
+- keep raw device signals, external action, notifications, multi-user privacy,
+  and memory duplicate/conflict work outside this release.
+
 ## 2026-07-27 - V1.62.0 Cognitive Workspace And Event-Driven Wake
 
 Area: Decision Autonomy / Cognitive Runtime.

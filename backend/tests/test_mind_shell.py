@@ -708,6 +708,54 @@ def test_mind_shell_accepts_registry_canonical_volition_alias(
     assert closed.result["target"] == "volition.mark_impossible"
 
 
+def test_mind_shell_volition_can_endorse_workspace_candidate(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    context = _context(db_engine, session_id=session_id)
+    with Session(db_engine) as db:
+        candidate, created = repositories.create_candidate(
+            db,
+            profile_id="local-user",
+            candidate_kind="endogenous_curiosity",
+            context_family="memory_continuity",
+            claim="A source-backed question may deserve durable attention.",
+            why_now="A free cognitive window exposed the connection.",
+            cognitive_question="Do I want to keep understanding this?",
+            expected_transformation="A deliberate Scarlet-owned direction.",
+            uncertainty="medium",
+            exact_fingerprint="shell-volition-candidate-link",
+            sources=[
+                {
+                    "source_kind": "session",
+                    "source_id": session_id,
+                    "observed_at": datetime.now(timezone.utc),
+                }
+            ],
+            metadata={"origin": "endogenous_cognition"},
+        )
+        assert created is True
+
+    response = dispatch_mind_shell(
+        MindShellRequest(
+            command=(
+                'volition create "Comprendere questo filo nel tempo" '
+                '--reason "Scelgo di mantenerlo come direzione interna" '
+                f"--candidate-id {candidate.id}"
+            ),
+            intent="Endorse one provisional workspace seed as a volition.",
+        ),
+        context=context,
+    )
+
+    assert response.ok is True
+    intention = response.result["data"]["intention"]
+    assert len(intention["links"]) == 1
+    assert intention["links"][0]["target_type"] == "candidate"
+    assert intention["links"][0]["target_id"] == candidate.id
+    assert intention["links"][0]["relation"] == "endorsed_from"
+
+
 def test_mind_shell_volition_due_queue_and_focus_candidate_are_executable(
     db_engine: Engine,
 ) -> None:

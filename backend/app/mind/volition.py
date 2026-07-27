@@ -32,6 +32,7 @@ INTENTION_LINK_TARGET_TYPES = {
     "metacognition",
     "goal",
     "task",
+    "candidate",
     "user",
     "project",
     "other",
@@ -178,6 +179,22 @@ def handle_volition(
 
     with Session(context.engine) as db:
         owner_profile_id = _owner_profile_id(context)
+        invalid_candidate = _invalid_candidate_link(
+            db,
+            links=request.links,
+            owner_profile_id=owner_profile_id,
+        )
+        if invalid_candidate is not None:
+            return _error(
+                code="volition.candidate_link_invalid",
+                message=(
+                    "A candidate link must reference a source-backed candidate "
+                    "owned by the active profile."
+                ),
+                result={"candidate_id": invalid_candidate},
+                hint="Inspect the workspace candidate id and retry the volition command.",
+                actions=["Retry with --candidate-id cand_... from the active workspace"],
+            )
         source = _source_payload(db, context, owner_profile_id=owner_profile_id)
         if request.action == "create":
             return _create_intention(
@@ -778,6 +795,21 @@ def _add_links(
         )
         for link in links
     ]
+
+
+def _invalid_candidate_link(
+    db: Session,
+    *,
+    links: list[IntentionLinkBody],
+    owner_profile_id: str,
+) -> str | None:
+    for link in links:
+        if link.target_type != "candidate":
+            continue
+        candidate = repositories.get_candidate(db, link.target_id)
+        if candidate is None or candidate.profile_id != owner_profile_id:
+            return link.target_id
+    return None
 
 
 def _owner_profile_id(context: MindAPIContext) -> str:

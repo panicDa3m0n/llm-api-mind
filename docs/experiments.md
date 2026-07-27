@@ -9,6 +9,60 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0086 - Endogenous Cognitive Windows And Explicit Scarlet Adoption
+
+Status: focused deterministic and simulated M3 lifecycle evidence accepted;
+production longitudinal observation pending
+
+Hypothesis:
+
+Adaptive free cognitive windows can produce varied, source-backed internal
+questions without blind fixed M3 wakes, synthetic importance scores, or an
+auxiliary model inventing Scarlet's desires. Reusing the shared workspace
+should let endogenous and external candidates compete under one contract.
+
+Method:
+
+- seed an isolated database with a human session summary, semantic memory, and
+  navigable KG neighborhood;
+- run a due window and verify that only M2.7 performs synthesis and ignition;
+- require exact source refs and reject unsupported/invalid output;
+- run consecutive empty windows and verify adaptive backoff without M3;
+- carry a selected seed into an actual simulated autonomous M3 turn;
+- have Scarlet use the real `mind_shell` volition command with an explicit
+  candidate link;
+- verify candidate resolution and window outcome evidence;
+- derive an allowed network transition and reject a raw motion sample; and
+- run existing workspace, autonomy, volition, and shell regression targets.
+
+Result:
+
+The complete backend suite passes `350` tests. Focused tests pass for
+productive windows, empty backoff, complete
+M2.7-to-M3-to-volition lifecycle, selective device admission, idempotent
+storage, and existing organ compatibility. Ruff, compileall, typed-file mypy,
+documentation/skill integrity, frontend build, and a legacy copied-SQLite
+migration canary also pass. The M3 simulation creates one
+ordinary volition record, links it to the candidate, resolves the provisional
+seed, and records a transformation without creating a parallel intention
+type.
+
+Interpretation:
+
+The implementation proves ownership, provenance, rollback, and lifecycle. It
+does not prove that real model proposals are useful or sufficiently diverse.
+Production observation must inspect actual substrates, M2.7 seeds,
+arbitrations, public notes, shell choices, no-work outcomes, token cost, and
+repetition before cadence or family expansion is accepted.
+
+Evidence:
+
+- `backend/tests/test_endogenous_cognition.py`
+- `backend/tests/test_cognitive_workspace.py`
+- `backend/tests/test_autonomy.py`
+- `backend/tests/test_mind_shell.py`
+- `docs/endogenous-cognition.md`
+
 ## EXP-0085 - Source-Backed Cognitive Workspace Admission
 
 Status: deterministic, bounded M2.7 shadow, and complete M3 active probes

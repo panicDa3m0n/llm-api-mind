@@ -119,6 +119,7 @@ def _settings(mode: str = "shadow") -> Settings:
         agent_system_prompt="You are Scarlet.",
         maintenance_enabled=False,
         cognitive_workspace_mode=mode,
+        endogenous_cognition_enabled=False,
         autonomous_activation_interval_seconds=600,
     )
 
@@ -127,6 +128,7 @@ def test_cognitive_workspace_defaults_to_active() -> None:
     settings = Settings(_env_file=None)
 
     assert settings.cognitive_workspace_mode == "active"
+    assert settings.endogenous_cognition_enabled is True
 
 
 def _completed_human_turn(engine: Engine, *, content: str = "Ne riparliamo domani.") -> str:

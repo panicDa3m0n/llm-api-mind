@@ -692,6 +692,15 @@ def _volition_command(
                 namespace="volition",
                 actions=["Use --review-interval-seconds 3600"],
             )
+    candidate_id = _flag_string(parsed, "candidate-id")
+    if candidate_id is not None and action in {"create", "update", "review"}:
+        body["links"] = [
+            {
+                "target_type": "candidate",
+                "target_id": candidate_id,
+                "relation": "endorsed_from",
+            }
+        ]
     return _dispatch_api_as_shell(
         parsed,
         target=f"volition.{action}",

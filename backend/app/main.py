@@ -64,7 +64,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.62.0",
+        version="1.63.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -93,7 +93,7 @@ def create_app(
             provider_factory=provider_factory,
         )
     )
-    app.include_router(build_device_exploration_router(engine))
+    app.include_router(build_device_exploration_router(engine, runtime_settings))
     app.include_router(build_dashboard_router(runtime_settings, engine))
     app.include_router(
         build_chat_router(

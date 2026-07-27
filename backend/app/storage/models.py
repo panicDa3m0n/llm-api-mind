@@ -482,6 +482,52 @@ class CognitiveArbitration(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now, index=True)
 
 
+class EndogenousCognitiveWindow(SQLModel, table=True):
+    """One bounded opportunity for source-backed internal cognitive work."""
+
+    __tablename__ = "endogenous_cognitive_windows"
+    __table_args__ = (
+        UniqueConstraint(
+            "schedule_key",
+            name="uq_endogenous_cognitive_window_schedule",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("endo"), primary_key=True)
+    schedule_key: str = Field(index=True)
+    profile_id: str = Field(default="local-user", index=True)
+    status: str = Field(default="opened", index=True)
+    opened_at: datetime = Field(default_factory=utc_now, index=True)
+    closed_at: datetime | None = Field(default=None, index=True)
+    cadence_seconds: int = Field(default=3600)
+    next_window_at: datetime = Field(index=True)
+    consecutive_empty_windows: int = Field(default=0)
+    substrate_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_refs_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    candidate_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    activation_id: str | None = Field(
+        default=None,
+        foreign_key="autonomous_activations.id",
+        index=True,
+    )
+    trace_id: str | None = Field(default=None, foreign_key="traces.id", index=True)
+    outcome_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
 class CognitiveEpisode(SQLModel, table=True):
     """A bounded cognitive inquiry that may continue across activations."""
 

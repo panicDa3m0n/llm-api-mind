@@ -42,6 +42,7 @@ from app.mind.workspace_contracts import (
     ignition_prompt,
     repair_prompt,
 )
+from app.runtime.endogenous_cognition import run_endogenous_cognition_window
 from app.runtime.events import record_event
 from app.runtime.preferences import load_runtime_preferences
 from app.runtime.time import aware_utc
@@ -125,6 +126,16 @@ def run_cognitive_workspace_tick(
             autonomous_session=autonomous_session,
             now=current,
         )
+
+    endogenous = run_endogenous_cognition_window(
+        engine,
+        settings=settings,
+        provider_factory=provider_factory,
+        profile_id=profile_id,
+        session_id=autonomous_session_id,
+        now=current,
+    )
+    with Session(engine) as db:
         envelopes = _pending_appraisal_envelopes(
             db,
             profile_id=profile_id,
@@ -161,6 +172,7 @@ def run_cognitive_workspace_tick(
         "bootstrapped": bootstrapped,
         "new_signal_count": len(envelopes),
         "wake_conditions": wake_conditions,
+        "endogenous": endogenous,
         "appraisal": appraisal,
         "ignition": ignition,
         "watchdog": watchdog,
@@ -1081,6 +1093,7 @@ def _apply_ignition(
         "schema_version": "scarlet-cognitive-workspace-v1",
         "arbitration_id": arbitration.id,
         "authority": "provisional_m2.7_ignition",
+        "selected_candidate_ids": [item.id for item in selected],
         "selected_candidates": [
             _candidate_payload(db, item) for item in selected
         ],
@@ -1090,10 +1103,30 @@ def _apply_ignition(
             "suspend, resolve, or reject the proposed cognitive episode."
         ),
     }
+    endogenous_window_ids = list(
+        dict.fromkeys(
+            str(item.metadata_json["endogenous_window_id"])
+            for item in selected
+            if item.metadata_json.get("origin") == "endogenous_cognition"
+            and isinstance(item.metadata_json.get("endogenous_window_id"), str)
+        )
+    )
+    if endogenous_window_ids:
+        workspace["endogenous"] = {
+            "window_id": endogenous_window_ids[0],
+            "window_ids": endogenous_window_ids,
+            "authority": "provisional_preconscious_seed",
+            "instruction": (
+                "An endogenous seed is not yet Scarlet's desire or intention. "
+                "Inspect its sources. If you genuinely endorse a durable direction, "
+                "create or review a volition; otherwise reject, suspend, or resolve "
+                "the candidate without manufacturing activity."
+            ),
+        }
     if settings.cognitive_workspace_mode == "shadow":
         return None
     if settings.cognitive_workspace_mode == "advisory":
-        return repositories.attach_workspace_to_next_activation(
+        activation = repositories.attach_workspace_to_next_activation(
             db,
             profile_id=profile_id,
             workspace=workspace,
@@ -1101,9 +1134,15 @@ def _apply_ignition(
             episode_id=episode_id,
             wake_condition_id=None,
         )
+        _link_endogenous_windows(
+            db,
+            activation=activation,
+            window_ids=endogenous_window_ids,
+        )
+        return activation
     if settings.cognitive_workspace_mode != "active":
         return None
-    return repositories.schedule_autonomous_activation(
+    activation = repositories.schedule_autonomous_activation(
         db,
         profile_id=profile_id,
         session_id=session_id,
@@ -1114,6 +1153,12 @@ def _apply_ignition(
         episode_id=episode_id,
         workspace=workspace,
     )
+    _link_endogenous_windows(
+        db,
+        activation=activation,
+        window_ids=endogenous_window_ids,
+    )
+    return activation
 
 
 def _ensure_watchdog_activation(
@@ -1126,6 +1171,22 @@ def _ensure_watchdog_activation(
 ) -> dict[str, Any]:
     if settings.cognitive_workspace_mode != "active":
         return {"status": "inactive"}
+    if settings.endogenous_cognition_enabled:
+        with Session(engine) as db:
+            latest = repositories.latest_endogenous_window(
+                db,
+                profile_id=profile_id,
+            )
+        return {
+            "status": "delegated_to_endogenous_cadence",
+            "window_id": latest.id if latest is not None else None,
+            "next_window_at": (
+                _iso(latest.next_window_at) if latest is not None else None
+            ),
+            "maximum_interval_seconds": (
+                settings.endogenous_cognition_max_interval_seconds
+            ),
+        }
     with Session(engine) as db:
         latest = repositories.latest_completed_autonomous_activation(
             db,
@@ -1221,6 +1282,22 @@ def _create_required_candidate(
         details=receipt.details_json,
     )
     return candidate
+
+
+def _link_endogenous_windows(
+    db: Session,
+    *,
+    activation: AutonomousActivation | None,
+    window_ids: list[str],
+) -> None:
+    if activation is None:
+        return
+    for window_id in window_ids:
+        repositories.link_endogenous_activation(
+            db,
+            window_id=window_id,
+            activation_id=activation.id,
+        )
 
 
 def _structured_call(

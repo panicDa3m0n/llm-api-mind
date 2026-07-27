@@ -4,7 +4,13 @@ from sqlmodel import Session, select
 
 from app.config import Settings
 from app.main import create_app
-from app.storage.models import ChatSession, DeviceObservation, MemoryRecord, Trace
+from app.storage.models import (
+    ChatSession,
+    DeviceObservation,
+    MemoryRecord,
+    PerceptionEvent,
+    Trace,
+)
 
 
 def make_client(engine: Engine) -> TestClient:
@@ -90,7 +96,7 @@ def test_device_observation_batch_is_append_only_and_idempotent(
     assert unfiltered.json()["total"] == 2
 
 
-def test_device_exploration_summary_states_cognitive_isolation(
+def test_device_exploration_keeps_unadmitted_probes_cognitively_isolated(
     db_engine: Engine,
 ) -> None:
     client = make_client(db_engine)
@@ -113,6 +119,9 @@ def test_device_exploration_summary_states_cognitive_isolation(
         },
     )
     assert response.status_code == 200
+    assert {
+        item["status"] for item in response.json()["cognitive_admission"]
+    } == {"not_admitted"}
 
     summary = client.get(
         "/api/device-exploration/summary",
@@ -130,13 +139,15 @@ def test_device_exploration_summary_states_cognitive_isolation(
         "probe_counts": {"battery": 2, "device": 1},
         "latest_observation_at": "2026-07-26T16:00:00Z",
         "model_context_delivery": False,
-        "cognitive_persistence": False,
+        "cognitive_persistence": True,
+        "cognitive_admission_mode": "active",
     }
 
     with Session(db_engine) as db:
         assert len(list(db.exec(select(DeviceObservation)).all())) == 3
         assert list(db.exec(select(ChatSession)).all()) == []
         assert list(db.exec(select(MemoryRecord)).all()) == []
+        assert list(db.exec(select(PerceptionEvent)).all()) == []
         assert list(db.exec(select(Trace)).all()) == []
 
 

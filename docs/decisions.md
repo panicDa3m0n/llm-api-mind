@@ -7,6 +7,63 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0141 - Endogenous Seeds Extend The Shared Workspace And Require M3 Endorsement
+
+Date: 2026-07-28
+Status: accepted for V1.63.0 rollout
+
+Context:
+
+The event-driven Cognitive Workspace removed blind M3 activation for many
+external changes, but a system that wakes only when something outside changes
+cannot model bounded self-originating curiosity, relational reflection,
+unfinished self-work, regulation, or exploration. A second agent, a
+deterministic desire score, or a parallel autonomous context would conflict
+with the unified runtime and could manufacture false internal states.
+
+Decision:
+
+- represent quiet time as persisted adaptive cognitive windows, not as boredom
+  or need;
+- let fixed MiniMax M2.7 inspect a bounded snapshot of existing canonical
+  sessions, memory/KG, focus, volition, episodes, affect, and admitted
+  perception;
+- permit zero provisional seeds and require every seed to cite exact sources;
+- reuse the existing candidate pool, arbitration, activation, episode,
+  volition, history, context, shell, and trace owners;
+- reserve all semantic adoption for MiniMax M3 Scarlet;
+- require explicit candidate linkage when a seed becomes or updates a
+  volition, then resolve the candidate into that existing organ;
+- record descriptive lifecycle outcomes without assigning semantic quality
+  scores;
+- use adaptive deterministic cadence only for resource scheduling;
+- derive only bounded human-device transitions into perception while
+  preserving raw Device Exploration evidence and observer boundaries; and
+- provide independent feature/admission toggles so rollback never deletes
+  canonical cognitive state.
+
+Consequences:
+
+The system gains a real path for self-originating proposals without claiming
+that an auxiliary model has wishes or that every free interval must create
+work. Heterogeneous seeds compete through one shared workspace. Scarlet may
+reject, suspend, investigate, or adopt them, and her explicit organ mutation
+is the only durable endorsement.
+
+V1.63 remains an experimental cognitive layer until production observation
+establishes proposal quality, variation, non-repetition, cadence cost, and the
+frequency of valid no-work outcomes. External actions, user notifications,
+authenticated multi-user ownership, and full device sensing remain outside
+this decision.
+
+Links:
+
+- `docs/endogenous-cognition.md`
+- `docs/cognitive-workspace.md`
+- `backend/app/runtime/endogenous_cognition.py`
+- `backend/app/mind/endogenous_contracts.py`
+- Linear SCA-58
+
 ## ADR-0140 - Cognitive Workspace Uses Provisional M2.7 Admission And M3 Scarlet Authority
 
 Date: 2026-07-27

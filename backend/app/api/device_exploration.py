@@ -12,6 +12,8 @@ from sqlmodel import Session
 
 from app.storage import repositories
 from app.storage.models import DeviceObservation
+from app.config import Settings
+from app.runtime.device_perception_adapter import admit_device_observation
 
 
 class DeviceObservationInput(BaseModel):
@@ -61,6 +63,7 @@ class DeviceObservationBatchResponse(BaseModel):
     accepted: int
     deduplicated: int
     observations: list[DeviceObservationResponse]
+    cognitive_admission: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class DeviceObservationListResponse(BaseModel):
@@ -78,9 +81,13 @@ class DeviceExplorationSummaryResponse(BaseModel):
     latest_observation_at: datetime | None
     model_context_delivery: bool = False
     cognitive_persistence: bool = False
+    cognitive_admission_mode: str = "off"
 
 
-def build_device_exploration_router(engine: Engine) -> APIRouter:
+def build_device_exploration_router(
+    engine: Engine,
+    settings: Settings,
+) -> APIRouter:
     router = APIRouter(
         prefix="/api/device-exploration",
         tags=["device-exploration"],
@@ -96,6 +103,7 @@ def build_device_exploration_router(engine: Engine) -> APIRouter:
         accepted = 0
         deduplicated = 0
         stored: list[DeviceObservationResponse] = []
+        cognitive_admission: list[dict[str, Any]] = []
         with Session(engine) as db:
             for item in request.observations:
                 observation, created = repositories.add_device_observation(
@@ -119,12 +127,21 @@ def build_device_exploration_router(engine: Engine) -> APIRouter:
                 stored.append(_response(observation))
                 if created:
                     accepted += 1
+                    cognitive_admission.append(
+                        admit_device_observation(
+                            db,
+                            settings=settings,
+                            profile_id=settings.user_profile_id,
+                            observation=observation,
+                        )
+                    )
                 else:
                     deduplicated += 1
         return DeviceObservationBatchResponse(
             accepted=accepted,
             deduplicated=deduplicated,
             observations=stored,
+            cognitive_admission=cognitive_admission,
         )
 
     @router.get(
@@ -190,6 +207,10 @@ def build_device_exploration_router(engine: Engine) -> APIRouter:
             run_id=run_id,
             probe_counts=probe_counts,
             latest_observation_at=_api_utc(latest[0].observed_at) if latest else None,
+            cognitive_persistence=(
+                settings.device_perception_admission_mode == "active"
+            ),
+            cognitive_admission_mode=settings.device_perception_admission_mode,
         )
 
     return router

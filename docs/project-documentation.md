@@ -1,7 +1,7 @@
 # Project Documentation Index
 
-Last updated: 2026-07-27
-App target: V1.62.0; V1.50.1 remains release-accepted
+Last updated: 2026-07-28
+App target: V1.63.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -67,6 +67,9 @@ discussed before a new fix is attempted.
 - `docs/cognitive-workspace.md`: source registry, signal receipts, M2.7
   appraisal and ignition, Scarlet-owned episodes, deterministic wake
   conditions, runtime modes, failure semantics, and local verification.
+- `docs/endogenous-cognition.md`: adaptive free cognitive windows,
+  source-backed impulse seeds, existing-workspace competition, explicit M3
+  endorsement, outcome evidence, and bounded device-perception admission.
 - `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`:
   companion-product direction plus the accepted V1.60 autonomous activation,
   exclusive internal-session, perception-inbox, and internal-history

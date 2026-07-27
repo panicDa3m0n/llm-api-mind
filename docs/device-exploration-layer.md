@@ -1,8 +1,8 @@
 # Device Exploration Layer
 
-Last updated: 2026-07-27
-Target version: V1.60.0
-Status: experimental implementation
+Last updated: 2026-07-28
+Target version: V1.63.0
+Status: experimental raw ledger plus bounded cognitive adapter
 
 ## Purpose
 
@@ -15,9 +15,10 @@ cognition.
 This layer is not a second agent, a local mind, a context source, a memory
 writer, or an autonomous action system.
 
-V1.60.0 adds a separate perception-inbox contract, but does not bridge this
-ledger into it. Admission still requires an explicit source adapter and
-owner-approved evidence contract.
+V1.60.0 added a separate perception-inbox contract. V1.63 adds the first
+explicit source adapter for a small allowlist of state transitions. The raw
+ledger remains canonical and isolated; the adapter writes a separate compact,
+navigable perception event.
 
 ## Isolation Contract
 
@@ -31,14 +32,20 @@ Capacitor/native probe
 
 Device observations:
 
-- are never added to chat sessions, provider history, semantic memory, focus,
-  affect, volition, automatic retrieval, or `scarlet-model-context-v2`;
+- are never themselves added to chat sessions, provider history, semantic
+  memory, focus, affect, volition, automatic retrieval, or
+  `scarlet-model-context-v2`;
 - are not available through `mind_shell`;
 - remain traceable by device, exploration run, probe, client event id, device
   timestamp, server receipt timestamp, and app state;
 - preserve both raw and normalized forms so later architectural choices can be
   based on evidence rather than assumed plugin behavior;
 - are idempotent across offline retries through `client_event_id`.
+
+The V1.63 adapter may derive only lifecycle, network, explicit location, and
+notification-interaction transitions. It excludes raw motion and snapshots,
+keeps the observation id for navigation, and declares that the observer is the
+human's device rather than Scarlet.
 
 ## V1 Probe Surface
 
@@ -75,9 +82,13 @@ The summary response explicitly reports:
 ```json
 {
   "model_context_delivery": false,
-  "cognitive_persistence": false
+  "cognitive_persistence": true,
+  "cognitive_admission_mode": "active"
 }
 ```
+
+`cognitive_persistence` reports derived perception storage, not automatic
+prompt delivery. `off` and `shadow` remain supported rollback modes.
 
 ## Physical Evidence
 

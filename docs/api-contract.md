@@ -2,8 +2,8 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-27
-App target: V1.61.0 deployed; V1.50.1 remains the closed-Core baseline
+Last reviewed: 2026-07-28
+App target: V1.63.0 rollout approved; V1.50.1 remains the closed-Core baseline
 
 ## Response Philosophy
 
@@ -430,7 +430,8 @@ consumer trigger or an external initiative API.
 
 ### Cognitive Workspace Admission
 
-Status: implemented locally for V1.62.0; default `active`; not deployed
+Status: V1.62 workspace implemented; V1.63 endogenous extension rollout
+approved
 
 The Cognitive Workspace observes canonical events, perception records, due
 volition reviews, and explicit wake conditions through a versioned source
@@ -461,9 +462,14 @@ POST /api/autonomy/workspace/tick
 ```
 
 `GET /workspace` returns current-profile candidates, episodes, deterministic
-wake conditions, receipts, and arbitrations. `POST /workspace/tick` runs one
-bounded admission pass; it is an internal laboratory operation, not a
-consumer action.
+wake conditions, receipts, arbitrations, and endogenous cognitive windows.
+`POST /workspace/tick` runs one bounded admission pass and one due endogenous
+window; it is an internal laboratory operation, not a consumer action.
+
+`GET /overview` adds `endogenous_cognition` with the configured cadence and
+latest window. Window records expose source refs, candidate ids, linked
+activation, trace, cadence, and descriptive outcome without making substrate
+payloads a consumer contract.
 
 The existing overview and history payloads may include:
 
@@ -1739,10 +1745,11 @@ Response includes:
 
 ## Implemented Device Exploration API
 
-This API is an authenticated, non-cognitive laboratory boundary. It records
-Android capability evidence without adding it to chat sessions, provider
-history, semantic memory, focus, affect, volition, runtime/model context,
-traces, or `mind_shell`.
+This API is an authenticated laboratory boundary. It records raw Android
+capability evidence without adding that raw record to chat sessions, provider
+history, semantic memory, focus, affect, volition, runtime/model context, or
+`mind_shell`. V1.63 may derive a separate compact perception event from a
+small allowlist of state transitions.
 
 ### POST /api/device-exploration/observations/batch
 
@@ -1753,6 +1760,11 @@ payload, normalized payload, and technical metadata.
 
 Repeated `client_event_id` values return the existing record and increment
 `deduplicated`; they never create a second observation.
+
+The response adds `cognitive_admission` for newly created rows. Each receipt
+reports `not_admitted`, `disabled`, `shadow_only`, `admitted`, or
+`deduplicated`, plus the source observation id and derived perception id when
+applicable.
 
 ### GET /api/device-exploration/observations
 
@@ -1769,9 +1781,13 @@ requested device/run scope. The response explicitly declares:
 ```json
 {
   "model_context_delivery": false,
-  "cognitive_persistence": false
+  "cognitive_persistence": true,
+  "cognitive_admission_mode": "active"
 }
 ```
+
+The persistence flag refers only to a separate perception event. It does not
+mean that device evidence is automatically delivered to the model.
 
 ## Implemented Chat API
 

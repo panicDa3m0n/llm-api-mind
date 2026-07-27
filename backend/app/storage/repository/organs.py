@@ -517,3 +517,22 @@ def list_intention_links(
         .limit(limit)
     )
     return list(db.exec(statement).all())
+
+
+def list_intention_links_by_targets(
+    db: Session,
+    *,
+    target_type: str,
+    target_ids: list[str],
+    limit: int = 100,
+) -> list[IntentionLink]:
+    if not target_ids:
+        return []
+    statement = (
+        select(IntentionLink)
+        .where(IntentionLink.target_type == target_type)
+        .where(IntentionLink.target_id.in_(target_ids))
+        .order_by(IntentionLink.created_at.desc(), IntentionLink.id)
+        .limit(limit)
+    )
+    return list(db.exec(statement).all())

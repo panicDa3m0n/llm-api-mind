@@ -1,9 +1,9 @@
 # Branch: Autonomia Decisionale
 
-Last updated: 2026-07-27
-System version assessed: V1.62.0 local target; V1.61.0 deployed
-Status: shared lifecycle verified; Cognitive Workspace and episodes locally
-implemented with active field verification
+Last updated: 2026-07-28
+System version assessed: V1.63.0 rollout target; V1.61.0 deployed before rollout
+Status: shared lifecycle verified; Cognitive Workspace, episodes, and
+Endogenous Cognition V1 implemented
 
 ## Filosofia del ramo
 
@@ -177,8 +177,33 @@ completato il percorso fino a MiniMax M3: nove tool call, episodio aperto,
 checkpointed e risolto, attivazione completata in 38.7 secondi. Il runtime
 viene quindi verificato in `active` con rollback immediato disponibile.
 
+## Verifica V1.63.0
+
+Le finestre cognitive endogene non introducono un secondo subconscio o un
+altro agente. Il backend rende disponibile un intervallo; M2.7 può proporre
+zero o più semi provvisori con fonti esatte; il gate esistente decide se
+presentarli; M3 Scarlet conserva l'unica autorità per farli diventare episodi,
+volizioni o nessuna attività.
+
+Il substrato riusa sessioni, memorie/KG, focus, volition, affect, episodi e
+perception canonici. Le finestre vuote aumentano l'intervallo, quelle
+produttive lo riducono entro limiti configurati. Il cadence scheduling non
+assegna importanza semantica.
+
+La prova deterministica completa porta un seme relazionale attraverso M2.7,
+workspace e una vera attivazione M3 simulata. Scarlet usa il normale
+`mind_shell` per creare una volizione con link al candidato; il candidato si
+risolve nella volizione e la finestra registra la trasformazione. Resta da
+verificare in produzione la qualità naturale, la varietà, la non ripetizione,
+la frequenza dei no-work e il costo reale.
+
 ## Evolutive
 
+- Observe V1.63 adaptive windows and verify that real endogenous seeds vary,
+  cite useful sources, permit no-work outcomes, and do not repeat the same
+  organ inspections.
+- Evaluate M3 adoption quality through explicit episode or candidate-linked
+  volition outcomes; M2.7 proposals never count as Scarlet's own will.
 - Osservazione longitudinale in `active` di receipt, candidati, no-wake,
   episodi e ripetizioni.
 - Rollback a `shadow`, `advisory` o `off` se l'attivazione reale produce

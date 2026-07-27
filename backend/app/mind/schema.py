@@ -135,7 +135,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "volition list active --limit 10",
             "volition list due --limit 10",
             "volition search \"query\" --limit 10",
-            "volition create \"desire\" --reason \"...\" --horizon long --intensity 0.6 --next-review-at \"2026-07-14T10:00:00+02:00\" --review-interval-seconds 86400",
+            "volition create \"desire\" --reason \"...\" --candidate-id cand_... --horizon long --intensity 0.6 --next-review-at \"2026-07-14T10:00:00+02:00\" --review-interval-seconds 86400",
             "volition read int_...",
             "volition update int_... --reason \"...\"",
             "volition defer int_... --reason \"...\" --next-review-at \"2026-07-14T10:00:00+02:00\"",

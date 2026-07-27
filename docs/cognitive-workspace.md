@@ -1,8 +1,9 @@
 # Cognitive Workspace And Event-Driven Autonomy
 
-Last updated: 2026-07-27
-Target: V1.62.0
-Implementation status: complete locally, default `active`, not deployed
+Last updated: 2026-07-28
+Target: V1.63.0
+Implementation status: V1.62 workspace complete; V1.63 endogenous extension
+complete locally and awaiting deployment
 Linear: SCA-57
 
 ## Purpose
@@ -151,9 +152,22 @@ When `active` starts, any still-pending blind `periodic` activation is
 cancelled with a persisted reason and lifecycle event. Started or genuinely
 deferred work is preserved.
 
-In `active`, a watchdog can create a bounded orientation candidate after a
-configured period with no completed autonomous cycle. The watchdog prevents
-permanent silence, but it does not imply that every audit must produce work.
+In V1.63 `active`, the fixed watchdog delegates to adaptive endogenous
+cognitive windows. Those windows may propose no work and back off up to a
+configured ceiling. Disabling Endogenous Cognition restores the prior bounded
+watchdog behavior.
+
+## Endogenous Extension
+
+V1.63 adds a source-backed internal substrate and adaptive free-window ledger
+without changing the candidate, arbitration, episode, activation, history, or
+organ owners. Endogenous seeds enter the same candidate pool as external
+events and due conditions. M2.7 cannot turn a seed into a desire. M3 Scarlet
+must reject it, suspend it, open an episode, or explicitly link it to an
+existing volition through `--candidate-id`.
+
+The complete contract, cadence, device-admission boundary, rollback, and
+current evidence are documented in `docs/endogenous-cognition.md`.
 
 ## Historical Replay
 

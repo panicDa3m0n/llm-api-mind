@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-27
-Code baseline reviewed: V1.62.0
+Last reviewed: 2026-07-28
+Code baseline reviewed: V1.63.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -39,6 +39,12 @@ candidate ignites an autonomous activation, the activation adds one compact
 source references. Signal receipts, raw source payloads, alternative
 candidates, and arbitration diagnostics remain trace/UI data unless Scarlet
 opens their sources through the shell.
+
+V1.63.0 also leaves the shared V2 packet unchanged. An endogenous activation
+uses the same compact provisional `workspace` hook. Its full substrate,
+adaptive-window bookkeeping, device raw observations, seed alternatives, and
+M2.7 traces remain backend/trace evidence. Scarlet receives selected candidate
+summaries and exact source references only after normal workspace ignition.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
