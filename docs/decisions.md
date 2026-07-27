@@ -7,6 +7,69 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0140 - Cognitive Workspace Uses Provisional M2.7 Admission And M3 Scarlet Authority
+
+Date: 2026-07-27
+Status: accepted locally for V1.62.0; active field verification selected
+
+Context:
+
+The first autonomous lifecycle proved that Scarlet can maintain a separate
+internal chronology and use the same cognitive runtime as human interaction.
+A fixed ten-minute wake nevertheless asks M3 to orient even when no meaningful
+change exists, while naive deterministic importance scores cannot reliably
+recognize contradictions, unfinished intentions, failed expectations,
+affective shifts, or future embodied evidence. A second parallel context,
+memory, or organ system would recreate the divergence fixed in V1.61.
+
+Decision:
+
+- keep events, memory, sessions, focus, volition, affect, perception, and
+  activation history as canonical owners;
+- add a versioned fail-closed source registry and a receipt for every observed
+  signal;
+- use MiniMax M2.7 for non-Scarlet semantic appraisal and ignition
+  recommendation, with structured source-backed output and one repair attempt;
+- reserve MiniMax M3 for Scarlet herself, including autonomous activations;
+- prohibit auxiliary workers from using `mind_shell`, mutating cognitive
+  state, or speaking as Scarlet;
+- persist provisional candidates and source links without converting them
+  into truth, memory, focus, or volition;
+- let deterministic wake contracts bypass semantic recommendation only when
+  their exact condition is validated;
+- give M3 Scarlet final lifecycle authority through one additive `episode`
+  shell family;
+- preserve the existing autonomy runtime as the sole owner of actual M3
+  execution, history, leases, human foreground priority, and completion;
+- support `off`, `shadow`, `advisory`, and `active`, with `active` as the
+  field-verification default and `shadow` as immediate rollback/replay mode;
+  and
+- retain a bounded active-mode watchdog so a lack of incoming events cannot
+  silently disable internal cognition forever.
+
+Consequences:
+
+The new layer coordinates attention without duplicating cognitive organs or
+creating another Scarlet. It can observe and compare heterogeneous future
+signals while retaining exact source provenance. Invalid or unknown evidence
+fails closed. The periodic scheduler remains a rollback and advisory path.
+Active field verification is intentional because deterministic tests alone
+cannot prove actual receipts, candidates, no-wake choices, repetition control,
+or M3 episode outcomes. Historical replay remains shadow-only.
+
+The Workspace is not an external-action permission system. Notifications,
+device actions, and embodied safety remain separate future contracts.
+
+Links:
+
+- `docs/cognitive-workspace.md`
+- `backend/app/runtime/cognitive_workspace.py`
+- `backend/app/mind/wake_registry.py`
+- `backend/app/mind/workspace_contracts.py`
+- `backend/app/mind/episode.py`
+- `backend/app/runtime/autonomy.py`
+- Linear SCA-57
+
 ## ADR-0139 - Human And Autonomous Turns Share One Cognitive Runtime Contract
 
 Date: 2026-07-27

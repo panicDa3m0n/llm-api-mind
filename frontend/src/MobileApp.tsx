@@ -1022,6 +1022,9 @@ function AutonomyHistoryPanel({
 
 function AutonomyCycleCard({ cycle }: { cycle: AutonomousCycle }) {
   const checkpoint = cycle.messages.find((message) => message.role === "assistant");
+  const workspaceCandidates = recordArray(
+    cycle.activation.workspace.selected_candidates
+  );
   const narrativeEvents = cycle.events.filter((event) =>
     [
       "llm.thinking.captured",
@@ -1061,6 +1064,20 @@ function AutonomyCycleCard({ cycle }: { cycle: AutonomousCycle }) {
           </div>
         ) : null}
       </div>
+      {workspaceCandidates.length > 0 ? (
+        <details className="autonomy-technical">
+          <summary>Da cosa e nato questo pensiero</summary>
+          {workspaceCandidates.map((candidate) => (
+            <div key={stringValue(candidate.id) || stringValue(candidate.claim)}>
+              <strong>
+                {stringValue(candidate.cognitive_question) ||
+                  "Una continuita ha chiesto attenzione"}
+              </strong>
+              <span>{stringValue(candidate.claim)}</span>
+            </div>
+          ))}
+        </details>
+      ) : null}
       {cycle.tool_calls.length > 0 ? (
         <details className="autonomy-technical">
           <summary>{cycle.tool_calls.length} azioni cognitive</summary>

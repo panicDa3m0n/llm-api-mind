@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-27
 Status: Core V1 context active; V1.59 semantic family routing shadow;
-V1.61 shared human/autonomous V2 active
+V1.62 shared V2 plus provisional workspace orientation
 App baseline: V1.50.1 release-accepted; V1.61.0 development target
 
 This document defines how API Mind keeps Scarlet's live model context bounded
@@ -314,3 +314,11 @@ System/trace-only fields still include scheduler leases, retry state, rich
 candidate diagnostics, raw source payloads not opened by Scarlet, routing
 audits, and maintenance metadata. Perception remains an external-observation
 inbox and is not a second route to internal chronology.
+
+V1.62 keeps this contract intact. A workspace-triggered autonomous turn may
+receive a compact `workspace` field in its activation envelope containing only
+selected candidate hooks, exact source references, and linked episode/wake
+ids. It is explicitly provisional M2.7 orientation, not a second runtime
+context, a memory, or evidence that the candidate is true. The full candidate
+pool, signal receipts, registry decisions, and arbitration outputs remain
+internal/UI/trace evidence.

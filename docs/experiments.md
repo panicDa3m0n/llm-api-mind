@@ -9,6 +9,82 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0085 - Source-Backed Cognitive Workspace Admission
+
+Status: deterministic, bounded M2.7 shadow, and complete M3 active probes
+accepted locally; longitudinal active observation pending
+
+Hypothesis:
+
+A fail-closed source registry, explicit receipts, source-backed semantic
+appraisal, and a separate ignition gate can reduce blind periodic M3 wakes
+without replacing Scarlet's existing organs or letting an auxiliary model make
+final cognitive decisions.
+
+Method:
+
+- bootstrap empty source cursors, then create a completed human turn after the
+  boundary and verify the first new event is not skipped;
+- classify known, unknown, and workspace-generated events through the
+  deterministic registry;
+- appraise source envelopes with a structured M2.7 contract and one repair;
+- compare candidate coalitions without hand-authored numeric importance;
+- run `shadow`, `advisory`, and `active` with deterministic providers;
+- verify `shadow` never creates a Scarlet activation;
+- verify `active` schedules but does not itself execute an M3 activation;
+- replay an archived autonomous completion in `shadow`, verify a trace-only
+  receipt, and prove that replay is rejected before state mutation in
+  `advisory` or `active`;
+- run one disposable active probe from a certified decision event through
+  MiniMax M3 and inspect notes, thinking, shell calls, episode lifecycle, and
+  terminal activation persistence;
+- verify deterministic due wake conditions bypass semantic appraisal;
+- exercise Scarlet-owned episode lifecycle through `mind_shell`;
+- migrate a legacy SQLite activation table; and
+- run one real M2.7 probe against a disposable database.
+
+Result:
+
+The backend suite passes `345` tests. The frozen whole-system regression
+remains `9/9` before and after. Ruff, compileall, changed-file mypy, frontend
+build, and legacy SQLite migration pass.
+
+The first live probe intentionally used a tight 2,048-token auxiliary output
+budget. M2.7 and its one repair did not produce valid structured output; the
+system persisted `invalid_output`, created no candidate, and scheduled no M3
+activation. This is accepted fail-closed evidence, not successful appraisal.
+
+The second disposable probe used 4,096 tokens. M2.7 converted a completed
+human exchange about reducing repetitive initiatives into one candidate with
+an exact `event:<id>` source. It recognized that the user had explicitly
+postponed the thread until tomorrow. The separate ignition gate selected no
+immediate wake, no activation row was created in `shadow`, and the production
+database remained untouched.
+
+The final active probe used a certified `operation.needs_decision` in a new
+temporary database. The workspace persisted one `required_wake` receipt and
+candidate, scheduled MiniMax M3 Scarlet, and completed the activation in
+38.7 seconds. Scarlet emitted notes and provider thinking, made nine shell
+calls, opened, checkpointed, and resolved the source-backed episode, then
+persisted the terminal internal checkpoint.
+
+Interpretation:
+
+The architecture can represent “interesting but not now” without a scalar
+priority and can also carry an admitted source through a complete M3 episode.
+The invalid first call confirms that structured provider variance is visible
+and contained. These probes do not establish longitudinal candidate quality,
+non-repetition, or correct activation frequency. The next experiment is
+active observation over diverse real sources with immediate shadow rollback
+available.
+
+Evidence:
+
+- `backend/tests/test_cognitive_workspace.py`
+- `backend/app/evals/runs/20260727_211357_preliminary-regression-v1`
+- `backend/app/evals/runs/20260727_222359_preliminary-regression-v1`
+- `docs/cognitive-workspace.md`
+
 ## EXP-0084 - Autonomous Activation Lifecycle And Internal History
 
 Status: deterministic, isolated-live, first production V1.60.1 evidence, and

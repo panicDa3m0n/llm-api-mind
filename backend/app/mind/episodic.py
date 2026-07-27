@@ -4,7 +4,10 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from sqlmodel import Session
 
-from app.llm.factory import active_provider_max_tokens
+from app.llm.factory import (
+    auxiliary_provider_max_tokens,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import LLMConfigurationError, LLMRequestError
 from app.mind.contracts import (
     MindAPIContext,
@@ -554,7 +557,8 @@ def handle_session_summarize(
                 "Session summarization requires an LLM provider in context."
             )
         try:
-            provider = context.provider_factory(context.settings)
+            auxiliary_settings = auxiliary_provider_settings(context.settings)
+            provider = context.provider_factory(auxiliary_settings)
             result = provider.generate_text(
                 prompt=_build_summary_prompt(
                     chat_session,
@@ -563,7 +567,7 @@ def handle_session_summarize(
                     focus=request.focus,
                 ),
                 system=SESSION_SUMMARY_SYSTEM_PROMPT,
-                max_tokens=active_provider_max_tokens(context.settings),
+                max_tokens=auxiliary_provider_max_tokens(context.settings),
             )
         except LLMConfigurationError as exc:
             return _provider_unavailable(str(exc))
@@ -588,7 +592,7 @@ def handle_session_summarize(
                 repair_result = provider.generate_text(
                     prompt=_build_repair_prompt(result.text),
                     system=SESSION_SUMMARY_REPAIR_SYSTEM_PROMPT,
-                    max_tokens=active_provider_max_tokens(context.settings),
+                    max_tokens=auxiliary_provider_max_tokens(context.settings),
                 )
                 parsed = _parse_json_object(repair_result.text)
             except (LLMConfigurationError, LLMRequestError):

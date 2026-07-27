@@ -1,7 +1,7 @@
 # Quality Gates
 
 Last updated: 2026-07-27
-App target: V1.61.0; V1.50.1 remains release-accepted
+App target: V1.62.0; V1.50.1 remains release-accepted
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API
@@ -65,8 +65,10 @@ without suppressing their own errors:
 - chronological source mapping and shadow partition planning;
 - maintenance scheduling/dispatch, summary/history execution, memory review,
   and shared job contracts;
-- database ownership boundaries.
-- the isolated Device Exploration API and observation repository.
+- database ownership boundaries;
+- the isolated Device Exploration API and observation repository; and
+- Cognitive Workspace registry/contracts/coordinator, episode shell owner,
+  autonomy integration, API inspection, and persistence repository.
 
 Imports are treated as external to this first slice so SQLModel repository
 typing does not make a small clean module inherit unrelated errors. The full

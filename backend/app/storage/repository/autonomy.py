@@ -122,6 +122,10 @@ def schedule_autonomous_activation(
     scheduled_at: datetime,
     trigger_kind: str = "periodic",
     schedule_key: str | None = None,
+    candidate_id: str | None = None,
+    episode_id: str | None = None,
+    wake_condition_id: str | None = None,
+    workspace: dict[str, Any] | None = None,
 ) -> AutonomousActivation:
     key = schedule_key or (
         f"{trigger_kind}:{profile_id}:{scheduled_at.astimezone().isoformat()}"
@@ -139,6 +143,10 @@ def schedule_autonomous_activation(
         trigger_kind=trigger_kind,
         schedule_key=key,
         scheduled_at=scheduled_at,
+        candidate_id=candidate_id,
+        episode_id=episode_id,
+        wake_condition_id=wake_condition_id,
+        workspace_json=workspace or {},
     )
     db.add(activation)
     try:
@@ -303,6 +311,67 @@ def list_autonomous_activations(
         .limit(limit)
     )
     return list(db.exec(statement).all())
+
+
+def get_autonomous_activation_by_turn(
+    db: Session,
+    *,
+    turn_id: str,
+) -> AutonomousActivation | None:
+    return db.exec(
+        select(AutonomousActivation).where(
+            AutonomousActivation.turn_id == turn_id
+        )
+    ).first()
+
+
+def latest_completed_autonomous_activation(
+    db: Session,
+    *,
+    profile_id: str,
+) -> AutonomousActivation | None:
+    return db.exec(
+        select(AutonomousActivation)
+        .where(AutonomousActivation.profile_id == profile_id)
+        .where(AutonomousActivation.status == "completed")
+        .order_by(
+            AutonomousActivation.completed_at.desc(),
+            AutonomousActivation.id.desc(),
+        )
+        .limit(1)
+    ).first()
+
+
+def attach_workspace_to_next_activation(
+    db: Session,
+    *,
+    profile_id: str,
+    workspace: dict[str, Any],
+    candidate_id: str | None,
+    episode_id: str | None,
+    wake_condition_id: str | None,
+) -> AutonomousActivation | None:
+    activation = db.exec(
+        select(AutonomousActivation)
+        .where(AutonomousActivation.profile_id == profile_id)
+        .where(AutonomousActivation.status == "pending")
+        .order_by(
+            AutonomousActivation.scheduled_at,
+            AutonomousActivation.created_at,
+        )
+        .limit(1)
+    ).first()
+    if activation is None:
+        return None
+    activation.workspace_json = workspace
+    activation.candidate_id = candidate_id
+    activation.episode_id = episode_id
+    activation.wake_condition_id = wake_condition_id
+    activation.updated_at = utc_now()
+    db.add(activation)
+    db.commit()
+    db.refresh(activation)
+    return activation
 
 
 def has_active_human_turn(

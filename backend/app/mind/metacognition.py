@@ -5,7 +5,10 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from sqlmodel import Session
 from sqlmodel import select
 
-from app.llm.factory import active_provider_max_tokens
+from app.llm.factory import (
+    auxiliary_provider_max_tokens,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import LLMConfigurationError, LLMRequestError
 from app.mind.contracts import (
     MindAPIContext,
@@ -191,11 +194,12 @@ def handle_metacognition_step(
         retrospection_pack=retrospection_pack,
     )
     try:
-        provider = context.provider_factory(context.settings)
+        auxiliary_settings = auxiliary_provider_settings(context.settings)
+        provider = context.provider_factory(auxiliary_settings)
         result = provider.generate_text(
             prompt=prompt,
             system=METACOGNITION_SYSTEM_PROMPT,
-            max_tokens=active_provider_max_tokens(context.settings),
+            max_tokens=auxiliary_provider_max_tokens(context.settings),
         )
     except LLMConfigurationError as exc:
         return _provider_unavailable(str(exc))
@@ -220,7 +224,7 @@ def handle_metacognition_step(
             repair_result = provider.generate_text(
                 prompt=_build_repair_prompt(result.text),
                 system=METACOGNITION_REPAIR_SYSTEM_PROMPT,
-                max_tokens=active_provider_max_tokens(context.settings),
+                max_tokens=auxiliary_provider_max_tokens(context.settings),
             )
             parsed = _parse_review(repair_result.text)
         except (LLMConfigurationError, LLMRequestError):

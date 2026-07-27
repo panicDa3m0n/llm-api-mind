@@ -42,7 +42,8 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
     "name": "mind_shell",
     "description": (
         "Scarlet's internal cognitive command shell. Use concise commands to "
-        "navigate memory, sessions, focus, volition, affect, agent mode, perception, metacognition, "
+        "navigate memory, sessions, focus, volition, affect, agent mode, "
+        "perception, cognitive episodes, metacognition, "
         "and capability help without exposing endpoint mechanics to the user."
     ),
     "input_schema": {
@@ -81,6 +82,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "help affect",
             "help mode",
             "help perception",
+            "help episode",
             "help metacognition",
         ],
     },
@@ -173,6 +175,27 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "perception status",
             "perception open notifications --limit 10",
             "perception read per_...",
+        ],
+    },
+    {
+        "namespace": "episode",
+        "purpose": (
+            "Own bounded cognitive inquiries, checkpoints, predictions, and "
+            "deterministic wake contracts."
+        ),
+        "commands": [
+            "episode list --status active",
+            "episode read episode_...",
+            'episode open cand_... --question "..." --expected-transformation "..."',
+            'episode checkpoint episode_... --progress "..." --next "..." --source event:evt_...',
+            'episode suspend episode_... --reason "..." --resume-at "2026-07-28T09:00:00+02:00"',
+            "episode resume episode_...",
+            'episode resolve episode_... --resolution "..."',
+            'episode reject cand_... --reason "..."',
+            'episode expectation-add episode_... --claim "..." --observable-outcome "..."',
+            'episode wake-add --episode episode_... --event-type "organ.volition.created"',
+            "episode wake-list",
+            "episode wake-cancel wake_...",
         ],
     },
     {
@@ -1510,6 +1533,68 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "limit": 10,
                 },
             },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/episode",
+        "status": "implemented",
+        "purpose": (
+            "Let Scarlet inspect and own provisional candidates as bounded "
+            "cognitive episodes, record progress, predictions, decisions, and "
+            "deterministic wake conditions."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": [
+                        "list",
+                        "read",
+                        "open",
+                        "checkpoint",
+                        "suspend",
+                        "resume",
+                        "resolve",
+                        "abandon",
+                        "reject",
+                        "expectation_add",
+                        "expectation_resolve",
+                        "wake_list",
+                        "wake_add",
+                        "wake_cancel",
+                    ],
+                },
+                "episode_id": {"type": ["string", "null"]},
+                "candidate_id": {"type": ["string", "null"]},
+                "candidate_ids": {"type": "array", "items": {"type": "string"}},
+                "question": {"type": ["string", "null"]},
+                "expected_transformation": {"type": ["string", "null"]},
+                "progress": {"type": ["string", "null"]},
+                "next_step": {"type": ["string", "null"]},
+                "source_refs": {"type": "array", "items": {"type": "string"}},
+                "reason": {"type": ["string", "null"]},
+                "resolution": {"type": ["string", "null"]},
+                "resume_at": {"type": ["string", "null"]},
+                "resume_event": {"type": ["string", "null"]},
+                "at": {"type": ["string", "null"]},
+                "event_type": {"type": ["string", "null"]},
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/episode",
+                "intent": "Open a source-backed inquiry selected by Scarlet.",
+                "body": {
+                    "action": "open",
+                    "candidate_ids": ["cand_example"],
+                    "question": "What changed, and does it require action?",
+                    "expected_transformation": "A sourced decision or suspension.",
+                },
+            }
         ],
     },
     {

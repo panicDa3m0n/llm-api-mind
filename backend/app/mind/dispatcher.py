@@ -23,6 +23,7 @@ from app.mind.episodic import (
     handle_session_turn_read,
     handle_sessions_list,
 )
+from app.mind.episode import handle_episode
 from app.mind.affect import handle_affect
 from app.mind.focus import handle_focus
 from app.mind.metacognition import handle_metacognition_step
@@ -266,6 +267,13 @@ def dispatch_mind_api(
     if method == "POST" and path == "/mind/perception":
         return _operation_response(
             handle_perception(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/episode":
+        return _operation_response(
+            handle_episode(body, context, intent=request.intent),
             method=method,
             path=path,
         )

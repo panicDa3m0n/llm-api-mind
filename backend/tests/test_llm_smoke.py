@@ -75,8 +75,10 @@ def test_llm_smoke_test_uses_configured_default_token_budget(
         app_name="Test Mind",
         environment="test",
         minimax_api_key="test-key",
-        minimax_model="MiniMax-M2.7",
+        minimax_model="MiniMax-M3",
         minimax_max_tokens=4096,
+        auxiliary_minimax_model="MiniMax-M2.7",
+        auxiliary_minimax_max_tokens=6144,
     )
     client = TestClient(
         create_app(
@@ -90,11 +92,12 @@ def test_llm_smoke_test_uses_configured_default_token_budget(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["text"] == "fake:ping:4096"
-    assert body["max_tokens"] == 4096
+    assert body["model"] == "MiniMax-M2.7"
+    assert body["text"] == "fake:ping:6144"
+    assert body["max_tokens"] == 6144
 
 
-def test_llm_smoke_test_uses_qwen_default_token_budget(
+def test_llm_smoke_test_uses_auxiliary_minimax_when_scarlet_uses_qwen(
     db_engine: Engine,
 ) -> None:
     settings = Settings(
@@ -117,9 +120,9 @@ def test_llm_smoke_test_uses_qwen_default_token_budget(
 
     assert response.status_code == 200
     body = response.json()
-    assert body["model"] == "qwen3.7-max"
-    assert body["text"] == "fake:ping:8192"
-    assert body["max_tokens"] == 8192
+    assert body["model"] == "MiniMax-M2.7"
+    assert body["text"] == "fake:ping:131072"
+    assert body["max_tokens"] == 131072
 
 
 def test_llm_smoke_test_requires_minimax_key(db_engine: Engine) -> None:
@@ -141,11 +144,14 @@ def test_llm_smoke_test_requires_minimax_key(db_engine: Engine) -> None:
     }
 
 
-def test_llm_smoke_test_requires_qwen_key(db_engine: Engine) -> None:
+def test_llm_smoke_test_requires_auxiliary_minimax_key_when_scarlet_uses_qwen(
+    db_engine: Engine,
+) -> None:
     settings = Settings(
         app_name="Test Mind",
         environment="test",
         llm_provider="qwen",
+        minimax_api_key=None,
         qwen_api_key=None,
         qwen_model="qwen3.7-max",
     )
@@ -156,6 +162,6 @@ def test_llm_smoke_test_requires_qwen_key(db_engine: Engine) -> None:
     assert response.status_code == 503
     assert response.json()["detail"] == {
         "code": "llm.not_configured",
-        "message": "QWEN_API_KEY is not configured.",
+        "message": "MINIMAX_API_KEY is not configured.",
         "recoverable": True,
     }

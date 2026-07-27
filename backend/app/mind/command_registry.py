@@ -235,6 +235,78 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
             ),
         },
     ),
+    "episode": CommandFamily(
+        aliases=("episodes", "inquiry", "inquiries"),
+        default_action="list",
+        actions={
+            "list": CommandAction(status="implemented"),
+            "read": CommandAction(
+                status="implemented",
+                aliases=("inspect", "show", "get"),
+                requires_any=("arg", "id", "episode-id"),
+                suggested_command="episode read episode_...",
+            ),
+            "open": CommandAction(
+                status="implemented",
+                requires_any=("arg", "candidate", "candidate-id"),
+                suggested_command=(
+                    'episode open cand_... --question "..." '
+                    '--expected-transformation "..."'
+                ),
+            ),
+            "checkpoint": CommandAction(
+                status="implemented",
+                requires_all=("arg|id|episode-id", "progress"),
+                suggested_command=(
+                    'episode checkpoint episode_... --progress "..." --next "..."'
+                ),
+            ),
+            "suspend": CommandAction(
+                status="implemented",
+                requires_all=("arg|id|episode-id", "reason|why"),
+                suggested_command=(
+                    'episode suspend episode_... --reason "..." --resume-at "..."'
+                ),
+            ),
+            "resume": CommandAction(
+                status="implemented",
+                requires_any=("arg", "id", "episode-id"),
+            ),
+            "resolve": CommandAction(
+                status="implemented",
+                requires_all=("arg|id|episode-id", "resolution"),
+            ),
+            "abandon": CommandAction(
+                status="implemented",
+                requires_all=("arg|id|episode-id", "resolution|reason|why"),
+            ),
+            "reject": CommandAction(
+                status="implemented",
+                requires_all=("arg|candidate|candidate-id", "reason|why"),
+            ),
+            "expectation-add": CommandAction(
+                status="implemented",
+                requires_all=(
+                    "arg|id|episode-id",
+                    "claim",
+                    "observable-outcome",
+                ),
+            ),
+            "expectation-resolve": CommandAction(
+                status="implemented",
+                requires_all=("arg|expectation|expectation-id", "evaluation"),
+            ),
+            "wake-list": CommandAction(status="implemented"),
+            "wake-add": CommandAction(
+                status="implemented",
+                requires_any=("at", "event-type"),
+            ),
+            "wake-cancel": CommandAction(
+                status="implemented",
+                requires_any=("arg", "condition", "condition-id"),
+            ),
+        },
+    ),
     "metacognition": CommandFamily(
         aliases=("meta", "reflect"),
         default_action="step",

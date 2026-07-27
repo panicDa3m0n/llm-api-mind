@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.61.0"
+version = "1.62.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -59,6 +59,7 @@ files = [
     "app/api/chat_serialization.py",
     "app/api/chat_stream_v2.py",
     "app/api/device_exploration.py",
+    "app/api/autonomy.py",
     "app/config.py",
     "app/mind/agent_modes.py",
     "app/mind/command_registry.py",
@@ -66,6 +67,7 @@ files = [
     "app/mind/context_preserved.py",
     "app/mind/context_projection.py",
     "app/mind/context_retrieval.py",
+    "app/mind/episode.py",
     "app/mind/memory_lifecycle.py",
     "app/mind/memory_proposals.py",
     "app/mind/memory_read.py",
@@ -73,6 +75,10 @@ files = [
     "app/mind/memory_shared.py",
     "app/mind/memory_write.py",
     "app/mind/relevance_rerank.py",
+    "app/mind/wake_registry.py",
+    "app/mind/workspace_contracts.py",
+    "app/runtime/autonomy.py",
+    "app/runtime/cognitive_workspace.py",
     "app/runtime/context_accounting.py",
     "app/runtime/answer_obligations.py",
     "app/runtime/history_compaction.py",
@@ -81,6 +87,7 @@ files = [
     "app/runtime/maintenance_scheduler.py",
     "app/runtime/maintenance_shared.py",
     "app/storage/database_boundary.py",
+    "app/storage/repository/cognitive_workspace.py",
     "app/storage/repository/device_exploration.py",
     "scarlet_agentic_module_sdk/cli.py",
     "scarlet_agentic_module_sdk/client.py",

@@ -6,7 +6,11 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 
 from app.config import Settings
-from app.llm.factory import active_provider_max_tokens, build_llm_provider
+from app.llm.factory import (
+    auxiliary_provider_max_tokens,
+    auxiliary_provider_settings,
+    build_llm_provider,
+)
 from app.llm.provider import LLMConfigurationError, LLMProvider, LLMRequestError
 
 
@@ -41,8 +45,8 @@ def build_debug_router(
     def llm_smoke_test(request: LLMSmokeTestRequest) -> LLMSmokeTestResponse:
         started = time.perf_counter()
         try:
-            provider = provider_factory(settings)
-            max_tokens = request.max_tokens or active_provider_max_tokens(settings)
+            provider = provider_factory(auxiliary_provider_settings(settings))
+            max_tokens = request.max_tokens or auxiliary_provider_max_tokens(settings)
             result = provider.generate_text(
                 prompt=request.prompt,
                 max_tokens=max_tokens,

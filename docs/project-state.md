@@ -1,7 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-27
-App target: V1.61.0 deployed for unified human/autonomous field observation;
+App target: V1.62.0 implemented locally with Cognitive Workspace active;
+V1.61.0 remains the deployed unified human/autonomous runtime;
 V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
@@ -68,8 +69,9 @@ in normal behavior. “Implemented” never means “always active”.
 
 Implemented and verified:
 
-- FastAPI runtime with MiniMax M3 default, MiniMax M2.7 comparison baseline,
-  and optional Qwen adapter;
+- FastAPI runtime with MiniMax M3 reserved for Scarlet turns, a fixed MiniMax
+  M2.7 auxiliary profile for non-Scarlet semantic workers, and an optional
+  Qwen adapter outside the Scarlet path;
 - persistent sessions, turns, messages, provider-native history, traces,
   cognitive events, tool calls, summaries, maintenance jobs, memories, facts,
   proposals, retrieval artifacts, focus, volition, and affect state;
@@ -120,6 +122,11 @@ Implemented and verified:
   `scarlet-model-context-v2`, automatic retrieval/rerank, organ projection,
   static policy, and shell while retaining separate provider histories and
   deterministic source provenance;
+- V1.62 adds a reversible Cognitive Workspace with a fail-closed source
+  registry, persistent signal receipts, M2.7 appraisal and ignition,
+  source-backed candidates, deterministic wake conditions, and M3
+  Scarlet-owned cognitive episodes. `active` is the field-verification
+  default; `shadow` remains the non-waking rollback and replay mode;
 - an append-only perception inbox with compact channel availability and
   `perception status|open|read`; no native device source is admitted yet;
 - a Product Chat header surface that replays each autonomous cycle as notes,
@@ -148,6 +155,14 @@ Implemented and verified:
 
 Current verification baseline:
 
+- V1.62.0 local Cognitive Workspace: full backend suite `345 passed`,
+  frozen regression `9/9` before and after, frontend production build, Ruff,
+  compileall, changed-file mypy, and a legacy-SQLite migration canary pass. A
+  real isolated M2.7 shadow probe produced one source-backed candidate and
+  correctly chose no immediate M3 wake for a thread explicitly postponed to
+  tomorrow. A separate disposable active probe completed a required wake,
+  MiniMax M3 execution, nine shell calls, and an opened/checkpointed/resolved
+  cognitive episode in 38.7 seconds;
 - V1.61.0 shared lifecycle context: 41 focused context/autonomy/shell/time
   tests and all 36 Mind API tests pass; Ruff is clean and blocking typed
   context/serialization surfaces pass mypy. A deterministic autonomous cycle
@@ -348,6 +363,7 @@ Implemented command families:
 | affect | read/list/prototypes | Read-only to Scarlet; backend appraises state. |
 | mode | read/list/set | Agent-only posture; human turns enforce `interactive`, manual selection sets the resumable tag. |
 | perception | status/open/read | Availability-first access to append-only perception evidence; opening advances only the autonomous session cursor. |
+| episode | list/read/open/checkpoint/suspend/resume/resolve/abandon/reject/expectation-add/expectation-resolve/wake-list/wake-add/wake-cancel | Scarlet-owned lifecycle for provisional workspace questions and explicit future wake contracts. |
 | metacognition | step | One LLM-backed route, not an automatic control loop. |
 
 Shell parsing, registry validation, dispatcher translation, model-facing
@@ -445,7 +461,7 @@ product opportunity, not an unfinished Core acceptance criterion.
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
 | Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
 | Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
-| Decision autonomy | L3/L4 | Model-controlled shell, volition register, answer obligations, bounded mode selection, persisted periodic internal cycles, and shared V2/retrieval continuity | evaluate longitudinal real-cycle choices and design initiative/action receipts before any external delivery |
+| Decision autonomy | L3/L4 | Model-controlled shell, volition register, answer obligations, bounded mode selection, persisted internal cycles, shared V2/retrieval continuity, and locally verified active Workspace/episode lifecycle | observe source/candidate/no-wake and episode quality longitudinally with shadow rollback; design initiative/action receipts before external delivery |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |
@@ -473,6 +489,7 @@ backend/app/mind/schema.py                   1870
 frontend/src/MobileApp.tsx                   1766
 backend/app/api/chat_native_turn.py          1659
 backend/app/plugins/gpt_bridge/router.py     1509
+backend/app/runtime/cognitive_workspace.py   1526
 backend/app/mind/context.py                  1161
 backend/app/mind/memory_read.py               996
 backend/app/runtime/maintenance_memory.py     746
@@ -495,12 +512,15 @@ to make the completed ownership boundaries explicit; they are no longer
 structural debt themselves. Similar concentration remains in `test_mind_api.py`
 and `test_chat_api.py`. Future rework should continue by contract and lifecycle
 while preserving facades and running the frozen 9-case gate before and after.
+The workspace coordinator already delegates contracts, registry, storage,
+episode lifecycle, and execution to separate owners; its remaining
+orchestration size should be split only after shadow behavior stabilizes.
 
 Current engineering baseline:
 
 - Ruff blocks objective Python syntax/name/import defects across backend code,
   tests, and repository scripts;
-- mypy blocks regressions in forty-two high-value typed modules while the measured
+- mypy blocks regressions in fifty-two high-value typed modules while the measured
   full-application debt remains 216 errors across 23 files;
 - the closed V1.50.1 backend suite passes 266 tests at 81.89% statement
   coverage; the V1.51.0 stream target passes 271 tests at 82.08%; the V1.52.0
@@ -555,6 +575,15 @@ technical invariants; Linear owns ordering and work state.
    implemented as an opt-in operator-trust boundary.
 3. SCA-55 is complete: SDK 1.0.0, scaffold, schema export, module-side runtime,
    and distributable conformance kit are implemented without a product module.
+
+### P2.5 - Cognitive Autonomy
+
+1. SCA-57 implements the Cognitive Workspace, source receipts, M2.7
+   appraisal/ignition, Scarlet-owned episodes, and event/condition wake
+   contracts with local `active` field verification.
+2. The next acceptance gate is longitudinal evidence across admission,
+   no-wake, M3 execution, episode outcomes, and repetition. Shadow, advisory,
+   and off remain immediate rollback modes.
 
 ### P3 - Release Candidate
 

@@ -39,7 +39,11 @@ from app.api.chat_serialization import (
     session_response,
 )
 from app.config import Settings
-from app.llm.factory import active_provider_max_tokens, active_provider_model
+from app.llm.factory import (
+    active_provider_max_tokens,
+    active_provider_model,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import (
     LLMConfigurationError,
     LLMExecutedToolCall,
@@ -860,6 +864,9 @@ def execute_native_turn(
                 engine=engine,
                 settings=settings,
                 provider=provider,
+                validator_provider=provider_factory(
+                    auxiliary_provider_settings(settings)
+                ),
                 manifest=prepared.answer_manifest,
                 result=result,
                 request_messages=prepared.model_messages,
@@ -1061,6 +1068,7 @@ def _enforce_native_answer_obligations(
     engine: Engine,
     settings: Settings,
     provider: LLMProvider,
+    validator_provider: LLMProvider,
     manifest: AnswerObligationManifest,
     result: LLMTextResult,
     request_messages: list[LLMMessage],
@@ -1115,7 +1123,7 @@ def _enforce_native_answer_obligations(
                 status="active",
             )
         semantic_validation = validate_answer_semantics(
-            provider=provider,
+            provider=validator_provider,
             manifest=current_manifest,
             answer=current.text,
             max_tokens=settings.answer_validation_max_tokens,
@@ -1440,6 +1448,9 @@ def stream_native_turn(
                 engine=engine,
                 settings=settings,
                 provider=provider,
+                validator_provider=provider_factory(
+                    auxiliary_provider_settings(settings)
+                ),
                 manifest=answer_manifest,
                 result=result,
                 request_messages=llm_messages,

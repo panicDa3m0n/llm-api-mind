@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-27
-App baseline: V1.50.1 deployed and release-accepted; V1.61.0 development target
+App baseline: V1.50.1 deployed and release-accepted; V1.62.0 development target
 Status: canonical branch map
 
 The V1.50.1 Core is closed and release-accepted. Branch maturity remains a
@@ -48,7 +48,7 @@ turns. Every branch document must state:
 | Learning and adaptation | L2 | memory/preferences and project experiment loop | indirect, no controlled learning cycle | learning ledger and before/after metrics |
 | Metacognition | L3/L4 | one route, retrospective modes, shadow lessons, positive/negative controls | V1.40 broad reviews 2/2 and direct controls 2/2; one run overprocessed | answer-obligation and proportionality policy |
 | Operational management | L3/L4 | focus organ, agent posture, autonomous activation ledger, events/maintenance | focus lifecycle, mode receipts, two-session resume, and deterministic autonomous-cycle contracts pass | validate long-lived cycle use without collapsing focus, volition, and mode |
-| Decision autonomy | L3/L4 | model-controlled shell, resumable mode, volition register, final-answer obligations, periodic internal cognition | production cycles persist notes/tools/thinking/checkpoints; V1.61 shares human context/retrieval while preserving autonomous chronology | longitudinal behavior, initiative records, then risk/permission receipts |
+| Decision autonomy | L3/L4 | model-controlled shell, resumable mode, volition register, final-answer obligations, periodic internal cognition, shadow Cognitive Workspace and episode lifecycle | V1.61 shares human context/retrieval; V1.62 locally appraises source-backed candidates with M2.7 while only M3 runs Scarlet | longitudinal shadow evidence, then bounded advisory/active promotion and risk/permission receipts |
 | External operativity | L1 core + L2 device lab | supporting traces/events plus isolated haptic and notification probes | no external-world action suite; lab receipts are not Scarlet actions | evaluate peripheral receipts before permission architecture |
 | Advanced operations | L1 | no specialist suite | future | define only after operativity governance |
 | Governance/privacy/safety | L2 | DB roles, profile hints, audit, field ownership | single-user convention only | authenticated ownership and data rights |

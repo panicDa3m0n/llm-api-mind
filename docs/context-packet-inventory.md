@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-27
-Code baseline reviewed: V1.61.0
+Code baseline reviewed: V1.62.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -32,6 +32,13 @@ V1.61.0 applies this same V2 document to human and autonomous turns. Their
 provider-native histories stay separate, while `turn_origin`, the compact
 autonomous-session hint, and memory source labels make both continuity layers
 navigable without attribution drift.
+
+V1.62.0 does not change the shared V2 packet. When a Cognitive Workspace
+candidate ignites an autonomous activation, the activation adds one compact
+`workspace` orientation object with provisional candidate summaries and exact
+source references. Signal receipts, raw source payloads, alternative
+candidates, and arbitration diagnostics remain trace/UI data unless Scarlet
+opens their sources through the shell.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a

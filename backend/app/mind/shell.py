@@ -99,6 +99,8 @@ def dispatch_mind_shell(
         return _mode_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"perception", "sense", "senses", "sensor"}:
         return _perception_command(parsed, context=context, intent=intent)
+    if parsed.namespace in {"episode", "episodes", "inquiry", "inquiries"}:
+        return _episode_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"metacognition", "meta", "reflect"}:
         return _metacognition_command(parsed, context=context, intent=intent)
 
@@ -877,6 +879,134 @@ def _perception_command(
         api_request=MindAPIRequest(
             method="POST",
             path="/mind/perception",
+            body=body,
+            intent=intent,
+        ),
+        context=context,
+    )
+
+
+def _episode_command(
+    parsed: ParsedCommand,
+    *,
+    context: MindAPIContext | None,
+    intent: str,
+) -> MindAPIResponse:
+    action = parsed.action or "list"
+    action = {
+        "inspect": "read",
+        "show": "read",
+        "get": "read",
+    }.get(action, action)
+    body: dict[str, Any] = {
+        "action": action.replace("-", "_"),
+        "limit": _flag_int(parsed, 20, "limit", "top"),
+    }
+    first = parsed.args[0] if parsed.args else None
+    if action == "list":
+        status = _flag_string(parsed, "status")
+        if status is not None:
+            body["status"] = status
+    elif action == "read":
+        body["episode_id"] = first or _flag_string(parsed, "id", "episode-id")
+    elif action == "open":
+        body["candidate_ids"] = [
+            *parsed.args,
+            *_flag_values(parsed, "candidate", "candidate-id"),
+        ]
+        body["question"] = _flag_string(parsed, "question")
+        body["expected_transformation"] = _flag_string(
+            parsed,
+            "expected-transformation",
+            "transformation",
+        )
+    elif action == "checkpoint":
+        body.update(
+            {
+                "episode_id": first
+                or _flag_string(parsed, "id", "episode-id"),
+                "progress": _flag_string(parsed, "progress"),
+                "next_step": _flag_string(parsed, "next", "next-step"),
+                "source_refs": _flag_values(parsed, "source", "source-ref"),
+                "no_progress": _flag_bool(parsed, False, "no-progress"),
+            }
+        )
+    elif action in {"suspend", "resume", "resolve", "abandon"}:
+        body.update(
+            {
+                "episode_id": first
+                or _flag_string(parsed, "id", "episode-id"),
+                "reason": _flag_string(parsed, "reason", "why"),
+                "resolution": _flag_string(parsed, "resolution")
+                or (
+                    _flag_string(parsed, "reason", "why")
+                    if action == "abandon"
+                    else None
+                ),
+                "resume_at": _flag_string(parsed, "resume-at", "at"),
+                "resume_event": _flag_string(
+                    parsed,
+                    "resume-event",
+                    "event-type",
+                ),
+            }
+        )
+    elif action == "reject":
+        body.update(
+            {
+                "candidate_id": first
+                or _flag_string(parsed, "candidate", "candidate-id"),
+                "reason": _flag_string(parsed, "reason", "why"),
+            }
+        )
+    elif action == "expectation-add":
+        body.update(
+            {
+                "episode_id": first
+                or _flag_string(parsed, "id", "episode-id"),
+                "claim": _flag_string(parsed, "claim"),
+                "observable_outcome": _flag_string(
+                    parsed,
+                    "observable-outcome",
+                    "outcome",
+                ),
+                "due_at": _flag_string(parsed, "due-at", "at"),
+            }
+        )
+    elif action == "expectation-resolve":
+        body.update(
+            {
+                "expectation_id": first
+                or _flag_string(parsed, "expectation", "expectation-id"),
+                "status": _flag_string(parsed, "status"),
+                "evaluation": _flag_string(parsed, "evaluation"),
+                "outcome_refs": _flag_values(
+                    parsed,
+                    "outcome-ref",
+                    "source",
+                ),
+            }
+        )
+    elif action == "wake-add":
+        body.update(
+            {
+                "episode_id": _flag_string(parsed, "episode", "episode-id"),
+                "at": _flag_string(parsed, "at"),
+                "event_type": _flag_string(parsed, "event-type"),
+            }
+        )
+    elif action == "wake-cancel":
+        body["condition_id"] = first or _flag_string(
+            parsed,
+            "condition",
+            "condition-id",
+        )
+    return _dispatch_api_as_shell(
+        parsed,
+        target=f"episode.{action}",
+        api_request=MindAPIRequest(
+            method="POST",
+            path="/mind/episode",
             body=body,
             intent=intent,
         ),

@@ -344,6 +344,14 @@ AUTONOMOUS_ACTIVATION_DEFER_SECONDS=60
 AUTONOMOUS_ACTIVATION_HUMAN_TURN_FRESHNESS_SECONDS=21600
 AUTONOMOUS_ACTIVATION_BATCH_SIZE=1
 AUTONOMOUS_ACTIVATION_PERCEPTION_CHANNEL_LIMIT=20
+COGNITIVE_WORKSPACE_MODE=active
+COGNITIVE_WORKSPACE_SIGNAL_BATCH_SIZE=100
+COGNITIVE_WORKSPACE_APPRAISAL_BATCH_SIZE=20
+COGNITIVE_WORKSPACE_CANDIDATE_POOL_LIMIT=20
+COGNITIVE_WORKSPACE_APPRAISAL_MAX_TOKENS=8192
+COGNITIVE_WORKSPACE_ARBITRATION_MAX_TOKENS=8192
+COGNITIVE_WORKSPACE_MAX_DEFERRALS=3
+COGNITIVE_WORKSPACE_WATCHDOG_SECONDS=3600
 ```
 
 The current 600-second interval is for field observation and remains
@@ -419,6 +427,93 @@ directly inspectable in the database.
 
 `/run-now` is a synchronous laboratory operation. It must not be treated as a
 consumer trigger or an external initiative API.
+
+### Cognitive Workspace Admission
+
+Status: implemented locally for V1.62.0; default `active`; not deployed
+
+The Cognitive Workspace observes canonical events, perception records, due
+volition reviews, and explicit wake conditions through a versioned source
+registry. It writes a receipt for every observed source. Candidate appraisal
+and ignition recommendation use the fixed MiniMax M2.7 auxiliary profile;
+they cannot call the shell, mutate cognitive state, or speak as Scarlet.
+Human and autonomous Scarlet turns continue to use MiniMax M3.
+
+Modes:
+
+```txt
+off       -> preserve the existing periodic lifecycle; no workspace scan
+shadow    -> persist appraisal/arbitration; never schedule Scarlet
+advisory  -> attach selected candidates to the next periodic activation
+active    -> event/condition wakes replace periodic scheduling
+```
+
+Unknown source types fail closed. `cognition.*` events produced by this
+subsystem are trace-only so the workspace cannot recursively wake itself.
+Every candidate contains exact source references and remains provisional
+until Scarlet opens or rejects it.
+
+Additive inspection and laboratory controls:
+
+```txt
+GET  /api/autonomy/workspace
+POST /api/autonomy/workspace/tick
+```
+
+`GET /workspace` returns current-profile candidates, episodes, deterministic
+wake conditions, receipts, and arbitrations. `POST /workspace/tick` runs one
+bounded admission pass; it is an internal laboratory operation, not a
+consumer action.
+
+The existing overview and history payloads may include:
+
+```json
+{
+  "candidate_id": "cand_...",
+  "episode_id": "episode_...",
+  "wake_condition_id": "wake_...",
+  "workspace": {
+    "authority": "provisional_m2.7_ignition",
+    "selected_candidates": []
+  }
+}
+```
+
+In `shadow`, no `autonomous_activations` row is created by an ignition result.
+In `active`, scheduling still delegates actual M3 execution, lease,
+foreground deferral, provider history, and completion to the established
+autonomy runtime. A still-pending blind `periodic` row is cancelled with a
+persisted reason when active admission takes ownership; started or deferred
+work is not erased.
+
+### Episode Shell Family
+
+The model-facing surface remains the one `mind_shell(command, intent)` tool.
+The additive `episode` command family gives Scarlet final authority over
+provisional workspace work:
+
+```txt
+episode list [--status active|suspended|resolved|abandoned] [--limit N]
+episode read <episode_id>
+episode open --candidate-id <candidate_id>
+episode checkpoint <episode_id> --progress <text> [--next-step <text>]
+episode suspend <episode_id> --reason <text> [--resume-at <rfc3339>]
+episode resume <episode_id>
+episode resolve <episode_id> --resolution <text>
+episode abandon <episode_id> --resolution <text>
+episode reject --candidate-id <candidate_id> --reason <text>
+episode expectation-add <episode_id> --claim <text> --observable-outcome <text>
+episode expectation-resolve --expectation-id <id> --evaluation <text>
+episode wake-list [--limit N]
+episode wake-add [--episode-id <id>] (--at <rfc3339>|--event-type <exact>)
+episode wake-cancel --condition-id <id>
+```
+
+The shell translates this family to the internal logical dispatcher path
+`/mind/episode`, reached through the existing `/mind/call` HTTP compatibility
+route. There is no independent FastAPI `/mind/episode` operation and no second
+model-facing tool. State changes emit `cognition.*` events and retain source,
+checkpoint, expectation, and wake history.
 
 ### Perception Inbox
 

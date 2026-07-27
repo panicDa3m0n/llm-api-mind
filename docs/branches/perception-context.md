@@ -184,6 +184,14 @@ sessione, trigger, attore e ruolo messaggio. `perception` indica ora
 esplicitamente soltanto osservazioni esterne e non va usato per cercare cicli
 interni, sessioni o memoria.
 
+Aggiornamento V1.62.0: il Cognitive Workspace non introduce un altro context
+pack. Perception resta evidenza esterna append-only e navigabile. Il workspace
+puo osservare una nuova perception receipt e formulare un candidato
+source-backed in M2.7, ma soltanto il piccolo candidato selezionato puo
+orientare una successiva attivazione M3. Payload grezzo, alternative e
+diagnostica restano fuori dal model context; nessun segnale del device viene
+promosso automaticamente a percezione in prima persona di Scarlet.
+
 ## Sviluppi precedenti
 
 - Memory Context Pipeline v0.

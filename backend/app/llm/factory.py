@@ -16,6 +16,30 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
     )
 
 
+def auxiliary_provider_settings(settings: Settings) -> Settings:
+    """Return the fixed MiniMax profile for non-Scarlet LLM work."""
+
+    return settings.model_copy(
+        update={
+            "llm_provider": "minimax",
+            "minimax_model": settings.auxiliary_minimax_model,
+            "minimax_max_tokens": settings.auxiliary_minimax_max_tokens,
+        }
+    )
+
+
+def build_auxiliary_llm_provider(settings: Settings) -> LLMProvider:
+    return build_llm_provider(auxiliary_provider_settings(settings))
+
+
+def auxiliary_provider_model(settings: Settings) -> str:
+    return settings.auxiliary_minimax_model
+
+
+def auxiliary_provider_max_tokens(settings: Settings) -> int:
+    return settings.auxiliary_minimax_max_tokens
+
+
 def active_provider_model(settings: Settings) -> str:
     provider = _normalized_provider(settings)
     if provider == "minimax":

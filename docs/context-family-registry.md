@@ -1,7 +1,7 @@
 # Context Family Registry
 
 Last updated: 2026-07-27
-Target version: V1.60.0
+Target version: V1.62.0
 Status: typed registry and shadow routing active; perception inbox exists but
 native future sources are not admitted
 
@@ -148,6 +148,27 @@ The receipt records:
 The existing agent-mode block router remains the live delivery authority.
 Future family activation must not become active until a separate release
 defines source admission, freshness, batching, cost, permission, and rollback.
+
+## Cognitive Workspace Use
+
+V1.62 reuses `family_id` when M2.7 describes a provisional candidate, but this
+does not activate or inject a context-family packet. The source registry first
+decides whether a canonical event is eligible for appraisal. M2.7 may then
+associate the resulting question with one existing family so Scarlet can
+orient to its domain.
+
+The candidate keeps exact source references and remains in workspace
+storage/trace. Only a selected compact candidate hook may reach a later
+autonomous activation. Raw source data, family alternatives, receipt details,
+and arbitration diagnostics stay outside model context. This preserves the
+separation between:
+
+```txt
+context family = what kind of evidence/policy domain this is
+workspace candidate = why a source-backed question may deserve attention
+agent mode = which foreground posture is active
+model context = what evidence is actually delivered now
+```
 
 ## Simulation Evidence
 

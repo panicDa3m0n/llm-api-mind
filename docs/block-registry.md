@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-27
-System version assessed: V1.61.0 development target over the V1.50.1 Core
+System version assessed: V1.62.0 development target over the V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -92,6 +92,12 @@ timestamps remain systemic. Human and autonomous turns receive this same V2
 shape. Provider histories remain separate; `turn_origin` classifies the
 current lifecycle and the autonomous-session hint makes internal chronology
 navigable from human dialogue.
+
+For a workspace-triggered autonomous turn only, the activation envelope may
+also include a compact `workspace` object. It contains selected provisional
+candidate hooks, exact source refs, and linked episode/wake ids. It does not
+replace any V2 block. Full receipts, alternate candidates, appraiser output,
+and arbitration diagnostics remain trace/UI-only.
 
 ### 2.2 Memory Area
 

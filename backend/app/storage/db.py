@@ -144,6 +144,39 @@ def _migrate_sqlite_schema(engine: Engine) -> None:
                     )
                 )
 
+        if "autonomous_activations" in inspector.get_table_names():
+            activation_columns = {
+                column["name"]
+                for column in inspector.get_columns("autonomous_activations")
+            }
+            for column_name, target_table in (
+                ("candidate_id", "cognitive_candidates"),
+                ("episode_id", "cognitive_episodes"),
+                ("wake_condition_id", "autonomous_wake_conditions"),
+            ):
+                if column_name not in activation_columns:
+                    connection.execute(
+                        text(
+                            "ALTER TABLE autonomous_activations "
+                            f"ADD COLUMN {column_name} VARCHAR "
+                            f"REFERENCES {target_table}(id)"
+                        )
+                    )
+                connection.execute(
+                    text(
+                        "CREATE INDEX IF NOT EXISTS "
+                        f"ix_autonomous_activations_{column_name} "
+                        f"ON autonomous_activations ({column_name})"
+                    )
+                )
+            if "workspace_json" not in activation_columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE autonomous_activations "
+                        "ADD COLUMN workspace_json JSON NOT NULL DEFAULT '{}'"
+                    )
+                )
+
         connection.execute(
             text(
                 """

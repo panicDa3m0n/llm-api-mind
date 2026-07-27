@@ -7,6 +7,51 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0127 - Workspace Tick Retained Detached ORM State And Mixed Datetime Awareness
+
+Date Found: 2026-07-27
+Status: fixed before V1.62.0 commit
+
+Symptoms:
+
+Early direct workspace ticks could fail after leaving a SQLModel session or
+while comparing a SQLite offset-naive timestamp with an offset-aware runtime
+instant.
+
+Root Cause:
+
+The coordinator retained the autonomous session ORM object beyond its owning
+database session and used raw storage datetimes at one wake boundary.
+
+Fix:
+
+Materialize the session id while the database session is open and normalize
+storage values through the shared UTC-awareness helper before comparisons.
+The focused workspace tests and real disposable M2.7 probe now complete.
+
+## BUG-0126 - Empty Workspace Cursor Could Skip The First Future Event
+
+Date Found: 2026-07-27
+Status: fixed before V1.62.0 commit
+
+Symptoms:
+
+When the workspace first started on a database with no historical source
+events, no cursor row was persisted. The first later event could therefore be
+mistaken for pre-existing history during the next bootstrap and skipped.
+
+Root Cause:
+
+Cursor bootstrap only wrote the latest observed id when a row already existed.
+It had no explicit empty-ledger boundary.
+
+Fix:
+
+Persist an epoch cursor even for an empty source. The next event is then
+strictly newer and enters the receipt/appraisal path. The deterministic
+shadow test bootstraps first, creates a human turn afterward, and verifies its
+`turn.completed` receipt and candidate.
+
 ## BUG-0125 - Applied Autonomy Reset Failed While Serializing Its Receipt
 
 Date Found: 2026-07-27

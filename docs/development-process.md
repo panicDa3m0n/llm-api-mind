@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-27
-Current app target: V1.61.0; V1.50.1 remains release-accepted
+Current app target: V1.62.0; V1.50.1 remains release-accepted
 Process baseline: V1.0.1
 Status: accepted
 

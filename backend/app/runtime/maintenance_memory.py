@@ -6,7 +6,10 @@ from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from app.config import Settings
-from app.llm.factory import active_provider_max_tokens
+from app.llm.factory import (
+    auxiliary_provider_max_tokens,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import LLMConfigurationError, LLMProvider, LLMRequestError
 from app.mind.contracts import MindAPIContext
 from app.mind.memory import (
@@ -108,11 +111,12 @@ def run_memory_review(
         )
 
     try:
-        provider = provider_factory(settings)
+        auxiliary_settings = auxiliary_provider_settings(settings)
+        provider = provider_factory(auxiliary_settings)
         result = provider.generate_text(
             prompt=prompt,
             system=MEMORY_REVIEW_SYSTEM_PROMPT,
-            max_tokens=active_provider_max_tokens(settings),
+            max_tokens=auxiliary_provider_max_tokens(settings),
         )
     except LLMConfigurationError as exc:
         return {
@@ -335,7 +339,7 @@ def _resolve_memory_review_proposals(
         llm_result = provider.generate_text(
             prompt=prompt,
             system=PROPOSAL_RESOLUTION_SYSTEM_PROMPT,
-            max_tokens=active_provider_max_tokens(settings),
+            max_tokens=auxiliary_provider_max_tokens(settings),
         )
         parsed = _parse_json_object(llm_result.text)
         if parsed is None:

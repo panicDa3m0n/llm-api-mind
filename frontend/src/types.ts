@@ -62,6 +62,9 @@ export type AutonomousActivation = {
   profile_id: string;
   session_id: string;
   turn_id: string | null;
+  candidate_id: string | null;
+  episode_id: string | null;
+  wake_condition_id: string | null;
   trigger_kind: string;
   status: string;
   active_mode: string | null;
@@ -70,6 +73,7 @@ export type AutonomousActivation = {
   completed_at: string | null;
   attempt_count: number;
   outcome: Record<string, unknown>;
+  workspace: Record<string, unknown>;
   error: Record<string, unknown> | null;
 };
 

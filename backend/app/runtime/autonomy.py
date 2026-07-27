@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import threading
 import time
 from collections.abc import Callable
@@ -42,6 +43,7 @@ from app.runtime.history_compaction import build_chronology_source_map
 from app.runtime.history_runtime import route_history_for_model
 from app.runtime.maintenance import schedule_history_compaction
 from app.runtime.preferences import load_runtime_preferences
+from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
 from app.storage import repositories
 from app.storage.models import AutonomousActivation, ChatSession, Message, utc_now
 
@@ -68,13 +70,27 @@ def run_due_autonomous_activations(
             db,
             profile_id=preferences.profile_id,
         )
-        repositories.ensure_next_periodic_activation(
-            db,
-            profile_id=preferences.profile_id,
-            session_id=autonomous_session.id,
-            interval_seconds=settings.autonomous_activation_interval_seconds,
-            from_time=current,
-        )
+        if settings.cognitive_workspace_mode == "active":
+            _cancel_pending_periodic_activations(
+                db,
+                profile_id=preferences.profile_id,
+                session_id=autonomous_session.id,
+            )
+        else:
+            repositories.ensure_next_periodic_activation(
+                db,
+                profile_id=preferences.profile_id,
+                session_id=autonomous_session.id,
+                interval_seconds=settings.autonomous_activation_interval_seconds,
+                from_time=current,
+            )
+    run_cognitive_workspace_tick(
+        engine,
+        settings=settings,
+        provider_factory=provider_factory,
+        now=current,
+    )
+    with Session(engine) as db:
         due = repositories.list_due_autonomous_activations(
             db,
             now=current,
@@ -134,6 +150,10 @@ def run_autonomous_activation(
                 scheduled_at=utc_now()
                 + timedelta(seconds=settings.autonomous_activation_defer_seconds),
                 trigger_kind="deferred_human_active",
+                candidate_id=deferred.candidate_id,
+                episode_id=deferred.episode_id,
+                wake_condition_id=deferred.wake_condition_id,
+                workspace=deferred.workspace_json,
             )
             return {
                 "activation_id": activation.id,
@@ -567,6 +587,11 @@ def run_autonomous_activation(
                     "trace_ids": trace_ids,
                 },
             )
+            _reconcile_workspace_activation(
+                db,
+                settings=settings,
+                activation=completed,
+            )
             _schedule_autonomous_compaction(
                 db,
                 settings=settings,
@@ -575,13 +600,14 @@ def run_autonomous_activation(
                 trigger_event_id=completed_event.id,
                 context=model_context or memory_context.runtime_payload,
             )
-            repositories.ensure_next_periodic_activation(
-                db,
-                profile_id=completed.profile_id,
-                session_id=completed.session_id,
-                interval_seconds=settings.autonomous_activation_interval_seconds,
-                from_time=utc_now(),
-            )
+            if settings.cognitive_workspace_mode != "active":
+                repositories.ensure_next_periodic_activation(
+                    db,
+                    profile_id=completed.profile_id,
+                    session_id=completed.session_id,
+                    interval_seconds=settings.autonomous_activation_interval_seconds,
+                    from_time=utc_now(),
+                )
         return {
             "activation_id": activation_id,
             "session_id": autonomous_session_id,
@@ -624,7 +650,7 @@ def run_autonomous_activation(
                         visibility="private",
                         status="failed",
                     )
-                repositories.complete_autonomous_activation(
+                failed = repositories.complete_autonomous_activation(
                     db,
                     activation_id=activation.id,
                     status="failed",
@@ -632,13 +658,19 @@ def run_autonomous_activation(
                     active_mode=None,
                     error=error,
                 )
-                repositories.ensure_next_periodic_activation(
+                _reconcile_workspace_activation(
                     db,
-                    profile_id=activation.profile_id,
-                    session_id=activation.session_id,
-                    interval_seconds=settings.autonomous_activation_interval_seconds,
-                    from_time=utc_now(),
+                    settings=settings,
+                    activation=failed,
                 )
+                if settings.cognitive_workspace_mode != "active":
+                    repositories.ensure_next_periodic_activation(
+                        db,
+                        profile_id=activation.profile_id,
+                        session_id=activation.session_id,
+                        interval_seconds=settings.autonomous_activation_interval_seconds,
+                        from_time=utc_now(),
+                    )
         return {
             "activation_id": activation_id,
             "turn_id": turn_id,
@@ -662,12 +694,19 @@ def start_autonomous_activation_worker(
             db,
             profile_id=preferences.profile_id,
         )
-        repositories.ensure_next_periodic_activation(
-            db,
-            profile_id=preferences.profile_id,
-            session_id=autonomous_session.id,
-            interval_seconds=settings.autonomous_activation_interval_seconds,
-        )
+        if settings.cognitive_workspace_mode == "active":
+            _cancel_pending_periodic_activations(
+                db,
+                profile_id=preferences.profile_id,
+                session_id=autonomous_session.id,
+            )
+        else:
+            repositories.ensure_next_periodic_activation(
+                db,
+                profile_id=preferences.profile_id,
+                session_id=autonomous_session.id,
+                interval_seconds=settings.autonomous_activation_interval_seconds,
+            )
 
     stop_event = threading.Event()
 
@@ -696,6 +735,47 @@ def start_autonomous_activation_worker(
         thread.join(timeout=2)
 
     return stop
+
+
+def _cancel_pending_periodic_activations(
+    db: Session,
+    *,
+    profile_id: str,
+    session_id: str,
+) -> None:
+    pending = repositories.list_autonomous_activations(
+        db,
+        profile_id=profile_id,
+        session_id=session_id,
+        status="pending",
+        limit=100,
+    )
+    for activation in pending:
+        if activation.trigger_kind != "periodic":
+            continue
+        cancelled = repositories.complete_autonomous_activation(
+            db,
+            activation_id=activation.id,
+            status="cancelled",
+            turn_id=None,
+            active_mode=None,
+            outcome={
+                "reason": "periodic_wake_retired_by_active_workspace",
+            },
+        )
+        record_event(
+            db,
+            session_id=session_id,
+            turn_id=None,
+            event_type="autonomy.activation.cancelled",
+            payload={
+                "activation_id": cancelled.id,
+                "reason": "periodic_wake_retired_by_active_workspace",
+            },
+            source="cognitive_workspace",
+            actor="backend",
+            visibility="private",
+        )
 
 
 def _has_active_human_turn(
@@ -774,6 +854,10 @@ def _defer_started_activation(
             scheduled_at=utc_now()
             + timedelta(seconds=settings.autonomous_activation_defer_seconds),
             trigger_kind="deferred_human_active",
+            candidate_id=deferred.candidate_id,
+            episode_id=deferred.episode_id,
+            wake_condition_id=deferred.wake_condition_id,
+            workspace=deferred.workspace_json,
         )
     return {
         "activation_id": activation_id,
@@ -811,13 +895,53 @@ def _autonomous_provider_messages(
     return messages
 
 
+def _reconcile_workspace_activation(
+    db: Session,
+    *,
+    settings: Settings,
+    activation: AutonomousActivation,
+) -> None:
+    if activation.candidate_id is None:
+        return
+    candidate = repositories.get_candidate(db, activation.candidate_id)
+    if candidate is None or candidate.status in {
+        "selected",
+        "resolved",
+        "rejected",
+        "invalidated",
+    }:
+        return
+    repositories.update_candidate(
+        db,
+        candidate_id=candidate.id,
+        status="suspended",
+        deferred_until=utc_now()
+        + timedelta(seconds=settings.autonomous_activation_interval_seconds),
+        increment_deferral=True,
+    )
+    record_event(
+        db,
+        session_id=activation.session_id,
+        turn_id=activation.turn_id,
+        event_type="cognition.candidate.suspended",
+        payload={
+            "candidate_id": candidate.id,
+            "activation_id": activation.id,
+            "reason": "no_explicit_episode_decision",
+        },
+        source="cognitive_workspace",
+        actor="backend",
+        visibility="private",
+    )
+
+
 def _autonomous_activation_envelope(
     *,
     activation: AutonomousActivation,
     now: Any,
     timezone_id: str,
 ) -> str:
-    return (
+    base = (
         "[SCARLET INTERNAL COGNITIVE ACTIVATION]\n"
         f"Activation id: {activation.id}\n"
         f"Trigger: {activation.trigger_kind}\n"
@@ -826,6 +950,21 @@ def _autonomous_activation_envelope(
         "same runtime context and API Mind available in interactive turns, "
         "then leave one concise internal checkpoint instead of a user-facing "
         "answer."
+    )
+    if not activation.workspace_json:
+        return base
+    workspace = json.dumps(
+        activation.workspace_json,
+        ensure_ascii=False,
+        sort_keys=True,
+    )
+    return (
+        f"{base}\n\n"
+        "[COGNITIVE WORKSPACE - PROVISIONAL]\n"
+        f"{workspace}\n"
+        "This packet proposes attention; it does not establish facts or command "
+        "an outcome. Inspect its source references. Use episode commands to open, "
+        "resume, checkpoint, suspend, resolve, or reject the proposed work."
     )
 
 

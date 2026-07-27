@@ -6,6 +6,64 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.62.0 - Cognitive Workspace And Event-Driven Wake
+
+#### Added
+
+- Add a fail-closed Cognitive Workspace source registry, cursors, and
+  persistent receipts for canonical events, perception, due volition, and
+  explicit wake conditions.
+- Add source-backed provisional candidates, candidate-source links, semantic
+  arbitrations, Scarlet-owned cognitive episodes, progress checkpoints,
+  expectations, and deterministic wake contracts.
+- Add the `episode` family to the one model-facing `mind_shell` surface.
+- Add `/api/autonomy/workspace` inspection and bounded tick control, plus
+  candidate/episode/wake provenance on autonomous activation history.
+- Add `off`, `shadow`, `advisory`, and `active` workspace modes with `active`
+  as the field-verification default and `shadow` as the non-waking rollback.
+
+#### Changed
+
+- Reserve MiniMax M3 for Scarlet in human and autonomous turns. Route
+  non-Scarlet LLM work, including appraisal, ignition, maintenance semantic
+  work, summaries, metacognition workers, and answer validation, through the
+  fixed MiniMax M2.7 auxiliary profile.
+- Keep the V1.61 shared `scarlet-model-context-v2`, organs, prompt, memory
+  retrieval, provider histories, and autonomy execution owner unchanged.
+  Workspace orientation is a compact provisional activation field, not a
+  second context system.
+- In active mode, event/condition ignition replaces blind periodic scheduling;
+  a bounded watchdog prevents permanent silence, and a still-pending periodic
+  row is cancelled with a receipt when active ownership begins. Off, shadow,
+  and advisory retain compatible periodic behavior.
+
+#### Safety Boundary
+
+- M2.7 auxiliary workers cannot call `mind_shell`, mutate cognitive state, or
+  speak as Scarlet. Their outputs remain provisional until M3 Scarlet acts.
+- Unknown source types and invalid structured output fail closed.
+- Shadow mode cannot schedule a Scarlet activation.
+- Historical replay is shadow-only, and archived autonomous completions are
+  trace evidence rather than fresh wake candidates.
+- No external action, notification delivery, device operation, or embodied
+  safety decision is introduced.
+
+#### Verification
+
+- Complete backend suite: `345 passed`.
+- Frozen preliminary regression: `9/9` before and `9/9` after.
+- Ruff, compileall, changed-file mypy, frontend production build, and legacy
+  SQLite migration canary pass.
+- A real disposable M2.7 shadow probe created one exact-source candidate for
+  a human thread postponed to tomorrow, then sensibly selected no immediate
+  M3 wake. A lower-budget invalid-output probe failed closed without creating
+  a candidate or activation.
+- A real disposable active probe admitted a certified decision event, ran
+  MiniMax M3 Scarlet through nine shell calls, opened/checkpointed/resolved a
+  cognitive episode, and persisted the activation as completed in 38.7
+  seconds.
+- No production database or deployed runtime was changed.
+
 ### V1.61.0 - Unified Human And Autonomous Cognition
 
 #### Changed

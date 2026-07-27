@@ -12,7 +12,10 @@ from typing import Any
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.llm.factory import active_provider_max_tokens, active_provider_model
+from app.llm.factory import (
+    auxiliary_provider_max_tokens,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import LLMMessage, LLMProvider
 from app.runtime.history_compaction import (
     build_chronology_source_map,
@@ -258,13 +261,14 @@ def generate_history_compaction(
             max_tokens=int(settings.history_compaction_target_tokens),
         )
 
-    provider = provider_factory(settings)
+    auxiliary_settings = auxiliary_provider_settings(settings)
+    provider = provider_factory(auxiliary_settings)
     result = provider.generate_text(
         prompt=prompt,
         system=HISTORY_COMPACTION_SYSTEM_PROMPT,
         max_tokens=min(
             int(settings.history_compaction_target_tokens),
-            active_provider_max_tokens(settings),
+            auxiliary_provider_max_tokens(settings),
         ),
     )
     raw_summary = result.text.strip()
@@ -317,7 +321,7 @@ def generate_history_compaction(
                 chars_per_token,
             ),
             trigger_turn_id=trigger_turn_id,
-            model=result.model or active_provider_model(settings),
+            model=result.model or auxiliary_settings.minimax_model,
             provider_message_id=result.provider_message_id,
             metadata={
                 "schema_version": HISTORY_COMPACTION_ARTIFACT_VERSION,

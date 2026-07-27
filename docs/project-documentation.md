@@ -1,7 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-27
-App target: V1.61.0; V1.50.1 remains release-accepted
+App target: V1.62.0; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -64,6 +64,9 @@ discussed before a new fix is attempted.
 - `docs/context-family-registry.md`: typed semantic context families, subject
   versus observer ownership, evidence kinds, mode tags, activation contracts,
   policy dependencies, shadow routing, and embodiment simulation evidence.
+- `docs/cognitive-workspace.md`: source registry, signal receipts, M2.7
+  appraisal and ignition, Scarlet-owned episodes, deterministic wake
+  conditions, runtime modes, failure semantics, and local verification.
 - `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`:
   companion-product direction plus the accepted V1.60 autonomous activation,
   exclusive internal-session, perception-inbox, and internal-history

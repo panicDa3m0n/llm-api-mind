@@ -4,6 +4,69 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-27 - V1.62.0 Cognitive Workspace And Event-Driven Wake
+
+Area: Decision Autonomy / Cognitive Runtime.
+
+Type: Implementazione on `feature/cognitive-workspace`.
+
+Change:
+
+- created a dedicated branch from checkpoint `2da7876`;
+- added a fail-closed wake source registry, source cursors, and persistent
+  receipts for events, perception, due volition, and wake conditions;
+- added structured MiniMax M2.7 appraisal and ignition contracts with one
+  repair attempt, exact source provenance, candidate fingerprints, and no
+  hand-authored semantic score;
+- added persistent candidates, arbitrations, episodes, checkpoints,
+  expectations, and deterministic wake conditions;
+- added the `episode` shell family so MiniMax M3 Scarlet retains final control
+  over provisional work;
+- integrated `off`, `shadow`, `advisory`, and `active` with the existing
+  autonomous M3 lifecycle with `active` selected for field verification,
+  including
+  traceable cancellation of stale pending periodic wakes on active takeover;
+- constrained historical replay to `shadow`, classified archived autonomous
+  completions as trace-only, and proved that a completed internal cycle cannot
+  recursively wake Scarlet;
+- enforced MiniMax M2.7 for non-Scarlet LLM work and retained MiniMax M3 only
+  for human and autonomous Scarlet turns;
+- added autonomy workspace inspection/tick APIs and compact Product Chat
+  origin detail; and
+- advanced backend, frontend, Android, and SDK compatibility metadata to
+  V1.62.0.
+
+Verification:
+
+- preliminary regression before:
+  `20260727_211357_preliminary-regression-v1`, `9/9`;
+- preliminary regression after final active-default change:
+  `20260727_222359_preliminary-regression-v1`, `9/9`;
+- complete backend suite: `345 passed`;
+- focused workspace/autonomy/reset tests: `22 passed`, including end-to-end
+  M2.7 admission through completed M3 Scarlet activation;
+- Ruff, compileall, changed-file mypy, and frontend production build: passed;
+- legacy SQLite canary: activation references and all workspace tables
+  created;
+- real isolated M2.7 shadow probe: one exact-source candidate, then a
+  semantically appropriate no-wake decision for a thread postponed to
+  tomorrow;
+- real isolated active probe: a certified `operation.needs_decision` produced
+  one required-wake receipt and candidate, ran MiniMax M3 Scarlet, emitted
+  public notes and provider thinking, completed nine shell calls, opened,
+  checkpointed, and resolved one cognitive episode, then persisted the
+  activation as completed in 38.7 seconds;
+- lower-budget invalid-output probe: failed closed with no candidate and no
+  M3 activation; and
+- no production database, VPS, or Android runtime was changed.
+
+Residual:
+
+- collect longitudinal active evidence and retain immediate shadow rollback;
+- split the large workspace coordinator only after behavior stabilizes;
+- keep external initiative, notification dispatch, device actions, and
+  embodied safety outside this scope.
+
 ## 2026-07-27 - V1.61.0 Shared Human/Autonomous Cognitive Runtime
 
 Area: Decision Autonomy / Perception And Context.

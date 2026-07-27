@@ -26,7 +26,11 @@ from app.api.chat_serialization import (
     session_response as _session_response,
 )
 from app.config import Settings
-from app.llm.factory import active_provider_max_tokens, active_provider_model
+from app.llm.factory import (
+    active_provider_max_tokens,
+    active_provider_model,
+    auxiliary_provider_settings,
+)
 from app.llm.provider import LLMConfigurationError, LLMExecutedToolCall
 from app.mind.context import build_memory_context
 from app.mind.dispatcher import MindAPIContext, MindAPIResponse
@@ -683,7 +687,7 @@ def build_gpt_bridge_router(
                 and answer_manifest.semantic
             ):
                 try:
-                    provider = provider_factory(settings)
+                    provider = provider_factory(auxiliary_provider_settings(settings))
                 except LLMConfigurationError as exc:
                     raise HTTPException(
                         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,

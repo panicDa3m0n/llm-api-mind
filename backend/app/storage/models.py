@@ -268,6 +268,21 @@ class AutonomousActivation(SQLModel, table=True):
     profile_id: str = Field(default="local-user", index=True)
     session_id: str = Field(foreign_key="sessions.id", index=True)
     turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    candidate_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_candidates.id",
+        index=True,
+    )
+    episode_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_episodes.id",
+        index=True,
+    )
+    wake_condition_id: str | None = Field(
+        default=None,
+        foreign_key="autonomous_wake_conditions.id",
+        index=True,
+    )
     trigger_kind: str = Field(default="periodic", index=True)
     schedule_key: str = Field(index=True)
     status: str = Field(default="pending", index=True)
@@ -281,10 +296,332 @@ class AutonomousActivation(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON, nullable=False),
     )
+    workspace_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
     error_json: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column(JSON, nullable=True),
     )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveSignalCursor(SQLModel, table=True):
+    """Incremental position for one profile and canonical signal source."""
+
+    __tablename__ = "cognitive_signal_cursors"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "source_kind",
+            name="uq_cognitive_signal_cursor_profile_source",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("cog_cur"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    source_kind: str = Field(index=True)
+    last_observed_at: datetime | None = Field(default=None, index=True)
+    last_source_id: str | None = Field(default=None, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveSignalReceipt(SQLModel, table=True):
+    """One explicit disposition for a canonical event or state observation."""
+
+    __tablename__ = "cognitive_signal_receipts"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "source_kind",
+            "source_key",
+            "registry_version",
+            name="uq_cognitive_signal_receipt_source",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("cog_sig"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    source_kind: str = Field(index=True)
+    source_key: str = Field(index=True)
+    source_type: str = Field(index=True)
+    policy: str = Field(index=True)
+    disposition: str = Field(index=True)
+    registry_version: str = Field(index=True)
+    candidate_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_candidates.id",
+        index=True,
+    )
+    episode_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_episodes.id",
+        index=True,
+    )
+    observed_at: datetime = Field(index=True)
+    processed_at: datetime = Field(default_factory=utc_now, index=True)
+    details_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class CognitiveCandidate(SQLModel, table=True):
+    """Source-backed, provisional claim that may deserve Scarlet's attention."""
+
+    __tablename__ = "cognitive_candidates"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "exact_fingerprint",
+            name="uq_cognitive_candidate_fingerprint",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("cand"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    status: str = Field(default="proposed", index=True)
+    candidate_kind: str = Field(index=True)
+    context_family: str = Field(index=True)
+    claim: str
+    why_now: str
+    cognitive_question: str
+    expected_transformation: str
+    uncertainty: str = Field(default="unknown", index=True)
+    exact_fingerprint: str = Field(index=True)
+    not_before: datetime | None = Field(default=None, index=True)
+    expires_at: datetime | None = Field(default=None, index=True)
+    deferred_until: datetime | None = Field(default=None, index=True)
+    deferral_count: int = Field(default=0)
+    appraisal_model: str | None = Field(default=None, index=True)
+    appraisal_trace_id: str | None = Field(
+        default=None,
+        foreign_key="traces.id",
+        index=True,
+    )
+    selected_episode_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_episodes.id",
+        index=True,
+    )
+    resolved_at: datetime | None = Field(default=None, index=True)
+    resolution: str | None = None
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveCandidateSource(SQLModel, table=True):
+    """Navigable canonical evidence supporting one provisional candidate."""
+
+    __tablename__ = "cognitive_candidate_sources"
+    __table_args__ = (
+        UniqueConstraint(
+            "candidate_id",
+            "source_kind",
+            "source_id",
+            "relation",
+            name="uq_cognitive_candidate_source",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("cand_src"), primary_key=True)
+    candidate_id: str = Field(
+        foreign_key="cognitive_candidates.id",
+        index=True,
+    )
+    source_kind: str = Field(index=True)
+    source_id: str = Field(index=True)
+    relation: str = Field(default="supports", index=True)
+    observed_at: datetime | None = Field(default=None, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveArbitration(SQLModel, table=True):
+    """Traceable M2.7 ignition recommendation over a bounded candidate pool."""
+
+    __tablename__ = "cognitive_arbitrations"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "mode",
+            "pool_fingerprint",
+            name="uq_cognitive_arbitration_pool",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("arb"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    mode: str = Field(index=True)
+    status: str = Field(default="completed", index=True)
+    authority: str = Field(default="advisory", index=True)
+    model: str = Field(index=True)
+    pool_fingerprint: str = Field(index=True)
+    candidate_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    selected_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    decision_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    trace_id: str | None = Field(default=None, foreign_key="traces.id", index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveEpisode(SQLModel, table=True):
+    """A bounded cognitive inquiry that may continue across activations."""
+
+    __tablename__ = "cognitive_episodes"
+
+    id: str = Field(default_factory=lambda: new_id("episode"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    status: str = Field(default="active", index=True)
+    question: str
+    expected_transformation: str
+    focus_id: str | None = Field(
+        default=None,
+        foreign_key="focus_records.id",
+        index=True,
+    )
+    started_by: str = Field(default="scarlet", index=True)
+    source_session_id: str | None = Field(
+        default=None,
+        foreign_key="sessions.id",
+        index=True,
+    )
+    source_turn_id: str | None = Field(
+        default=None,
+        foreign_key="turns.id",
+        index=True,
+    )
+    last_progress_at: datetime | None = Field(default=None, index=True)
+    suspended_until: datetime | None = Field(default=None, index=True)
+    resume_condition: str | None = None
+    resolution: str | None = None
+    stop_reason: str | None = None
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    closed_at: datetime | None = Field(default=None, index=True)
+
+
+class CognitiveEpisodeCandidate(SQLModel, table=True):
+    __tablename__ = "cognitive_episode_candidates"
+    __table_args__ = (
+        UniqueConstraint(
+            "episode_id",
+            "candidate_id",
+            name="uq_cognitive_episode_candidate",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("episode_cand"), primary_key=True)
+    episode_id: str = Field(foreign_key="cognitive_episodes.id", index=True)
+    candidate_id: str = Field(foreign_key="cognitive_candidates.id", index=True)
+    relation: str = Field(default="origin", index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveEpisodeStep(SQLModel, table=True):
+    __tablename__ = "cognitive_episode_steps"
+
+    id: str = Field(default_factory=lambda: new_id("episode_step"), primary_key=True)
+    episode_id: str = Field(foreign_key="cognitive_episodes.id", index=True)
+    activation_id: str | None = Field(
+        default=None,
+        foreign_key="autonomous_activations.id",
+        index=True,
+    )
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    status: str = Field(default="checkpointed", index=True)
+    progress_summary: str
+    next_step: str | None = None
+    state_deltas_json: list[dict[str, Any]] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_refs_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    no_progress: bool = Field(default=False, index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class CognitiveEpisodeExpectation(SQLModel, table=True):
+    """An explicit prediction whose outcome may later be inspected."""
+
+    __tablename__ = "cognitive_episode_expectations"
+
+    id: str = Field(default_factory=lambda: new_id("expect"), primary_key=True)
+    episode_id: str = Field(foreign_key="cognitive_episodes.id", index=True)
+    status: str = Field(default="open", index=True)
+    claim: str
+    observable_outcome: str
+    due_at: datetime | None = Field(default=None, index=True)
+    outcome_refs_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    evaluation: str | None = None
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+    resolved_at: datetime | None = Field(default=None, index=True)
+
+
+class AutonomousWakeCondition(SQLModel, table=True):
+    """A deterministic or scheduled condition that may ignite cognition."""
+
+    __tablename__ = "autonomous_wake_conditions"
+    __table_args__ = (
+        UniqueConstraint("condition_key", name="uq_autonomous_wake_condition_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("wake"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    episode_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_episodes.id",
+        index=True,
+    )
+    candidate_id: str | None = Field(
+        default=None,
+        foreign_key="cognitive_candidates.id",
+        index=True,
+    )
+    kind: str = Field(index=True)
+    condition_key: str = Field(index=True)
+    status: str = Field(default="pending", index=True)
+    predicate_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    not_before: datetime | None = Field(default=None, index=True)
+    deadline: datetime | None = Field(default=None, index=True)
+    matched_event_id: str | None = Field(
+        default=None,
+        foreign_key="events.id",
+        index=True,
+    )
+    last_evaluated_at: datetime | None = Field(default=None, index=True)
+    matched_at: datetime | None = Field(default=None, index=True)
     created_at: datetime = Field(default_factory=utc_now, index=True)
     updated_at: datetime = Field(default_factory=utc_now, index=True)
 

@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     minimax_base_url: str = "https://api.minimax.io/anthropic"
     minimax_model: str = "MiniMax-M3"
     minimax_max_tokens: int = Field(default=131072, ge=1)
+    auxiliary_minimax_model: str = "MiniMax-M2.7"
+    auxiliary_minimax_max_tokens: int = Field(default=131072, ge=1)
 
     qwen_api_key: str | None = Field(default=None, repr=False)
     qwen_base_url: str = "https://dashscope-intl.aliyuncs.com/apps/anthropic"
@@ -70,6 +72,24 @@ class Settings(BaseSettings):
         ge=1,
         le=100,
     )
+    cognitive_workspace_mode: Literal["off", "shadow", "advisory", "active"] = (
+        "active"
+    )
+    cognitive_workspace_signal_batch_size: int = Field(default=100, ge=1, le=1000)
+    cognitive_workspace_appraisal_batch_size: int = Field(default=20, ge=1, le=100)
+    cognitive_workspace_candidate_pool_limit: int = Field(default=20, ge=1, le=100)
+    cognitive_workspace_appraisal_max_tokens: int = Field(
+        default=8192,
+        ge=512,
+        le=32768,
+    )
+    cognitive_workspace_arbitration_max_tokens: int = Field(
+        default=8192,
+        ge=512,
+        le=32768,
+    )
+    cognitive_workspace_max_deferrals: int = Field(default=3, ge=1, le=20)
+    cognitive_workspace_watchdog_seconds: int = Field(default=3600, ge=300)
 
     model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
     model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)

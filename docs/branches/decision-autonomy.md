@@ -1,9 +1,9 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-27
-System version assessed: V1.61.0 deployed
-Status: periodic internal cognition implemented and production-observed;
-shared lifecycle context verified
+System version assessed: V1.62.0 local target; V1.61.0 deployed
+Status: shared lifecycle verified; Cognitive Workspace and episodes locally
+implemented with active field verification
 
 ## Filosofia del ramo
 
@@ -44,7 +44,7 @@ retrieve/rerank, memorie, sessioni, focus, volition, affect, prompt e shell sono
 gli stessi del turno umano. Ogni dato dichiara la provenienza per evitare di
 attribuire all'utente un'elaborazione nata nei cicli interni.
 
-Sistema valutato: V1.61.0.
+Sistema valutato: V1.62.0 localmente, con V1.61.0 ancora in produzione.
 
 La prima attivazione naturale dopo il reset archivistico della cronologia ha
 confermato in produzione il contratto condiviso: due sessioni umane come hint,
@@ -147,12 +147,44 @@ focalizzate passano 41/41, Mind API 36/36 e Ruff e pulito. Resta da osservare
 longitudinalmente il comportamento reale dopo il prossimo deploy; nessuna
 azione esterna o iniziativa verso l'utente viene introdotta da questo lavoro.
 
+## Verifica V1.62.0
+
+Il timer periodico non viene cancellato in modo irreversibile. Il nuovo
+Cognitive Workspace introduce quattro modalita: `off` conserva il comportamento
+periodico, `shadow` osserva senza svegliare Scarlet, `advisory` collega una
+proposta al prossimo ciclo periodico e `active` usa eventi, condizioni e
+watchdog al posto del wake cieco. Il default di verifica sul campo e `active`;
+`shadow` resta il rollback immediato e l'unica modalita ammessa per replay
+storici.
+
+Eventi canonici, perception, volition dovuta e wake condition entrano in un
+registro deterministico fail-closed. Ogni segnale riceve una receipt. MiniMax
+M2.7 classifica solo candidati provvisori con fonti esatte e propone se
+accendere il ciclo; non puo mutare organi, usare la shell o parlare come
+Scarlet. MiniMax M3 resta Scarlet sia nei turni umani sia nei cicli autonomi.
+
+La nuova famiglia shell `episode` lascia a Scarlet il controllo finale:
+apertura, checkpoint, sospensione, ripresa, risoluzione, abbandono, rifiuto del
+candidato, aspettative verificabili e wake condition esplicite. Nessun
+punteggio deterministico stabilisce l'importanza semantica.
+
+La verifica locale passa l'intera suite backend (`345 passed`), regressione
+pre/post `9/9`, build frontend, migrazione SQLite legacy e un probe reale
+isolato M2.7. Nel probe un filo dichiarato per domani e diventato candidato
+source-backed, ma il gate ha correttamente evitato un wake immediato. Non e
+ancora evidenza longitudinale. Un secondo probe isolato in `active` ha
+completato il percorso fino a MiniMax M3: nove tool call, episodio aperto,
+checkpointed e risolto, attivazione completata in 38.7 secondi. Il runtime
+viene quindi verificato in `active` con rollback immediato disponibile.
+
 ## Evolutive
 
-- Decision policy machine-readable.
+- Osservazione longitudinale in `active` di receipt, candidati, no-wake,
+  episodi e ripetizioni.
+- Rollback a `shadow`, `advisory` o `off` se l'attivazione reale produce
+  regressioni.
+- Espansione del source registry quando esistono contratti reali.
 - Validator per promesse non mantenute, claim forti, conflitti ignorati.
-- Autonomy budget non come limite numerico, ma come criterio di costo/beneficio.
-- Receipt per decisioni autonome importanti.
-- Modalita "chiedi prima" per azioni esterne o irreversibili.
-- Cicli autonomi che consumano intenzioni dovute senza disturbare la chat
-  utente.
+- Autonomy budget come criterio semantico di costo/beneficio, non punteggio
+  numerico.
+- Iniziativa esterna solo dopo permission, reversibilita e receipt dedicate.

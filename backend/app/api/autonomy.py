@@ -14,6 +14,7 @@ from sqlmodel import Session
 from app.config import Settings
 from app.llm.factory import build_llm_provider
 from app.runtime.autonomy import run_autonomous_activation
+from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
 from app.runtime.events import event_payload
 from app.runtime.time import utc_isoformat
 from app.storage import repositories
@@ -53,12 +54,22 @@ def build_autonomy_router(
                 db,
                 profile_id=settings.user_profile_id,
             )
-            next_activation = repositories.ensure_next_periodic_activation(
-                db,
-                profile_id=settings.user_profile_id,
-                session_id=session.id,
-                interval_seconds=settings.autonomous_activation_interval_seconds,
-            )
+            if settings.cognitive_workspace_mode == "active":
+                pending = repositories.list_autonomous_activations(
+                    db,
+                    profile_id=settings.user_profile_id,
+                    session_id=session.id,
+                    status="pending",
+                    limit=1,
+                )
+                next_activation = pending[0] if pending else None
+            else:
+                next_activation = repositories.ensure_next_periodic_activation(
+                    db,
+                    profile_id=settings.user_profile_id,
+                    session_id=session.id,
+                    interval_seconds=settings.autonomous_activation_interval_seconds,
+                )
             recent = repositories.list_autonomous_activations(
                 db,
                 profile_id=settings.user_profile_id,
@@ -77,13 +88,92 @@ def build_autonomy_router(
             "worker_interval_seconds": (
                 settings.autonomous_activation_worker_interval_seconds
             ),
+            "workspace_mode": settings.cognitive_workspace_mode,
+            "scarlet_model": settings.minimax_model,
+            "auxiliary_model": settings.auxiliary_minimax_model,
             "session": _session_payload(session),
-            "next_activation": _activation_payload(next_activation),
+            "next_activation": (
+                _activation_payload(next_activation)
+                if next_activation is not None
+                else None
+            ),
             "recent_activations": [
                 _activation_payload(item) for item in recent
             ],
             "perception_channels": channels,
         }
+
+    @router.get("/workspace")
+    def workspace(
+        limit: int = Query(default=30, ge=1, le=100),
+    ) -> dict[str, Any]:
+        with Session(engine) as db:
+            candidates = repositories.list_candidates(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            episodes = repositories.list_episodes(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            conditions = repositories.list_wake_conditions(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            receipts = repositories.list_signal_receipts(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            arbitrations = repositories.list_arbitrations(
+                db,
+                profile_id=settings.user_profile_id,
+                limit=limit,
+            )
+            return {
+                "operation": "autonomy.workspace",
+                "mode": settings.cognitive_workspace_mode,
+                "scarlet_model": settings.minimax_model,
+                "auxiliary_model": settings.auxiliary_minimax_model,
+                "candidates": [
+                    _workspace_candidate_payload(db, item) for item in candidates
+                ],
+                "episodes": [
+                    _workspace_episode_payload(db, item) for item in episodes
+                ],
+                "wake_conditions": [
+                    _wake_condition_payload(item) for item in conditions
+                ],
+                "signal_receipts": [
+                    _signal_receipt_payload(item) for item in receipts
+                ],
+                "arbitrations": [
+                    {
+                        "id": item.id,
+                        "mode": item.mode,
+                        "status": item.status,
+                        "authority": item.authority,
+                        "model": item.model,
+                        "candidate_ids": item.candidate_ids_json,
+                        "selected_ids": item.selected_ids_json,
+                        "decision": item.decision_json,
+                        "trace_id": item.trace_id,
+                        "created_at": utc_isoformat(item.created_at),
+                    }
+                    for item in arbitrations
+                ],
+            }
+
+    @router.post("/workspace/tick")
+    def workspace_tick() -> dict[str, Any]:
+        return run_cognitive_workspace_tick(
+            engine,
+            settings=settings,
+            provider_factory=provider_factory,
+        )
 
     @router.get("/history")
     def history(
@@ -232,6 +322,9 @@ def _activation_payload(activation: AutonomousActivation) -> dict[str, Any]:
         "profile_id": activation.profile_id,
         "session_id": activation.session_id,
         "turn_id": activation.turn_id,
+        "candidate_id": activation.candidate_id,
+        "episode_id": activation.episode_id,
+        "wake_condition_id": activation.wake_condition_id,
         "trigger_kind": activation.trigger_kind,
         "status": activation.status,
         "active_mode": activation.active_mode,
@@ -240,6 +333,7 @@ def _activation_payload(activation: AutonomousActivation) -> dict[str, Any]:
         "completed_at": utc_isoformat(activation.completed_at),
         "attempt_count": activation.attempt_count,
         "outcome": activation.outcome_json,
+        "workspace": activation.workspace_json,
         "error": activation.error_json,
     }
 
@@ -263,4 +357,86 @@ def _perception_payload(event: PerceptionEvent) -> dict[str, Any]:
         "source": event.source,
         "observed_at": utc_isoformat(event.observed_at),
         "received_at": utc_isoformat(event.received_at),
+    }
+
+
+def _workspace_candidate_payload(db: Session, candidate: Any) -> dict[str, Any]:
+    return {
+        "id": candidate.id,
+        "status": candidate.status,
+        "kind": candidate.candidate_kind,
+        "context_family": candidate.context_family,
+        "claim": candidate.claim,
+        "why_now": candidate.why_now,
+        "cognitive_question": candidate.cognitive_question,
+        "expected_transformation": candidate.expected_transformation,
+        "uncertainty": candidate.uncertainty,
+        "deferral_count": candidate.deferral_count,
+        "deferred_until": utc_isoformat(candidate.deferred_until),
+        "selected_episode_id": candidate.selected_episode_id,
+        "source_refs": [
+            f"{item.source_kind}:{item.source_id}"
+            for item in repositories.list_candidate_sources(
+                db,
+                candidate_id=candidate.id,
+            )
+        ],
+        "appraisal_model": candidate.appraisal_model,
+        "appraisal_trace_id": candidate.appraisal_trace_id,
+        "created_at": utc_isoformat(candidate.created_at),
+        "updated_at": utc_isoformat(candidate.updated_at),
+    }
+
+
+def _workspace_episode_payload(db: Session, episode: Any) -> dict[str, Any]:
+    return {
+        "id": episode.id,
+        "status": episode.status,
+        "question": episode.question,
+        "expected_transformation": episode.expected_transformation,
+        "candidate_ids": [
+            item.candidate_id
+            for item in repositories.list_episode_candidates(
+                db,
+                episode_id=episode.id,
+            )
+        ],
+        "last_progress_at": utc_isoformat(episode.last_progress_at),
+        "suspended_until": utc_isoformat(episode.suspended_until),
+        "resume_condition": episode.resume_condition,
+        "resolution": episode.resolution,
+        "stop_reason": episode.stop_reason,
+        "created_at": utc_isoformat(episode.created_at),
+        "updated_at": utc_isoformat(episode.updated_at),
+    }
+
+
+def _wake_condition_payload(condition: Any) -> dict[str, Any]:
+    return {
+        "id": condition.id,
+        "status": condition.status,
+        "kind": condition.kind,
+        "episode_id": condition.episode_id,
+        "candidate_id": condition.candidate_id,
+        "predicate": condition.predicate_json,
+        "not_before": utc_isoformat(condition.not_before),
+        "deadline": utc_isoformat(condition.deadline),
+        "matched_event_id": condition.matched_event_id,
+        "matched_at": utc_isoformat(condition.matched_at),
+    }
+
+
+def _signal_receipt_payload(receipt: Any) -> dict[str, Any]:
+    return {
+        "id": receipt.id,
+        "source_kind": receipt.source_kind,
+        "source_key": receipt.source_key,
+        "source_type": receipt.source_type,
+        "policy": receipt.policy,
+        "disposition": receipt.disposition,
+        "candidate_id": receipt.candidate_id,
+        "episode_id": receipt.episode_id,
+        "registry_version": receipt.registry_version,
+        "observed_at": utc_isoformat(receipt.observed_at),
+        "processed_at": utc_isoformat(receipt.processed_at),
     }

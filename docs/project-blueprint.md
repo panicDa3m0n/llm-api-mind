@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.61.0 shared autonomous cognition target
+Architecture baseline: Core V1.50.1 closed; V1.62.0 Cognitive Workspace target
 Status: Core V1 closed; V2 product and module architecture active
 Last updated: 2026-07-27
 Primary human: project owner, evaluator, direction, validation  
@@ -46,9 +46,11 @@ The original foundation milestone has been reached and extended. The current
 runtime now includes persistent provider-native chat history, API Mind,
 semantic memory, atomic facts, episodic session recall, one metacognition
 route, runtime events, a live React cockpit, and one separate persistent
-autonomous cognition lifecycle. The autonomous lifecycle uses a compact
-orientation map and on-demand perception inbox; it does not fabricate human
-messages or grant external-world operativity.
+autonomous cognition lifecycle. V1.62 adds a reversible Cognitive Workspace
+that converts source-backed changes into provisional questions before an
+autonomous wake. Active field verification is the default; shadow remains the
+non-waking rollback and replay mode. The workspace does not replace organs or
+make external-world actions available.
 
 The canonical integrated status and convergent roadmap now live in:
 
@@ -60,6 +62,12 @@ The canonical ownership, dependency, and compatibility boundary lives in:
 
 ```txt
 docs/core-runtime-contract.md
+```
+
+The canonical event-driven autonomy and cognitive-episode contract lives in:
+
+```txt
+docs/cognitive-workspace.md
 ```
 
 The accepted public contract for optional Agentic Modules lives in:
@@ -1558,14 +1566,14 @@ Avoid:
 
 The Core V1 foundation described by the original implementation sequence is
 closed on V1.50.1. Product UI, Stream V2, and the Agentic Module contract/host/
-SDK now exist. The active research sequence after V1.60.0 is:
+SDK now exist. The active research sequence after V1.62.0 is:
 
 ```txt
-1. Validate periodic autonomous cognition qualitatively on isolated real runs.
-2. Calibrate autonomous history growth and derived compaction without deleting evidence.
-3. Admit one bounded, sourceable device-perception channel through the inbox.
-4. Design initiative delivery and external action only with separate permission and receipt contracts.
-5. Accept a later release only after regression, deployment, and rollback proof.
+1. Observe Cognitive Workspace receipts, no-wake decisions, and M3 outcomes in active mode.
+2. Validate episode selection and non-repetition in bounded autonomous runs.
+3. Roll back to shadow/advisory/off if longitudinal evidence exposes regressions.
+4. Admit one bounded, sourceable device-perception channel through the inbox.
+5. Design initiative delivery and external action only with separate permission and receipt contracts.
 ```
 
 The exact boundary is `docs/core-runtime-contract.md`; Linear SCA-46 owns the

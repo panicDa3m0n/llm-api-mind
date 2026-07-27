@@ -156,6 +156,7 @@ def _settings() -> Settings:
         maintenance_enabled=False,
         history_compaction_mode="off",
         model_context_profile="v2",
+        cognitive_workspace_mode="off",
     )
 
 
