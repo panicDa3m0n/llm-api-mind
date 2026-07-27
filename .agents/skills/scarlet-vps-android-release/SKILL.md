@@ -60,16 +60,20 @@ unreviewed source to copy back into the repository.
 5. Before enabling coordination logic that treats persisted rows as live
    foreground state, audit production for stale active statuses and verify the
    lease or freshness rule against a copied database.
-6. Back up active Nginx configuration and Product UI static output when those
+6. Execute guarded one-time production commands end to end on a copied
+   production database, including receipt serialization after commit; a
+   successful mutation followed by a reporting failure is still a failed
+   canary.
+7. Back up active Nginx configuration and Product UI static output when those
    surfaces change.
-7. Switch the service only after preflight succeeds.
-8. Verify local container health, public authenticated health, OpenAPI/version,
+8. Switch the service only after preflight succeeds.
+9. Verify local container health, public authenticated health, OpenAPI/version,
    and affected endpoints.
-9. For streaming changes, verify headers, early chunk delivery, durable replay,
+10. For streaming changes, verify headers, early chunk delivery, durable replay,
    same-turn recovery, and no proxy buffering.
-10. Retain the previous image/config/static/database backup until acceptance.
-11. Record the deployed commit rather than copying a later documentation-only
-    commit into runtime metadata.
+11. Retain the previous image/config/static/database backup until acceptance.
+12. Record the deployed commit rather than copying a later documentation-only
+   commit into runtime metadata.
 
 Rollback immediately when health, migration, authentication, streaming, or
 data integrity fails. Restore the previous container/config/static artifact;

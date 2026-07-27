@@ -7,6 +7,29 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0125 - Applied Autonomy Reset Failed While Serializing Its Receipt
+
+Date Found: 2026-07-27
+Status: fixed before V1.61.0 production switch
+
+Symptoms:
+
+The first copied-production-DB canary archived the autonomous chronology and
+created its replacement, then raised `DetachedInstanceError` while building
+the JSON receipt. Production was not touched.
+
+Root Cause:
+
+The guarded command retained SQLModel objects past the `Session` context and
+read their expired attributes after the session closed.
+
+Fix:
+
+Materialize archived session id, new session id, activation id, and scheduled
+time while the transaction session remains open. A command-level regression
+now runs the complete guarded apply path against an isolated production-role
+SQLite database and parses the final receipt.
+
 ## BUG-0124 - Naive Transport Timestamps Produced Wrong Local Display
 
 Date Found: 2026-07-27

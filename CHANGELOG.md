@@ -29,6 +29,12 @@ This project uses a practical changelog rather than a release-only log: each mea
   activations from the archived chronology, starts an empty active session,
   and keeps consumer history scoped to that current session.
 
+#### Fixed
+
+- Keep reset-operation receipt values materialized inside the database session
+  so a successful archival transaction cannot end with a detached-ORM report
+  failure.
+
 #### Compatibility
 
 - Human sessions retain their existing execution path and continue to force

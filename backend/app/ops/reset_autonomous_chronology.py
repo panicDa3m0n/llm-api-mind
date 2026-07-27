@@ -119,6 +119,10 @@ def main() -> int:
             from_time=archived_at,
         )
         after = _state(db, profile_id=profile_id)
+        archived_session_id = archived.id
+        new_session_id = active.id
+        next_activation_id = next_activation.id
+        next_activation_at = next_activation.scheduled_at.isoformat()
 
     print(
         json.dumps(
@@ -126,10 +130,10 @@ def main() -> int:
                 "operation": "autonomy.chronology.reset",
                 "mode": "applied",
                 "backup_reference": str(backup_reference),
-                "archived_session_id": archived.id,
-                "new_session_id": active.id,
-                "next_activation_id": next_activation.id,
-                "next_activation_at": next_activation.scheduled_at.isoformat(),
+                "archived_session_id": archived_session_id,
+                "new_session_id": new_session_id,
+                "next_activation_id": next_activation_id,
+                "next_activation_at": next_activation_at,
                 "before": before,
                 "after": after,
             },

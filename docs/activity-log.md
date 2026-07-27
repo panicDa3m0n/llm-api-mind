@@ -33,6 +33,8 @@ Change:
 Verification:
 
 - focused V2/autonomy/shell/time suite: `42 passed`;
+- guarded reset operation regression: passed after an isolated copied-DB
+  canary exposed and corrected detached-ORM receipt serialization;
 - complete Mind API test file: `36 passed`;
 - Ruff: passed;
 - blocking typed context/serialization mypy targets: passed;
