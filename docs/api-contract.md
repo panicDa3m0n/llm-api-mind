@@ -340,6 +340,7 @@ AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS=600
 AUTONOMOUS_ACTIVATION_WORKER_INTERVAL_SECONDS=5
 AUTONOMOUS_ACTIVATION_LEASE_SECONDS=900
 AUTONOMOUS_ACTIVATION_DEFER_SECONDS=60
+AUTONOMOUS_ACTIVATION_HUMAN_TURN_FRESHNESS_SECONDS=21600
 AUTONOMOUS_ACTIVATION_BATCH_SIZE=1
 AUTONOMOUS_ACTIVATION_PERCEPTION_CHANNEL_LIMIT=20
 ```
@@ -351,6 +352,12 @@ turn defers the activation. If a human turn starts after provider execution
 has begun, the autonomous cycle yields at the next semantic stream boundary or
 before the next tool call, persists a `deferred` turn/activation and partial
 evidence, then schedules a retry.
+
+Foreground detection considers only `human_dialogue` turns whose persisted
+status is `started` and whose `started_at` falls inside the configured
+freshness window. This prevents abandoned historical turns from disabling
+autonomous cognition forever while retaining a conservative six-hour boundary
+for genuinely long human work.
 
 The model receives `scarlet-autonomous-context-v1`, containing only:
 

@@ -294,7 +294,7 @@ def test_started_autonomous_cycle_yields_when_human_turn_takes_priority(
     monkeypatch.setattr(
         repositories,
         "has_active_human_turn",
-        lambda db: next(checks, True),
+        lambda db, *, active_since: next(checks, True),
     )
 
     result = run_autonomous_activation(
@@ -326,6 +326,38 @@ def test_started_autonomous_cycle_yields_when_human_turn_takes_priority(
             item.trigger_kind == "deferred_human_active"
             and item.status == "pending"
             for item in scheduled
+        )
+
+
+def test_stale_started_human_turn_does_not_block_autonomous_cognition(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    now = utc_now()
+    with Session(db_engine) as db:
+        human_session = repositories.create_chat_session(db, title="Stale turn")
+        turn = repositories.create_turn(db, session_id=human_session.id)
+        turn.started_at = now - timedelta(hours=7)
+        db.add(turn)
+        db.commit()
+
+        assert (
+            repositories.has_active_human_turn(
+                db,
+                active_since=now - timedelta(hours=6),
+            )
+            is False
+        )
+
+        turn.started_at = now
+        db.add(turn)
+        db.commit()
+        assert (
+            repositories.has_active_human_turn(
+                db,
+                active_since=now - timedelta(hours=6),
+            )
+            is True
         )
 
 

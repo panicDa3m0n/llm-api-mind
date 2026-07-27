@@ -6,6 +6,16 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.60.1 - Fresh Human-Turn Foreground Guard
+
+#### Fixed
+
+- Ignore historical human turns left in `started` state when deciding whether
+  an autonomous cycle must yield. Only turns started inside the configurable
+  six-hour freshness window can hold foreground priority.
+- Preserve the underlying historical records as evidence rather than mutating
+  production data during deployment.
+
 ### V1.60.0 - Autonomous Cognitive Cycles
 
 #### Added

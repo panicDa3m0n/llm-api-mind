@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-27
-App target: V1.60.0; V1.50.1 remains release-accepted
+App target: V1.60.1; V1.50.1 remains release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"

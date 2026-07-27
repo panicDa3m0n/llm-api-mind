@@ -7,6 +7,42 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0121 - Historical Started Turns Disabled Autonomous Cognition
+
+Date Found: 2026-07-27
+Status: fixed in V1.60.1; VPS verification in progress
+
+Symptoms:
+
+The first production activation reached its exact scheduled time but deferred
+immediately with `human_turn_active`. Read-only inspection found 25 human turns
+still marked `started`, dated from 24 May through 18 July, although no human
+conversation was active.
+
+Root Cause:
+
+The first autonomous foreground guard treated every persisted `started` turn
+as live activity without a temporal boundary. Historical incomplete probes and
+older GPT/monitor sessions therefore blocked every autonomous cycle.
+
+Fix:
+
+Require a `started` human turn to fall inside a configurable freshness window,
+currently six hours. Preserve stale records unchanged for later lifecycle
+analysis rather than silently rewriting production history.
+
+Regression Coverage:
+
+- a seven-hour-old `started` human turn does not block autonomy;
+- the same turn with a current `started_at` does block autonomy; and
+- the real VPS activation must complete after the V1.60.1 rollout.
+
+Related:
+
+- `backend/app/storage/repository/autonomy.py`
+- `backend/app/runtime/autonomy.py`
+- `backend/tests/test_autonomy.py`
+
 ## BUG-0120 - Validation Context Could Abort A Model Tool Loop
 
 Date Found: 2026-07-27

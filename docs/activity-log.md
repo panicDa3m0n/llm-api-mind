@@ -4,6 +4,30 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-27 - V1.60.1 Production Foreground Guard
+
+Area: Decision Autonomy / protected VPS rollout.
+
+Type: Fix on `feature/pre-ui-merge-system-work`.
+
+Finding:
+
+The first production periodic activation fired on schedule but deferred because
+25 historical human turns remained in `started` state. They ranged from 24 May
+to 18 July and did not represent current foreground activity.
+
+Change:
+
+- bound persisted human-turn foreground detection to a configurable six-hour
+  freshness window;
+- retain all stale production records unchanged as evidence; and
+- add a focused stale-versus-current regression.
+
+Verification:
+
+- pending local gates and protected V1.60.1 VPS rollout;
+- final acceptance requires one completed real scheduled MiniMax cycle.
+
 ## 2026-07-27 - Autonomous Observation Cadence Set To Ten Minutes
 
 Area: Decision Autonomy / runtime configuration.

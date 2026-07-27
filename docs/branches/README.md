@@ -1,7 +1,7 @@
 # Agentic Branches
 
 Last updated: 2026-07-27
-App baseline: V1.50.1 deployed and release-accepted; V1.60.0 development target
+App baseline: V1.50.1 deployed and release-accepted; V1.60.1 development target
 Status: canonical branch map
 
 The V1.50.1 Core is closed and release-accepted. Branch maturity remains a

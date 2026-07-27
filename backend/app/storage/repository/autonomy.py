@@ -254,11 +254,16 @@ def list_autonomous_activations(
     return list(db.exec(statement).all())
 
 
-def has_active_human_turn(db: Session) -> bool:
+def has_active_human_turn(
+    db: Session,
+    *,
+    active_since: datetime,
+) -> bool:
     statement = (
         select(Turn.id)
         .join(ChatSession, ChatSession.id == Turn.session_id)
         .where(Turn.status == "started")
+        .where(Turn.started_at >= active_since)
         .where(ChatSession.kind == HUMAN_SESSION_KIND)
         .limit(1)
     )

@@ -60,6 +60,10 @@ class Settings(BaseSettings):
     )
     autonomous_activation_lease_seconds: int = Field(default=900, ge=60)
     autonomous_activation_defer_seconds: int = Field(default=60, ge=10)
+    autonomous_activation_human_turn_freshness_seconds: int = Field(
+        default=21600,
+        ge=60,
+    )
     autonomous_activation_batch_size: int = Field(default=1, ge=1, le=5)
     autonomous_activation_perception_channel_limit: int = Field(
         default=20,

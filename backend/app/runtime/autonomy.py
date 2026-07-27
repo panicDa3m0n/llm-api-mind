@@ -122,7 +122,15 @@ def run_autonomous_activation(
         )
         if activation is None:
             return {"activation_id": activation_id, "status": "not_claimed"}
-        if repositories.has_active_human_turn(db):
+        human_turn_active_since = started_at - timedelta(
+            seconds=(
+                settings.autonomous_activation_human_turn_freshness_seconds
+            )
+        )
+        if repositories.has_active_human_turn(
+            db,
+            active_since=human_turn_active_since,
+        ):
             deferred = repositories.complete_autonomous_activation(
                 db,
                 activation_id=activation.id,
@@ -321,13 +329,13 @@ def run_autonomous_activation(
         )
 
         def tool_runner(tool_use: Any) -> Any:
-            if _has_active_human_turn(engine):
+            if _has_active_human_turn(engine, settings=settings):
                 raise AutonomousYieldToHuman(
                     "A human turn started before the next autonomous tool call."
                 )
             return base_tool_runner(tool_use)
 
-        if _has_active_human_turn(engine):
+        if _has_active_human_turn(engine, settings=settings):
             raise AutonomousYieldToHuman(
                 "A human turn started before autonomous provider execution."
             )
@@ -351,7 +359,7 @@ def run_autonomous_activation(
                     "assistant_note",
                     "assistant_answer",
                 }
-                and _has_active_human_turn(engine)
+                and _has_active_human_turn(engine, settings=settings)
             ):
                 raise AutonomousYieldToHuman(
                     "A human turn started during autonomous provider execution."
@@ -610,9 +618,19 @@ def start_autonomous_activation_worker(
     return stop
 
 
-def _has_active_human_turn(engine: Engine) -> bool:
+def _has_active_human_turn(
+    engine: Engine,
+    *,
+    settings: Settings,
+) -> bool:
+    active_since = utc_now() - timedelta(
+        seconds=settings.autonomous_activation_human_turn_freshness_seconds
+    )
     with Session(engine) as db:
-        return repositories.has_active_human_turn(db)
+        return repositories.has_active_human_turn(
+            db,
+            active_since=active_since,
+        )
 
 
 def _defer_started_activation(
