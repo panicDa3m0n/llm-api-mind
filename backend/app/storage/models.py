@@ -19,6 +19,9 @@ class ChatSession(SQLModel, table=True):
 
     id: str = Field(default_factory=lambda: new_id("ses"), primary_key=True)
     title: str | None = None
+    kind: str = Field(default="human_dialogue", index=True)
+    profile_id: str = Field(default="local-user", index=True)
+    autonomy_key: str | None = Field(default=None, index=True, unique=True)
     created_at: datetime = Field(default_factory=utc_now, index=True)
     updated_at: datetime = Field(default_factory=utc_now, index=True)
     provider_history_json: list[dict[str, Any]] = Field(
@@ -129,6 +132,8 @@ class Turn(SQLModel, table=True):
     id: str = Field(default_factory=lambda: new_id("turn"), primary_key=True)
     session_id: str = Field(foreign_key="sessions.id", index=True)
     status: str = Field(default="started", index=True)
+    trigger_kind: str = Field(default="human_message", index=True)
+    actor: str = Field(default="user", index=True)
     model: str | None = None
     started_at: datetime = Field(default_factory=utc_now, index=True)
     completed_at: datetime | None = None
@@ -249,6 +254,122 @@ class DeviceObservation(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON, nullable=False),
     )
+
+
+class AutonomousActivation(SQLModel, table=True):
+    """One persisted activation of Scarlet's model-controlled inner lifecycle."""
+
+    __tablename__ = "autonomous_activations"
+    __table_args__ = (
+        UniqueConstraint("schedule_key", name="uq_autonomous_activation_schedule_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("act"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    session_id: str = Field(foreign_key="sessions.id", index=True)
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    trigger_kind: str = Field(default="periodic", index=True)
+    schedule_key: str = Field(index=True)
+    status: str = Field(default="pending", index=True)
+    active_mode: str | None = Field(default=None, index=True)
+    scheduled_at: datetime = Field(index=True)
+    started_at: datetime | None = Field(default=None, index=True)
+    completed_at: datetime | None = Field(default=None, index=True)
+    lease_expires_at: datetime | None = Field(default=None, index=True)
+    attempt_count: int = Field(default=0)
+    outcome_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    error_json: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class PerceptionEvent(SQLModel, table=True):
+    """Immutable normalized evidence made available to Scarlet on demand."""
+
+    __tablename__ = "perception_events"
+    __table_args__ = (
+        UniqueConstraint("source_event_key", name="uq_perception_source_event_key"),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("per"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    channel: str = Field(index=True)
+    event_type: str = Field(index=True)
+    source: str = Field(index=True)
+    source_event_key: str = Field(index=True)
+    observed_at: datetime = Field(index=True)
+    received_at: datetime = Field(default_factory=utc_now, index=True)
+    payload_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    navigation_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class PerceptionChannelState(SQLModel, table=True):
+    """Compact availability state; the model sees this before opening events."""
+
+    __tablename__ = "perception_channel_states"
+    __table_args__ = (
+        UniqueConstraint(
+            "profile_id",
+            "channel",
+            name="uq_perception_channel_profile",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("per_ch"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    channel: str = Field(index=True)
+    status: str = Field(default="available", index=True)
+    latest_event_id: str | None = Field(
+        default=None,
+        foreign_key="perception_events.id",
+        index=True,
+    )
+    latest_observed_at: datetime | None = Field(default=None, index=True)
+    event_count: int = Field(default=0)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class PerceptionCursor(SQLModel, table=True):
+    """Per-session consumption cursor without mutating immutable observations."""
+
+    __tablename__ = "perception_cursors"
+    __table_args__ = (
+        UniqueConstraint(
+            "session_id",
+            "channel",
+            name="uq_perception_cursor_session_channel",
+        ),
+    )
+
+    id: str = Field(default_factory=lambda: new_id("per_cur"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    session_id: str = Field(foreign_key="sessions.id", index=True)
+    channel: str = Field(index=True)
+    last_event_id: str | None = Field(
+        default=None,
+        foreign_key="perception_events.id",
+        index=True,
+    )
+    last_observed_at: datetime | None = Field(default=None, index=True)
+    last_received_at: datetime | None = Field(default=None, index=True)
+    opened_count: int = Field(default=0)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
 
 
 class MaintenanceJob(SQLModel, table=True):

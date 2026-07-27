@@ -4,6 +4,148 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-27 - Autonomous Observation Cadence Set To Ten Minutes
+
+Area: Decision Autonomy / runtime configuration.
+
+Type: Fix on `feature/pre-ui-merge-system-work`; V1.60.0 unchanged.
+
+Changes:
+
+- changed the default autonomous activation interval from 120 to 600 seconds;
+- kept the interval configurable and left scheduling, deferral, provider
+  lifecycle, perception, and internal-history behavior unchanged; and
+- recorded MiniMax M2.7 as a future cost experiment only, not an implicit
+  provider fallback.
+
+Verification:
+
+- focused scheduler/configuration regression;
+- Ruff and documentation integrity checks.
+
+Next Evidence:
+
+Track cycle frequency, provider usage, qualitative value, and avoidable ritual
+work before deciding whether autonomous cycles should use a separately selected
+MiniMax M2.7 provider profile.
+
+## 2026-07-27 - V1.60.0 Autonomous Cognition Runtime
+
+Area: Decision Autonomy / Perception and Context / Product UI.
+
+Type: Implementation on `feature/pre-ui-merge-system-work`.
+
+Goal:
+
+Implement the accepted periodic internal-cognition architecture, preserve every
+cycle as inspectable evidence, and expose the history from Product Chat without
+mixing it into human dialogue.
+
+Changes:
+
+- added one unique profile-scoped `scarlet_autonomous` session and first-class
+  session kind, turn trigger, and actor fields;
+- added persisted activation scheduling, lease claim/recovery, active-human-
+  turn deferral, cooperative mid-cycle yield at provider/tool boundaries,
+  completion/failure outcomes, and configurable cadence, now set to 600
+  seconds for field observation;
+- added a streaming autonomous MiniMax lifecycle over the existing provider,
+  canonical history, `mind_shell` runner, traces, and history compaction;
+- added `scarlet-autonomous-context-v1` with compact human-session/memory hooks,
+  focus, open/due volition, affect, mode, perception availability, and explicit
+  autonomous completion policy;
+- added append-only perception events, derived channel state, per-session
+  inspection cursors, batch ingestion, and `perception status|open|read`;
+- corrected cursor ordering to drain bounded batches in append-only receipt
+  order so delayed observations and older unseen records cannot be skipped;
+- fixed mode resolution so only `runtime_trigger=human_message` forces
+  `interactive`; autonomous turns preserve `idle|scouting`;
+- added autonomy overview/history/run-now APIs and a chat-header brain icon
+  with a read-only conversation-like cycle history containing notes, tool
+  actions, expandable thinking, and checkpoints; and
+- updated native/full-reference prompt policy and the current architecture,
+  API, branch, experiment, bug, and release documentation.
+
+Verification:
+
+- full backend suite: `320 passed`;
+- full Ruff gate, 45-file mypy gate, documentation integrity, and project-skill
+  validation pass;
+- frontend TypeScript/Vite production build passes;
+- Product Chat autonomy UI passes direct browser inspection at `390x844` and
+  `1440x1000`, with all autonomy requests `200` and no browser warning/error;
+- first isolated real M3 cycle exposed BUG-0120 in validation serialization;
+  after the fix a fresh cycle completed in 45 seconds with five tool calls,
+  three notes, correct non-human/no-op discipline, and one internal checkpoint;
+- no VPS deployment, production database mutation, or native Android
+  notification admission was performed.
+
+Residual Work:
+
+- later evaluate autonomous choice quality, provider cost/failure behavior,
+  model choice, and compaction from the current 600-second observation
+  interval; and
+- design the first authorized native perception adapter separately.
+
+## 2026-07-27 - Autonomous Activation Architecture Checkpoint
+
+Area: Decision Autonomy / Perception and Context / companion operativity.
+
+Type: Documentation-only architecture study on
+`feature/pre-ui-merge-system-work`; V1.59.0 target unchanged.
+
+Goal:
+
+Preserve the future Android activation/action inventory and formalize the
+owner-directed hypothesis that Scarlet wakes on the VPS every 15 minutes for a
+real internal cognitive cycle.
+
+Recorded Direction:
+
+- human turns, Scarlet autonomous cycles, and deterministic/maintenance-LLM
+  backend jobs are separate lifecycles with different actors and outputs;
+- the existing 900-second session-idle maintenance delay is not Scarlet's
+  autonomous clock and cannot be repurposed semantically;
+- scheduled autonomous activations need canonical trigger records rather than
+  fabricated user messages;
+- all started autonomous activations belong to one long-lived, profile-scoped
+  `scarlet_autonomous` session with its own chronological provider continuity,
+  while human dialogue remains in separate `human_dialogue` sessions;
+- API Mind bridges that exclusive chronology to recent human-session summaries,
+  memories, organs, perception availability, and exact on-demand source reads;
+- session kind must become first-class so the autonomous stream cannot pollute
+  human `previous_sessions` or inherit human provider history;
+- autonomous cycles resume `idle` or `scouting`, while `interactive` remains
+  system-owned by human exchanges;
+- enabled perception sources expose a compact navigable availability index so
+  Scarlet has no hidden updated channels without receiving all raw payloads;
+- notifications and future sensors use an append-only evidence ledger plus
+  derived temporal inboxes, inspection cursors, bounded batches, and receipts;
+- source availability is not a semantic read, and user-visible initiative
+  remains separate from internal cycle conclusions; and
+- FCM, direct notification replies, Sharesheet ingress, widgets/tiles,
+  Activity Recognition, geofences, notifications, usage, calendar, health,
+  audio, device action, Home Assistant, and embodiment remain a staged future
+  inventory rather than current capability claims.
+
+Verification:
+
+- inspected the current maintenance scheduler, 900-second idle contract,
+  agent-mode registry, shell mode lifecycle, prompt wording, Device Exploration
+  boundary, context-family registry, autonomy branch, and companion checkpoint;
+- documentation-only diff passed `git diff --check` and was inspected directly.
+
+Open Questions:
+
+- exact autonomous context spine and provider-history shape;
+- autonomous-session provisioning, profile uniqueness, session-kind migration,
+  and high-frequency compaction;
+- cognitive lease/deferral behavior when a human turn is active;
+- direct versus proposal-only cognitive maintenance authority;
+- perception shell commands and consumption semantics;
+- UI visibility for internal cycles versus delivered initiative; and
+- operating cost and failure behavior for 96 scheduled activations per day.
+
 ## 2026-07-26 - V1.59.0 Semantic Context Families
 
 Area: Perception and Context / future companion device continuity and

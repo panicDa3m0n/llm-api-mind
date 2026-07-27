@@ -7,7 +7,11 @@ from sqlmodel import select
 
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
-from app.mind.contracts import MindAPIContext, MemoryOperationResult
+from app.mind.contracts import (
+    MindAPIContext,
+    MemoryOperationResult,
+    serializable_validation_errors,
+)
 from app.mind.command_registry import validate_shell_command
 from app.mind.schema import shell_command_catalog
 from app.storage import repositories
@@ -791,7 +795,7 @@ def _validation_error(exc: ValidationError) -> MemoryOperationResult:
         ok=False,
         result={
             "operation": "metacognition.step",
-            "validation_errors": exc.errors(),
+            "validation_errors": serializable_validation_errors(exc),
             "expected_schema_hint": "Use help metacognition for the command shape.",
         },
         cognitive_hint="Retry the single metacognition command with the documented shape.",

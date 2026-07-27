@@ -1,7 +1,7 @@
 # Scarlet Product UI
 
-Last updated: 2026-07-24
-Current app target: V1.57.0; Product UI is connected to Core on web and Android
+Last updated: 2026-07-27
+Current app target: V1.60.0; Product UI is connected to Core on web and Android
 Linear issue: SCA-48
 Status: implemented, connected, activity/evidence pass under owner evaluation
 
@@ -248,6 +248,25 @@ pages replay until its durable cursor is complete, and requires
 `turn.completed` or `turn.failed` rather than trusting stream closure.
 Authored content is public-only; an exact allowlist admits consumer-safe
 diagnostic lifecycle facts. Unknown diagnostic evidence remains hidden.
+
+### Internal Cognition History
+
+V1.60.0 adds a brain icon to the compact Chat header. It opens a read-only
+bottom sheet backed by `GET /api/autonomy/history` and refreshes while visible.
+This is not part of the active human message stream.
+
+Each autonomous activation appears as one chronological cycle containing:
+
+- schedule/completion state and active `idle|scouting` posture;
+- Scarlet-authored personal notes;
+- grouped `mind_shell` actions with expandable technical detail;
+- provider thinking behind an explicit disclosure; and
+- the final internal checkpoint.
+
+The default projection emphasizes the readable inner chronology while
+preserving development evidence on demand. It never relabels an activation as
+a user message, and it does not turn an internal checkpoint into a delivered
+notification or chat answer.
 
 ## Inspectable Core Data And Settings
 

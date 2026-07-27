@@ -586,7 +586,7 @@ def context_family_routing_plan(
         raise ValueError(f"Unsupported active agent mode: {active_tag}")
     if routing_mode != "shadow":
         raise ValueError(
-            "Context family routing is shadow-only in V1.59.0; "
+            "Context family routing is shadow-only in V1.60.0; "
             f"received {routing_mode!r}"
         )
     validate_context_family_registry()

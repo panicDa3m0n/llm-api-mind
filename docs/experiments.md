@@ -9,6 +9,91 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0084 - Autonomous Activation Lifecycle And Internal History
+
+Status: deterministic and bounded live V1.60.0 evidence accepted
+
+Hypothesis:
+
+A separate profile-scoped session, compact orientation context, and
+append-only activation/perception records can give Scarlet periodic internal
+continuity without fabricating human messages, polluting human session hints,
+or forcing every available source into context.
+
+Method:
+
+- schedule repeated activations for one profile and verify exclusive-session
+  reuse plus the configured next-due interval;
+- simulate a human turn arriving during provider execution and verify that the
+  cycle preserves partial evidence, becomes deferred, and schedules a retry;
+- execute an activation through a deterministic streaming provider that emits
+  thinking, a personal note, one `mind_shell` action, and an internal
+  checkpoint;
+- inspect persisted activation, turn, message, event, trace, and tool-call
+  evidence;
+- ingest perception events, inspect the compact availability index, open one
+  bounded batch, and verify cursor semantics; and
+- run focused regressions over native chat, model context, shell, and mode
+  routing.
+
+Result:
+
+The deterministic cycle reuses one `scarlet_autonomous` session, persists its
+private chronology and tool evidence, and schedules the next activation
+without replaying missed intervals. Human session selectors exclude it.
+Foreground-priority simulation confirms that a started cycle yields
+cooperatively when a human turn appears rather than continuing two Scarlet
+foreground executions.
+Opening perception advances only the autonomous-session cursor; automatic
+indexing leaves source timestamps and inspection state unchanged. The mode
+regression found and fixed a real defect where any turn id was interpreted as
+a human turn.
+
+The first real M3 probe exposed a separate runtime defect after a valid
+`focus list`: an invalid `volition list --status all` response retained a live
+`ValueError` inside Pydantic validation context, which could not be serialized
+for the provider. After normalizing validation errors and adding a regression
+test, a fresh isolated cycle completed in 45 seconds. Scarlet emitted three
+personal orientation notes and successfully called:
+
+```txt
+help
+volition list active --limit 10
+memory search "Scarlet" --top 5
+perception status
+mode set idle --reason "..."
+```
+
+The cycle correctly distinguished itself from human conversation, triangulated
+the empty test state, invented no memory, focus, volition, or perception, and
+left an internal no-op checkpoint. Reasserting `idle` was coherent but mildly
+ritualistic and remains a qualitative calibration note rather than a runtime
+failure.
+
+Interpretation:
+
+The storage, lifecycle, shell-recovery, and UI-inspection substrate is strong
+enough for continued bounded field use. One clean empty-state probe is not
+longitudinal proof that Scarlet will choose useful autonomous work, avoid
+ritual organ scans, or calibrate initiative correctly when real evidence is
+present.
+
+Limits:
+
+No native Android notification listener, external action, user notification,
+long-duration cadence run, autonomous-history compaction calibration, or
+production deployment is included. The initial 120-second test interval was
+raised to a 600-second observation cadence after the bounded implementation
+probe; neither value is a fixed final product cadence.
+
+Evidence:
+
+- `backend/tests/test_autonomy.py`
+- `backend/app/runtime/autonomy.py`
+- `frontend/src/MobileApp.tsx`
+- `frontend/src/prototype/AutonomyHistoryPanel.tsx`
+- isolated DB `/tmp/scarlet-autonomy-live-v160-retry.db` (local disposable evidence)
+
 ## EXP-0083 - Context Family And Policy Composition Probe
 
 Status: accepted as bounded V1.59.0 shadow evidence

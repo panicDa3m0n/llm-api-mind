@@ -783,13 +783,340 @@ is:
 2. explore each candidate source in isolation and inspect real data shape,
    timing, gaps, permissions, and lifecycle;
 3. define the common personal/world event envelope without cognitive delivery;
-4. design and simulate the `Resta con me` state machine, anomaly candidates,
-   confirmation loop, and receipts;
+4. design and validate Scarlet's autonomous activation lifecycle separately
+   from human chat and deterministic backend maintenance;
 5. define shared life threads, commitments, initiative candidates, and
    relational episodes;
-6. prototype explicit Sharesheet/import paths before passive communication
-   access;
-7. design the prompt block registry and prove exact baseline reconstruction in
+6. prototype explicit Sharesheet/import paths and bounded device event sources
+   before broad passive communication access;
+7. design and simulate the later `Resta con me` state machine, anomaly
+   candidates, confirmation loop, and receipts;
+8. design the prompt block registry and prove exact baseline reconstruction in
    shadow;
-8. approve one companion capability at a time for cognitive integration and
+9. approve one companion capability at a time for cognitive integration and
    realistic evaluation.
+
+### 15.6 Future Android Presence And Action Inventory
+
+The mobile device should eventually serve three different roles without
+collapsing them:
+
+1. **activation surface**: notification reply, notification action, app resume,
+   widget, Quick Settings tile, share target, schedule, push, or a qualified
+   device event can request a Scarlet cycle;
+2. **evidence source**: lifecycle, activity transitions, geofences, calendar,
+   Health Connect, notification access, usage state, connectivity, battery,
+   Bluetooth, and later device media can produce sourceable observations; and
+3. **action surface**: Scarlet can deliver notifications, accept direct replies,
+   open a precise app route, use haptics or speech, prepare user-confirmed
+   Android intents, update a widget or tile, and later dispatch bounded home or
+   device operations with result receipts.
+
+The following future surfaces are worth preserving for staged exploration:
+
+- backend-driven push delivery rather than keeping a permanent local LLM
+  process alive;
+- notification actions and direct reply as a lightweight conversation channel;
+- Android Sharesheet ingress for user-selected text, links, images, files, and
+  exports;
+- home-screen widgets, conversation bubbles, shortcuts, and Quick Settings as
+  forms of visible daily presence;
+- Activity Recognition and geofences as compact state changes rather than raw
+  accelerometer or continuous GPS prompt input;
+- Notification Listener and Usage Stats as special-access experimental sources
+  whose payload quality and incompleteness must be measured before cognitive
+  use;
+- Calendar and Health Connect as typed account/device sources with their own
+  provenance; and
+- audio, camera, accessibility, device control, Home Assistant, and physical
+  actuation as later separately contracted capabilities.
+
+Network, battery, process lifecycle, permission state, and delivery status are
+often operational conditions rather than things Scarlet should discuss. They
+may gate synchronization, timing, or availability without becoming model
+context.
+
+### 15.7 Autonomous Activation Research Contract
+
+Date: 2026-07-27
+Status: architecture accepted and first V1.60.0 runtime slice implemented
+
+The initial operational hypothesis was a backend VPS activation of Scarlet
+every 15 minutes. V1.60.0 now uses a configurable 600-second cadence for field
+observation after completing the 120-second implementation probe. This is an
+agentic cognitive cycle, not the existing session-idle maintenance job and not
+a fabricated human chat message.
+
+The distinction is mandatory:
+
+| Lifecycle | Actor and purpose |
+|---|---|
+| Human turn | A human message activates Scarlet in `interactive` mode and expects a visible answer. |
+| Autonomous cycle | The scheduler wakes Scarlet without a human message so she can orient, inspect, choose, maintain her cognitive state, perceive available sources, or make a traceable initiative decision. |
+| Backend maintenance | Deterministic or maintenance-LLM infrastructure summarizes, reconciles, repairs, compacts, or proposes state changes without becoming Scarlet's foreground experience. |
+
+The current 900-second session-idle delay cannot be reinterpreted as Scarlet's
+autonomous clock. It is tied to a completed human turn and schedules
+session-specific summary and missed-memory work. A new persistent activation
+lifecycle is required.
+
+#### Canonical Cycle
+
+Each scheduled wake should create a sourceable activation record before the
+model runs:
+
+```json
+{
+  "activation_id": "act_...",
+  "profile_id": "default",
+  "autonomous_session_id": "ses_...",
+  "trigger_kind": "scheduled_autonomous_cycle",
+  "scheduled_at": "offset-aware timestamp",
+  "started_at": null,
+  "completed_at": null,
+  "status": "due",
+  "active_mode": "idle",
+  "source_refs": [],
+  "model_run_ref": null,
+  "outcome": null
+}
+```
+
+The exact schema remains to be designed, but it must support idempotency,
+lease/locking, retry, overlap prevention, deferral while a human turn is active,
+failure evidence, and a durable outcome. The canonical actor is Scarlet or the
+Core scheduler as appropriate; it is never the human.
+
+#### Exclusive Autonomous Session
+
+The autonomous activations should share one long-lived, profile-scoped session
+reserved for Scarlet's internal cycles. Every completed activation becomes one
+chronological turn in that session. This gives Scarlet a direct provider
+continuity across wake cycles while API Mind continues to connect her to the
+rest of her cognition.
+
+The autonomous session receives:
+
+- its own canonical activation chronology and provider-native history;
+- the compact current activation envelope and user-local time;
+- current agent mode and enabled organ context;
+- recent general and user memories under the accepted recency rules;
+- compact summaries and ids for the latest human conversation sessions;
+- current focus, due or relevant volition, affect/metacognitive context when
+  their activation contracts admit them;
+- a compact availability index for device and future perception channels; and
+- the same on-demand `mind_shell` navigation into sessions, memory, graph,
+  focus, volition, affect, mode, metacognition, and future perception commands.
+
+The autonomous session does not merge human messages into its exact provider
+history. Human dialogue remains available through current summaries, memories,
+source hooks, and explicit episodic reads. This preserves two complementary
+continuities:
+
+```txt
+human sessions
+    -> exact continuity of each human conversation
+
+exclusive autonomous session
+    -> exact continuity of Scarlet's periodic internal life
+
+API Mind
+    -> shared memory, episodic navigation, organs, state, perception, and time
+```
+
+V1.60.0 adds a canonical session kind and filters human previous-session
+selection accordingly. The implemented distinction is:
+
+- `human_dialogue`: ordinary native or bridge conversation with a human;
+- `scarlet_autonomous`: the profile's exclusive internal activation session.
+
+Human `previous_sessions` packets must select only `human_dialogue`. The
+autonomous session remains separately navigable by id and must not appear as a
+recent human conversation. Conversely, a human session must not inherit the
+autonomous session's provider history.
+
+One scheduled activation maps to one autonomous turn when model execution
+starts. An activation may still exist without a turn when it is deferred,
+superseded, or fails before model invocation. The activation record therefore
+owns scheduling state; the turn owns the actual cognitive execution.
+
+The autonomous chronology can grow by 96 candidate wakes per day. It should use
+the existing append-only canonical history and source-labelled compaction
+principles, with an autonomous compaction policy calibrated separately from
+human conversation. No exact activation, tool result, trace, or source hook is
+deleted when a compact provider view is created.
+
+Provider transport may still require a provider-compatible input message. If
+so, the transport rendering must explicitly identify it as a backend activation
+envelope while canonical history preserves `trigger_kind` and actor. It must
+not persist as user-authored speech.
+
+#### Cognitive Orientation
+
+The fixed Scarlet policy will eventually need a small invariant block that
+distinguishes human-facing and autonomous activations. During an autonomous
+cycle Scarlet must know:
+
+- no human has just spoken and no conversational answer is implicitly owed;
+- the current mode is `idle` or the resumable exploratory posture selected by
+  Scarlet, never system-forced `interactive`;
+- her final model text is an internal cycle conclusion unless she explicitly
+  creates a supported initiative or device action;
+- she may use `mind_shell` to inspect memory, sessions, focus, volition,
+  affect, mode, metacognition, and future perception/initiative surfaces;
+- she should choose proportionately among inspection, cognitive state
+  maintenance, perception, initiative, mode change, and a valid no-op; and
+- she must not claim that an external action succeeded without its result
+  receipt.
+
+The cycle should not force a ritual scan of every organ every 15 minutes.
+Scarlet receives a compact availability map and decides which source hooks to
+open. This preserves actual interest and direction while keeping hidden or
+updated sources discoverable.
+
+#### Perception Inbox, Not Destructive Cache
+
+Device notifications and later sensor observations should first enter a
+canonical append-only event ledger. A temporal inbox/cache is a derived view
+over that ledger, not the only copy.
+
+The generalized shape is:
+
+```txt
+raw source event
+-> normalized append-only perception event
+-> per-channel current state and unread/change cursor
+-> compact availability index for Scarlet
+-> on-demand bounded batch
+-> inspection/use receipt
+-> optional semantic event, memory, initiative, or no-op
+```
+
+Useful record boundaries include:
+
+- `perception_event`: immutable normalized observation with source, subject,
+  observed time, received time, lifecycle state, deduplication key, and raw
+  evidence reference;
+- `perception_channel_state`: latest update, freshness, available count,
+  unread/change range, permissions, and health for one source;
+- `perception_cursor`: what a specific Scarlet/profile cycle has inspected,
+  without changing the observation time;
+- `perception_batch`: the exact bounded records delivered during one cycle;
+  and
+- `perception_receipt`: inspected, used, deferred, ignored, stale, or failed,
+  with links to any resulting cognitive or operational record.
+
+Notification updates and removals must evolve source state without deleting
+historical evidence. Automatic availability indexing must not count as a
+semantic read. Only records actually delivered after Scarlet opens a channel
+advance her inspection cursor.
+
+#### No Blind Sources
+
+Every enabled source must appear in a compact model-visible availability
+index, even when its detailed payload is not automatically delivered. Each
+entry should expose only what Scarlet needs to decide whether to inspect it:
+
+```json
+{
+  "channel_id": "human_device.notifications",
+  "status": "available",
+  "last_observed_at": "offset-aware timestamp",
+  "fresh_count": 4,
+  "latest_change_kind": "notification_posted",
+  "freshness": "current",
+  "open_command": "perception open human_device.notifications"
+}
+```
+
+The rich diagnostics, permissions, failures, raw payloads, routing decisions,
+and maintenance metadata remain available to Core, trace, and developer UI.
+The model-facing index is a navigable map, not a dump of everything the system
+knows.
+
+#### Mode And Source Selection
+
+One active agent-mode tag continues to select eligible organs and context
+families. An autonomous wake does not itself define a new mode.
+
+- `idle`: no foreground direction; Scarlet can orient and decide whether
+  anything deserves attention;
+- `scouting`: Scarlet has preserved an exploratory direction and can inspect
+  the sources tagged for that posture;
+- `interactive`: reserved for an active human exchange.
+
+Scarlet may use the existing `mode set idle|scouting` contract to select the
+posture that subsequent cycles resume. Mode controls eligibility; activation,
+freshness, relevance, and explicit source opening still control delivery.
+
+#### Possible Outcomes
+
+An autonomous cycle should end with one or more explicit outcomes:
+
+- `no_op`: Scarlet found no worthwhile action;
+- `cognitive_state_changed`: memory, focus, volition, affect-related appraisal,
+  or mode changed through an existing supported command;
+- `perception_inspected`: one or more source batches were opened and receipted;
+- `maintenance_candidate`: Scarlet identified a sourceable cognitive issue for
+  a separately governed maintenance path;
+- `initiative_candidate`: Scarlet chose something potentially worth telling or
+  asking the human;
+- `device_action_requested`: a future authorized operation was dispatched and
+  awaits or received a result; or
+- `failed`/`deferred`: the cycle could not proceed or yielded to an active
+  human exchange.
+
+Internal cycle narration and conclusions can be visible in developer traces or
+a dedicated inspectable UI. They must not automatically become a user
+notification. User-visible initiative requires its own record, delivery
+lifecycle, and outcome.
+
+#### V1.60.0 Implementation Evidence
+
+The first slice now includes:
+
+- one unique `scarlet_autonomous` session per profile;
+- additive session-kind and turn-trigger/actor schema migration;
+- persisted activation records with schedule key, lease, attempts, status,
+  mode, outcome, error, and timestamps;
+- a configurable scheduler, currently set to 600 seconds, that defers during
+  active human turns,
+  yields cooperatively when a human turn starts mid-cycle, avoids startup
+  invocation and missed-tick replay, and schedules the next interval after
+  completion or deferral;
+- streaming MiniMax execution through the same provider lifecycle and
+  `mind_shell` tool runner used by native Scarlet;
+- a compact autonomous context with human-session and memory hooks, focus,
+  volition, affect, mode, and perception availability;
+- append-only perception events, derived channel state, and per-autonomous-
+  session inspection cursors;
+- `perception status`, `perception open`, and `perception read`;
+- persisted thinking, personal notes, tool calls/results, and internal
+  checkpoints; and
+- `/api/autonomy/history` plus a chat-header brain icon that renders those
+  cycles as a read-only human-readable internal chronology.
+
+The UI history is not a second chat and does not imply that Scarlet spoke to
+the user. Tool details and thinking are expandable so development evidence is
+not hidden, while the default view emphasizes Scarlet's own notes and
+checkpoints.
+
+#### Remaining Design And Validation Questions
+
+1. Whether the 15-minute operational cadence should always invoke MiniMax or a
+   deterministic pre-gate should later suppress provably empty activations.
+2. Which compaction thresholds and summary purpose fit a high-frequency
+   autonomous chronology without erasing exact cycle evidence.
+3. Which cognitive maintenance operations Scarlet may execute directly and
+   which only create proposals for deterministic/background maintenance.
+4. Which bounded real device source should become the first perception adapter,
+   and how its source authorization and lifecycle are represented.
+5. How internal initiatives become separately reviewable and deliverable
+   without turning every cycle conclusion into a notification.
+6. Cost, wall-time, concurrency, retry, and provider-failure behavior across
+   96 scheduled activations per day.
+7. Whether real MiniMax cycles choose proportionate work rather than ritual
+   organ scans, and how that behavior should be judged longitudinally.
+
+No native notification collector, external action, initiative delivery, or
+production deployment is approved merely by the V1.60.0 substrate.

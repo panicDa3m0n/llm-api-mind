@@ -1384,6 +1384,16 @@
     @apply grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10;
   }
 
+  .mobile-topbar-actions,
+  .autonomy-history-actions {
+    @apply flex items-center gap-2;
+  }
+
+  .mobile-icon-button.autonomy-button {
+    background: linear-gradient(135deg, rgba(241, 95, 121, 0.22), rgba(0, 219, 222, 0.14));
+    @apply border-[#f15f79]/30 text-[#ffb3bf];
+  }
+
   .mobile-content {
     min-height: 0;
     @apply overflow-hidden;
@@ -1789,6 +1799,147 @@
 
   .mobile-drawer-layer {
     @apply absolute inset-0 z-50 flex justify-end bg-black/55 backdrop-blur-sm;
+  }
+
+  .autonomy-history-layer {
+    @apply absolute inset-0 z-[60] grid place-items-end bg-black/55 backdrop-blur-sm;
+  }
+
+  .autonomy-history-backdrop {
+    @apply absolute inset-0 border-0 bg-transparent;
+  }
+
+  .autonomy-history-panel {
+    width: 100%;
+    height: min(88dvh, 760px);
+    @apply relative z-10 flex min-h-0 flex-col overflow-hidden rounded-t-[28px] border border-white/10 bg-[#101315] shadow-2xl shadow-black/70;
+  }
+
+  .autonomy-history-header {
+    @apply flex items-center justify-between gap-3 border-b border-white/10 px-4 py-4;
+  }
+
+  .autonomy-history-title {
+    @apply flex min-w-0 items-center gap-3;
+  }
+
+  .autonomy-history-title span {
+    @apply block text-[11px] font-black uppercase text-[#ff9aaf];
+  }
+
+  .autonomy-history-title strong {
+    @apply mt-0.5 block truncate text-sm font-black text-white;
+  }
+
+  .autonomy-history-sigil {
+    background: linear-gradient(135deg, #f15f79, #b24592 50%, #00b9bd);
+    @apply grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-white shadow-lg shadow-[#b24592]/25;
+  }
+
+  .autonomy-history-actions button {
+    @apply grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/5 text-slate-200;
+  }
+
+  .autonomy-history-scroll {
+    scrollbar-gutter: stable;
+    @apply grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-4 py-5;
+  }
+
+  .autonomy-empty {
+    @apply grid place-items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-5 py-10 text-center text-slate-400;
+  }
+
+  .autonomy-empty strong {
+    @apply text-sm font-black text-white;
+  }
+
+  .autonomy-empty span {
+    @apply text-xs font-bold;
+  }
+
+  .autonomy-cycle {
+    @apply rounded-2xl border border-white/10 bg-[#181c1f] p-3;
+  }
+
+  .autonomy-cycle.running {
+    @apply border-[#00dbde]/35;
+  }
+
+  .autonomy-cycle.failed {
+    @apply border-red-400/35;
+  }
+
+  .autonomy-cycle-meta {
+    @apply flex items-start justify-between gap-3 border-b border-white/10 pb-3;
+  }
+
+  .autonomy-cycle-meta span {
+    @apply block text-[11px] font-bold text-slate-500;
+  }
+
+  .autonomy-cycle-meta strong {
+    @apply mt-1 block text-sm font-black text-white;
+  }
+
+  .autonomy-cycle-meta .autonomy-mode {
+    @apply rounded-full border border-[#f15f79]/20 bg-[#b24592]/15 px-2.5 py-1 text-[10px] font-black text-[#ffb3bf];
+  }
+
+  .autonomy-thread {
+    @apply mt-3 grid gap-2;
+  }
+
+  .autonomy-bubble,
+  .autonomy-thinking {
+    max-width: 92%;
+    @apply rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-2.5;
+  }
+
+  .autonomy-bubble.note {
+    @apply justify-self-start rounded-bl-md;
+  }
+
+  .autonomy-bubble.tool {
+    @apply justify-self-start border-[#00dbde]/20 bg-[#00dbde]/[0.06];
+  }
+
+  .autonomy-bubble.checkpoint {
+    background: linear-gradient(135deg, rgba(178, 69, 146, 0.22), rgba(241, 95, 121, 0.12));
+    @apply justify-self-end rounded-br-md border-[#f15f79]/25;
+  }
+
+  .autonomy-bubble span,
+  .autonomy-thinking summary {
+    @apply text-[10px] font-black uppercase text-[#ff9aaf];
+  }
+
+  .autonomy-bubble p,
+  .autonomy-thinking p {
+    @apply m-0 mt-1.5 whitespace-pre-wrap text-xs font-semibold leading-5 text-slate-200;
+  }
+
+  .autonomy-thinking {
+    @apply cursor-pointer justify-self-start border-white/5 bg-black/15 text-slate-300;
+  }
+
+  .autonomy-thinking summary {
+    @apply cursor-pointer text-slate-400;
+  }
+
+  .autonomy-technical {
+    @apply mt-3 rounded-xl border border-white/10 bg-black/20 p-3 text-xs text-slate-400;
+  }
+
+  .autonomy-technical summary {
+    @apply cursor-pointer font-black text-slate-300;
+  }
+
+  .autonomy-technical div {
+    @apply mt-2 flex items-center justify-between gap-3 border-t border-white/5 pt-2;
+  }
+
+  .autonomy-technical strong {
+    @apply min-w-0 truncate text-xs text-slate-200;
   }
 
   .mobile-drawer-backdrop {

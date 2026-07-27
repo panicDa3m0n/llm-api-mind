@@ -52,6 +52,21 @@ class Settings(BaseSettings):
     summary_reconcile_max_attempts: int = Field(default=3, ge=1, le=10)
     summary_reconcile_retry_backoff_seconds: int = Field(default=60, ge=1)
 
+    autonomous_activation_enabled: bool = True
+    autonomous_activation_interval_seconds: int = Field(default=600, ge=30)
+    autonomous_activation_worker_interval_seconds: float = Field(
+        default=5.0,
+        gt=0,
+    )
+    autonomous_activation_lease_seconds: int = Field(default=900, ge=60)
+    autonomous_activation_defer_seconds: int = Field(default=60, ge=10)
+    autonomous_activation_batch_size: int = Field(default=1, ge=1, le=5)
+    autonomous_activation_perception_channel_limit: int = Field(
+        default=20,
+        ge=1,
+        le=100,
+    )
+
     model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
     model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
     model_context_relevant_memories_limit: int = Field(default=5, ge=0, le=20)

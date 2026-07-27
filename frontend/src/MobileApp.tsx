@@ -2,6 +2,7 @@ import {
   Bell,
   BookOpen,
   Bot,
+  BrainCircuit,
   Check,
   ChevronRight,
   Clock3,
@@ -31,6 +32,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   createSession,
+  fetchAutonomyHistory,
   fetchDashboardMemories,
   fetchHealth,
   fetchMessages,
@@ -41,6 +43,8 @@ import {
   updateRuntimeSettings
 } from "./api";
 import type {
+  AutonomyHistory,
+  AutonomousCycle,
   ChatMessage,
   ChatSession,
   DashboardMemory,
@@ -304,12 +308,25 @@ export function MobileApp() {
   const [memories, setMemories] = useState<DashboardMemories | null>(null);
   const [status, setStatus] = useState("Scarlet pronta");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAutonomyOpen, setIsAutonomyOpen] = useState(false);
+  const [autonomyHistory, setAutonomyHistory] = useState<AutonomyHistory | null>(null);
   const activeTurnIdRef = useRef<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     void bootstrap();
   }, []);
+
+  useEffect(() => {
+    if (!isAutonomyOpen) {
+      return;
+    }
+    void loadAutonomyHistory();
+    const interval = window.setInterval(() => {
+      void loadAutonomyHistory();
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [isAutonomyOpen]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -374,6 +391,14 @@ export function MobileApp() {
       setProfile(profileResult);
       setMemories(memoryResult);
       setSessions(sessionResult);
+    } catch (error) {
+      setStatus(errorMessage(error));
+    }
+  }
+
+  async function loadAutonomyHistory() {
+    try {
+      setAutonomyHistory(await fetchAutonomyHistory(30));
     } catch (error) {
       setStatus(errorMessage(error));
     }
@@ -821,14 +846,24 @@ export function MobileApp() {
               <strong>{health}</strong>
             </div>
           </div>
-          <button
-            aria-label="Apri contesto e sessioni"
-            className="mobile-icon-button"
-            type="button"
-            onClick={() => setIsMenuOpen(true)}
-          >
-            <Settings size={17} aria-hidden="true" />
-          </button>
+          <div className="mobile-topbar-actions">
+            <button
+              aria-label="Apri la cognizione autonoma di Scarlet"
+              className="mobile-icon-button autonomy-button"
+              type="button"
+              onClick={() => setIsAutonomyOpen(true)}
+            >
+              <BrainCircuit size={18} aria-hidden="true" />
+            </button>
+            <button
+              aria-label="Apri contesto e sessioni"
+              className="mobile-icon-button"
+              type="button"
+              onClick={() => setIsMenuOpen(true)}
+            >
+              <Settings size={17} aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         <div className="mobile-content">
@@ -876,6 +911,13 @@ export function MobileApp() {
           onRefresh={() => void refreshPersonalData()}
         />
 
+        <AutonomyHistoryPanel
+          history={autonomyHistory}
+          isOpen={isAutonomyOpen}
+          onClose={() => setIsAutonomyOpen(false)}
+          onRefresh={() => void loadAutonomyHistory()}
+        />
+
         <nav className="mobile-nav" aria-label="Navigazione Scarlet">
           <MobileNavButton
             active={activeTab === "chat"}
@@ -904,6 +946,156 @@ export function MobileApp() {
         </nav>
       </section>
     </main>
+  );
+}
+
+function AutonomyHistoryPanel({
+  history,
+  isOpen,
+  onClose,
+  onRefresh
+}: {
+  history: AutonomyHistory | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onRefresh: () => void;
+}) {
+  if (!isOpen) {
+    return null;
+  }
+  return (
+    <div className="autonomy-history-layer">
+      <button
+        aria-label="Chiudi cognizione autonoma"
+        className="autonomy-history-backdrop"
+        onClick={onClose}
+        type="button"
+      />
+      <aside
+        aria-label="Cronologia della cognizione autonoma di Scarlet"
+        aria-modal="true"
+        className="autonomy-history-panel"
+        role="dialog"
+      >
+        <header className="autonomy-history-header">
+          <div className="autonomy-history-title">
+            <div className="autonomy-history-sigil">
+              <BrainCircuit size={20} aria-hidden="true" />
+            </div>
+            <div>
+              <span>Continuita interiore</span>
+              <strong>Cosa ha vissuto Scarlet</strong>
+            </div>
+          </div>
+          <div className="autonomy-history-actions">
+            <button aria-label="Aggiorna cronologia" onClick={onRefresh} type="button">
+              <RefreshCcw size={16} aria-hidden="true" />
+            </button>
+            <button aria-label="Chiudi cronologia" onClick={onClose} type="button">
+              <X size={17} aria-hidden="true" />
+            </button>
+          </div>
+        </header>
+        <div className="autonomy-history-scroll">
+          {!history ? (
+            <div className="autonomy-empty">
+              <BrainCircuit size={24} aria-hidden="true" />
+              <strong>Sto aprendo il suo spazio interiore.</strong>
+              <span>Le attivazioni compariranno qui mentre accadono.</span>
+            </div>
+          ) : history.cycles.length === 0 ? (
+            <div className="autonomy-empty">
+              <Moon size={24} aria-hidden="true" />
+              <strong>Nessun ciclo ancora vissuto.</strong>
+              <span>La prima attivazione verra conservata qui.</span>
+            </div>
+          ) : (
+            history.cycles.map((cycle) => (
+              <AutonomyCycleCard cycle={cycle} key={cycle.activation.id} />
+            ))
+          )}
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function AutonomyCycleCard({ cycle }: { cycle: AutonomousCycle }) {
+  const checkpoint = cycle.messages.find((message) => message.role === "assistant");
+  const narrativeEvents = cycle.events.filter((event) =>
+    [
+      "llm.thinking.captured",
+      "assistant.note.emitted",
+      "mind.tool_call.started",
+      "mind.tool_call.completed",
+      "mind.tool_call.failed"
+    ].includes(event.type)
+  );
+  return (
+    <article className={`autonomy-cycle ${cycle.activation.status}`}>
+      <div className="autonomy-cycle-meta">
+        <div>
+          <span>{formatSessionDate(cycle.activation.scheduled_at)}</span>
+          <strong>
+            {cycle.activation.status === "running"
+              ? "Scarlet sta riflettendo"
+              : cycle.activation.status === "completed"
+                ? "Ciclo concluso"
+                : cycle.activation.status === "deferred"
+                  ? "Ha dato spazio alla conversazione"
+                  : "Ciclo non completato"}
+          </strong>
+        </div>
+        <span className="autonomy-mode">
+          {cycle.activation.active_mode || cycle.activation.status}
+        </span>
+      </div>
+      <div className="autonomy-thread">
+        {narrativeEvents.map((event) => (
+          <AutonomyEventBubble event={event} key={event.id} />
+        ))}
+        {checkpoint ? (
+          <div className="autonomy-bubble checkpoint">
+            <span>Checkpoint interiore</span>
+            <p>{checkpoint.content}</p>
+          </div>
+        ) : null}
+      </div>
+      {cycle.tool_calls.length > 0 ? (
+        <details className="autonomy-technical">
+          <summary>{cycle.tool_calls.length} azioni cognitive</summary>
+          {cycle.tool_calls.map((tool) => (
+            <div key={tool.id}>
+              <strong>{stringValue(tool.arguments.command) || tool.tool_name}</strong>
+              <span>{tool.status}</span>
+            </div>
+          ))}
+        </details>
+      ) : null}
+    </article>
+  );
+}
+
+function AutonomyEventBubble({ event }: { event: AutonomousCycle["events"][number] }) {
+  if (event.type === "llm.thinking.captured") {
+    return (
+      <details className="autonomy-thinking">
+        <summary>Un pensiero ha preso forma</summary>
+        <p>{stringValue(event.payload.text) || "Pensiero conservato nel trace."}</p>
+      </details>
+    );
+  }
+  const isTool = event.type.startsWith("mind.tool_call");
+  const text =
+    stringValue(event.payload.text) ||
+    stringValue(recordValue(event.payload.operation)?.intent) ||
+    stringValue(recordValue(event.payload.operation)?.command) ||
+    (isTool ? "Scarlet ha usato una parte della sua mente." : "Passaggio interno");
+  return (
+    <div className={`autonomy-bubble ${isTool ? "tool" : "note"}`}>
+      <span>{isTool ? "Azione cognitiva" : "Nota di Scarlet"}</span>
+      <p>{text}</p>
+    </div>
   );
 }
 

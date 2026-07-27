@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-13.shell-organ-conformance-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-27.autonomous-perception-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-27.autonomous-perception-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -42,7 +42,7 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
     "name": "mind_shell",
     "description": (
         "Scarlet's internal cognitive command shell. Use concise commands to "
-        "navigate memory, sessions, focus, volition, affect, agent mode, metacognition, "
+        "navigate memory, sessions, focus, volition, affect, agent mode, perception, metacognition, "
         "and capability help without exposing endpoint mechanics to the user."
     ),
     "input_schema": {
@@ -80,6 +80,7 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "help volition",
             "help affect",
             "help mode",
+            "help perception",
             "help metacognition",
         ],
     },
@@ -160,6 +161,18 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "mode list",
             "mode set idle --reason \"...\"",
             "mode set scouting --reason \"...\"",
+        ],
+    },
+    {
+        "namespace": "perception",
+        "purpose": (
+            "Inspect available sensory channels and open source-labelled "
+            "observations without mutating the append-only ledger."
+        ),
+        "commands": [
+            "perception status",
+            "perception open notifications --limit 10",
+            "perception read per_...",
         ],
     },
     {
@@ -1455,6 +1468,46 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "action": "set",
                     "mode": "scouting",
                     "reason": "Continue studying the environment after the conversation.",
+                },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/perception",
+        "status": "implemented",
+        "purpose": (
+            "Inspect the perception availability index, open unread events from "
+            "one channel, or read one source-labelled observation."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["status", "open", "read"],
+                },
+                "channel": {"type": ["string", "null"]},
+                "event_id": {"type": ["string", "null"]},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/perception",
+                "intent": "See which sensory channels have new evidence.",
+                "body": {"action": "status"},
+            },
+            {
+                "method": "POST",
+                "path": "/mind/perception",
+                "intent": "Inspect recent notification observations.",
+                "body": {
+                    "action": "open",
+                    "channel": "notifications",
+                    "limit": 10,
                 },
             },
         ],

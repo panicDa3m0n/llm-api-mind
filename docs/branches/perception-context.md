@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
-Last updated: 2026-07-26
-System version assessed: V1.59.0 development target
+Last updated: 2026-07-27
+System version assessed: V1.60.0 development target
 Status: active branch
 
 ## Filosofia del ramo
@@ -76,6 +76,14 @@ stratificati.
   camera del device e futura visione di Scarlet, dispatch e receipt di una
   azione. Le policy funzionano quando composte come istruzioni, non quando
   nascoste dentro il JSON dei dati.
+- V1.60.0 aggiunge un inbox percettivo append-only separato dal ledger Device
+  Exploration: Scarlet vede soltanto un indice compatto dei canali disponibili
+  e apre batch o eventi precisi con `perception status|open|read`.
+- Il cursore di ispezione segue l'ordine di ricezione append-only, non il tempo
+  osservato dal device, cosi eventi tardivi e batch oltre il limite non vengono
+  saltati. Il tempo osservato resta evidenza distinta.
+- Nessun adapter Android alimenta ancora l'inbox automaticamente; la presenza
+  del contratto non promuove i dati sperimentali a percezione.
 
 ## Stato attuale
 
@@ -153,13 +161,18 @@ un ledger tecnico append-only. L'esistenza di un dato sul device non implica
 utilita cognitiva: ammissione, sintesi, frequenza e routing saranno progettati
 solo dopo osservazioni fisiche e valutazione umana/LLM dei payload reali.
 
-Aggiornamento V1.59.0: il ramo possiede ora un contratto tipizzato per
+Aggiornamento V1.59.0: il ramo possiede un contratto tipizzato per
 classificare i futuri segnali prima della loro ammissione. Il router e
 shadow-only e aggiunge una receipt non model-facing al trace `model.context`;
 il ledger Device Exploration resta completamente isolato. La distinzione
 `subject_domain`/`observer_domain` impedisce di attribuire a Scarlet sensori del
 telefono o di trattare il GPS del device come prova diretta della posizione
 umana.
+
+Aggiornamento V1.60.0: le attivazioni autonome ricevono un pack compatto
+separato dal turno umano, con disponibilita percettiva navigabile. I payload
+esatti entrano nel ciclo solo dopo apertura esplicita; trace, lease, diagnostica
+e dati raw non aperti restano sistemici.
 
 ## Sviluppi precedenti
 

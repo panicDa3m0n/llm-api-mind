@@ -83,6 +83,8 @@ def build_chat_router(
                 db,
                 title=request.title,
                 metadata=request.metadata,
+                kind="human_dialogue",
+                profile_id=settings.user_profile_id,
             )
             schedule_summary_repairs(
                 db,

@@ -262,7 +262,8 @@ available command in natural conversation.
 ### Agent Mode
 
 Status: implemented in V1.30.0; resumable boundary corrected in V1.32.0;
-per-block routing receipts added in V1.42.0
+per-block routing receipts added in V1.42.0; autonomous execution added in
+V1.60.0
 
 Shell commands:
 
@@ -285,8 +286,10 @@ active profile. During a human-facing turn the system condition `interactive`
 remains active; a manual selection is returned as `resume_tag` and is the
 posture to resume afterward.
 The response also returns `execution_started=false` and
-`runtime_effect=persistent_posture_only_no_autonomous_cycle`. Persisting a mode
-does not launch work; `scouting` has no autonomous sensor runtime in V1.30.0.
+`runtime_effect=persistent_posture_for_autonomous_cycles`. Persisting a mode
+does not immediately launch work. From V1.60.0 onward the periodic autonomous
+runtime resumes `idle` or `scouting`; scouting can inspect registered
+perception channels, while continuous robotic sensors remain future work.
 
 The current registry contains `idle`, `interactive`, and `scouting`, while only
 `idle` and `scouting` are manually resumable. `interactive` is system-owned
@@ -318,6 +321,101 @@ Routing semantics are:
 Unknown mode or routing values fail before delivery. Mode routing never gates
 on-demand shell commands. The lower-level persistence primitive, not only the
 shell handler, enforces that only `idle` and `scouting` are resumable.
+
+### Autonomous Cognition
+
+Status: implemented in V1.60.0; observation cadence active by configuration
+
+Autonomous cognition is a third lifecycle beside human turns and backend
+maintenance. One profile owns one session with `kind=scarlet_autonomous`.
+Every scheduled wake owns an `autonomous_activations` record; when model
+execution starts it creates one turn with
+`trigger_kind=autonomous_activation` and `actor=scarlet`.
+
+Configuration:
+
+```txt
+AUTONOMOUS_ACTIVATION_ENABLED=true
+AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS=600
+AUTONOMOUS_ACTIVATION_WORKER_INTERVAL_SECONDS=5
+AUTONOMOUS_ACTIVATION_LEASE_SECONDS=900
+AUTONOMOUS_ACTIVATION_DEFER_SECONDS=60
+AUTONOMOUS_ACTIVATION_BATCH_SIZE=1
+AUTONOMOUS_ACTIVATION_PERCEPTION_CHANNEL_LIMIT=20
+```
+
+The current 600-second interval is for field observation and remains
+configurable. Startup schedules the next interval rather than invoking
+immediately, downtime does not replay every missed tick, and an active human
+turn defers the activation. If a human turn starts after provider execution
+has begun, the autonomous cycle yields at the next semantic stream boundary or
+before the next tool call, persists a `deferred` turn/activation and partial
+evidence, then schedules a retry.
+
+The model receives `scarlet-autonomous-context-v1`, containing only:
+
+- activation identity and user-local time;
+- the autonomous session plus compact latest-human-session hooks;
+- compact recent memory hooks;
+- current focus, open/due intentions, and affect;
+- the active `idle|scouting` posture;
+- a perception availability index; and
+- explicit autonomous allowed, forbidden, tool-note, and completion contracts.
+
+The autonomous provider chronology persists thinking, personal notes,
+`mind_shell` calls/results, and one internal checkpoint. These records have
+internal visibility and never become a human message or visible chat answer.
+Canonical messages, events, traces, and tool calls remain source evidence even
+when a derived provider chronology is compacted.
+
+HTTP inspection and laboratory controls:
+
+```txt
+GET  /api/autonomy/overview
+GET  /api/autonomy/history?limit=20&offset=0
+POST /api/autonomy/run-now
+POST /api/autonomy/perception/events/batch
+```
+
+`/history` groups activations with their messages, runtime events, and tool
+calls. Product UI reads this contract through the brain icon in the chat header
+and renders a read-only conversation-like internal chronology.
+
+`/run-now` is a synchronous laboratory operation. It must not be treated as a
+consumer trigger or an external initiative API.
+
+### Perception Inbox
+
+Status: storage, ingestion, availability, and shell navigation implemented in
+V1.60.0; native source adapters not implemented
+
+The canonical flow is:
+
+```txt
+source event
+-> append-only perception_event
+-> derived perception_channel_state
+-> compact availability index
+-> perception open
+-> per-session perception_cursor
+```
+
+Model-facing commands:
+
+```txt
+perception status
+perception open <channel> --limit 10
+perception read <event_id>
+```
+
+`status` does not count as inspection. `open` returns a bounded ordered batch
+and advances only the autonomous session's cursor. `read` inspects one exact
+event. No command deletes an event or changes its observation time.
+
+The batch ingestion API accepts one to 200 idempotent events with channel,
+event type, source, source event key, offset-aware observation time, payload,
+navigation hooks, and metadata. V1.60.0 does not automatically bridge Device
+Exploration or Android notifications into this contract.
 
 ### Context Accounting
 

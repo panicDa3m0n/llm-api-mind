@@ -27,6 +27,7 @@ from app.mind.affect import handle_affect
 from app.mind.focus import handle_focus
 from app.mind.metacognition import handle_metacognition_step
 from app.mind.mode import handle_agent_mode
+from app.mind.perception import handle_perception
 from app.mind.schema import (
     build_mind_schema,
     implemented_route_summaries,
@@ -258,6 +259,13 @@ def dispatch_mind_api(
     if method == "POST" and path == "/mind/metacognition/step":
         return _operation_response(
             handle_metacognition_step(body, context, intent=request.intent),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/perception":
+        return _operation_response(
+            handle_perception(body, context, intent=request.intent),
             method=method,
             path=path,
         )

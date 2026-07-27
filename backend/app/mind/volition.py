@@ -4,7 +4,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from sqlmodel import Session
 
-from app.mind.contracts import MindAPIContext, MemoryOperationResult
+from app.mind.contracts import (
+    MindAPIContext,
+    MemoryOperationResult,
+    serializable_validation_errors,
+)
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
 from app.storage import repositories
 from app.storage.models import IntentionLink, IntentionRecord, utc_now
@@ -165,7 +169,7 @@ def handle_volition(
             message=str(exc),
             result={
                 "operation": "volition",
-                "validation_errors": exc.errors(),
+                "validation_errors": serializable_validation_errors(exc),
                 "expected_schema_hint": "Use the /mind/volition usage_guide to correct the body.",
             },
             hint="Retry /mind/volition with a valid action body.",

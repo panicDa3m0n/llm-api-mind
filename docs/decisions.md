@@ -7,6 +7,66 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0138 - Autonomous Cognition Uses A Separate Persistent Lifecycle
+
+Date: 2026-07-27
+Status: accepted for V1.60.0
+
+Context:
+
+Scarlet previously existed only while a human turn or a background
+maintenance job was active. Reusing human chat turns would falsely attribute
+internal activations to the user, while reusing maintenance would make
+Scarlet's foreground cognitive activity indistinguishable from deterministic
+infrastructure. Future device and embodiment sources also need to be
+discoverable without dumping every event into model context.
+
+Decision:
+
+- give each profile one long-lived `scarlet_autonomous` session whose
+  provider-native history contains only autonomous activations;
+- persist every scheduled activation before model execution and govern it with
+  a lease, explicit status, attempt count, outcome, error, and next schedule;
+- defer an activation while a human turn is active rather than overlapping two
+  foreground Scarlet executions;
+- let a started autonomous cycle yield cooperatively at provider/tool
+  boundaries when a human turn takes foreground priority, preserving partial
+  evidence and rescheduling instead of reporting failure;
+- use 600 seconds as the current observation interval; retain cadence as
+  configuration rather than treating the earlier 15-minute hypothesis as a
+  fixed product rule;
+- keep the project-selected native provider unchanged for now; evaluate a
+  dedicated MiniMax M2.7 autonomous profile only if measured M3 consumption
+  justifies a separate cost/behavior experiment;
+- distinguish human turns, autonomous activations, and backend maintenance
+  through session kind, turn trigger, actor, runtime context, and prompt policy;
+- present only a compact orientation spine and availability map initially,
+  leaving exact memories, sessions, and perception events navigable through
+  `mind_shell`;
+- store perception events append-only, derive channel state and inspection
+  cursors, and count only explicit channel opening as inspection;
+- preserve thinking, public-personal notes, tool calls/results, and internal
+  checkpoints as sourceable cycle history; and
+- expose that history in Product UI as a read-only conversation-like surface,
+  not as another human chat or a notification feed.
+
+Consequences:
+
+Autonomous cognition gains durable continuity and can evolve independently
+from human conversation compaction. Human `previous_sessions` remains clean.
+The system can ingest future device or sensor evidence without silently making
+it model-visible. V1.60.0 still has no native Android notification adapter,
+initiative delivery, or external action capability, and live MiniMax behavior
+requires bounded evaluation before the cadence is promoted beyond testing.
+
+Links:
+
+- `backend/app/runtime/autonomy.py`
+- `backend/app/mind/autonomous_context.py`
+- `backend/app/storage/repository/autonomy.py`
+- `backend/app/storage/repository/perception.py`
+- `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`
+
 ## ADR-0137 - Context Families Separate Subject, Observer, Evidence, And Policy
 
 Date: 2026-07-26

@@ -154,6 +154,18 @@ def prepare_native_turn(
                     "recoverable": True,
                 },
             )
+        if chat_session.kind != "human_dialogue":
+            raise NativeTurnFailure(
+                status_code=409,
+                detail={
+                    "code": "session.not_human_dialogue",
+                    "message": (
+                        "The requested session is reserved for Scarlet's "
+                        "internal autonomous cognition."
+                    ),
+                    "recoverable": False,
+                },
+            )
 
         turn = repositories.create_turn(db, session_id=session_id, model=model)
         turn_id = turn.id
@@ -826,7 +838,7 @@ def execute_native_turn(
 ) -> ChatTurnResponse:
     try:
         provider = provider_factory(settings)
-        tool_runner = _build_mind_tool_runner(
+        tool_runner = build_mind_tool_runner(
             engine,
             settings=settings,
             provider_factory=provider_factory,
@@ -936,7 +948,7 @@ def execute_native_turn(
     ).response
 
 
-def _build_mind_tool_runner(
+def build_mind_tool_runner(
     engine: Engine,
     *,
     settings: Settings,
@@ -945,6 +957,7 @@ def _build_mind_tool_runner(
     turn_id: str,
     source_message_id: str,
     trace_ids: list[str],
+    runtime_trigger: str = "human_message",
     event_sink: list[CognitiveEvent] | None = None,
 ) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
     def run(tool_use: LLMToolUse) -> LLMExecutedToolCall:
@@ -970,6 +983,7 @@ def _build_mind_tool_runner(
                 session_id=session_id,
                 turn_id=turn_id,
                 source_message_id=source_message_id,
+                runtime_trigger=runtime_trigger,
                 settings=settings,
                 provider_factory=provider_factory,
             ),
@@ -1375,7 +1389,7 @@ def stream_native_turn(
     semantic_content_event_seen = False
     try:
         provider = provider_factory(settings)
-        tool_runner = _build_mind_tool_runner(
+        tool_runner = build_mind_tool_runner(
             engine,
             settings=settings,
             provider_factory=provider_factory,

@@ -6,7 +6,11 @@ from sqlmodel import Session
 
 from app.llm.factory import active_provider_max_tokens
 from app.llm.provider import LLMConfigurationError, LLMRequestError
-from app.mind.contracts import MindAPIContext, MemoryOperationResult
+from app.mind.contracts import (
+    MindAPIContext,
+    MemoryOperationResult,
+    serializable_validation_errors,
+)
 from app.mind.search import (
     search_documents,
     sparse_results_by_source,
@@ -722,7 +726,7 @@ def _validation_error(operation: str, exc: ValidationError) -> MemoryOperationRe
         ok=False,
         result={
             "operation": operation,
-            "validation_errors": exc.errors(),
+            "validation_errors": serializable_validation_errors(exc),
             "expected_schema_hint": "Call GET /mind/schema for the episodic route body_schema.",
         },
         cognitive_hint="Retry the episodic route with the schema body shape.",

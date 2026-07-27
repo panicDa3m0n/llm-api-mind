@@ -15,6 +15,8 @@ from app.storage.models import ChatSession, CognitiveEvent, Message, Trace
 class ChatSessionResponse(BaseModel):
     id: str
     title: str | None
+    kind: str
+    profile_id: str
     created_at: datetime
     updated_at: datetime
     metadata: dict[str, Any]
@@ -111,6 +113,8 @@ def session_response(chat_session: ChatSession) -> ChatSessionResponse:
     return ChatSessionResponse(
         id=chat_session.id,
         title=chat_session.title,
+        kind=chat_session.kind,
+        profile_id=chat_session.profile_id,
         created_at=chat_session.created_at,
         updated_at=chat_session.updated_at,
         metadata=chat_session.metadata_json,

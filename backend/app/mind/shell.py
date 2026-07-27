@@ -97,6 +97,8 @@ def dispatch_mind_shell(
         return _affect_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"mode", "operating-mode"}:
         return _mode_command(parsed, context=context, intent=intent)
+    if parsed.namespace in {"perception", "sense", "senses", "sensor"}:
+        return _perception_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"metacognition", "meta", "reflect"}:
         return _metacognition_command(parsed, context=context, intent=intent)
 
@@ -824,6 +826,57 @@ def _metacognition_command(
         api_request=MindAPIRequest(
             method="POST",
             path="/mind/metacognition/step",
+            body=body,
+            intent=intent,
+        ),
+        context=context,
+    )
+
+
+def _perception_command(
+    parsed: ParsedCommand,
+    *,
+    context: MindAPIContext | None,
+    intent: str,
+) -> MindAPIResponse:
+    action = parsed.action or "status"
+    action = {
+        "list": "status",
+        "available": "status",
+        "show": "read",
+        "get": "read",
+        "inspect": "read",
+    }.get(action, action)
+    body: dict[str, Any] = {"action": action}
+    if action == "open":
+        channel = _first_arg_or_flag(parsed, "channel")
+        if not channel:
+            return _shell_error(
+                code="shell.perception_channel_required",
+                message="perception open requires a channel.",
+                parsed=parsed,
+                namespace="perception",
+                actions=["perception status", "perception open notifications --limit 10"],
+            )
+        body["channel"] = channel
+        body["limit"] = _flag_int(parsed, 10, "limit", "top")
+    elif action == "read":
+        event_id = _first_arg_or_flag(parsed, "id", "event-id")
+        if not event_id:
+            return _shell_error(
+                code="shell.perception_event_required",
+                message="perception read requires an event id.",
+                parsed=parsed,
+                namespace="perception",
+                actions=["perception read per_..."],
+            )
+        body["event_id"] = event_id
+    return _dispatch_api_as_shell(
+        parsed,
+        target=f"perception.{action}",
+        api_request=MindAPIRequest(
+            method="POST",
+            path="/mind/perception",
             body=body,
             intent=intent,
         ),

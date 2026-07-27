@@ -788,6 +788,23 @@ def test_mind_shell_targeted_focus_read_reports_missing_id(
     assert response.error.code == "focus.not_found"
 
 
+def test_mind_shell_validation_errors_are_json_serializable(
+    db_engine: Engine,
+) -> None:
+    session_id = _session(db_engine)
+    response = dispatch_mind_shell(
+        MindShellRequest(command="volition list --status all"),
+        context=_context(db_engine, session_id=session_id),
+    )
+
+    assert response.ok is False
+    payload = response.model_dump(mode="json")
+    json.dumps(payload)
+    validation = payload["result"]["data"]["validation_errors"][0]
+    assert "ctx" not in validation
+    assert validation["type"] == "value_error"
+
+
 def test_mind_shell_mode_commands_preserve_system_and_resume_ownership(
     db_engine: Engine,
 ) -> None:

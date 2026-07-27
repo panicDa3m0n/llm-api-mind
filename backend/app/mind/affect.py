@@ -6,7 +6,11 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 from sqlmodel import Session
 
-from app.mind.contracts import MindAPIContext, MemoryOperationResult
+from app.mind.contracts import (
+    MindAPIContext,
+    MemoryOperationResult,
+    serializable_validation_errors,
+)
 from app.mind.organs import (
     ORGAN_EVENT_TYPES,
     ORGAN_TRACE_KINDS,
@@ -182,7 +186,7 @@ def handle_affect(
             message=str(exc),
             result={
                 "operation": "affect",
-                "validation_errors": exc.errors(),
+                "validation_errors": serializable_validation_errors(exc),
                 "expected_schema_hint": "Use the /mind/affect usage_guide to correct the body.",
             },
             hint="Retry /mind/affect with a valid read-only action body.",

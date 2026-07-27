@@ -1,8 +1,9 @@
 # Runtime Context And Agent Modes
 
 Last updated: 2026-07-26
-Status: Core V1 context active; V1.59 semantic family routing shadow
-App baseline: V1.50.1 release-accepted; V1.59.0 development target
+Status: Core V1 context active; V1.59 semantic family routing shadow;
+V1.60 autonomous context active
+App baseline: V1.50.1 release-accepted; V1.60.0 development target
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -206,7 +207,7 @@ One mode tag is active at a time:
 |---|---|---|
 | `idle` | Scarlet is active and ready but not engaged in a task or human exchange. | persistent default/resumable posture |
 | `interactive` | Scarlet is communicating with one or more humans and prioritizes the exchange. | system-enforced during every human-facing turn |
-| `scouting` | Scarlet studies an environment or information field. | registry and manual resumable state; no sensor runtime yet |
+| `scouting` | Scarlet studies an environment or information field. | resumable autonomous posture with on-demand registered-channel inspection; no continuous sensor runtime |
 
 The system can enforce a mode from an observable condition. Scarlet can use:
 
@@ -219,9 +220,10 @@ mode set scouting --reason "..."
 
 During a human turn, `interactive` remains active. A manual selection is stored
 as `resume_tag` and becomes the posture state to resume outside that exchange.
-The command does not start a background/autonomous cycle. In V1.30 `scouting`
-is therefore a routable, persistent posture only; it does not itself perceive,
-inspect, or act.
+The command does not itself start an autonomous cycle. In V1.30 `scouting` was
+a routable persistent posture only. In V1.60.0 the scheduler can resume it and
+Scarlet can inspect registered perception channels on demand; continuous
+embodied sensors remain future work.
 
 ## Multi-Tag Capability Registry
 
@@ -239,8 +241,10 @@ V1 registry examples:
 | affect | interactive, scouting | config-gated context |
 | volition | idle, scouting | classification/manual organ; no automatic block |
 | metacognition | interactive, scouting | inject only under its own config/trigger |
-| provider continuity | interactive | native active-session history |
-| future environment scouting | scouting | future; no sensors implemented |
+| provider continuity | idle, interactive, scouting | native history for the active lifecycle session |
+| autonomous activation | idle, scouting | periodic compact internal-cycle context |
+| perception availability | idle, scouting | compact channel index and on-demand opening |
+| environment scouting | scouting | registered-channel inspection implemented; continuous sensors future |
 
 Mode routing actively filters automatic runtime blocks only. It does not make
 on-demand shell commands unavailable. Hard-gating cognitive commands would be
@@ -283,5 +287,31 @@ the same backend V2 packet and obligation semantics, but backend compaction
 cannot see or rewrite native ChatGPT conversation history outside the bridge.
 
 New agent modes or mode-tag enforcement require branch-specific behavioral
-scenarios. Webhooks, sensors, scouting perception, motor actions, Dream, and
-maintenance-mode concepts remain out of V1.30 scope.
+scenarios. Native notification collection, continuous sensors, motor actions,
+Dream, and maintenance-mode concepts remain outside V1.60.0.
+
+## Autonomous Context Pack
+
+V1.60.0 introduces `scarlet-autonomous-context-v1` for a scheduled internal
+activation. It is not the human-turn V2 packet and it is not a maintenance
+payload.
+
+Automatic model-facing fields:
+
+- activation id, trigger, schedule/start time, and non-human nature;
+- exclusive autonomous-session identity and compact human-session hooks;
+- recent relevant, user, and general memory hooks;
+- focus, open and due intentions, and affect;
+- active `idle|scouting` mode;
+- compact perception availability entries; and
+- the cycle's allowed, forbidden, tool-note, and completion contract.
+
+System/trace-only fields include scheduler leases, retry state, rich candidate
+diagnostics, raw source payloads not opened by Scarlet, routing audits, and
+maintenance metadata. Exact event payloads enter model context only after
+Scarlet runs `perception open` or `perception read`.
+
+The autonomous context is intentionally a navigable map. It does not dump full
+human transcripts, memory graphs, or every queued perception event. Scarlet
+uses source ids and shell commands to triangulate detail when it could change
+the cycle.

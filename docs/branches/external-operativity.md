@@ -1,7 +1,7 @@
 # Branch: Operativita Su Mondo Esterno
 
-Last updated: 2026-07-26
-System version assessed: V1.59.0 development target
+Last updated: 2026-07-27
+System version assessed: V1.60.0 development target
 Status: planned branch with isolated device prototype
 
 ## Filosofia del ramo
@@ -31,6 +31,10 @@ permessi, tracciabilita, rollback e conferme dove necessario.
 - V1.58.1 verifica sul device consegna e apertura della notifica, feedback
   aptico e transizioni rete reali; nessuna di queste ricevute abilita ancora
   operativita autonoma.
+- V1.60.0 introduce autonomia cognitiva interna e un inbox percettivo
+  navigabile. Non concede a Scarlet notifiche utente, azioni sul device o tool
+  esterni: un ciclo autonomo puo ispezionare e modificare soltanto organi gia
+  supportati.
 
 ## Stato attuale
 
@@ -46,6 +50,10 @@ Aggiornamento V1.58.0: il Product UI puo richiedere manualmente una notifica
 locale o un feedback aptico e registrarne esito/errore. Il confine resta
 tecnico e umano-iniziato: nessun comando model-facing, policy di azione,
 scheduler agentico o collegamento ai context pack e stato introdotto.
+
+Aggiornamento V1.60.0: esiste uno scheduler agentico per cognizione interna,
+ma non un dispatcher di operativita esterna. L'eventuale iniziativa verso
+l'umano e ogni azione reale richiedono record, permessi e ricevute separati.
 
 ## Sviluppi precedenti
 

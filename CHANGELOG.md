@@ -6,6 +6,71 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.60.0 - Autonomous Cognitive Cycles
+
+#### Added
+
+- Add one long-lived `scarlet_autonomous` session per profile, with a separate
+  provider chronology for Scarlet's scheduled internal activations.
+- Add persisted activation scheduling, leasing, deferral during active human
+  turns, failure evidence, outcomes, and a configurable observation cadence
+  currently set to 600 seconds.
+- Add cooperative foreground priority: a cycle already in progress yields at
+  the next provider boundary or before its next tool when a human turn starts,
+  preserving partial evidence and rescheduling itself as deferred.
+- Add a compact autonomous context containing current mode, local time, recent
+  human-session and memory hooks, focus, due intentions, affect, and a
+  perception availability index.
+- Add an append-only perception inbox with per-channel state and
+  per-autonomous-session cursors plus `perception status|open|read` shell
+  commands. Opening a channel advances its inspection cursor without deleting
+  or rewriting source events.
+- Add `/api/autonomy/overview`, `/api/autonomy/history`,
+  `/api/autonomy/run-now`, and `/api/autonomy/perception/events/batch`.
+- Add a chat-header internal-cognition control that renders autonomous cycles
+  as a chronological conversation-like stream of personal notes, tool
+  actions, expandable thinking, and internal checkpoints.
+
+#### Changed
+
+- Classify sessions and turns by lifecycle so autonomous cognition cannot
+  appear in `previous_sessions` or inherit human provider history.
+- Treat `interactive` as system-owned only for human-message turns. Autonomous
+  turns resume `idle` or `scouting` through an explicit runtime trigger.
+- Extend Scarlet's fixed policy with a strict distinction among human turns,
+  autonomous activations, and backend maintenance.
+- Normalize Pydantic validation details at the cognitive-operation boundary so
+  recoverable malformed shell commands cannot leak live exception objects into
+  provider JSON and abort an autonomous cycle.
+- Advance backend, frontend, Android, and module-conformance metadata to
+  V1.60.0.
+
+#### Safety Boundary
+
+- Autonomous cycles may inspect and mutate supported cognitive organs, but do
+  not fabricate a user message, send a user notification, or perform an
+  external/device action.
+- The new perception endpoint is an ingestion contract only. No Android
+  notification collector or Device Exploration record is admitted
+  automatically in V1.60.0.
+- The canonical activation, message, event, trace, and tool evidence remains
+  persistent even when provider-history compaction is later applied.
+
+#### Verification
+
+- All 320 backend tests, Ruff, the 45-file mypy gate, documentation integrity,
+  project-skill validation, and the frontend TypeScript/Vite production build
+  pass.
+- A deterministic provider cycle proves exclusive-session reuse, private
+  streaming chronology, tool-call persistence, perception cursors, and the
+  600-second scheduler contract.
+- One isolated real MiniMax M3 cycle completed in 45 seconds with five
+  successful shell actions, three authored orientation notes, correct
+  non-human/no-op discipline, and one persisted internal checkpoint.
+- Product UI inspection passed at `390x844` and `1440x1000`: the real
+  Chat header opens the autonomous chronology, thinking expands, requests stay
+  `200`, and the browser reports no warning or error.
+
 ### V1.59.0 - Semantic Context Families
 
 #### Added
@@ -42,9 +107,22 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Preserve the `Resta con me` safeguard-companion concept, shared life threads
   with contextual initiative, Android and personal-information source
   exploration, and a future dynamically composed system-prompt architecture.
-- Keep every concept explicitly separate from current runtime capability:
-  V1.58.1 does not deliver device observations, communication data, or new
-  prompt blocks to Scarlet.
+- Preserve the future Android activation/action inventory and define the first
+  architecture checkpoint for 15-minute Scarlet autonomous cycles, explicitly
+  separate from human turns and backend maintenance.
+- Record one long-lived, profile-scoped autonomous session as Scarlet's
+  periodic internal chronology, connected through API Mind to human-session
+  summaries, memory, organs, perception, and exact source navigation without
+  mixing provider histories.
+- Define future perception as an append-only evidence ledger with derived
+  channel state, inspection cursors, bounded batches, receipts, and a compact
+  model-visible availability index rather than destructive notification or
+  sensor caches.
+- Keep the historical V1.59.0 boundary explicit: V1.58.1 did not deliver
+  device observations, communication data, or new prompt blocks to Scarlet,
+  and V1.59.0 did not yet run autonomous model cycles. V1.60.0 implements the
+  activation and perception-inbox substrate without admitting a native device
+  source.
 
 ### V1.58.1 - Device Exploration Signal Integrity
 

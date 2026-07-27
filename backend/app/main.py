@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.engine import Engine
 
 from app.api.chat import build_chat_router, build_trace_router
+from app.api.autonomy import build_autonomy_router
 from app.api.dashboard import build_dashboard_router
 from app.api.device_exploration import build_device_exploration_router
 from app.api.debug import ProviderFactory, build_debug_router
@@ -15,6 +16,7 @@ from app.config import Settings, get_settings
 from app.llm.factory import build_llm_provider
 from app.plugins.gpt_bridge import build_gpt_bridge_router
 from app.runtime.maintenance import start_maintenance_worker
+from app.runtime.autonomy import start_autonomous_activation_worker
 from app.storage.database_boundary import validate_database_configuration
 from app.storage.db import create_db_engine, init_db, prepare_runtime_database
 
@@ -37,9 +39,24 @@ def create_app(
             settings=runtime_settings,
             provider_factory=provider_factory,
         )
+        app.state.stop_autonomous_activation_worker = (
+            start_autonomous_activation_worker(
+                engine,
+                settings=runtime_settings,
+                provider_factory=provider_factory,
+            )
+        )
         try:
             yield
         finally:
+            stop_autonomy = getattr(
+                app.state,
+                "stop_autonomous_activation_worker",
+                None,
+            )
+            if stop_autonomy is not None:
+                stop_autonomy()
+                app.state.stop_autonomous_activation_worker = None
             stop = getattr(app.state, "stop_maintenance_worker", None)
             if stop is not None:
                 stop()
@@ -47,7 +64,7 @@ def create_app(
 
     app = FastAPI(
         title=runtime_settings.app_name,
-        version="1.59.0",
+        version="1.60.0",
         docs_url="/docs",
         redoc_url="/redoc",
         lifespan=lifespan,
@@ -69,6 +86,13 @@ def create_app(
     )
 
     app.include_router(build_system_router(runtime_settings))
+    app.include_router(
+        build_autonomy_router(
+            engine,
+            runtime_settings,
+            provider_factory=provider_factory,
+        )
+    )
     app.include_router(build_device_exploration_router(engine))
     app.include_router(build_dashboard_router(runtime_settings, engine))
     app.include_router(

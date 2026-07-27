@@ -7,6 +7,82 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0120 - Validation Context Could Abort A Model Tool Loop
+
+Date Found: 2026-07-27
+Status: fixed and verified in a real V1.60.0 MiniMax cycle
+
+Symptoms:
+
+During the first isolated autonomous M3 activation, `focus list` completed but
+the following malformed `volition list --status all` aborted the cycle with
+`PydanticSerializationError: Unable to serialize unknown type: ValueError`.
+Scarlet never received the recoverable command error and could not correct it.
+
+Root Cause:
+
+Several organ handlers stored `ValidationError.errors()` directly in a normal
+result dictionary. Pydantic includes the validator's live `ValueError` under
+`ctx.error`; `MindAPIResponse.model_dump(mode="json")` correctly rejected that
+non-JSON object at the provider boundary.
+
+Fix:
+
+Normalize validation errors through `serializable_validation_errors()`, which
+uses Pydantic's JSON representation without exception context or URLs. Apply it
+to focus, volition, affect, episodic recall, metacognition, and mode so the
+contract is safe beyond the command that exposed the defect.
+
+Regression Coverage:
+
+- an invalid volition status now survives `model_dump(mode="json")` and
+  `json.dumps()` with no `ctx` exception object;
+- the full backend suite passes `320/320`; and
+- a fresh real MiniMax cycle completed five tool calls and `end_turn` after the
+  fix.
+
+Related:
+
+- `backend/app/mind/contracts.py`
+- `backend/tests/test_mind_shell.py`
+- `docs/experiments.md` EXP-0084
+
+## BUG-0119 - Autonomous Turns Were Forced Into Interactive Mode
+
+Date Found: 2026-07-27
+Status: fixed in V1.60.0
+
+Symptoms:
+
+An autonomous activation carrying a persisted `turn_id` was classified as an
+active human turn, which forced `interactive` mode and hid the configured
+`idle` or `scouting` posture.
+
+Root Cause:
+
+Mode resolution used the existence of a turn id as a proxy for human
+interaction. That assumption was valid before autonomous turns became a
+first-class lifecycle, but session and turn identity no longer imply actor or
+trigger.
+
+Fix:
+
+Add `runtime_trigger` to `MindAPIContext`, set it to `human_message` for native
+chat and `autonomous_activation` for autonomous execution, and let only the
+former force `interactive`.
+
+Regression Coverage:
+
+- autonomous mode resolution preserves the profile's resumable posture;
+- human turns still force `interactive`; and
+- the focused autonomy, mode, shell, and native-chat suites pass.
+
+Related:
+
+- `backend/app/mind/contracts.py`
+- `backend/app/mind/mode.py`
+- `backend/app/runtime/autonomy.py`
+
 ## BUG-0118 - Network Probe Could Observe Its Own Upload Traffic Indefinitely
 
 Date Found: 2026-07-26

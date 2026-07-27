@@ -104,6 +104,7 @@ def record_provider_stream_event(
     session_id: str,
     turn_id: str,
     stream_event: LLMStreamEvent,
+    assistant_visibility: str | None = None,
 ) -> CognitiveEvent | None:
     if stream_event.type in DELTA_STREAM_EVENTS:
         return None
@@ -113,6 +114,8 @@ def record_provider_stream_event(
     payload = dict(stream_event.data)
     payload["provider_stream_event"] = stream_event.type
     source, actor, visibility = _stream_event_identity(stream_event)
+    if assistant_visibility is not None and actor == "scarlet":
+        visibility = assistant_visibility
     return record_event_with_engine(
         engine,
         session_id=session_id,
@@ -196,6 +199,7 @@ def record_response_content_events(
     raw_provider_messages: list[dict[str, Any]],
     response_trace_id: str,
     assistant_message_id: str,
+    assistant_visibility: str = "public",
 ) -> list[CognitiveEvent]:
     events: list[CognitiveEvent] = []
     for model_step, provider_message in enumerate(raw_provider_messages, start=1):
@@ -234,7 +238,7 @@ def record_response_content_events(
                         },
                         source="assistant",
                         actor="scarlet",
-                        visibility="public",
+                        visibility=assistant_visibility,
                         status="completed",
                         trace_id=response_trace_id,
                         message_id=assistant_message_id,

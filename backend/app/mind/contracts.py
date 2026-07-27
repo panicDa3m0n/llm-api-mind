@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+import json
 from typing import Any
 
 from sqlalchemy.engine import Engine
@@ -23,6 +24,7 @@ class MindAPIContext:
     session_id: str | None = None
     turn_id: str | None = None
     source_message_id: str | None = None
+    runtime_trigger: str = "human_message"
     settings: Any | None = None
     provider_factory: Callable[[Any], Any] | None = None
 
@@ -39,3 +41,15 @@ class MemoryOperationResult:
     error_code: str | None = None
     error_message: str | None = None
     error_recoverable: bool = True
+
+
+def serializable_validation_errors(exc: Any) -> list[dict[str, Any]]:
+    """Return Pydantic validation details without live exception objects."""
+
+    return json.loads(
+        exc.json(
+            include_url=False,
+            include_context=False,
+            include_input=True,
+        )
+    )

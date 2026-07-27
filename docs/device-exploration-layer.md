@@ -1,7 +1,7 @@
 # Device Exploration Layer
 
-Last updated: 2026-07-26
-Target version: V1.59.0
+Last updated: 2026-07-27
+Target version: V1.60.0
 Status: experimental implementation
 
 ## Purpose
@@ -14,6 +14,10 @@ cognition.
 
 This layer is not a second agent, a local mind, a context source, a memory
 writer, or an autonomous action system.
+
+V1.60.0 adds a separate perception-inbox contract, but does not bridge this
+ledger into it. Admission still requires an explicit source adapter and
+owner-approved evidence contract.
 
 ## Isolation Contract
 

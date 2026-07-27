@@ -30,6 +30,8 @@ def project_session_context(
     states = repositories.list_session_summary_states(
         db,
         exclude_session_id=chat_session.id,
+        kind="human_dialogue",
+        profile_id=preferences.profile_id,
     )
     previous: list[PreviousSessionHint] = []
     for state in states:

@@ -1,7 +1,7 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-26
-App target: V1.59.0; V1.50.1 remains release-accepted
+Last updated: 2026-07-27
+App target: V1.60.0; V1.50.1 remains release-accepted
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -111,6 +111,15 @@ Implemented and verified:
 - agent-only `idle`, `interactive`, and `scouting` mode registry, automatic
   context routing, persistent resumable posture, `mode` shell commands, and
   ordered per-block receipts that separate eligibility from delivery;
+- a V1.60 autonomous cognition lifecycle with one profile-scoped internal
+  session, persisted scheduled activations, human-turn deferral and cooperative
+  mid-cycle yield, streaming model/tool evidence, compact organ/context
+  orientation, and a configurable 600-second observation cadence;
+- an append-only perception inbox with compact channel availability and
+  `perception status|open|read`; no native device source is admitted yet;
+- a Product Chat header surface that replays each autonomous cycle as notes,
+  tools, expandable thinking, and an internal checkpoint without presenting it
+  as human dialogue;
 - V1.43.0 removes the deprecated MCP experiment and
   query-string authentication; the three GPT Actions remain the sole external
   model transport, while historical MCP-originated records are preserved.
@@ -134,6 +143,13 @@ Implemented and verified:
 
 Current verification baseline:
 
+- V1.60.0 autonomous cognition: all 320 backend tests, Ruff, the 45-file mypy
+  gate, documentation and skill integrity, and frontend production build pass;
+  one isolated M3 activation completed five shell actions and a private
+  checkpoint after the validation-serialization defect found by the first
+  probe was fixed;
+- V1.60.0 Product Chat autonomy history passed direct mobile/desktop browser
+  inspection with no console warning/error and successful 3-second refreshes;
 - backend plus public SDK: 304 tests passed at 82.32% statement coverage for
   the V1.55.0 Windows/CI-aligned gate; V1.55.2 adds a focused Stream V2
   protected-payload projection test;
@@ -315,6 +331,7 @@ Implemented command families:
 | volition | list/search/create/read/update/defer/review/promote/resolve/impossible/deprecate | No autonomous execution and no automatic chat injection. |
 | affect | read/list/prototypes | Read-only to Scarlet; backend appraises state. |
 | mode | read/list/set | Agent-only posture; human turns enforce `interactive`, manual selection sets the resumable tag. |
+| perception | status/open/read | Availability-first access to append-only perception evidence; opening advances only the autonomous session cursor. |
 | metacognition | step | One LLM-backed route, not an automatic control loop. |
 
 Shell parsing, registry validation, dispatcher translation, model-facing
@@ -365,7 +382,7 @@ Current limits:
 | Organ | Code state | Default/runtime state | Evidence | Current limit |
 |---|---|---|---|---|
 | Focus | Storage, lifecycle, shell, traces/events, optional context block | config default `off`; model block only when enabled and active | lifecycle/error tests plus V1.40 natural lifecycle and controls | 6/6 technical passes; automatic focus creation remains deliberately unimplemented |
-| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; explicitly no automatic chat injection | complete shell lifecycle plus V1.40 separate-session continuity and ownership controls | one of two current chains completed; invocation can still be interrupted by SCA-28 and no autonomous cycle exists |
+| Volition | Storage, links, lifecycle, due queue, shell | config default `off`; due/open hints enter autonomous context but not normal chat automatically | complete shell lifecycle plus V1.40 separate-session continuity and ownership controls | autonomous choice and long-term review quality remain behaviorally unvalidated |
 | Affect | Backend appraisal, persistence, shell read/history/prototypes, optional context block | `shadow` default; controlled `model` mode available | deterministic contracts plus V1.40 model/shadow/neutral transitions | 10/10 post-fix technical passes; model mode has not yet shown clear qualitative benefit over shadow |
 | Metacognition | One LLM-backed step, retrospective modes, optional shadow lesson context | shadow lesson selection by default; step remains model-invoked | flag-forwarding plus V1.40 broad-claim and direct-answer controls | 4/4 invocation controls passed; positive review can still overprocess and write low-value lessons |
 | Temporal experience | Registry/config reservation only | `off` | manifest tests only | no computation, persistence, shell, or behavioral experiment |
@@ -406,13 +423,13 @@ product opportunity, not an unfinished Core acceptance criterion.
 |---|---:|---|---|
 | Communication | L4 | Prompt identity/effort routing, semantic stream blocks, public notes, dev/mobile rendering; substantial live evidence | expand the V1.34 suite to natural notes, greetings, concise answers, and long work |
 | User flows | L2/L3 | Working dev cockpit and mobile prototype plus a readiness-driven natural-speed half greeting, locally persistent fake Login, bottom-dock navigation, semantic event-bubble Chat, inspectable fixture JSON, extended Memory layout, and grouped Settings flow | review event narration and remaining screens, then integrate V2 projection, real auth, memory/privacy management, prompt preferences and session lifecycle |
-| Perception and context | L4 | Shared V2 packet, field-level organ projection audit, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | deploy V1.42 receipts, then monitor multi-cycle quality |
+| Perception and context | L4 | Shared human-turn V2 packet plus V1.60 compact autonomous context, append-only perception inbox, exact model trace, time/provenance rules, accounting, active recursive compaction and per-block mode router | admit and evaluate one bounded real source without collapsing device evidence into Scarlet first-person perception |
 | Identity and relationship | L3 | Golden prompt, profile name, personal memory continuity | persistent relational model and longitudinal human evaluation |
 | Memory | L4+ | Broadest and best-tested cognitive subsystem | duplicate/conflict policy, multi-user ownership, maintenance maturity, retrieval calibration |
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
 | Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
 | Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
-| Decision autonomy | L2/L3 | Model-controlled shell, volition register, answer obligations, and bounded mode selection | define risk/permission receipts before autonomous cycle design |
+| Decision autonomy | L3 | Model-controlled shell, volition register, answer obligations, bounded mode selection, and persisted periodic internal cycles | evaluate real-cycle choices and design initiative/action receipts before any external delivery |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |

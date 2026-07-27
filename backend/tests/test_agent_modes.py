@@ -47,8 +47,8 @@ def test_mode_registry_uses_agent_tags_and_excludes_background_processes() -> No
     )
     scouting = next(item for item in registry["modes"] if item["tag"] == "scouting")
     assert interactive["manually_resumable"] is False
-    assert scouting["implemented_runtime"] is False
-    assert "persists posture and routes context only" in scouting["purpose"]
+    assert scouting["implemented_runtime"] is True
+    assert "during autonomous cognition" in scouting["purpose"]
 
 
 def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
@@ -77,7 +77,7 @@ def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
     assert selected.result["data"]["change"]["preferred_tag"] == "scouting"
     assert selected.result["data"]["execution_started"] is False
     assert selected.result["data"]["runtime_effect"] == (
-        "persistent_posture_only_no_autonomous_cycle"
+        "persistent_posture_for_autonomous_cycles"
     )
     assert selected.result["data"]["agent_mode"]["active_tag"] == "interactive"
     assert selected.result["data"]["agent_mode"]["resume_tag"] == "scouting"
@@ -91,11 +91,11 @@ def test_mode_shell_persists_preference_and_system_interaction_overrides_it(
             system_reason="Human turn",
         )
     assert idle_state["active_tag"] == "scouting"
-    assert idle_state["active_runtime_implemented"] is False
+    assert idle_state["active_runtime_implemented"] is True
     assert interactive_state["active_tag"] == "interactive"
     assert interactive_state["active_runtime_implemented"] is True
     assert interactive_state["resume_tag"] == "scouting"
-    assert interactive_state["resume_runtime_implemented"] is False
+    assert interactive_state["resume_runtime_implemented"] is True
 
 
 def test_mode_routing_filters_only_automatic_context_blocks() -> None:

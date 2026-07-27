@@ -82,15 +82,68 @@ def _migrate_sqlite_schema(engine: Engine) -> None:
         return
 
     session_columns = {column["name"] for column in inspector.get_columns("sessions")}
-    if "provider_history_json" not in session_columns:
-        with engine.begin() as connection:
+    with engine.begin() as connection:
+        if "provider_history_json" not in session_columns:
             connection.execute(
                 text(
                     "ALTER TABLE sessions "
                     "ADD COLUMN provider_history_json JSON NOT NULL DEFAULT '[]'"
                 )
             )
-    with engine.begin() as connection:
+        if "kind" not in session_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE sessions "
+                    "ADD COLUMN kind VARCHAR NOT NULL DEFAULT 'human_dialogue'"
+                )
+            )
+        if "profile_id" not in session_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE sessions "
+                    "ADD COLUMN profile_id VARCHAR NOT NULL DEFAULT 'local-user'"
+                )
+            )
+        if "autonomy_key" not in session_columns:
+            connection.execute(
+                text("ALTER TABLE sessions ADD COLUMN autonomy_key VARCHAR")
+            )
+        connection.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ix_sessions_autonomy_key "
+                "ON sessions (autonomy_key)"
+            )
+        )
+
+        turn_columns = {column["name"] for column in inspector.get_columns("turns")}
+        if "trigger_kind" not in turn_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE turns "
+                    "ADD COLUMN trigger_kind VARCHAR NOT NULL DEFAULT 'human_message'"
+                )
+            )
+        if "actor" not in turn_columns:
+            connection.execute(
+                text(
+                    "ALTER TABLE turns "
+                    "ADD COLUMN actor VARCHAR NOT NULL DEFAULT 'user'"
+                )
+            )
+
+        if "perception_cursors" in inspector.get_table_names():
+            perception_cursor_columns = {
+                column["name"]
+                for column in inspector.get_columns("perception_cursors")
+            }
+            if "last_received_at" not in perception_cursor_columns:
+                connection.execute(
+                    text(
+                        "ALTER TABLE perception_cursors "
+                        "ADD COLUMN last_received_at DATETIME"
+                    )
+                )
+
         connection.execute(
             text(
                 """

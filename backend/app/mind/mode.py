@@ -14,7 +14,11 @@ from app.mind.agent_modes import (
     resolve_agent_mode,
     set_preferred_agent_mode,
 )
-from app.mind.contracts import MindAPIContext, MemoryOperationResult
+from app.mind.contracts import (
+    MindAPIContext,
+    MemoryOperationResult,
+    serializable_validation_errors,
+)
 from app.runtime.events import record_event
 from app.storage import repositories
 
@@ -55,10 +59,14 @@ def handle_agent_mode(
             "mode.invalid_request",
             "Agent mode request is invalid.",
             ["mode read", 'mode set scouting --reason "..."'],
-            details={"validation": exc.errors(include_url=False)},
+            details={"validation": serializable_validation_errors(exc)},
         )
     profile_id = str(context.settings.user_profile_id)
     default = str(context.settings.agent_mode_default)
+    human_turn_active = (
+        context.turn_id is not None
+        and context.runtime_trigger == "human_message"
+    )
     with Session(context.engine) as db:
         if request.action == "list":
             return MemoryOperationResult(
@@ -71,8 +79,12 @@ def handle_agent_mode(
                 db,
                 profile_id=profile_id,
                 default=default,
-                system_mode="interactive" if context.turn_id else None,
-                system_reason="A human-facing turn is active." if context.turn_id else None,
+                system_mode="interactive" if human_turn_active else None,
+                system_reason=(
+                    "A human-facing turn is active."
+                    if human_turn_active
+                    else None
+                ),
             )
             return MemoryOperationResult(
                 ok=True,
@@ -135,8 +147,12 @@ def handle_agent_mode(
             db,
             profile_id=profile_id,
             default=default,
-            system_mode="interactive" if context.turn_id else None,
-            system_reason="A human-facing turn is active." if context.turn_id else None,
+            system_mode="interactive" if human_turn_active else None,
+            system_reason=(
+                "A human-facing turn is active."
+                if human_turn_active
+                else None
+            ),
         )
         return MemoryOperationResult(
             ok=True,
@@ -145,14 +161,15 @@ def handle_agent_mode(
                 "change": changed,
                 "agent_mode": active,
                 "execution_started": False,
-                "runtime_effect": "persistent_posture_only_no_autonomous_cycle",
+                "runtime_effect": "persistent_posture_for_autonomous_cycles",
                 "trace_id": trace.id,
             },
             cognitive_hint=(
                 "The selected mode is persistent. During this human turn, interactive "
                 "remains active and the selected mode resumes afterward. This changes "
-                "posture state only; it does not start an autonomous cycle. Scouting is "
-                "currently registered without autonomous sensor runtime."
+                "posture state only; it does not itself start an autonomous cycle. "
+                "A scheduled autonomous activation can use scouting to inspect "
+                "registered perception channels."
                 if request.mode == "scouting"
                 else "The selected mode is persistent. During this human turn, interactive "
                 "remains active and the selected mode resumes afterward. This changes "

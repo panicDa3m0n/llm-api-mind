@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Brain,
+  BrainCircuit,
   Check,
   Clock3,
   Compass,
@@ -27,18 +28,21 @@ import {
 
 import {
   createSession,
+  fetchAutonomyHistory,
   fetchAllSessionEventsV2,
   fetchMessages,
   streamTurnLive
 } from "../api";
 import { publicAssetPath } from "../runtimeAssets";
 import type {
+  AutonomyHistory,
   ChatMessage,
   ChatSession,
   DashboardMemory,
   ScarletLiveFrame,
   ScarletStreamEvent
 } from "../types";
+import { AutonomyHistoryPanel } from "./AutonomyHistoryPanel";
 import {
   ChatEventDetailModal,
   type ChatEventInspection,
@@ -125,6 +129,10 @@ export function ChatViewportScreen({
   const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [inspection, setInspection] = useState<ChatEventInspection | null>(null);
+  const [autonomyOpen, setAutonomyOpen] = useState(false);
+  const [autonomyHistory, setAutonomyHistory] =
+    useState<AutonomyHistory | null>(null);
+  const [autonomyError, setAutonomyError] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -176,6 +184,36 @@ export function ChatViewportScreen({
       cancelled = true;
     };
   }, [currentSession?.id]);
+
+  useEffect(() => {
+    if (!autonomyOpen) return;
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const history = await fetchAutonomyHistory();
+        if (!cancelled) {
+          setAutonomyHistory(history);
+          setAutonomyError(null);
+        }
+      } catch (reason) {
+        if (!cancelled) {
+          setAutonomyError(
+            reason instanceof Error
+              ? reason.message
+              : "Cronologia interiore non disponibile."
+          );
+        }
+      }
+    };
+
+    void load();
+    const interval = window.setInterval(() => void load(), 3000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [autonomyOpen]);
 
   const flow = useMemo(() => {
     const projected = projectConversation(
@@ -403,6 +441,13 @@ export function ChatViewportScreen({
           </span>
         </div>
         <div className="scarlet-chat__header-actions">
+          <button
+            aria-label="Apri la continuità interiore di Scarlet"
+            onClick={() => setAutonomyOpen(true)}
+            type="button"
+          >
+            <BrainCircuit aria-hidden="true" size={16} />
+          </button>
           <button aria-label="Apri sessioni" onClick={onOpenSessions} type="button">
             <Clock3 aria-hidden="true" size={16} />
           </button>
@@ -511,6 +556,26 @@ export function ChatViewportScreen({
         inspection={inspection}
         onClose={() => setInspection(null)}
       />
+      {autonomyOpen ? (
+        <AutonomyHistoryPanel
+          error={autonomyError}
+          history={autonomyHistory}
+          onClose={() => setAutonomyOpen(false)}
+          onRefresh={() => {
+            setAutonomyHistory(null);
+            setAutonomyError(null);
+            void fetchAutonomyHistory()
+              .then(setAutonomyHistory)
+              .catch((reason: unknown) =>
+                setAutonomyError(
+                  reason instanceof Error
+                    ? reason.message
+                    : "Cronologia interiore non disponibile."
+                )
+              );
+          }}
+        />
+      ) : null}
     </section>
   );
 }

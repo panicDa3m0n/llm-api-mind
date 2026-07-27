@@ -1,8 +1,8 @@
 # API Mind Core Runtime Contract
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.59.0
+Current additive contract target: V1.60.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.59.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.60.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | native turn and validators | `LLMProvider` | Stable interface; native adapters use stop reasons for continuation, tool dispatch, and finality. |
@@ -67,6 +67,8 @@ the native runtime.
 | Context accounting/history | `backend/app/runtime/context_accounting.py`, `history_runtime.py`, `history_compaction.py` | native turn and maintenance | accounting v2, history routing/artifact versions | Canonical history is authoritative; derived artifacts fail back visibly. |
 | Answer obligations | `backend/app/runtime/answer_obligations.py` | native turn and GPT finalize | obligations v3 / validation v1 | Shared semantic evidence contract; provider stop reasons, not the validator, own native finality. |
 | Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode. |
+| Autonomous cognition lifecycle | `backend/app/runtime/autonomy.py`, `storage/repository/autonomy.py` | Scarlet internal cycles and Product UI inspection | `scarlet_autonomous` session plus activation ledger V1 | Separate from human turns and maintenance; leases, deferral, outcomes, traces, and internal chronology are persistent. |
+| Perception inbox | `backend/app/storage/repository/perception.py`, `backend/app/mind/perception.py` | autonomous context and `mind_shell` | availability/index/open/read V1 | Append-only events, derived channel state, and per-session inspection cursors; no native Android source adapter yet. |
 | Runtime configuration | `backend/app/config.py` | application factory and domain owners | typed `Settings` | Additive compatibility by default; invalid safety combinations fail closed. |
 | Agentic Module contracts, host, and SDK | `backend/scarlet_agentic_module_sdk/*`, `backend/app/agentic_modules/*`, `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md`, `docs/agentic-module-sdk.md` | optional operator-installed modules and module authors | manifest/port/lifecycle V1, host V1.53, SDK 1.0.0 | One public contract source, standalone authoring/conformance kit, and opt-in approved-root process host; native Core path remains unchanged with zero modules. |
 | Deployment boundary | `backend/Dockerfile`, release process, database preflight | VPS runtime | tagged app release plus remote environment | Runtime code may deploy; databases and secrets never travel with code. |
@@ -78,9 +80,9 @@ contract change, never by silently choosing whichever description is newer.
 ## 4. HTTP Surface Classification
 
 The closed V1.50.1 Core OpenAPI contains 28 operations. Additive Product UI,
-live-stream, and Device Exploration work brings the V1.59.0 development target
-to 35 operations across 33 paths. Their prefixes have different audiences and
-therefore different compatibility promises.
+live-stream, Device Exploration, and autonomous cognition extend the V1.60.0
+development target. Operation totals are generated from the executable
+OpenAPI rather than maintained as a prose invariant.
 
 | Surface | Audience | Classification | Compatibility policy |
 |---|---|---|---|
@@ -89,6 +91,7 @@ therefore different compatibility promises.
 | `/api/dashboard/*` | current Product UI | Core client port | V1-compatible; redesign must consume contracts rather than duplicate domain logic. |
 | `/api/debug/*` | developer UI, tests, evaluation | Internal diagnostic | May evolve with traces; not a public cognitive API. |
 | `/api/maintenance/*` | operators, deterministic jobs, evaluation | Internal operational | Mutation remains guarded; not exposed as Scarlet's model tool. |
+| `/api/autonomy/*` | Product UI inspection, scheduler support, and bounded laboratory control | Additive agentic runtime | History/overview are read surfaces; `run-now` and perception ingestion are internal laboratory/adapter operations. |
 | `/mind/schema`, `/mind/call` | shell dispatcher, tests, debug, rollback | Internal cognitive transport | Preserved behind `mind_shell`; endpoint shape is not the model-facing contract. |
 | `/gpt/bootstrap`, `/gpt/action`, `/gpt/finalize` | external ChatGPT GPT | Experimental adapter | Operation IDs and lifecycle remain stable while supported; external-host limitations do not redefine Core. |
 

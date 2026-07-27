@@ -1,5 +1,6 @@
 import type {
   ApiError,
+  AutonomyHistory,
   ChatMessage,
   ChatSession,
   ChatTurn,
@@ -89,6 +90,10 @@ export function createSession(title?: string): Promise<ChatSession> {
 
 export function fetchSessions(limit = 30): Promise<ChatSession[]> {
   return request<ChatSession[]>(`/api/chat/sessions?limit=${limit}`);
+}
+
+export function fetchAutonomyHistory(limit = 20): Promise<AutonomyHistory> {
+  return request<AutonomyHistory>(`/api/autonomy/history?limit=${limit}`);
 }
 
 export function appendDeviceObservations(

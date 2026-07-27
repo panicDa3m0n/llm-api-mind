@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-07-13.mind-shell-command-registry-v2"
+COMMAND_REGISTRY_VERSION = "2026-07-27.mind-shell-command-registry-v3"
 
 
 @dataclass(frozen=True)
@@ -211,6 +211,27 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
                 status="implemented",
                 requires_all=("arg|mode|tag", "reason|why"),
                 suggested_command='mode set scouting --reason "..."',
+            ),
+        },
+    ),
+    "perception": CommandFamily(
+        aliases=("sense", "senses", "sensor"),
+        default_action="status",
+        actions={
+            "status": CommandAction(
+                status="implemented",
+                aliases=("list", "available"),
+            ),
+            "open": CommandAction(
+                status="implemented",
+                requires_any=("arg", "channel"),
+                suggested_command="perception open notifications --limit 10",
+            ),
+            "read": CommandAction(
+                status="implemented",
+                aliases=("show", "get", "inspect"),
+                requires_any=("arg", "id", "event-id"),
+                suggested_command="perception read per_...",
             ),
         },
     ),

@@ -14,7 +14,7 @@ from sqlmodel import Session
 from app.storage import repositories
 
 
-AGENT_MODE_REGISTRY_VERSION = "2026-07-18.agent-modes-routing-v2"
+AGENT_MODE_REGISTRY_VERSION = "2026-07-27.agent-modes-routing-v3"
 AGENT_MODE_SETTING_PREFIX = "agent_mode"
 AGENT_MODE_VALUES = ("idle", "interactive", "scouting")
 AGENT_MODE_RESUMABLE_VALUES = ("idle", "scouting")
@@ -54,11 +54,10 @@ AGENT_MODES: tuple[AgentModeSpec, ...] = (
     AgentModeSpec(
         tag="scouting",
         purpose=(
-            "Scarlet keeps an exploratory orientation toward an environment or "
-            "information field. Selecting it is valid even before sensor or "
-            "autonomous execution exists; it persists posture and routes context only."
+            "Scarlet keeps an exploratory orientation toward available "
+            "environmental or information channels during autonomous cognition."
         ),
-        implemented_runtime=False,
+        implemented_runtime=True,
     ),
 )
 
@@ -95,8 +94,22 @@ MODE_CAPABILITIES: tuple[ModeCapabilitySpec, ...] = (
     ModeCapabilitySpec(
         capability="continuity.provider_history",
         kind="continuity",
-        mode_tags=("interactive",),
+        mode_tags=AGENT_MODE_VALUES,
         status="implemented",
+    ),
+    ModeCapabilitySpec(
+        capability="context.autonomous_activation",
+        kind="context",
+        mode_tags=("idle", "scouting"),
+        status="implemented",
+        context_block_type="autonomous_activation_context",
+    ),
+    ModeCapabilitySpec(
+        capability="perception.availability_index",
+        kind="context",
+        mode_tags=("idle", "scouting"),
+        status="implemented",
+        context_block_type="perception_context",
     ),
     ModeCapabilitySpec(
         capability="cognition.mind_shell",
@@ -136,7 +149,11 @@ MODE_CAPABILITIES: tuple[ModeCapabilitySpec, ...] = (
         capability="future.environment_scouting",
         kind="capability",
         mode_tags=("scouting",),
-        status="future_no_sensor_runtime",
+        status="implemented_available_channels_only",
+        notes=(
+            "Scouting can inspect registered perception channels; continuous "
+            "robotic sensors remain future work."
+        ),
     ),
 )
 

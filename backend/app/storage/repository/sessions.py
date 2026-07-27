@@ -46,8 +46,17 @@ def create_chat_session(
     *,
     title: str | None = None,
     metadata: dict[str, Any] | None = None,
+    kind: str = "human_dialogue",
+    profile_id: str = "local-user",
+    autonomy_key: str | None = None,
 ) -> ChatSession:
-    chat_session = ChatSession(title=title, metadata_json=metadata or {})
+    chat_session = ChatSession(
+        title=title,
+        kind=kind,
+        profile_id=profile_id,
+        autonomy_key=autonomy_key,
+        metadata_json=metadata or {},
+    )
     db.add(chat_session)
     db.commit()
     db.refresh(chat_session)
@@ -81,12 +90,18 @@ def list_chat_sessions(
     *,
     limit: int | None = 30,
     offset: int = 0,
+    kind: str | None = "human_dialogue",
+    profile_id: str | None = None,
 ) -> list[ChatSession]:
-    statement = (
-        select(ChatSession)
-        .order_by(ChatSession.updated_at.desc(), ChatSession.created_at.desc())
-        .offset(offset)
-    )
+    statement = select(ChatSession)
+    if kind is not None:
+        statement = statement.where(ChatSession.kind == kind)
+    if profile_id is not None:
+        statement = statement.where(ChatSession.profile_id == profile_id)
+    statement = statement.order_by(
+        ChatSession.updated_at.desc(),
+        ChatSession.created_at.desc(),
+    ).offset(offset)
     if limit is not None:
         statement = statement.limit(limit)
     return list(db.exec(statement).all())
@@ -97,6 +112,8 @@ def list_session_summary_states(
     *,
     exclude_session_id: str | None = None,
     limit: int | None = None,
+    kind: str | None = "human_dialogue",
+    profile_id: str | None = None,
 ) -> list[SessionSummaryState]:
     visible_messages = (
         select(
@@ -166,6 +183,10 @@ def list_session_summary_states(
     )
     if exclude_session_id is not None:
         statement = statement.where(ChatSession.id != exclude_session_id)
+    if kind is not None:
+        statement = statement.where(ChatSession.kind == kind)
+    if profile_id is not None:
+        statement = statement.where(ChatSession.profile_id == profile_id)
     if limit is not None:
         statement = statement.limit(limit)
     rows = db.exec(statement).all()
@@ -251,8 +272,15 @@ def create_turn(
     *,
     session_id: str,
     model: str | None = None,
+    trigger_kind: str = "human_message",
+    actor: str = "user",
 ) -> Turn:
-    turn = Turn(session_id=session_id, model=model)
+    turn = Turn(
+        session_id=session_id,
+        model=model,
+        trigger_kind=trigger_kind,
+        actor=actor,
+    )
     db.add(turn)
     _touch_session(db, session_id)
     db.commit()

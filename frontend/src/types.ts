@@ -1,6 +1,8 @@
 export type ChatSession = {
   id: string;
   title: string | null;
+  kind: "human_dialogue" | "scarlet_autonomous" | string;
+  profile_id: string;
   created_at: string;
   updated_at: string;
   metadata: Record<string, unknown>;
@@ -53,6 +55,61 @@ export type CognitiveEvent = {
   message_id: string | null;
   payload: Record<string, unknown>;
   created_at: string;
+};
+
+export type AutonomousActivation = {
+  id: string;
+  profile_id: string;
+  session_id: string;
+  turn_id: string | null;
+  trigger_kind: string;
+  status: string;
+  active_mode: string | null;
+  scheduled_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  attempt_count: number;
+  outcome: Record<string, unknown>;
+  error: Record<string, unknown> | null;
+};
+
+export type AutonomousCycle = {
+  activation: AutonomousActivation;
+  messages: Array<{
+    id: string;
+    role: string;
+    content: string;
+    created_at: string;
+    metadata: Record<string, unknown>;
+  }>;
+  events: CognitiveEvent[];
+  tool_calls: Array<{
+    id: string;
+    tool_name: string;
+    arguments: Record<string, unknown>;
+    result: Record<string, unknown>;
+    status: string;
+    latency_ms: number | null;
+    created_at: string;
+  }>;
+};
+
+export type AutonomyHistory = {
+  operation: "autonomy.history";
+  session: {
+    id: string;
+    title: string | null;
+    kind: string;
+    profile_id: string;
+    created_at: string;
+    updated_at: string;
+  };
+  limit: number;
+  offset: number;
+  returned: number;
+  has_more: boolean;
+  next_offset: number | null;
+  cycles: AutonomousCycle[];
 };
 
 export type StreamEvent = {

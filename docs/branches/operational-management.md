@@ -1,8 +1,8 @@
 # Branch: Gestione Operativa
 
-Last updated: 2026-07-18
-System version assessed: V1.43.0 (deployed; branch behavior unchanged)
-Status: focus lifecycle and mode routing validated within implemented boundaries
+Last updated: 2026-07-27
+System version assessed: V1.60.0 development target
+Status: focus, mode routing, and autonomous activation substrate implemented
 
 ## Filosofia del ramo
 
@@ -112,6 +112,19 @@ had collapsed capability honesty into `idle`; the policy now explicitly
 distinguishes idle absence of direction from scouting exploratory orientation.
 No idle/scouting autonomous cycle or sensor behavior exists or was claimed.
 Evidence: `docs/evaluations/v1.42-agent-mode-routing.md`.
+
+## Aggiornamento V1.60.0
+
+Una sessione interna esclusiva ora ospita cicli autonomi periodici in
+`idle|scouting`, senza inventare messaggi umani e senza riusare i job di
+maintenance. Il contesto include focus, volition aperte/due, affect e ganci
+episodici/mnemonici; Scarlet puo usare la shell e lascia note e checkpoint
+persistenti. La UI rende questa cronologia rileggibile.
+
+Questa integrazione non trasforma automaticamente una volition in task, non
+seleziona il focus in modo deterministico e non concede sensori o azioni
+esterne. L'efficacia della scelta autonoma resta da valutare con cicli reali
+isolati.
 
 ## Evolutive
 

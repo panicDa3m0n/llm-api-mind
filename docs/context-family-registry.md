@@ -1,8 +1,9 @@
 # Context Family Registry
 
-Last updated: 2026-07-26
-Target version: V1.59.0
-Status: typed registry and shadow routing active; future sources not admitted
+Last updated: 2026-07-27
+Target version: V1.60.0
+Status: typed registry and shadow routing active; perception inbox exists but
+native future sources are not admitted
 
 ## Purpose
 

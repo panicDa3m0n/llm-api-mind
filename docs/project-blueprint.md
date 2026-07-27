@@ -1,8 +1,8 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.59.0 context-family shadow target
+Architecture baseline: Core V1.50.1 closed; V1.60.0 autonomous cognition target
 Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -45,7 +45,10 @@ What traces prove what happened?
 The original foundation milestone has been reached and extended. The current
 runtime now includes persistent provider-native chat history, API Mind,
 semantic memory, atomic facts, episodic session recall, one metacognition
-route, runtime events, and a live React cockpit.
+route, runtime events, a live React cockpit, and one separate persistent
+autonomous cognition lifecycle. The autonomous lifecycle uses a compact
+orientation map and on-demand perception inbox; it does not fabricate human
+messages or grant external-world operativity.
 
 The canonical integrated status and convergent roadmap now live in:
 
@@ -1554,13 +1557,15 @@ Avoid:
 ## 20. Current Next Steps
 
 The Core V1 foundation described by the original implementation sequence is
-closed on V1.50.1. The active V2 sequence is:
+closed on V1.50.1. Product UI, Stream V2, and the Agentic Module contract/host/
+SDK now exist. The active research sequence after V1.60.0 is:
 
 ```txt
-1. Preserve the named Core contracts and define scarlet-stream-v2 recovery.
-2. Build one approved mobile-first Product UI for web and Android.
-3. Define Agentic Module ports, permissions, lifecycle, host, and SDK.
-4. Accept V2 only after migration, regression, deployment, and rollback proof.
+1. Validate periodic autonomous cognition qualitatively on isolated real runs.
+2. Calibrate autonomous history growth and derived compaction without deleting evidence.
+3. Admit one bounded, sourceable device-perception channel through the inbox.
+4. Design initiative delivery and external action only with separate permission and receipt contracts.
+5. Accept a later release only after regression, deployment, and rollback proof.
 ```
 
 The exact boundary is `docs/core-runtime-contract.md`; Linear SCA-46 owns the
