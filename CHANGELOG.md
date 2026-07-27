@@ -56,6 +56,11 @@ This project uses a practical changelog rather than a release-only log: each mea
   `scarlet-mobile-api:v1.61.0-d6a88b3` after an online backup, quiescent reset
   backup, copied-DB canary, read-only production preflight, authenticated
   public health/UI checks, and post-reset SQLite integrity `ok`.
+- Observe the first unforced cycle in the fresh chronology: it started within
+  five seconds of schedule, completed with `end_turn` in 83.8 seconds, used
+  the shared V2 context plus four recoverable shell actions, remained `idle`,
+  made no unwarranted state change, and scheduled its successor at +600
+  seconds.
 
 ### V1.60.1 - Fresh Human-Turn Foreground Guard
 

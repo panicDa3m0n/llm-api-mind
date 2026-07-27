@@ -242,4 +242,7 @@ read-only preflight, guarded archival reset, authenticated public health/UI,
 and post-switch integrity at runtime commit
 `d6a88b3add8f7e8c72f75bf60a44d16d5f196a5e`. The VPS
 `DEPLOYED_COMMIT` marker points to that runtime commit; the archived chronology
-remains canonical while the active replacement begins clean.
+remains canonical while the active replacement begins clean. The first
+unforced activation in that replacement started within one worker interval,
+completed with `end_turn`, preserved origin attribution, and scheduled the
+next cycle at +600 seconds.

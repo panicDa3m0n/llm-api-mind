@@ -45,9 +45,8 @@ same automatic retrieval/rerank function as human chat and selected the
 expected human-source jazz memory from the database. The delivered V2 marked
 that memory `human_interaction`; a separate shell probe marked an
 autonomous-source memory `autonomous_cognition` with session kind, trigger,
-actor, and message role. The focused common-context suite passed 41/41 and all
-36 Mind API tests passed. A natural production run remains the next
-longitudinal attribution check, not a condition for the deterministic contract.
+actor, and message role. The final focused common-context suite passed 42/42
+and all 36 Mind API tests passed.
 
 The deterministic cycle reuses one `scarlet_autonomous` session, persists its
 private chronology and tool evidence, and schedules the next activation
@@ -108,6 +107,19 @@ applied the known explicit scheduling workaround, confirmed the due queue was
 empty, and stayed `idle`. This is promising continuity evidence, while still
 too small a sample for cadence or cost acceptance.
 
+After the V1.61 archival reset, the first unforced cycle in the empty
+replacement chronology started 4.3 seconds after schedule and completed in
+83.8 seconds. The exact context receipt classified
+`origin=autonomous_cognition`, delivered two human-session hints and the common
+5/5/5 relevant/recent-user/recent-general memory packets, and kept the
+autonomous provider history separate. Scarlet used current runtime evidence to
+correctly supersede an older memory that described autonomy as only announced,
+read focus/mode/volition, stayed `idle`, made no unwarranted state mutation,
+and scheduled the next cycle exactly 600 seconds later. One invalid volition
+status was corrected from the shell usage guide. The checkpoint was coherent
+but verbose at 4,702 output tokens; cadence and checkpoint concision remain
+behavioral calibration questions rather than lifecycle defects.
+
 Interpretation:
 
 The storage, lifecycle, shell-recovery, and UI-inspection substrate is strong
@@ -132,6 +144,7 @@ Evidence:
 - isolated DB `/tmp/scarlet-autonomy-live-v160-retry.db` (local disposable evidence)
 - production activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
 - production activation `act_ceb1e05ef30745319f9e32a3a509af4a`
+- V1.61 production activation `act_e9b8b5692f854dae947e351e81d6d45a`
 
 ## EXP-0083 - Context Family And Policy Composition Probe
 

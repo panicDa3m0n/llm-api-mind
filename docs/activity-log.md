@@ -78,6 +78,37 @@ Deployment:
   health returned `401`, OpenAPI reported `1.61.0`, timestamps carried `Z`,
   and the new container emitted no error logs.
 
+First Natural Cycle:
+
+- activation `act_e9b8b5692f854dae947e351e81d6d45a` started 4.3 seconds
+  after its due time and completed in 83.8 seconds with `end_turn`;
+- the shared V2 receipt classified `autonomous_cognition`,
+  `scarlet_autonomous`, actor `scarlet`, and role `activation`, delivered two
+  previous human sessions, and selected five relevant, five recent-user, and
+  five recent-general memories;
+- Scarlet kept `idle`, found no focus, inspected two not-due intentions, made
+  no memory/focus/volition/mode mutation, and correctly treated current
+  autonomous execution as stronger evidence than an older memory saying the
+  feature was only announced;
+- four shell calls included one invalid `volition --status open` attempt,
+  followed by successful recovery through the returned usage guide and
+  successful focus, mode, and volition reads;
+- the active provider history now contains six native items; the next
+  activation is `act_31998dd286be4e7db2f356a29a108346`, scheduled exactly
+  600 seconds after completion;
+- post-cycle preflight reported 319 memories, 239 facts, 243 sessions, 992
+  messages, 7,462 events, 34 tables, no container error logs, and SQLite
+  integrity `ok`.
+
+Qualitative Finding:
+
+The lifecycle and provenance reset are accepted. Scarlet knew this was the
+first cycle of the replacement chronology rather than a human request, reused
+real human continuity without calling internal work a user conversation, and
+declined unnecessary state changes. The 4,702-token checkpoint is longer than
+"concise", and the initial invalid status remains a future calibration/command
+ergonomics note, not a release blocker.
+
 ## 2026-07-27 - V1.60.1 Production Foreground Guard
 
 Area: Decision Autonomy / protected VPS rollout.

@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-27
-System version assessed: V1.61.0 development target
+System version assessed: V1.61.0 deployed
 Status: periodic internal cognition implemented and production-observed;
 shared lifecycle context verified
 
@@ -45,6 +45,13 @@ gli stessi del turno umano. Ogni dato dichiara la provenienza per evitare di
 attribuire all'utente un'elaborazione nata nei cicli interni.
 
 Sistema valutato: V1.61.0.
+
+La prima attivazione naturale dopo il reset archivistico della cronologia ha
+confermato in produzione il contratto condiviso: due sessioni umane come hint,
+retrieve automatico 5/5/5, provenienza autonoma esplicita, shell comune,
+`idle`, nessuna mutazione opportunistica e nuova pianificazione a +600
+secondi. La checkpoint e risultata semanticamente corretta ma troppo lunga;
+concisione e costo restano calibrazione futura, non un blocco del lifecycle.
 
 ## Sviluppi precedenti
 
