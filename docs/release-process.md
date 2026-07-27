@@ -236,3 +236,10 @@ checks, and one real scheduled autonomous MiniMax M3 cycle at runtime commit
 `0b37f7e8767adf16059e6c19291debff6eaa3779`. The VPS
 `DEPLOYED_COMMIT` marker remains on that runtime commit; any later
 documentation-only closure commit must not replace it.
+V1.61.0 passed the complete local backend/frontend gates, protected online and
+quiescent production backups, a copied-DB chronology-reset canary, new-image
+read-only preflight, guarded archival reset, authenticated public health/UI,
+and post-switch integrity at runtime commit
+`d6a88b3add8f7e8c72f75bf60a44d16d5f196a5e`. The VPS
+`DEPLOYED_COMMIT` marker points to that runtime commit; the archived chronology
+remains canonical while the active replacement begins clean.

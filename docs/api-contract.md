@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-27
-App target: V1.61.0; V1.60.1 remains deployed
+App target: V1.61.0 deployed; V1.50.1 remains the closed-Core baseline
 
 ## Response Philosophy
 

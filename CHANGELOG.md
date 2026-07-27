@@ -52,6 +52,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 - A deterministic autonomous cycle selected an expected human-source memory
   through the common reranker; shell inspection verified session kind and
   source provenance.
+- Deploy commit `d6a88b3add8f7e8c72f75bf60a44d16d5f196a5e` as
+  `scarlet-mobile-api:v1.61.0-d6a88b3` after an online backup, quiescent reset
+  backup, copied-DB canary, read-only production preflight, authenticated
+  public health/UI checks, and post-reset SQLite integrity `ok`.
 
 ### V1.60.1 - Fresh Human-Turn Foreground Guard
 

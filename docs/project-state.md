@@ -1,8 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-27
-App target: V1.61.0 development; V1.60.1 deployed for autonomous field
-observation; V1.50.1 remains the closed-Core release baseline
+App target: V1.61.0 deployed for unified human/autonomous field observation;
+V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"

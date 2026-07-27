@@ -32,6 +32,7 @@ Change:
 
 Verification:
 
+- complete backend suite after the guarded-operation regression: `331 passed`;
 - focused V2/autonomy/shell/time suite: `42 passed`;
 - guarded reset operation regression: passed after an isolated copied-DB
   canary exposed and corrected detached-ORM receipt serialization;
@@ -45,9 +46,37 @@ Verification:
 
 Residual:
 
-The next protected deploy should inspect a real human turn and a naturally
-scheduled cycle to confirm longitudinal language attribution and UI time
-display. No production database was read or mutated during this implementation.
+Inspect a real human turn and the first naturally scheduled cycle to confirm
+longitudinal language attribution and UI time display.
+
+Deployment:
+
+- published runtime commit
+  `d6a88b3add8f7e8c72f75bf60a44d16d5f196a5e` and deployed image
+  `scarlet-mobile-api:v1.61.0-d6a88b3`
+  (`sha256:76b28028163a4c4a336edf7e0bb5225305cbdbee82e00602d2f9943192afbb77`);
+- created online backup
+  `/var/backups/scarlet-mobile-test/v1610-20260727T144642Z/app.db.pre-v1610`
+  (SHA-256
+  `351f49b4b54f47115c1dd8135bd685a167e73756521452945fb5a276453db9a1`)
+  and, after stopping the old worker, quiescent reset backup
+  `/var/backups/scarlet-mobile-test/v1610-20260727T144642Z/app.db.pre-autonomy-reset`
+  (SHA-256
+  `4b6d1d67b0234d59957beb9d89e74b756663488898b3c75660218cdd76b15a0d`);
+- proved dry-run, apply receipt, archived/current session separation, new
+  +600-second schedule, and SQLite integrity on a copied production database;
+- archived session `ses_cdd7d29df60947fabd5bcc7208cbb1e3` with 92 provider
+  history items and created empty active session
+  `ses_653903824b364a84bef65cb9f9e7761a`;
+- retained 23 completed and seven deferred cycles as archived evidence,
+  cancelled the single old pending activation, and scheduled new activation
+  `act_e9b8b5692f854dae947e351e81d6d45a` for
+  `2026-07-27T15:03:10.961800Z`;
+- post-switch preflight reported production/direct, 34 tables, 319 memories,
+  239 facts, 243 sessions, 990 messages, 7,415 events, and integrity `ok`;
+- authenticated public health and Product UI returned `200`, unauthenticated
+  health returned `401`, OpenAPI reported `1.61.0`, timestamps carried `Z`,
+  and the new container emitted no error logs.
 
 ## 2026-07-27 - V1.60.1 Production Foreground Guard
 
