@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0122 - Volition Review Interval Does Not Advance The Review Date
 
 Date Found: 2026-07-27
-Status: open; production behavior recovered by Scarlet
+Status: open; reproduced twice in production and recovered by Scarlet
 
 Symptoms:
 
@@ -19,6 +19,11 @@ During the first completed production autonomous cycle, Scarlet ran
 the review and interval but retained the already-due `next_review_at`. Scarlet
 noticed the mismatch and issued a separate `volition update
 --next-review-at ...` before closing the cycle.
+
+The next periodic cycle reproduced the same behavior on the other open
+intention: `review` left `next_review_at=null`, Scarlet applied the lesson from
+the previous checkpoint, issued `update`, and verified that `volition list
+due` was empty.
 
 Root Cause:
 

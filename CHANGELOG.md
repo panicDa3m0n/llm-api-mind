@@ -25,6 +25,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Complete the first real scheduled production cycle in 93.1 seconds with nine
   shell actions, seven public notes, persistent organ changes, a private
   checkpoint, and a next activation exactly 600 seconds later.
+- Observe a second unforced cycle starting within one second of schedule and
+  completing in 75.5 seconds with four shell actions; it resumed the previous
+  checkpoint, cleared the remaining due volition work, and scheduled its
+  successor exactly 600 seconds later.
 - Record BUG-0122 after Scarlet correctly recovered from the ambiguous
   `volition review --review-interval-seconds` scheduling behavior.
 

@@ -45,8 +45,15 @@ Verification:
   actions, seven public notes, eight thinking blocks, one volition review and
   update, one deduplicated memory search/write sequence, and `end_turn`;
 - provider usage for that cycle was 26,302 input tokens, 176,000 cached input
-  tokens, and 5,475 output tokens; and
-- the next activation was persisted exactly 600 seconds after completion.
+  tokens, and 5,475 output tokens;
+- the next activation was persisted exactly 600 seconds after completion;
+- a second unforced periodic activation started 0.55 seconds after its due
+  time, completed in 75.5 seconds with four shell actions and four notes, and
+  used 34,496 input tokens, 136,064 cached input tokens, and 3,569 output
+  tokens;
+- that cycle resumed the prior checkpoint, reviewed and scheduled the remaining
+  unscheduled intention, confirmed an empty due queue, and persisted its next
+  activation exactly 600 seconds later.
 
 Qualitative Finding:
 
@@ -55,6 +62,8 @@ kept `idle`, avoided a user notification, and performed bounded cognitive
 maintenance. The cycle also exposed an open volition-contract ambiguity:
 `review --review-interval-seconds` stores the interval but does not advance
 `next_review_at`, so Scarlet corrected it with a second `volition update`.
+The second cycle reproduced that contract behavior and applied the same
+recovery deliberately.
 
 ## 2026-07-27 - Autonomous Observation Cadence Set To Ten Minutes
 

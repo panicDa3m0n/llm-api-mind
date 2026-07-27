@@ -88,6 +88,15 @@ input tokens, and 5,475 output tokens. Scarlet:
 The last point is tracked as BUG-0122. It is a shell-contract problem, not a
 failure of autonomous reasoning: Scarlet detected and recovered from it.
 
+The next periodic cycle was not forced manually. It started 0.55 seconds after
+its persisted due time, completed in 75.5 seconds, and used four shell actions,
+four public notes, 34,496 input tokens, 136,064 cached input tokens, and 3,569
+output tokens. Instead of repeating the first orientation sequence, Scarlet
+resumed its prior checkpoint, reviewed the remaining unscheduled intention,
+applied the known explicit scheduling workaround, confirmed the due queue was
+empty, and stayed `idle`. This is promising continuity evidence, while still
+too small a sample for cadence or cost acceptance.
+
 Interpretation:
 
 The storage, lifecycle, shell-recovery, and UI-inspection substrate is strong
@@ -111,6 +120,7 @@ Evidence:
 - `frontend/src/prototype/AutonomyHistoryPanel.tsx`
 - isolated DB `/tmp/scarlet-autonomy-live-v160-retry.db` (local disposable evidence)
 - production activation `act_ba7bf5ae623c401196be8fe1a21e8f61`
+- production activation `act_ceb1e05ef30745319f9e32a3a509af4a`
 
 ## EXP-0083 - Context Family And Policy Composition Probe
 
