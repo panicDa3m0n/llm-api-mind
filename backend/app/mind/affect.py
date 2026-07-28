@@ -1,4 +1,3 @@
-import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal
@@ -270,45 +269,6 @@ def handle_affect(
         )
 
 
-MESSAGE_CUES: dict[str, tuple[tuple[str, ...], ...]] = {
-    "curiosity": (
-        ("capire", "comprendere", "ragioniamo", "studiare", "valutare"),
-        ("come mai", "perché", "cosa succede", "possibilità", "ipotesi"),
-    ),
-    "tenderness": (
-        ("sto male", "sono stanco", "mi sento", "paura", "ansia"),
-        ("delicato", "fragile", "triste", "mi manca", "ho bisogno"),
-    ),
-    "frustration": (
-        ("non funziona", "errore", "blocc", "fallisce", "bug"),
-        ("sempre errori", "non riesce", "ritenta", "rotto"),
-    ),
-    "caution": (
-        ("sicuro", "verifica", "attenzione", "rischio", "non inventare"),
-        ("fonte", "prova", "evidenza", "corretto", "errore"),
-    ),
-    "enthusiasm": (
-        ("fantastico", "ottimo", "bellissimo", "mi piace", "grande"),
-        ("funziona", "stupendo", "perfetto", "incredibile"),
-    ),
-    "sadness": (
-        ("mi dispiace", "peccato", "perdita", "delus", "triste"),
-        ("dimenticato", "perso", "mancanza", "solitudine"),
-    ),
-}
-
-OBSTRUCTION_RESOLUTION_CUES = (
-    "ora funziona",
-    "adesso funziona",
-    "si e sbloccato",
-    "si è sbloccato",
-    "blocco e superato",
-    "blocco è superato",
-    "problema risolto",
-    "errore risolto",
-)
-
-
 def build_affective_context(
     db: Session,
     *,
@@ -479,47 +439,9 @@ def _appraise_variables(
     variables = {emotion: 0.0 for emotion in EMOTION_PROTOTYPES}
     variables["repair_need"] = 0.0
     observations: list[dict[str, Any]] = []
-    lowered = _normalize(message)
-    resolution_matches = [
-        cue for cue in OBSTRUCTION_RESOLUTION_CUES if cue in lowered
-    ]
-
-    for emotion, cue_groups in MESSAGE_CUES.items():
-        score, matched = _score_cues(lowered, cue_groups)
-        if emotion == "frustration" and resolution_matches:
-            score = 0.0
-            matched = []
-        if score:
-            variables[emotion] += score
-            observations.append(
-                {
-                    "source": "user_message",
-                    "signal": emotion,
-                    "strength": round(score, 3),
-                    "matched": matched[:4],
-                }
-            )
-    if resolution_matches:
-        variables["relief"] += 0.44
-        observations.append(
-            {
-                "source": "user_message",
-                "signal": "relief",
-                "strength": 0.44,
-                "matched": resolution_matches[:4],
-                "reason": "explicit_obstruction_resolution",
-            }
-        )
-    if "?" in message and variables["curiosity"] < 0.18:
-        variables["curiosity"] += 0.16
-        observations.append(
-            {
-                "source": "user_message",
-                "signal": "curiosity",
-                "strength": 0.16,
-                "matched": ["question_shape"],
-            }
-        )
+    # Natural-language affect is not classified by backend keyword patterns.
+    # The current organ only appraises observable runtime state and carries
+    # forward previously stored affect with decay.
 
     conflicts = memory_context.get("conflicts")
     if isinstance(conflicts, list) and conflicts:
@@ -585,8 +507,6 @@ def _appraise_variables(
         decay = _decay_factor(previous.updated_at, timestamp)
         if previous.emotion in variables and decay > 0:
             carry = previous.intensity * decay
-            if previous.emotion == "frustration" and resolution_matches:
-                carry *= 0.15
             variables[previous.emotion] += carry
             observations.append(
                 {
@@ -595,27 +515,10 @@ def _appraise_variables(
                     "strength": round(carry, 3),
                     "previous_state_id": previous.id,
                     "decay_factor": round(decay, 3),
-                    "attenuated_by_resolution": bool(
-                        previous.emotion == "frustration" and resolution_matches
-                    ),
                 }
             )
 
     return (_clamp_variables(variables), observations[:8])
-
-
-def _score_cues(
-    text: str,
-    cue_groups: tuple[tuple[str, ...], ...],
-) -> tuple[float, list[str]]:
-    matched: list[str] = []
-    for group in cue_groups:
-        if any(cue in text for cue in group):
-            matched.extend(cue for cue in group if cue in text)
-    if not matched:
-        return (0.0, [])
-    base = 0.18 + 0.08 * min(3, len(matched))
-    return (min(0.44, base), matched)
 
 
 def _compose_emotion(variables: dict[str, float]) -> tuple[str | None, float]:
@@ -757,10 +660,6 @@ def _valence_label(value: float) -> str:
     if value <= -0.2:
         return "negative"
     return "mixed_or_neutral"
-
-
-def _normalize(text: str) -> str:
-    return re.sub(r"\s+", " ", text.lower()).strip()
 
 
 def _aware(value: datetime) -> datetime:

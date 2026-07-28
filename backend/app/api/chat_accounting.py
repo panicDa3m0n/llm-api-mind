@@ -46,7 +46,6 @@ def record_context_accounting_preflight(
     messages: list[LLMMessage],
     settings: Settings,
     compacted_chronology: str = "",
-    answer_obligations: str = "",
     external_unobserved_context: list[str] | None = None,
 ) -> tuple[Trace, dict[str, Any]]:
     payload = build_context_accounting_preflight(
@@ -61,7 +60,6 @@ def record_context_accounting_preflight(
         tools=[MIND_SHELL_TOOL_SCHEMA],
         settings=settings,
         compacted_chronology=compacted_chronology,
-        answer_obligations=answer_obligations,
         external_unobserved_context=external_unobserved_context,
     )
     trace = repositories.add_trace(

@@ -11,6 +11,9 @@ from app.mind.memory import (
     handle_memory_facts,
     handle_memory_facts_backfill,
     handle_memory_graph,
+    handle_memory_proposal_decide,
+    handle_memory_proposal_list,
+    handle_memory_proposal_read,
     handle_memory_read,
     handle_memory_search,
     handle_memory_supersede,
@@ -198,6 +201,33 @@ def dispatch_mind_api(
             method=method,
             path=path,
         )
+
+    if method == "GET" and path == "/mind/memory/proposals":
+        return _memory_response(
+            handle_memory_proposal_list(body, context),
+            method=method,
+            path=path,
+        )
+
+    if method == "POST" and path == "/mind/memory/proposals/decide":
+        return _memory_response(
+            handle_memory_proposal_decide(
+                body,
+                context,
+                intent=request.intent,
+            ),
+            method=method,
+            path=path,
+        )
+
+    if method == "GET" and path.startswith("/mind/memory/proposals/"):
+        proposal_id = path.removeprefix("/mind/memory/proposals/").rstrip("/")
+        if proposal_id:
+            return _memory_response(
+                handle_memory_proposal_read(proposal_id, context),
+                method=method,
+                path=path,
+            )
 
     if method == "GET" and path == "/mind/sessions":
         return _operation_response(

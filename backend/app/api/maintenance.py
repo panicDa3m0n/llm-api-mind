@@ -312,12 +312,12 @@ def build_maintenance_router(
     @router.get("/memory/proposals")
     def list_memory_proposals(
         status_filter: str | None = Query(
-            default="pending",
+            default="open",
             alias="status",
             max_length=40,
             description=(
-                "Proposal status filter. Use pending for open maintenance work; "
-                "all, any, or * disables the status filter."
+                "Proposal status filter. Use open for pending and pending_review; "
+                "resolved for terminal states; all, any, or * disables the filter."
             ),
         ),
         source_session_id: str | None = Query(default=None, max_length=80),
@@ -332,7 +332,11 @@ def build_maintenance_router(
         statuses = (
             sorted(repositories.RESOLVED_MEMORY_PROPOSAL_STATUSES)
             if normalized_status == "resolved"
-            else None
+            else (
+                sorted(repositories.OPEN_MEMORY_PROPOSAL_STATUSES)
+                if normalized_status == "open"
+                else None
+            )
         )
         exact_status = None if statuses is not None else normalized_status
         with Session(engine) as db:

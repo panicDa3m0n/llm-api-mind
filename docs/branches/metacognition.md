@@ -1,7 +1,7 @@
 # Branch: Metacognizione
 
-Last updated: 2026-07-18
-System version assessed: V1.41.0 (deployed)
+Last updated: 2026-07-28
+System version assessed: V1.64.0 local
 Status: positive/negative invocation separated; efficiency remains experimental
 
 ## Filosofia del ramo
@@ -28,9 +28,9 @@ deve puntare a vera utilita nel risultato finale.
 - V1.8.0 trasforma l'endpoint esistente in una superficie sperimentale per
   retrospezione del thinking precedente, senza creare endpoint paralleli. Il
   thinking viene trattato come evidenza di processo, non come prova fattuale.
-- V1.9.0 introduce `metacognitive.context` come fase shadow: il backend genera
-  lezioni candidate e le mostra a evaluator/UI, ma non le passa al modello in
-  modalita default.
+- V1.9.0 introdusse `metacognitive.context` come fase shadow. V1.64 rimuove la
+  selezione di lezioni tramite parole chiave: il blocco resta solo osservazione
+  trace/UI e non viene iniettato nel modello.
 - I test prompt-pack hanno suggerito che un contesto metacognitivo piccolo e
   mirato puo aiutare, mentre blocchi grandi o generici peggiorano M3.
 - V1.16.0 chiarisce nel prompt che la metacognizione e un ciclo operativo
@@ -62,10 +62,10 @@ essere testata in conversazioni reali per capire se aiuta Scarlet a recuperare
 open loop, spiegare tool choice, riconoscere drift tra pensiero e risposta, e
 trovare candidati memoria mancati.
 
-V1.9.0 aggiunge una superficie di osservazione pre-modello:
-`metacognitive.context`. In `shadow` mode resta fuori dal prompt e serve solo a
-vedere quali lezioni sarebbero state selezionate. In `inject` mode puo entrare
-in `runtime_context.blocks` per test A/B controllati.
+`metacognitive.context` conserva il punto di osservazione pre-modello, ma in
+V1.64 non classifica intento né seleziona lezioni da pattern lessicali. La
+metacognizione semantica resta unicamente `metacognition step`, LLM-backed,
+sourceable e invocata da Scarlet.
 
 Aggiornamento V1.16.0: il ramo resta prompt-led per questa slice. Non sono
 stati aggiunti endpoint o trigger automatici; il cambiamento e la postura

@@ -23,7 +23,7 @@ def make_client(db_engine: Engine) -> TestClient:
     return TestClient(create_app(settings, db_engine=db_engine))
 
 
-def test_affect_shadow_appraises_without_model_block(db_engine: Engine) -> None:
+def test_affect_shadow_does_not_classify_user_words(db_engine: Engine) -> None:
     init_db(db_engine)
     with Session(db_engine) as db:
         session, turn, message = _session_turn_message(
@@ -43,7 +43,7 @@ def test_affect_shadow_appraises_without_model_block(db_engine: Engine) -> None:
         states = repositories.list_affect_states(db, turn_id=turn.id)
 
     assert "affective_context" not in [block["type"] for block in runtime["blocks"]]
-    assert [state.emotion for state in states] == ["frustration"]
+    assert states == []
     affect_trace = next(trace for trace in traces if trace.kind == "organ.affect")
     assert affect_trace.payload_json["mode"] == "shadow"
     assert affect_trace.payload_json["model_facing"] is False
@@ -57,7 +57,7 @@ def test_affect_shadow_appraises_without_model_block(db_engine: Engine) -> None:
     assert "organ.affect.appraised" in [event.type for event in events]
 
 
-def test_affect_model_injects_compact_pack_when_signal_exists(
+def test_affect_model_does_not_inject_from_positive_keywords(
     db_engine: Engine,
 ) -> None:
     init_db(db_engine)
@@ -81,19 +81,9 @@ def test_affect_model_injects_compact_pack_when_signal_exists(
             "session_context",
             "agent_mode_context",
             "message_context",
-            "affective_context",
             "scarlet_state",
         ]
-    affect_block = runtime["blocks"][3]
-    assert affect_block["content"]["current_emotion"] == "enthusiasm"
-    assert affect_block["content"]["usage"]["affects"] == "model_behavior_only"
-    assert affect_block["content"]["usage"]["does_not_change_memory_retrieval"] is True
-    assert affect_block["content"]["usage"]["does_not_change_focus"] is True
-    assert affect_block["content"]["usage"]["does_not_change_intentions"] is True
-    assert runtime["blocks"][4]["content"]["mood_expression"].startswith(
-        "See affective_context"
-    )
-    assert "organ.affect.surfaced" in [event.type for event in events]
+    assert "organ.affect.surfaced" not in [event.type for event in events]
 
 
 def test_affect_mind_api_is_read_only_and_exposes_state_and_prototypes(
@@ -254,7 +244,7 @@ def test_recent_failures_can_drive_frustration_without_message_keywords(
     )
 
 
-def test_explicit_resolution_reappraises_previous_frustration(
+def test_affect_does_not_infer_frustration_or_relief_from_phrasing(
     db_engine: Engine,
 ) -> None:
     init_db(db_engine)
@@ -299,24 +289,17 @@ def test_explicit_resolution_reappraises_previous_frustration(
             turn_id=second_turn.id,
         )
 
-    first_affect = next(
-        block
-        for block in first_runtime["blocks"]
-        if block["type"] == "affective_context"
+    assert not any(
+        block["type"] == "affective_context" for block in first_runtime["blocks"]
     )
-    second_affect = next(
-        block
-        for block in second_runtime["blocks"]
-        if block["type"] == "affective_context"
+    assert not any(
+        block["type"] == "affective_context" for block in second_runtime["blocks"]
     )
-    assert first_affect["content"]["current_emotion"] == "frustration"
-    assert second_affect["content"]["current_emotion"] == "relief"
-    assert [state.emotion for state in states] == ["relief", "frustration"]
+    assert states == []
     affect_trace = next(trace for trace in second_traces if trace.kind == "organ.affect")
-    assert any(
-        cause.get("reason") == "explicit_obstruction_resolution"
-        for cause in affect_trace.payload_json["observations"]
-        if cause.get("signal") == "relief"
+    assert not any(
+        observation["source"] == "user_message"
+        for observation in affect_trace.payload_json["observations"]
     )
 
 

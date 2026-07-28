@@ -11,7 +11,7 @@ from dataclasses import asdict, dataclass
 from typing import Literal
 
 
-WAKE_SOURCE_REGISTRY_VERSION = "2026-07-27.wake-sources-v1"
+WAKE_SOURCE_REGISTRY_VERSION = "2026-07-28.wake-sources-v2"
 
 WakePolicy = Literal[
     "trace_only",
@@ -45,6 +45,17 @@ EXACT_WAKE_SOURCES: tuple[WakeSourceSpec, ...] = (
         purpose=(
             "A completed human exchange may contain an unresolved question, "
             "commitment, relational change, or useful follow-up."
+        ),
+    ),
+    WakeSourceSpec(
+        pattern="memory.proposals.review_ready",
+        policy="candidate",
+        context_family="memory_continuity",
+        appraisal_required=True,
+        coalescing_key="memory-proposals:{turn_id}",
+        purpose=(
+            "Source-backed memory proposals may deserve Scarlet's semantic "
+            "review; the event exposes availability without deciding outcome."
         ),
     ),
     WakeSourceSpec(

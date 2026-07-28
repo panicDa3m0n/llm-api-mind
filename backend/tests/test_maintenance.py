@@ -218,13 +218,9 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
         proposals = repositories.list_memory_proposals(
             db,
             source_session_id=session_id,
-            status="applied_create",
+            status="pending_review",
         )
         memories = repositories.list_memories_for_session(db, session_id=session_id)
-        memory_activities = repositories.list_memory_activities(
-            db,
-            memory_id=memories[0].id,
-        )
         events = repositories.list_events_for_turn(db, turn_id=turn_id)
         completed_job = repositories.get_maintenance_job(db, job_id)
 
@@ -237,10 +233,11 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
     assert summary.summary == "The session discussed a durable food preference."
     trace_kinds = [trace.kind for trace in traces]
     assert "maintenance.memory_review" in trace_kinds
-    assert "maintenance.memory_proposal_resolution" not in trace_kinds
+    assert "maintenance.memory_proposal_resolution" in trace_kinds
     assert "mind.sessions.summarize" in trace_kinds
     event_types = [event.type for event in events]
     assert "maintenance.job.started" in event_types
+    assert "memory.proposals.review_ready" in event_types
     assert "maintenance.memory_review.completed" in event_types
     assert event_types[-1] == "maintenance.job.completed"
     review_trace = next(trace for trace in traces if trace.kind == "maintenance.memory_review")
@@ -251,25 +248,39 @@ def test_due_idle_maintenance_summarizes_and_reviews_memory_candidates() -> None
     )
     assert len(proposals) == 1
     assert proposals[0].content == "The user likes chocolate but feels bad if they eat too much."
-    assert proposals[0].proposed_action == "create_new"
-    assert proposals[0].status == "applied_create"
-    assert proposals[0].result_json["resolution"]["outcome"] == "apply_create"
-    assert proposals[0].result_json["resolution"]["resolver"] == "deterministic_preflight"
-    assert proposals[0].result_json["memory_result"]["memory_id"] == memories[0].id
+    assert proposals[0].proposed_action == "needs_semantic_review"
+    assert proposals[0].status == "pending_review"
+    assert proposals[0].result_json["resolution"]["outcome"] == "keep_pending"
+    assert proposals[0].result_json["resolution"]["resolver"] == "llm_proposal_resolution"
     assert proposals[0].source_message_ids_json == [source_user_message_id]
-    assert memories[0].source_message_id == source_user_message_id
-    assert memory_activities[0].source == "maintenance.proposal.apply_create"
+    assert memories == []
+    review_ready_event = next(
+        event for event in events if event.type == "memory.proposals.review_ready"
+    )
+    assert review_ready_event.status == "completed"
+    assert review_ready_event.visibility == "private"
+    assert review_ready_event.payload_json["proposal_ids"] == [proposals[0].id]
+    assert review_ready_event.payload_json["proposals"][0] == {
+        "id": proposals[0].id,
+        "type": "user_preference",
+        "scope": "user",
+        "content": "The user likes chocolate but feels bad if they eat too much.",
+        "source_session_id": session_id,
+        "source_turn_id": turn_id,
+        "source_message_ids": [source_user_message_id],
+    }
     completed_event = next(
         event for event in events if event.type == "maintenance.memory_review.completed"
     )
     assert completed_event.payload_json["proposal_count"] == 1
     assert completed_event.payload_json["proposal_created_count"] == 1
-    assert completed_event.payload_json["resolution"]["resolver_called"] is False
-    assert completed_event.payload_json["resolution"]["auto_applied_count"] == 1
-    assert len(FakeMaintenanceProvider.calls) == 2
+    assert completed_event.payload_json["resolution"]["resolver_called"] is True
+    assert completed_event.payload_json["resolution"]["auto_applied_count"] == 0
+    assert completed_event.payload_json["resolution"]["pending_review_count"] == 1
+    assert len(FakeMaintenanceProvider.calls) == 3
 
 
-def test_idle_maintenance_safely_applies_high_confidence_create_candidate() -> None:
+def test_idle_maintenance_keeps_high_confidence_candidate_for_scarlet() -> None:
     engine = make_test_engine()
     init_db(engine)
     settings = make_settings()
@@ -333,7 +344,7 @@ def test_idle_maintenance_safely_applies_high_confidence_create_candidate() -> N
         proposals = repositories.list_memory_proposals(
             db,
             source_session_id=session_id,
-            status="applied_create",
+            status="pending_review",
         )
         memories = repositories.list_memories_for_session(db, session_id=session_id)
         completed_job = repositories.get_maintenance_job(db, job_id)
@@ -341,11 +352,10 @@ def test_idle_maintenance_safely_applies_high_confidence_create_candidate() -> N
     assert completed_job is not None
     assert completed_job.status == "completed"
     assert len(proposals) == 1
-    assert proposals[0].result_json["resolution"]["resolver"] == "deterministic_preflight"
-    assert proposals[0].result_json["memory_result"]["memory_id"] == memories[0].id
-    assert memories[0].created_by == "maintenance"
-    assert memories[0].content == "The user prefers mint tea during late work sessions."
-    assert len(FakeMaintenanceProvider.calls) == 2
+    assert proposals[0].result_json["resolution"]["resolver"] == "llm_proposal_resolution"
+    assert proposals[0].result_json["resolution"]["decision"]["semantic_authority"] is False
+    assert memories == []
+    assert len(FakeMaintenanceProvider.calls) == 3
 
 
 def test_idle_maintenance_archives_exact_duplicate_without_resolver_call() -> None:
@@ -429,7 +439,7 @@ def test_idle_maintenance_archives_exact_duplicate_without_resolver_call() -> No
     assert len(FakeMaintenanceProvider.calls) == 2
 
 
-def test_idle_maintenance_llm_resolver_can_apply_cautious_create_candidate() -> None:
+def test_idle_maintenance_llm_review_cannot_apply_create_candidate() -> None:
     engine = make_test_engine()
     init_db(engine)
     settings = make_settings()
@@ -491,7 +501,7 @@ def test_idle_maintenance_llm_resolver_can_apply_cautious_create_candidate() -> 
         proposals = repositories.list_memory_proposals(
             db,
             source_session_id=session_id,
-            status="applied_create",
+            status="pending_review",
         )
         memories = repositories.list_memories_for_session(db, session_id=session_id)
         traces = repositories.list_traces_for_session(
@@ -503,8 +513,8 @@ def test_idle_maintenance_llm_resolver_can_apply_cautious_create_candidate() -> 
 
     assert len(proposals) == 1
     assert proposals[0].result_json["resolution"]["resolver"] == "llm_proposal_resolution"
-    assert proposals[0].result_json["memory_result"]["memory_id"] == memories[0].id
-    assert memories[0].content == "The project owner wants Dream review kept as a future evolution."
+    assert proposals[0].result_json["resolution"]["outcome"] == "keep_pending"
+    assert memories == []
     assert len(traces) == 1
     assert len(FakeMaintenanceProvider.calls) == 3
 
@@ -572,7 +582,7 @@ def test_memory_review_proposal_detects_exact_duplicate() -> None:
     assert created is True
     assert proposal.proposed_action == "noop_duplicate"
     assert proposal.similar_memory_ids_json[0] == existing_id
-    assert proposal.decision_json["reason"].startswith("equivalent active memory")
+    assert proposal.decision_json["reason"].startswith("an exact normalized")
     assessment = proposal.decision_json["maintenance_assessment"]
     assert assessment["policy_version"] == "maintenance_preflight_assessment_v1"
     assert assessment["lane"] == "deterministic_archive"

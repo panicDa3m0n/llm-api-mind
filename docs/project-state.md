@@ -1,8 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-28
-App target: V1.63.0 implemented locally with Endogenous Cognition over the
-Cognitive Workspace; V1.61.0 remains deployed pending the approved rollout;
+App target: V1.64.0 implemented locally with the semantic-authority correction
+over V1.63.0 Endogenous Cognition; V1.61.0 remains deployed pending rollout;
 V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
@@ -73,8 +73,9 @@ Implemented and verified:
   M2.7 auxiliary profile for non-Scarlet semantic workers, and an optional
   Qwen adapter outside the Scarlet path;
 - persistent sessions, turns, messages, provider-native history, traces,
-  cognitive events, tool calls, summaries, maintenance jobs, memories, facts,
-  proposals, retrieval artifacts, focus, volition, and affect state;
+  cognitive events, tool calls, summaries, maintenance jobs, memories, legacy
+  fact audit rows, proposals, retrieval artifacts, focus, volition, and affect
+  state;
 - SQLite ownership roles for production, laboratory, test, and preliminary
   databases, with side-effect-free app factory and read-only preflight;
 - native chat, streaming chat, developer cockpit, consumer mobile view, debug
@@ -103,11 +104,10 @@ Implemented and verified:
   from its last complete provider-history boundary; eight bounded
   `max_tokens` continuations prevent pathological non-terminal loops without
   limiting Scarlet's model-controlled tool loop;
-- shared native/GPT semantic answer obligations with hard, warning, and
-  advisory severity; one bounded correction for semantic hard failures;
-  fail-closed validator handling without deterministic language matching; and
-  V1.49.1 attempt-chain evidence that lets the validator recognize a
-  materially equivalent successful retry without erasing the failed call;
+- structural native/GPT finality without a second semantic judge: native
+  Scarlet closes on provider `end_turn`, a non-empty public answer, completed
+  tool lifecycle, and persistence; GPT finalize persists its exact non-empty
+  answer after the mandatory transport protocol;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;
@@ -392,7 +392,7 @@ shell help.
 Implemented:
 
 - semantic memory with provenance and append-only lifecycle;
-- atomic facts with active/inactive state;
+- legacy fact audit rows with active/inactive lifecycle but no semantic authority;
 - episodic summaries and exact transcript navigation;
 - automatic retrieval plus manual shell retrieval;
 - FTS5/BM25 sparse search, NetworkX associative expansion, derived memory
@@ -404,12 +404,17 @@ Implemented:
 - summary audit/reconciliation and dry-run-first provenance repair;
 - read-only provenance/disposition audit with digest-guarded exact repair and
   explicit-fixture deprecation;
-- idle summary/missed-memory review, proposal ledger, and cautious resolution.
+- idle summary/missed-memory review and a non-mutating proposal ledger;
+- Scarlet-owned proposal list/open/accept/reject/duplicate/supersede commands
+  with original source provenance and current-decision traces;
+- proposal-ready events admitted to the Cognitive Workspace as candidates,
+  never forced decisions or wakes.
 
 Current limits:
 
-- duplicate and conflict adjudication is not mature enough for deterministic
-  auto-merge or auto-deprecation;
+- fuzzy duplicate/conflict discovery is not mature enough for deterministic
+  classification; explicit Scarlet adjudication and exact-identity handling
+  are implemented;
 - seven production memories have inconsistent or non-user historical source links that
   cannot be repaired without semantic adjudication and remain retained,
   review-only, and excluded from automatic V2 delivery;
@@ -474,7 +479,7 @@ product opportunity, not an unfinished Core acceptance criterion.
 | Learning and adaptation | L2 | Memory/preferences and prompt iteration enable indirect adaptation | learning ledger, before/after metrics, profile-specific controlled policy updates |
 | Metacognition | L3/L4 | One tested route, retrospective modes, command validation, shadow lessons; V1.40 positive/negative invocation separated | reduce overprocessing and enforce/degrade when a required review is interrupted |
 | Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
-| Decision autonomy | L3/L4 | Model-controlled shell, volition register, answer obligations, bounded mode selection, persisted internal cycles, shared V2/retrieval continuity, and locally verified active Workspace/episode lifecycle | observe source/candidate/no-wake and episode quality longitudinally with shadow rollback; design initiative/action receipts before external delivery |
+| Decision autonomy | L3/L4 | Model-controlled shell, volition register, structural finality, bounded mode selection, persisted internal cycles, shared V2/retrieval continuity, and locally verified active Workspace/episode lifecycle | observe source/candidate/no-wake and episode quality longitudinally with shadow rollback; design initiative/action receipts before external delivery |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
 | Advanced operations | L1 | Cognitive shell only; no coding/artifact/specialist suite | define operations only after external-operativity governance |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |

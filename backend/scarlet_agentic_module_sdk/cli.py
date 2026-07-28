@@ -76,7 +76,7 @@ def _parser() -> argparse.ArgumentParser:
         "conformance", help="exercise lifecycle and declared ports"
     )
     conformance.add_argument("module_directory")
-    conformance.add_argument("--core-version", default="1.63.0")
+    conformance.add_argument("--core-version", default="1.64.0")
     conformance.add_argument("--mode", default="interactive")
 
     schema = commands.add_parser("schema", help="export versioned JSON Schemas")

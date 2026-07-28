@@ -4,8 +4,8 @@ from copy import deepcopy
 from typing import Any
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-27.unified-lifecycle-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-27.unified-lifecycle-v1"
+MIND_API_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -95,6 +95,12 @@ MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
             "memory open mem_...",
             "memory graph mem_... --depth 2 --limit 30",
             "memory facts --query \"entity or question\"",
+            "memory proposals --status open --limit 10",
+            "memory proposal prop_...",
+            "memory proposal-accept prop_... --reason \"...\"",
+            "memory proposal-reject prop_... --reason \"...\"",
+            "memory proposal-duplicate prop_... mem_... --reason \"...\"",
+            "memory proposal-supersede prop_... mem_old --reason \"...\"",
             "memory conflicts",
             "memory deprecate mem_... --reason \"...\"",
             "memory supersede mem_old mem_new --reason \"...\"",
@@ -550,7 +556,7 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
             {
                 "method": "GET",
                 "path": "/mind/memory/facts",
-                "intent": "Inspect canonical facts for an entity and predicate.",
+                "intent": "Inspect legacy fact provenance for an entity and predicate.",
                 "body": {
                     "entity": "protocollo-zero-luce",
                     "predicate": "response_format",
@@ -562,10 +568,10 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
     {
         "method": "POST",
         "path": "/mind/memory/facts/backfill",
-        "status": "implemented",
+        "status": "internal_maintenance_only",
         "purpose": (
-            "Extract missing canonical facts for existing memory records "
-            "through a traceable operation."
+            "Audit historical fact rows and resynchronize derived artifacts "
+            "without creating semantic propositions."
         ),
         "body_schema": {
             "type": "object",
@@ -607,6 +613,122 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                 "method": "GET",
                 "path": "/mind/memory/conflicts",
                 "intent": "Check active memory conflicts before answering.",
+            }
+        ],
+    },
+    {
+        "method": "GET",
+        "path": "/mind/memory/proposals",
+        "status": "implemented",
+        "purpose": (
+            "List source-backed memory candidates awaiting Scarlet's semantic "
+            "decision. Proposals are not active memories."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "default": "open",
+                    "description": (
+                        "Use open, resolved, all, or an exact persisted status."
+                    ),
+                },
+                "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 50,
+                    "default": 10,
+                },
+                "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "default": 0,
+                },
+            },
+        },
+        "examples": [
+            {
+                "method": "GET",
+                "path": "/mind/memory/proposals",
+                "intent": "Inspect open source-backed memory candidates.",
+                "body": {"status": "open", "limit": 10},
+            }
+        ],
+    },
+    {
+        "method": "GET",
+        "path": "/mind/memory/proposals/{proposal_id}",
+        "status": "implemented",
+        "purpose": (
+            "Open one proposal with provenance hooks, related memories, and "
+            "non-authoritative maintenance recommendation."
+        ),
+        "body_schema": None,
+        "examples": [
+            {
+                "method": "GET",
+                "path": "/mind/memory/proposals/prop_example",
+                "intent": "Inspect evidence before deciding on a memory candidate.",
+            }
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/memory/proposals/decide",
+        "status": "implemented",
+        "purpose": (
+            "Persist Scarlet's explicit semantic decision to accept, reject, "
+            "deduplicate, or supersede a proposal. The backend validates and "
+            "executes the selected lifecycle without choosing its meaning."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "proposal_id": {"type": "string"},
+                "decision": {
+                    "type": "string",
+                    "enum": ["accept", "reject", "duplicate", "supersede"],
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Scarlet's source-aware semantic rationale.",
+                },
+                "target_memory_id": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Required only for duplicate or supersede decisions."
+                    ),
+                },
+                "type": {
+                    "type": ["string", "null"],
+                    "description": "Optional corrected memory type.",
+                },
+                "scope": {
+                    "type": ["string", "null"],
+                    "description": "Optional corrected memory scope.",
+                },
+                "content": {
+                    "type": ["string", "null"],
+                    "description": "Optional corrected memory content.",
+                },
+                "expected_future_use": {
+                    "type": ["string", "null"],
+                    "description": "Optional corrected future-use annotation.",
+                },
+            },
+            "required": ["proposal_id", "decision", "reason"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/memory/proposals/decide",
+                "intent": "Accept a source-supported memory candidate.",
+                "body": {
+                    "proposal_id": "prop_example",
+                    "decision": "accept",
+                    "reason": "The source turn directly supports this durable memory.",
+                },
             }
         ],
     },
@@ -1933,7 +2055,7 @@ def route_catalog_suggestions(method: str, path: str) -> list[dict[str, str]]:
             )
         )
     suggestions.sort(key=lambda item: item[0], reverse=True)
-    return [item for _, item in suggestions[:5]]
+    return [item for _, item in suggestions[:8]]
 
 
 def _find_route(method: str, path: str) -> dict[str, Any] | None:

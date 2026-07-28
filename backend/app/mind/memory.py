@@ -6,9 +6,15 @@ from app.mind.memory_lifecycle import (
     handle_memory_supersede as handle_memory_supersede,
 )
 from app.mind.memory_proposals import (
-    apply_create_memory_proposal as apply_create_memory_proposal,
     create_memory_proposal_from_review_candidate as create_memory_proposal_from_review_candidate,
     memory_proposal_payload as memory_proposal_payload,
+)
+from app.mind.memory_proposal_review import (
+    MemoryProposalDecisionBody as MemoryProposalDecisionBody,
+    MemoryProposalListBody as MemoryProposalListBody,
+    handle_memory_proposal_decide as handle_memory_proposal_decide,
+    handle_memory_proposal_list as handle_memory_proposal_list,
+    handle_memory_proposal_read as handle_memory_proposal_read,
 )
 from app.mind.memory_read import (
     MemoryFactsQueryBody as MemoryFactsQueryBody,

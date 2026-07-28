@@ -1,8 +1,8 @@
 # Memory Robustness Roadmap
 
 Status: Core V1 memory baseline closed; residual work is future research
-Last updated: 2026-07-19
-App baseline: V1.50.1
+Last updated: 2026-07-28
+App baseline: V1.64.0 local; V1.50.1 closed-Core baseline
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
@@ -26,12 +26,13 @@ Implemented today:
   `session summarize`.
 - Legacy `/mind/*` endpoint routes remain implemented under the shell for
   backend/debug compatibility, tests, and deterministic maintenance.
-- `POST /mind/memory/facts/backfill` is internal maintenance, not a normal
-  Scarlet command: it rebuilds canonical facts and retrieval artifacts for
-  existing memories after extractor/schema/lifecycle changes.
+- `POST /mind/memory/facts/backfill` is retained as an internal compatibility
+  command, but V1.64 makes it a traceable no-op: heuristic fact generation is
+  retired.
 - `memories` table with source session, turn, message provenance.
-- `memory_facts` table with entity, predicate, value, temporal fields,
-  source provenance, lifecycle status, and fact-level supersession links.
+- `memory_facts` table retained for legacy audit with entity, predicate, value,
+  provenance, lifecycle status, and fact-level supersession links. Historical
+  rows are non-authoritative and excluded from active cognition.
 - `session_summaries` table as the episodic recall index for chat sessions.
 - `search_documents_fts` as a derived SQLite FTS5 sparse index for memory and
   session retrieval.
@@ -59,7 +60,8 @@ Implemented today:
   - every turn emits `memory.context`;
   - eligible selected memories become compact V2 hooks;
   - recent user/general hooks use cognitive activity;
-  - near misses, exclusions, conflicts, KG, and scoring remain in traces.
+  - near misses, exclusions, KG, and scoring remain in traces;
+  - relation/conflict candidates require Scarlet's semantic judgment.
 - Provider-native turn history:
   - completed turns persist Anthropic-compatible content blocks;
   - future provider calls use native history plus the current user message;
@@ -74,7 +76,7 @@ changed in persistent state.
 Current weakness:
 
 The system is not yet a mature cognitive memory. It can write, retrieve, read,
-deprecate, supersede, inspect active fact conflicts, navigate source
+deprecate, supersede, inspect relation candidates and legacy fact provenance, navigate source
 messages/turns/sessions, maintain summaries, and project compact automatic
 hooks, but it cannot safely adjudicate/merge semantic duplicates, enforce
 multi-user ownership, compact memory autonomously, or guarantee that the model
@@ -367,7 +369,7 @@ without adopting Markdown as the source of truth.
 
 ### Phase M1 - Response-Control Guardrails
 
-Status: hold / re-verify later.
+Status: historical proposal; explicitly rejected and removed in V1.64.0.
 
 Owner decision on 2026-05-20:
 
@@ -381,7 +383,7 @@ Goal:
 
 Make runtime evidence operational in final answers.
 
-Add:
+Historical proposal:
 
 - answer obligations generated from runtime context;
 - trace payload for obligations;
@@ -468,11 +470,12 @@ Scarlet's first live supersede attempt used `target_id` plus `superseded_by`.
 The API returned a structured validation error and Scarlet recovered on the next
 tool call. The lifecycle parser now accepts that observed alias shape.
 
-### Phase M3 - Atomic Fact Layer
+### Phase M3 - Historical Atomic Fact Layer
 
-Status: initial implementation live-verified on 2026-05-20.
+Status: implemented historically, then retired as semantic authority in
+V1.64.0. Rows remain audit evidence.
 
-Goal:
+Historical goal:
 
 Represent stable memory as structured facts with entity and predicate.
 
@@ -497,7 +500,7 @@ task_constraint
 correction
 ```
 
-Acceptance:
+Historical acceptance at the time:
 
 - Done: Zero-Luce memories map to `entity=protocollo-zero-luce`,
   `predicate=response_format`.
@@ -621,10 +624,10 @@ Implemented:
 - Idle job runs missed semantic memory review, stores
   `maintenance.memory_review` traces, and creates `memory_proposals`
   for write-recommended candidates.
-- V1.2.0 keeps resolution inside the same idle job: rejected candidates and
-  duplicates are archived deterministically, very high-confidence create_new
-  candidates can become active maintenance memories, and ambiguous candidates
-  use one optional LLM resolver batch.
+- V1.2.0 historically resolved proposals inside the same idle job. V1.64
+  supersedes this: exact normalized duplicates and structural rejects may be
+  archived, while every semantic candidate remains pending after optional
+  M2.7 annotation. Maintenance does not create active memory.
 - Proposal inspection is maintenance-only in V1.1.1:
   `GET /api/maintenance/memory/proposals` returns bounded pages of pending
   work, and
@@ -732,19 +735,22 @@ POST /api/maintenance/memory/proposals/{proposal_id}/archive
 
 Behavior:
 
-- A future experiment may let the model propose memory operations only if it
-  needs that model-facing primitive.
-- Backend validates proposals.
-- Idle maintenance resolves safe reject/duplicate/create cases.
-- Ambiguous cases use one optional LLM resolver batch and otherwise remain
-  `pending_review`.
-- Future Dream/human review inspects the daily proposal ledger before
-  merge/update/deprecate behavior is added.
+- Backend validates and persists source-backed proposals.
+- Idle maintenance may annotate candidates with one optional M2.7
+  recommendation but never decides a semantic outcome.
+- `pending_review` remains open until Scarlet lists/opens the proposal and
+  explicitly accepts, rejects, marks a duplicate, or supersedes a selected
+  active memory.
+- Exact normalized equality is structural identity evidence. Similarity and
+  historical fact divergence are inspection leads only.
+- Proposal-ready events enter the shared workspace as appraisal candidates,
+  not forced wakes.
 - Compaction can merge duplicates, suggest supersession, and flag stale records.
 
 Acceptance:
 
-- Scarlet can propose a memory change without immediately polluting active memory.
+- Maintenance can propose a memory change without polluting active memory.
+- Scarlet can inspect original sources and is the sole semantic adjudicator.
 - A compaction run creates traceable operations and leaves unapplied proposals
   visible.
 
@@ -826,14 +832,13 @@ when observed behavior or a planned research branch justifies the work.
    reliable at larger memory counts.
 ```
 
-Historical rationale:
+Historical rationale, superseded by ADR-0142:
 
 Lifecycle resolved the actual persistent-state conflict and gave Scarlet a real
-repair path. Atomic facts now give retrieval and lifecycle a canonical
-entity/predicate layer. Retrieval upgrades should therefore operate on facts and
-entity aliases instead of papering over ambiguous narrative memory. Response
-control remains important, but the owner has parked it until the memory system
-has stronger conflict-management evidence.
+repair path. The later conclusion is that heuristic atomic facts cannot provide
+canonical semantic authority. Retrieval operates on canonical memory content
+and source evidence; structured propositions require an explicit future
+Scarlet-owned confirmation path. Runtime response control remains structural.
 
 ## 8. Non-Goals Without A Dedicated Future Slice
 

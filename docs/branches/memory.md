@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-18
-System version assessed: V1.50.0 candidate
+Last updated: 2026-07-28
+System version assessed: V1.64.0 local
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo
@@ -16,7 +16,10 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
 
 ## Evidenze
 
-- Memoria semantica con write/search/read/conflicts/deprecate/supersede.
+- Memoria semantica con write/search/read/relation review/deprecate/supersede.
+- V1.64 ritira l'estrazione automatica di fatti da tipo, tag e frasi. Le righe
+  storiche restano audit non autorevole e non influenzano retrieve, rerank, KG,
+  contesto automatico o maintenance.
 - Memorie collegate a `source_session_id`, `source_turn_id`,
   `source_message_id`.
 - Memoria episodica con session summary, transcript e ricerca sessioni.
@@ -48,13 +51,19 @@ riusabili e recuperando le sessioni sorgente quando serve precisione.
   `session message` e `session turn` aprono direttamente l'evidenza.
 - Summary mancanti/stale hanno audit e riconciliazione bounded/retryable.
 - Filtri temporali e sparse retrieval FTS5/BM25.
-- Proposal inbox interno per candidati memoria generati da idle review, con
-  preflight su duplicati, memorie simili e fatti canonici. La inbox non e
-  esposta a Scarlet tramite `mind_api`; viene letta e archiviata solo da API di
-  manutenzione.
-- Idle maintenance ora risolve i casi cauti nella stessa pipeline: reject e
-  duplicate vengono archiviati, create_new molto sicure possono diventare
-  memorie attive, e i casi ambigui passano a un solo resolver LLM batch.
+- Proposal ledger per candidati memoria generati da idle review, con preflight
+  strutturale e provenienza navigabile. Scarlet lo usa attraverso la famiglia
+  shell `memory`: puo elencare/aprire proposte e decidere esplicitamente
+  accept, reject, duplicate o supersede.
+- V1.64 rende l'idle maintenance non mutativa: reject strutturali e duplicati
+  normalizzati esatti possono essere riconosciuti come identita
+  rappresentazionale; M2.7 annota gli altri casi, che restano
+  `pending_review`. Nessuna raccomandazione crea o modifica memoria.
+- `memory.proposals.review_ready` entra nel Cognitive Workspace come candidato
+  da valutare. Non forza un wake e non implica che la proposta debba essere
+  accettata.
+- Similarita lessicale, tag, vicinanza di retrieval e divergenze tra fact
+  storici non producono conflitti semantici deterministici.
 - V1.3.0 aggiunge un substrato derivato per retrieval avanzato:
   `memory_surfaces`, `memory_graph_nodes`, `memory_graph_edges` e manifest di
   readiness. Questi indici sono rigenerabili e preparano embedding, Milvus

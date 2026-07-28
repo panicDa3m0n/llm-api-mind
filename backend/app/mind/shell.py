@@ -277,6 +277,112 @@ def _memory_command(
             ),
             context=context,
         )
+    if action == "proposals":
+        return _dispatch_api_as_shell(
+            parsed,
+            target="memory.proposals.list",
+            api_request=MindAPIRequest(
+                method="GET",
+                path="/mind/memory/proposals",
+                body={
+                    "status": _flag_string(parsed, "status") or "open",
+                    "limit": _flag_int(parsed, 10, "limit", "top"),
+                    "offset": _flag_int(parsed, 0, "offset"),
+                },
+                intent=intent,
+            ),
+            context=context,
+        )
+    if action == "proposal":
+        proposal_id = _first_arg_or_flag(parsed, "id", "proposal-id")
+        if not proposal_id:
+            return _shell_error(
+                code="shell.memory_proposal_missing_id",
+                message="memory proposal requires a proposal id.",
+                parsed=parsed,
+                namespace="memory",
+                actions=["memory proposals --status open --limit 10"],
+            )
+        return _dispatch_api_as_shell(
+            parsed,
+            target="memory.proposal.read",
+            api_request=MindAPIRequest(
+                method="GET",
+                path=f"/mind/memory/proposals/{proposal_id}",
+                body={},
+                intent=intent,
+            ),
+            context=context,
+        )
+    if action in {
+        "proposal-accept",
+        "proposal-reject",
+        "proposal-duplicate",
+        "proposal-supersede",
+    }:
+        proposal_id = parsed.args[0] if parsed.args else _flag_string(
+            parsed,
+            "id",
+            "proposal-id",
+        )
+        target_memory_id = (
+            parsed.args[1]
+            if len(parsed.args) >= 2
+            else _flag_string(parsed, "target", "memory-id")
+        )
+        reason = _flag_string(parsed, "reason", "why")
+        if not proposal_id or not reason:
+            return _shell_error(
+                code="shell.memory_proposal_decision_missing_fields",
+                message=(
+                    f"memory {action} requires a proposal id and reason."
+                ),
+                parsed=parsed,
+                namespace="memory",
+                actions=[f'memory {action} prop_... --reason "..."'],
+            )
+        decision = action.removeprefix("proposal-")
+        if decision in {"duplicate", "supersede"} and not target_memory_id:
+            return _shell_error(
+                code="shell.memory_proposal_target_missing",
+                message=(
+                    f"memory {action} requires a target memory id selected "
+                    "after source inspection."
+                ),
+                parsed=parsed,
+                namespace="memory",
+                actions=[
+                    f'memory {action} prop_... mem_... --reason "..."'
+                ],
+            )
+        body = {
+            "proposal_id": proposal_id,
+            "decision": decision,
+            "reason": reason,
+        }
+        if target_memory_id is not None:
+            body["target_memory_id"] = target_memory_id
+        _copy_flags(
+            parsed,
+            body,
+            {
+                "type": ("type",),
+                "scope": ("scope",),
+                "content": ("content",),
+                "expected_future_use": ("future-use", "expected-future-use"),
+            },
+        )
+        return _dispatch_api_as_shell(
+            parsed,
+            target="memory.proposal.decide",
+            api_request=MindAPIRequest(
+                method="POST",
+                path="/mind/memory/proposals/decide",
+                body=body,
+                intent=intent,
+            ),
+            context=context,
+        )
     if action == "conflicts":
         return _dispatch_api_as_shell(
             parsed,

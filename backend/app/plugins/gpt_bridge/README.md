@@ -54,13 +54,14 @@ the three Actions above.
 2. `POST /gpt/action` executes every needed memory, session, focus, volition,
    affect, mode, metacognition, help, or other shell command.
 3. `POST /gpt/finalize` receives the exact complete answer before it is shown,
-   validates current answer obligations, persists the accepted assistant
-   message, and returns `final_answer_to_show`.
+   verifies that it is non-empty, persists that exact assistant message, and
+   returns `final_answer_to_show`.
 
-Bootstrap and every action response may expose answer obligations. A first
-hard-obligation failure at finalize returns recoverable HTTP 409. A second hard
-failure returns HTTP 422. Validator unavailability returns HTTP 503 and never
-silently accepts the draft.
+Bootstrap and action responses expose transport guidance only. They do not
+generate semantic answer obligations and finalize does not grade wording,
+evidence sufficiency, or source-sensitive language. Empty drafts fail
+structurally; semantic verification remains Scarlet's responsibility through
+the shared prompt, context, and shell.
 
 After bootstrap, the GPT may emit concise public progress notes during a
 non-trivial Action sequence. Those notes are not sent to finalize; only the

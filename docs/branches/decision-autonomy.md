@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-28
-System version assessed: V1.63.0 rollout target; V1.61.0 deployed before rollout
+System version assessed: V1.64.0 rollout target; V1.61.0 deployed before rollout
 Status: shared lifecycle verified; Cognitive Workspace, episodes, and
 Endogenous Cognition V1 implemented
 

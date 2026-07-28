@@ -20,7 +20,6 @@ def test_memory_facade_reexports_mutation_owners() -> None:
             memory_proposals.create_memory_proposal_from_review_candidate
         ),
         "memory_proposal_payload": memory_proposals.memory_proposal_payload,
-        "apply_create_memory_proposal": memory_proposals.apply_create_memory_proposal,
     }
 
     for name, owner in expected.items():

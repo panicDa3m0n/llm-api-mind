@@ -20,6 +20,7 @@ from app.mind.search import (
     sync_session_documents,
 )
 from app.mind.time_filters import TimeFilter, interval_contains, resolve_interval, time_filter_payload
+from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.models import ChatSession, MemoryRecord, Message, SessionSummary
 
@@ -149,7 +150,15 @@ def handle_sessions_list(
 
     with Session(context.engine) as db:
         query = _normalized_query(request.query)
-        resolved_time = resolve_interval(request.time)
+        runtime_timezone = (
+            load_runtime_preferences(db, context.settings).timezone
+            if context.settings is not None
+            else "Europe/Rome"
+        )
+        resolved_time = resolve_interval(
+            request.time,
+            timezone_name=runtime_timezone,
+        )
         if query is None and request.time is None:
             page = repositories.list_chat_sessions(
                 db,
@@ -209,7 +218,6 @@ def handle_sessions_list(
                 chat_session
                 for chat_session in candidates
                 if chat_session.id in sparse_matches
-                or _session_matches_query(db, chat_session, query)
             ]
             matched.sort(
                 key=lambda chat_session: (
@@ -245,7 +253,7 @@ def handle_sessions_list(
             "offset": request.offset,
             "query": request.query,
             "time": time_filter_payload(request.time, resolved_time),
-            "retrieval_stages": ["fts5_sparse_v1", "fallback_summary_text_match_v1"],
+            "retrieval_stages": ["fts5_sparse_v1"],
             "count": len(session_payloads),
             "has_more": has_more,
             "sessions": session_payloads,
@@ -904,26 +912,6 @@ def _fallback_summary(chat_session: ChatSession, messages: list[Message]) -> str
         f"First user message: {_truncate(first_user, 180)} "
         f"Last message: {_truncate(last_message, 220)}"
     )
-
-
-def _session_matches_query(
-    db: Session,
-    chat_session: ChatSession,
-    query: str,
-) -> bool:
-    summary = repositories.get_session_summary(db, session_id=chat_session.id)
-    messages = repositories.list_messages(db, session_id=chat_session.id)
-    text_parts = [
-        chat_session.title or "",
-        summary.summary if summary is not None else "",
-        " ".join(summary.topics_json if summary is not None else []),
-        " ".join(summary.decisions_json if summary is not None else []),
-        " ".join(summary.open_questions_json if summary is not None else []),
-        " ".join(message.content for message in messages[-4:]),
-    ]
-    haystack = " ".join(text_parts).casefold()
-    tokens = [token for token in query.casefold().split() if token]
-    return all(token in haystack for token in tokens)
 
 
 def _filter_sessions_by_time(

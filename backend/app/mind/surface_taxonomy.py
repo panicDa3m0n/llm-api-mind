@@ -59,7 +59,6 @@ SUPPORT_SURFACE_KINDS = {
 }
 PROMOTABLE_SURFACE_ROLES = {
     "primary_content",
-    "canonical_fact",
     "associative_graph",
     "episodic_context",
 }
@@ -88,7 +87,7 @@ def surface_taxonomy_manifest() -> dict[str, Any]:
         "policy": {
             "canonical_truth": [
                 "memories",
-                "memory_facts",
+                "memory_facts (legacy audit only)",
                 "session_summaries",
                 "messages",
                 "memory_proposals",
@@ -96,8 +95,8 @@ def surface_taxonomy_manifest() -> dict[str, Any]:
             "surfaces_are": "derived_rebuildable_indexes",
             "agent_does_not_write_surfaces_directly": True,
             "active_retrieval_policy": (
-                "Content and canonical-fact surfaces may promote a memory. "
-                "Future-use, temporal, and conflict/lifecycle surfaces are "
+                "Content surfaces may promote a memory. Legacy-fact, "
+                "future-use, temporal, and conflict/lifecycle surfaces are "
                 "supporting evidence and must not select a memory by themselves."
             ),
         },
@@ -111,10 +110,10 @@ def surface_taxonomy_manifest() -> dict[str, Any]:
                 "purpose": "Direct recall from the actual memory claim/content.",
             },
             {
-                "role": "canonical_fact",
+                "role": "legacy_fact_audit",
                 "surface_kinds": sorted(CANONICAL_FACT_SURFACE_KINDS),
-                "active_rank_eligible": True,
-                "purpose": "Recall through canonical entity/predicate/value facts.",
+                "active_rank_eligible": False,
+                "purpose": "Historical compatibility only; excluded from active recall.",
             },
             {
                 "role": "associative_graph",
@@ -161,7 +160,7 @@ def surface_taxonomy_manifest() -> dict[str, Any]:
             {
                 "kind": "fact_bundle_text",
                 "dimensions": ["facts", "entity_predicate_value"],
-                "purpose": "Canonical fact bundle linked to the memory.",
+                "purpose": "Deprecated legacy fact bundle; not generated in V1.64.",
             },
             {
                 "kind": "conflict_guard_text",
@@ -238,26 +237,6 @@ def compile_memory_surface_drafts(
             embedding_role="support_temporal",
         )
     )
-    if facts:
-        drafts.append(
-            _memory_surface(
-                memory,
-                surface_kind="fact_bundle_text",
-                content=_fact_bundle_text(memory, facts=facts),
-                dimensions=["facts", "entity_predicate_value"],
-                embedding_role="canonical_fact_bridge",
-            )
-        )
-    if _needs_conflict_guard(memory):
-        drafts.append(
-            _memory_surface(
-                memory,
-                surface_kind="conflict_guard_text",
-                content=_conflict_guard_text(memory),
-                dimensions=["conflict", "lifecycle"],
-                embedding_role="support_lifecycle_conflict",
-            )
-        )
     return drafts
 
 
@@ -266,32 +245,8 @@ def compile_fact_surface_drafts(
     *,
     memory: MemoryRecord,
 ) -> list[SurfaceDraft]:
-    return [
-        SurfaceDraft(
-            target_type="fact",
-            target_id=fact.id,
-            surface_kind="fact_text",
-            content=_fact_text(fact, memory=memory),
-            scope=memory.scope,
-            status=fact.status,
-            source_session_id=fact.source_session_id,
-            source_turn_id=fact.source_turn_id,
-            source_trace_id=fact.source_trace_id,
-            metadata=_surface_metadata(
-                dimensions=["fact", "entity_predicate_value"],
-                embedding_role="dense_sparse_fact",
-                extra={
-                    "memory_id": memory.id,
-                    "entity": fact.entity,
-                    "predicate": fact.predicate,
-                    "confidence": fact.confidence,
-                    "salience": fact.salience,
-                    "surface_origin": "memory_fact",
-                    "active_rank_eligible": True,
-                },
-            ),
-        )
-    ]
+    del fact, memory
+    return []
 
 
 def compile_graph_node_surface_draft(node: MemoryGraphNode) -> SurfaceDraft:
@@ -320,7 +275,7 @@ def surface_retrieval_role(surface_kind: str) -> str:
     if surface_kind in PRIMARY_CONTENT_SURFACE_KINDS:
         return "primary_content"
     if surface_kind in CANONICAL_FACT_SURFACE_KINDS:
-        return "canonical_fact"
+        return "legacy_fact_audit"
     if surface_kind == "session_summary":
         return "episodic_context"
     if surface_kind in ASSOCIATIVE_SURFACE_KINDS:
@@ -481,41 +436,6 @@ def _temporal_text(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
     )
 
 
-def _fact_bundle_text(memory: MemoryRecord, *, facts: list[MemoryFact]) -> str:
-    fact_lines = [
-        " ".join(
-            [
-                f"Entity: {fact.entity}",
-                f"Predicate: {fact.predicate}",
-                f"Value: {json.dumps(fact.value_json, ensure_ascii=False, sort_keys=True)}",
-                f"Status: {fact.status}",
-            ]
-        )
-        for fact in facts
-    ]
-    return "\n".join(
-        [
-            f"Canonical facts for memory {memory.id}",
-            f"Memory content: {memory.content}",
-            *fact_lines,
-        ]
-    )
-
-
-def _conflict_guard_text(memory: MemoryRecord) -> str:
-    return "\n".join(
-        item
-        for item in [
-            "Conflict/update/deprecation guard surface.",
-            f"Active claim or constraint: {memory.content}",
-            f"Reason stored: {memory.reason_for_storage}",
-            f"Future use: {memory.expected_future_use or ''}",
-            "Use this surface to notice future statements that update, contradict, deprecate, or supersede this memory.",
-        ]
-        if item
-    )
-
-
 def _fact_text(fact: MemoryFact, *, memory: MemoryRecord) -> str:
     return "\n".join(
         [
@@ -545,21 +465,6 @@ def _node_text(node: MemoryGraphNode) -> str:
         ]
         if item
     )
-
-
-def _needs_conflict_guard(memory: MemoryRecord) -> bool:
-    if memory.status != "active":
-        return True
-    if memory.memory_type in {
-        "correction",
-        "decision",
-        "project_fact",
-        "task_context",
-        "behavioral_pattern",
-    }:
-        return True
-    lifecycle = memory.metadata_json.get("lifecycle")
-    return isinstance(lifecycle, dict) and bool(lifecycle)
 
 
 def _isoformat(value: Any) -> str | None:

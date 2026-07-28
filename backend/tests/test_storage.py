@@ -275,8 +275,8 @@ def test_memory_retrieval_artifacts_round_trip() -> None:
         "preference_text",
         "future_use_text",
         "temporal_text",
-        "fact_bundle_text",
     }.issubset(surface_kinds)
+    assert "fact_bundle_text" not in surface_kinds
     assert [surface.target_id for surface in target_surfaces] == [memory_id]
     memory_text_surface = next(
         surface for surface in surfaces if surface.surface_kind == "memory_text"
@@ -287,15 +287,13 @@ def test_memory_retrieval_artifacts_round_trip() -> None:
         "memory-surface-taxonomy-v1"
     )
     assert "backend_owned_fields" in memory_text_surface.metadata_json
-    assert fact_surfaces[0].surface_kind == "fact_text"
+    assert fact_surfaces == []
     node_keys = {node.node_key for node in graph_nodes}
     assert f"memory:{memory_id}" in node_keys
-    assert f"fact:{fact_id}" in node_keys
-    assert "entity:local-user" in node_keys
+    assert f"fact:{fact_id}" not in node_keys
+    assert "entity:local-user" not in node_keys
     assert f"session:{session_id}" in node_keys
-    assert {"has_fact", "about_entity", "evidenced_by_session"}.issubset(
-        {edge.relation for edge in graph_edges}
-    )
+    assert {edge.relation for edge in graph_edges} == {"evidenced_by_session"}
     assert [result.source_id for result in sparse_results] == [memory_id]
 
 

@@ -10,7 +10,7 @@ from typing import Any, Iterable
 from sqlalchemy import text
 from sqlmodel import Session
 
-from app.mind.facts import fact_search_text
+from app.mind.facts import fact_is_authoritative, fact_search_text
 from app.mind.surface_taxonomy import (
     SurfaceDraft,
     compile_fact_surface_drafts,
@@ -38,12 +38,16 @@ def sync_memory_documents(
     *,
     facts_by_memory: dict[str, list[MemoryFact]] | None = None,
 ) -> None:
+    load_stored_facts = facts_by_memory is None
     facts_by_memory = facts_by_memory or {}
     synced_memories = list(memories)
+    authoritative_facts_by_memory: dict[str, list[MemoryFact]] = {}
     for memory in synced_memories:
         facts = facts_by_memory.get(memory.id)
-        if facts is None:
+        if facts is None and load_stored_facts:
             facts = repositories.list_memory_facts(db, memory_id=memory.id)
+        facts = [fact for fact in (facts or []) if fact_is_authoritative(fact)]
+        authoritative_facts_by_memory[memory.id] = facts
         _replace_document(
             db,
             doc_id=f"memory:{memory.id}",
@@ -67,7 +71,7 @@ def sync_memory_documents(
     _sync_memory_surfaces_and_graph(
         db,
         synced_memories,
-        facts_by_memory=facts_by_memory,
+        facts_by_memory=authoritative_facts_by_memory,
     )
     db.commit()
 
@@ -223,7 +227,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
         ],
         "source_of_truth": [
             "memories",
-            "memory_facts",
+            "memory_facts (legacy audit source; not automatic semantic authority)",
             "session_summaries",
             "messages",
         ],
@@ -237,6 +241,7 @@ def retrieval_stage_manifest() -> dict[str, Any]:
         ],
         "notes": [
             "Surface and graph indexes are derived and can be rebuilt.",
+            "Legacy heuristic facts are excluded from retrieval artifacts.",
             "No vector database is required for normal operation.",
             "V1.3.1 shadow retrieval is trace-only and does not change active ranking.",
             "V1.4.0 memory surfaces are compiled by the backend, not written by Scarlet.",

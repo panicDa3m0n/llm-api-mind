@@ -112,7 +112,8 @@ receipt or contribution enters the result batch.
 
 The host does not yet insert batches into native chat context or prompts. That
 integration should happen only with an approved product module and must retain
-Core-owned context budgets, canonical prompt priority, and answer obligations.
+Core-owned context budgets, canonical prompt priority, structural finality,
+and Scarlet's semantic authority.
 
 ## 6. Receipts, Traces, And Events
 

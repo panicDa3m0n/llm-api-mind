@@ -302,7 +302,9 @@ def _memory_rerank_document(
             f"Type: {memory.memory_type}",
             f"Scope: {memory.scope}",
             f"Content: {memory.content}",
-            f"Canonical facts: {fact_search_text(facts)}" if facts else "",
+            f"Confirmed propositions: {fact_search_text(facts)}"
+            if fact_search_text(facts)
+            else "",
         ]
         if item
     )

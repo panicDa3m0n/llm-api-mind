@@ -2,7 +2,7 @@
 
 FastAPI backend for the LLM API Mind experimental runtime.
 
-Development target: V1.63.0. Closed deployed Core baseline: V1.50.1.
+Development target: V1.64.0. Closed deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -44,7 +44,8 @@ Current scope:
 - schema-versioned API Mind discovery plus one LLM-backed internal metacognition
   route with previous-turn thinking retrospection;
 - semantic memory write/search/open/graph/facts/conflicts/deprecate/supersede
-  through `mind_shell`; facts backfill remains internal maintenance;
+  plus source-backed proposal list/open/decision through `mind_shell`; facts
+  backfill remains internal maintenance;
 - maintenance API access for overview, job inspection/manual lab run, pending
   memory proposal review, and archival;
 - episodic session recall through `GET /mind/sessions`, `GET /mind/sessions/{session_id}`, and `POST /mind/sessions/{session_id}/summarize`;
@@ -63,8 +64,8 @@ Current scope:
 - connection-local `scarlet-live-v1` frames for immediate Product UI
   composition, with Stream V2 as the durable reconnect and replay boundary;
 - per-session idle maintenance that schedules summary refresh, missed-memory
-  review, pending memory proposal creation, cautious resolution, and auditable
-  proposal ledger updates after completed turns;
+  review, non-mutating memory proposal creation, and auditable proposal ledger
+  updates after completed turns; only Scarlet adjudicates semantic outcomes;
 - scripted and interactive evaluation runner for traceable experiments;
 - pytest contracts for health, provider wiring, storage, chat, shell/API parity,
   context V2/accounting, GPT bridge, agent modes, behavioral contracts,
@@ -143,19 +144,12 @@ USER_PRIVACY_SCOPE=local_single_user
 Persisted `/api/dashboard/settings` values override these defaults for future
 runtime-context turns.
 
-Final-answer obligations default to active enforcement:
-
-```txt
-ANSWER_OBLIGATIONS_MODE=active
-ANSWER_VALIDATION_MAX_TOKENS=4096
-```
-
 The native runtime treats provider `end_turn` as the only successful completion
-boundary. `max_tokens` continues the same provider sequence, while semantic
-validation is invoked only when a current hard obligation requires
-natural-language judgment. GPT bridge finalize returns a recoverable 409 for
-the first hard rejection, fails the turn on the second, and never persists a
-rejected draft.
+boundary. `max_tokens` continues the same provider sequence. The runtime checks
+only structural completion conditions such as a valid provider boundary and
+non-empty public output; Scarlet remains the semantic authority for the answer.
+GPT bridge finalize likewise persists the exact non-empty draft without a
+second-model semantic gate.
 
 Metacognitive context defaults to shadow mode:
 

@@ -33,9 +33,6 @@ class Settings(BaseSettings):
         le=10.0,
     )
     provider_max_token_continuations: int = Field(default=8, ge=1, le=16)
-    answer_obligations_mode: Literal["off", "shadow", "active"] = "active"
-    answer_validation_max_tokens: int = Field(default=4096, ge=256, le=16384)
-
     agent_system_prompt: str | None = Field(default=None, repr=False)
     agent_system_prompt_path: str | None = None
 

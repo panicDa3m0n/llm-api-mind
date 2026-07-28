@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-28
-Code baseline reviewed: V1.63.0
+Code baseline reviewed: V1.64.0
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -45,6 +45,14 @@ uses the same compact provisional `workspace` hook. Its full substrate,
 adaptive-window bookkeeping, device raw observations, seed alternatives, and
 M2.7 traces remain backend/trace evidence. Scarlet receives selected candidate
 summaries and exact source references only after normal workspace ignition.
+
+V1.64.0 preserves the compact packet shape while correcting semantic
+authority. Legacy fact rows are excluded from automatic memory selection,
+reranking, KG recall, conflict declarations, and proposal ranking. Automatic
+`metacognitive_context` is now an observational trace only and is never
+model-facing; natural-language affect is not inferred by backend keyword
+patterns. These changes remove misleading derived semantics rather than adding
+new context fields.
 
 V1.31.0 does not change the compact memory-hook shape. It changes which
 memories qualify for `relevant`: multi-route recall remains internal, while a
@@ -194,7 +202,7 @@ No weather, GPS, camera, microphone, body, robot, browser, or other live externa
 | Delivery | `trace_ui_only`; selected records become compact V2 `relevant` hooks |
 | Source | `memory.context`: lexical retrieval, graph expansion, optional shadow/hybrid ranking, then `memory-packet-v1` compaction. |
 | Recipients | Traces/UI/maintenance; only compact eligible hooks reach either model. |
-| Function | Supply relevant durable evidence, provenance, compact facts, validity/conflict signals, and negative evidence without a shell call on every contextual turn. |
+| Function | Supply relevant durable evidence, provenance, and negative evidence without a shell call on every contextual turn. |
 
 | Field | Current selection | Why it is sent |
 | --- | --- | --- |
@@ -203,9 +211,9 @@ No weather, GPS, camera, microphone, body, robot, browser, or other live externa
 | provenance | source session/turn/message ids and record times | Lets Scarlet open source evidence when needed. |
 | `cognitive` | subject, domains, validity, sensitivity | Explain safe/useful interpretation. |
 | `retrieval` | compact score, reason, routes and flags | Explain relevance without raw debug machinery. |
-| `facts` | first 5 compact atomic facts per selected memory | Canonical entity/predicate/value state when available. |
+| `facts` | empty in V1.64 active retrieval | Legacy heuristic facts are audit-only and do not enter automatic cognition. |
 | `near_miss` / `excluded` | id/type/scope/score/classification/reason summaries | Separate weak leads and non-evidence from selected memories. |
-| `conflicts` | compact active fact conflicts | Require inspection rather than silent choice. |
+| `conflicts` | empty in V1.64 automatic retrieval | The backend does not declare semantic conflicts. |
 | `negative_evidence` | explicit no-selection state | Calibrate absence claims. |
 
 Automatic exclusions:
@@ -677,7 +685,7 @@ automatically.
 Current navigation assessment:
 
 - `memory open <memory_id>` reads the full memory and stored provenance;
-- `memory facts --memory-id <memory_id>` inspects canonical facts;
+- `memory facts --memory-id <memory_id>` inspects legacy fact provenance;
 - `memory graph <memory_id>` resolves the KG root internally from the memory
   id, so a separate graph-node id is not currently needed in a hint;
 - `session open <source_session_id>` returns transcript messages carrying
@@ -740,12 +748,12 @@ about different contexts. Future conflict work should therefore separate:
 - explicit, traceable lifecycle action only after that review; no automatic
   semantic conflict resolution from token/tag similarity.
 
-Current implementation note: automatic runtime context treats same active
-entity/predicate with different fact values as `atomic_fact_conflict`; manual
-`memory conflicts` also emits exact-content candidates and tag/token overlaps
-as non-conflict maintenance signals. Neither path currently has a dedicated LLM
-semantic conflict adjudicator. No automatic conflict packet or lifecycle policy
-has been accepted by this review.
+Current implementation note: as of V1.64.0, automatic runtime context does not
+emit semantic conflicts. Manual `memory conflicts` may expose exact normalized
+duplicates or divergent historical fact rows only as non-authoritative review
+candidates; fuzzy tag/token/retrieval overlap is not classified as conflict.
+Historical fact records remain available for audit, but no automatic conflict
+packet, semantic adjudication, or lifecycle mutation is derived from them.
 
 ### 2026-07-12: Session Fallback, Immediate Recency And Provider Parity
 
@@ -753,9 +761,9 @@ The owner closed the remaining decisions for the context families already
 reviewed.
 
 The current-session hint stays model-facing but contains only id, title, and
-creation time. Raw session metadata and `sessions.updated_at` are systemic
-because maintenance can change the latter without a new conversational
-message.
+creation time. Raw session metadata is systemic. From V1.64,
+`sessions.updated_at` again represents conversation activity only: later
+memory, proposal, fact, or lifecycle maintenance does not change it.
 
 A previous session without a persisted summary uses one fixed navigation hint:
 

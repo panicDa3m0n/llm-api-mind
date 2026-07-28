@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Scarlet GPT Bridge",
-    "version": "1.50.1",
+    "version": "1.64.0",
     "description": "GPT Actions schema connecting ChatGPT-hosted Scarlet to API Mind context, cognitive commands, persistent sessions, and answer history."
   },
   "servers": [
@@ -116,14 +116,8 @@
               }
             }
           },
-          "409": {
-            "description": "First hard-obligation rejection; correct and retry finalize once."
-          },
           "422": {
-            "description": "Second hard-obligation rejection; the turn has failed."
-          },
-          "503": {
-            "description": "Answer validation unavailable; the active turn is not finalized."
+            "description": "The final draft is empty or structurally invalid."
           }
         }
       }
@@ -238,17 +232,17 @@
           "action_policy": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Optional cognitive action policy for this turn, including whether further API Mind action is required before answering."
+            "description": "Transport policy confirming that semantic answer validation is disabled and finalize remains required."
           },
           "required_actions": {
             "type": "array",
             "items": { "type": "object", "additionalProperties": true },
-            "description": "Optional API Mind actions Scarlet must run before answering."
+            "description": "Reserved transport field. V1.64 returns an empty array."
           },
           "recommended_actions": {
             "type": "array",
             "items": { "type": "object", "additionalProperties": true },
-            "description": "Optional suggested API Mind actions for grounding the answer."
+            "description": "Reserved transport field. V1.64 returns an empty array."
           }
         }
       },
@@ -263,7 +257,7 @@
           "action_policy": {
             "type": "object",
             "additionalProperties": true,
-            "description": "Updated answer obligations after this cognitive action."
+            "description": "Transport policy confirming that semantic answer validation is disabled and finalize remains required."
           },
           "required_actions": {
             "type": "array",

@@ -13,7 +13,6 @@ from app.llm.factory import (
 from app.llm.provider import LLMConfigurationError, LLMProvider, LLMRequestError
 from app.mind.contracts import MindAPIContext
 from app.mind.memory import (
-    apply_create_memory_proposal,
     create_memory_proposal_from_review_candidate,
     memory_proposal_payload,
 )
@@ -53,20 +52,18 @@ Required JSON shape:
 }
 """
 
-PROPOSAL_RESOLUTION_SYSTEM_PROMPT = """You resolve Scarlet memory maintenance proposals.
+PROPOSAL_RESOLUTION_SYSTEM_PROMPT = """You review Scarlet memory maintenance proposals.
 
 You are not speaking to the user. Return only one JSON object.
 
-Goal: decide only the ambiguous proposal items provided by backend maintenance.
-Be conservative. Do not invent facts. Prefer keep_pending when evidence is
-insufficient, similar memories may need merge/update/deprecation, or the
-proposal contains sensitive or unsupported content.
+Goal: provide semantic review evidence for the proposal ledger. You do not
+mutate memory and your recommendation is not Scarlet's final judgment. Be
+conservative and do not invent facts.
 
 Allowed outcomes:
-- apply_create: create a new active memory only when the proposal is directly
-  source-supported, not a duplicate, and safe to store.
-- reject: archive as not useful/noisy/unsupported.
-- noop_duplicate: archive because an equivalent memory already exists.
+- recommend_create: evidence supports presenting this as a new memory.
+- recommend_reject: evidence suggests noise, unsupported content, or low value.
+- recommend_duplicate: evidence suggests an existing memory may be equivalent.
 - keep_pending: leave for future Dream/human review.
 
 Required JSON shape:
@@ -76,17 +73,13 @@ Required JSON shape:
   "decisions": [
     {
       "proposal_id": "prop_...",
-      "outcome": "apply_create|reject|noop_duplicate|keep_pending",
+      "outcome": "recommend_create|recommend_reject|recommend_duplicate|keep_pending",
       "reason": "short source-grounded reason",
       "confidence": 0.0
     }
   ]
 }
 """
-
-SAFE_AUTO_CREATE_MIN_ACTION_CONFIDENCE = 0.8
-LLM_APPLY_CREATE_MIN_CONFIDENCE = 0.85
-
 
 def run_memory_review(
     engine: Engine,
@@ -220,6 +213,53 @@ def run_memory_review(
     )
 
     with Session(engine) as db:
+        ready_proposal_ids = [
+            str(item["proposal_id"])
+            for item in resolution.get("decisions", [])
+            if isinstance(item, dict) and item.get("status") == "pending_review"
+        ]
+        ready_proposals = [
+            proposal
+            for proposal_id in ready_proposal_ids
+            if (proposal := repositories.get_memory_proposal(db, proposal_id))
+            is not None
+        ]
+        ready_event = (
+            record_event(
+                db,
+                session_id=job.session_id,
+                turn_id=job.trigger_turn_id,
+                event_type="memory.proposals.review_ready",
+                payload={
+                    "job_id": job.id,
+                    "source_trace_id": trace_id,
+                    "proposal_ids": [
+                        proposal.id for proposal in ready_proposals
+                    ],
+                    "proposals": [
+                        {
+                            "id": proposal.id,
+                            "type": proposal.candidate_type,
+                            "scope": proposal.candidate_scope,
+                            "content": proposal.content,
+                            "source_session_id": proposal.source_session_id,
+                            "source_turn_id": proposal.source_turn_id,
+                            "source_message_ids": (
+                                proposal.source_message_ids_json
+                            ),
+                        }
+                        for proposal in ready_proposals
+                    ],
+                },
+                source="maintenance",
+                actor="backend",
+                visibility="private",
+                status="completed",
+                trace_id=trace_id,
+            )
+            if ready_proposals
+            else None
+        )
         event = record_event(
             db,
             session_id=job.session_id,
@@ -227,7 +267,7 @@ def run_memory_review(
             event_type="maintenance.memory_review.completed",
             payload={
                 "job_id": job.id,
-                "trace_id": trace.id,
+                "trace_id": trace_id,
                 "candidate_count": parsed.get("candidate_count", 0),
                 "write_recommended_count": sum(
                     1
@@ -247,6 +287,7 @@ def run_memory_review(
             trace_id=trace_id,
         )
         event_id = event.id
+        ready_event_id = ready_event.id if ready_event is not None else None
 
     return {
         "ok": ok,
@@ -255,11 +296,14 @@ def run_memory_review(
         "resolution": resolution,
         "trace_id": trace_id,
         "event_id": event_id,
+        "review_ready_event_id": ready_event_id,
     }
 
 
 def _empty_resolution_result() -> dict[str, Any]:
     return {
+        "semantic_authority": "scarlet",
+        "semantic_mutation_enabled": False,
         "auto_archived_count": 0,
         "auto_applied_count": 0,
         "llm_reviewed_count": 0,
@@ -317,16 +361,6 @@ def _resolve_memory_review_proposals(
                 if resolved is not None:
                     result["auto_archived_count"] += 1
                     decisions.append(_proposal_decision_payload(resolved))
-                continue
-            if _safe_auto_create(proposal):
-                _, resolved = apply_create_memory_proposal(
-                    db,
-                    proposal=proposal,
-                    resolver="deterministic_preflight",
-                    reason="high-confidence create_new proposal passed conservative auto-apply gates",
-                )
-                result["auto_applied_count"] += 1
-                decisions.append(_proposal_decision_payload(resolved))
                 continue
             ambiguous_ids.append(proposal.id)
 
@@ -406,26 +440,12 @@ def _resolve_memory_review_proposals(
             )
             if resolved is None:
                 continue
-            if resolved.status == "applied_create":
-                result["llm_applied_count"] += 1
             if resolved.status == "pending_review":
                 result["pending_review_count"] += 1
             decisions.append(_proposal_decision_payload(resolved))
 
     result["decisions"] = decisions
     return result
-
-
-def _safe_auto_create(proposal: Any) -> bool:
-    decision = proposal.decision_json or {}
-    return (
-        proposal.proposed_action == "create_new"
-        and proposal.action_confidence >= SAFE_AUTO_CREATE_MIN_ACTION_CONFIDENCE
-        and bool(proposal.evidence)
-        and not proposal.similar_memory_ids_json
-        and not decision.get("conflicting_fact_ids")
-        and not decision.get("matching_fact_ids")
-    )
 
 
 def _build_proposal_resolution_prompt(
@@ -462,10 +482,11 @@ def _build_proposal_resolution_prompt(
         payload = {
             "task": "Resolve ambiguous memory proposals produced by idle maintenance.",
             "rules": [
-                "Use apply_create only for directly source-supported new memories.",
-                "Use keep_pending for possible merge, update, deprecation, stale-memory, or uncertain cases.",
-                "Use reject for unsupported, noisy, too private, or one-off candidates.",
-                "Use noop_duplicate only when an equivalent active memory is already present.",
+                "Recommend create only for directly source-supported new memories.",
+                "Keep pending for possible merge, update, deprecation, stale-memory, or uncertain cases.",
+                "Recommend reject for unsupported, noisy, too private, or one-off candidates.",
+                "Recommend duplicate only when an existing memory may be equivalent.",
+                "Your output annotates the ledger and never mutates semantic memory.",
             ],
             "proposals": [memory_proposal_payload(proposal) for proposal in proposals],
             "source_transcripts": transcripts,
@@ -478,7 +499,12 @@ def _normalize_proposal_resolution(
     proposal_ids: list[str],
 ) -> dict[str, Any]:
     allowed_ids = set(proposal_ids)
-    allowed_outcomes = {"apply_create", "reject", "noop_duplicate", "keep_pending"}
+    allowed_outcomes = {
+        "recommend_create",
+        "recommend_reject",
+        "recommend_duplicate",
+        "keep_pending",
+    }
     decisions: list[dict[str, Any]] = []
     raw_decisions = parsed.get("decisions")
     if isinstance(raw_decisions, list):
@@ -524,61 +550,20 @@ def _apply_resolver_decision(
     resolver_trace_id: str,
 ) -> Any | None:
     outcome = decision["outcome"]
-    confidence = float(decision.get("confidence") or 0.0)
     reason = str(decision.get("reason") or "No reason provided.")
-    if outcome == "apply_create" and _llm_can_apply_create(proposal, confidence):
-        _, resolved = apply_create_memory_proposal(
-            db,
-            proposal=proposal,
-            resolver="llm_proposal_resolution",
-            reason=reason,
-            decision={**decision, "resolver_trace_id": resolver_trace_id},
-        )
-        return resolved
-    if outcome == "noop_duplicate":
-        return _resolve_proposal_without_memory(
-            db,
-            proposal=proposal,
-            status="archived_noop_duplicate",
-            resolver="llm_proposal_resolution",
-            outcome="noop_duplicate",
-            reason=reason,
-            decision={**decision, "resolver_trace_id": resolver_trace_id},
-        )
-    if outcome == "reject":
-        return _resolve_proposal_without_memory(
-            db,
-            proposal=proposal,
-            status="archived_rejected",
-            resolver="llm_proposal_resolution",
-            outcome="reject",
-            reason=reason,
-            decision={**decision, "resolver_trace_id": resolver_trace_id},
-        )
-    keep_reason = (
-        reason
-        if outcome == "keep_pending"
-        else f"{reason} Auto-apply gates rejected outcome {outcome}."
-    )
     return _resolve_proposal_without_memory(
         db,
         proposal=proposal,
         status="pending_review",
         resolver="llm_proposal_resolution",
         outcome="keep_pending",
-        reason=keep_reason,
-        decision={**decision, "resolver_trace_id": resolver_trace_id},
-    )
-
-
-def _llm_can_apply_create(proposal: Any, confidence: float) -> bool:
-    decision = proposal.decision_json or {}
-    return (
-        confidence >= LLM_APPLY_CREATE_MIN_CONFIDENCE
-        and proposal.proposed_action == "create_new"
-        and not proposal.similar_memory_ids_json
-        and not decision.get("conflicting_fact_ids")
-        and not decision.get("matching_fact_ids")
+        reason=reason,
+        decision={
+            **decision,
+            "recommendation": outcome,
+            "resolver_trace_id": resolver_trace_id,
+            "semantic_authority": False,
+        },
     )
 
 

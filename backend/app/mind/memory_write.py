@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from typing import Any
 
 from pydantic import (
@@ -12,7 +13,7 @@ from pydantic import (
 from sqlmodel import Session
 
 from app.mind.contracts import MindAPIContext, MemoryOperationResult
-from app.mind.facts import extract_memory_facts, fact_payload
+from app.mind.facts import fact_payload
 from app.mind.memory_shared import (
     DEFAULT_MEMORY_SCOPE,
     MEMORY_TYPE_VALUES,
@@ -59,6 +60,16 @@ SCORE_ALIASES = {
     "basso": 0.35,
     "uncertain": 0.25,
 }
+
+
+@dataclass(frozen=True)
+class MemoryWriteSource:
+    """Backend-owned source override for a previously captured candidate."""
+
+    session_id: str | None = None
+    turn_id: str | None = None
+    message_id: str | None = None
+    metadata: dict[str, Any] | None = None
 
 
 class MemoryWriteBody(BaseModel):
@@ -195,6 +206,7 @@ def handle_memory_write(
     context: MindAPIContext | None,
     *,
     intent: str | None = None,
+    source: MemoryWriteSource | None = None,
 ) -> MemoryOperationResult:
     if context is None or context.session_id is None:
         return _context_required("write")
@@ -235,6 +247,7 @@ def handle_memory_write(
                 memory=None,
                 stored=False,
                 decision="rejected",
+                source=source,
             )
             return MemoryOperationResult(
                 ok=False,
@@ -271,6 +284,7 @@ def handle_memory_write(
                 memory=duplicate,
                 stored=False,
                 decision="deduplicated",
+                source=source,
             )
             _record_memory_activity(
                 db,
@@ -310,11 +324,14 @@ def handle_memory_write(
             confidence=NEUTRAL_STORED_CONFIDENCE,
             salience=NEUTRAL_STORED_SALIENCE,
             scope=request.scope,
-            source_session_id=context.session_id,
-            source_turn_id=context.turn_id,
-            source_message_id=context.source_message_id,
+            source_session_id=source.session_id if source else context.session_id,
+            source_turn_id=source.turn_id if source else context.turn_id,
+            source_message_id=source.message_id if source else context.source_message_id,
             tags=[],
-            metadata=_backend_memory_metadata_from_write(request),
+            metadata=_backend_memory_metadata_from_write(
+                request,
+                source_metadata=source.metadata if source else None,
+            ),
         )
         trace = _trace_memory_write(
             db,
@@ -324,6 +341,7 @@ def handle_memory_write(
             memory=memory,
             stored=True,
             decision="accepted",
+            source=source,
         )
         _record_memory_activity(
             db,
@@ -467,12 +485,12 @@ def handle_memory_facts_backfill(
             "trace_ids": [trace_id],
         },
         cognitive_hint=(
-            "Canonical facts are now available for inspected memories. Use "
-            "them before relying on tag or token similarity."
+            "Heuristic fact generation is retired. Historical fact rows remain "
+            "available for audit, but no new semantic propositions were created."
         ),
         suggested_next_actions=[
-            "Inspect facts by entity or predicate",
-            "Use memory conflicts to check unresolved active fact conflicts",
+            "Inspect historical facts only when migration provenance matters",
+            "Use the source memory and transcript as semantic evidence",
         ],
         confidence=1.0,
     )
@@ -516,6 +534,7 @@ def _trace_memory_write(
     memory: MemoryRecord | None,
     stored: bool,
     decision: str,
+    source: MemoryWriteSource | None = None,
 ):
     return repositories.add_trace(
         db,
@@ -529,6 +548,14 @@ def _trace_memory_write(
             "policy": policy,
             "request": request.model_dump(mode="json"),
             "memory_id": memory.id if memory is not None else None,
+            "source_override": {
+                "session_id": source.session_id,
+                "turn_id": source.turn_id,
+                "message_id": source.message_id,
+                "metadata": source.metadata or {},
+            }
+            if source is not None
+            else None,
         },
     )
 
@@ -539,34 +566,9 @@ def _ensure_memory_facts(
     *,
     source_trace_id: str | None = None,
 ) -> tuple[list[MemoryFact], list[MemoryFact]]:
-    extracted = extract_memory_facts(memory)
+    # Historical facts stay available for audit. New propositions must come
+    # from an explicit semantic review owned by Scarlet, not lexical inference.
     created: list[MemoryFact] = []
-    for candidate in extracted:
-        existing = repositories.find_memory_fact(
-            db,
-            memory_id=memory.id,
-            entity=candidate.entity,
-            predicate=candidate.predicate,
-            value=candidate.value,
-        )
-        if existing is not None:
-            continue
-        created.append(
-            repositories.add_memory_fact(
-                db,
-                memory_id=memory.id,
-                entity=candidate.entity,
-                predicate=candidate.predicate,
-                value=candidate.value,
-                source_trace_id=source_trace_id,
-                source_session_id=memory.source_session_id,
-                source_turn_id=memory.source_turn_id,
-                confidence=candidate.confidence,
-                salience=candidate.salience,
-                status=memory.status,
-                metadata=candidate.metadata,
-            )
-        )
     facts = repositories.list_memory_facts(
         db,
         memory_id=memory.id,
@@ -600,7 +602,11 @@ def _sync_fact_lifecycle_from_memory_metadata(
         )
 
 
-def _backend_memory_metadata_from_write(request: MemoryWriteBody) -> dict[str, Any]:
+def _backend_memory_metadata_from_write(
+    request: MemoryWriteBody,
+    *,
+    source_metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     ignored: dict[str, Any] = {}
     if request.confidence is not None:
         ignored["confidence"] = request.confidence
@@ -610,7 +616,10 @@ def _backend_memory_metadata_from_write(request: MemoryWriteBody) -> dict[str, A
         ignored["tags"] = request.tags
     if request.metadata:
         ignored["metadata"] = request.metadata
-    return {
+    metadata = {
         "write_policy": "backend_owned_dynamic_retrieval_scores_v1",
         "agent_supplied_fields_ignored_for_ranking": ignored,
     }
+    if source_metadata:
+        metadata["source_context"] = source_metadata
+    return metadata

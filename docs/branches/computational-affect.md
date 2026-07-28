@@ -1,8 +1,8 @@
 # Branch: Emotivita Computazionale
 
-Last updated: 2026-07-18
-System version assessed: V1.40.0
-Status: natural appraisal transition validated; model-facing benefit still experimental
+Last updated: 2026-07-28
+System version assessed: V1.64.0 local
+Status: structural appraisal retained; semantic affect appraisal requires redesign
 
 ## Filosofia del ramo
 
@@ -39,8 +39,8 @@ Valutazione: L3.
 Il ramo ha ora un primo core implementato:
 
 - prototipi emozionali umani versionati in `backend/app/mind/affect.py`;
-- appraisal deterministico su messaggio utente, memory context, eventi recenti
-  e precedente stato affettivo;
+- appraisal deterministico solo su eventi runtime osservabili, memory negative
+  evidence e precedente stato affettivo;
 - variabili numeriche interne con inerzia/decadimento semplice;
 - composizione in emozione umana (`curiosity`, `tenderness`, `frustration`,
   `caution`, `relief`, `enthusiasm`, `sadness`);
@@ -53,6 +53,10 @@ Sistema valutato: V1.32.0.
 
 Limite principale: i prototipi sono reali e tracciabili ma ancora primitivi;
 non sono stati calibrati su lunghe sessioni live con Scarlet.
+
+Correzione V1.64: il backend non interpreta piu parole, punteggiatura o frasi
+del messaggio come emozioni. Un futuro appraiser semantico dovra essere
+model-backed, sourceable, incerto e non autorizzato a cambiare altri organi.
 
 ## Sviluppi precedenti
 

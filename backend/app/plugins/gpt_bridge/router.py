@@ -26,12 +26,8 @@ from app.api.chat_serialization import (
     session_response as _session_response,
 )
 from app.config import Settings
-from app.llm.factory import (
-    active_provider_max_tokens,
-    active_provider_model,
-    auxiliary_provider_settings,
-)
-from app.llm.provider import LLMConfigurationError, LLMExecutedToolCall
+from app.llm.factory import active_provider_max_tokens, active_provider_model
+from app.llm.provider import LLMExecutedToolCall
 from app.mind.context import build_memory_context
 from app.mind.dispatcher import MindAPIContext, MindAPIResponse
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
@@ -44,14 +40,6 @@ from app.runtime.events import (
     record_tool_call_started,
 )
 from app.runtime.context_accounting import build_external_context_accounting_preflight
-from app.runtime.answer_obligations import (
-    AnswerObligationManifest,
-    AnswerValidationResult,
-    augment_with_tool_evidence,
-    compile_answer_obligations,
-    gpt_action_policy,
-    validate_answer_semantics,
-)
 from app.runtime.maintenance import (
     schedule_session_idle_maintenance,
     schedule_summary_repairs,
@@ -342,28 +330,8 @@ def build_gpt_bridge_router(
                 provider_message_stats=provider_message_stats,
                 trace_ids=trace_ids,
             )
-            answer_manifest = compile_answer_obligations(
-                transport="gpt_bridge",
-                memory_context=memory_context.payload,
-                metacognitive_context=memory_context.metacognitive_payload,
-            )
-            answer_manifest_trace_id: str | None = None
-            if settings.answer_obligations_mode != "off":
-                answer_manifest_trace_id = _record_gpt_answer_manifest(
-                    db,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    manifest=answer_manifest,
-                    mode=settings.answer_obligations_mode,
-                    phase="bootstrap",
-                )
-                trace_ids.append(answer_manifest_trace_id)
-            action_policy, required_actions, recommended_actions = gpt_action_policy(
-                answer_manifest
-            )
-            action_policy["mode"] = settings.answer_obligations_mode
-            bootstrap_context["answer_obligations"] = answer_manifest.model_dump(
-                mode="json"
+            action_policy, required_actions, recommended_actions = (
+                _gpt_transport_action_policy()
             )
             accounting_payload = build_external_context_accounting_preflight(
                 session_id=session_id,
@@ -434,8 +402,11 @@ def build_gpt_bridge_router(
                     ],
                     "tools": [MIND_SHELL_TOOL_SCHEMA],
                     "entrypoint": "gpt.bootstrap",
-                    "answer_obligations_trace_id": answer_manifest_trace_id,
-                    "answer_obligations": answer_manifest.model_dump(mode="json"),
+                    "finality_contract": {
+                        "external_finalize_required": True,
+                        "public_answer_required": True,
+                        "semantic_validation": False,
+                    },
                     "latency_ms": int((time.perf_counter() - started) * 1000),
                 },
             )
@@ -587,28 +558,8 @@ def build_gpt_bridge_router(
                 started_event_id=started_event.id,
                 executed=executed,
             )
-            answer_manifest = augment_with_tool_evidence(
-                _answer_manifest_for_turn(db, turn_id=request.turn_id),
-                _executed_tool_calls_for_turn(db, turn_id=request.turn_id),
-            )
-            manifest_trace_id: str | None = None
-            if settings.answer_obligations_mode != "off":
-                manifest_trace_id = _record_gpt_answer_manifest(
-                    db,
-                    session_id=request.session_id,
-                    turn_id=request.turn_id,
-                    manifest=answer_manifest,
-                    mode=settings.answer_obligations_mode,
-                    phase="after_action",
-                )
-            action_policy, required_actions, recommended_actions = gpt_action_policy(
-                answer_manifest
-            )
-            action_policy.update(
-                {
-                    "mode": settings.answer_obligations_mode,
-                    "manifest_trace_id": manifest_trace_id,
-                }
+            action_policy, required_actions, recommended_actions = (
+                _gpt_transport_action_policy()
             )
             return GPTBridgeActionResponse(
                 ok=mind_response.ok,
@@ -645,6 +596,15 @@ def build_gpt_bridge_router(
         )
         started = time.perf_counter()
         trace_ids: list[str] = []
+        if not request.answer.strip():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+                detail={
+                    "code": "gpt_bridge.empty_answer",
+                    "message": "The final answer must contain public text.",
+                    "recoverable": True,
+                },
+            )
         with Session(engine) as db:
             chat_session = _require_session(db, request.session_id)
             turn = _require_turn(db, request.turn_id, session_id=request.session_id)
@@ -675,120 +635,6 @@ def build_gpt_bridge_router(
                         "message": f"Turn {turn.id} is not active.",
                         "recoverable": False,
                     },
-                )
-
-            answer_manifest = augment_with_tool_evidence(
-                _answer_manifest_for_turn(db, turn_id=request.turn_id),
-                _executed_tool_calls_for_turn(db, turn_id=request.turn_id),
-            )
-            semantic_validation = None
-            if (
-                settings.answer_obligations_mode in {"shadow", "active"}
-                and answer_manifest.semantic
-            ):
-                try:
-                    provider = provider_factory(auxiliary_provider_settings(settings))
-                except LLMConfigurationError as exc:
-                    raise HTTPException(
-                        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                        detail={
-                            "code": "gpt_bridge.answer_validation_unavailable",
-                            "message": str(exc),
-                            "recoverable": True,
-                        },
-                    ) from exc
-                semantic_validation = validate_answer_semantics(
-                    provider=provider,
-                    manifest=answer_manifest,
-                    answer=request.answer,
-                    max_tokens=settings.answer_validation_max_tokens,
-                )
-            accepted = semantic_validation is None or semantic_validation.accepted
-            validation_trace_id = _record_gpt_answer_validation(
-                db,
-                session_id=request.session_id,
-                turn_id=request.turn_id,
-                manifest=answer_manifest,
-                answer=request.answer,
-                validation=semantic_validation,
-                accepted=accepted,
-                mode=settings.answer_obligations_mode,
-            )
-            trace_ids.append(validation_trace_id)
-            if (
-                settings.answer_obligations_mode == "active"
-                and semantic_validation is not None
-                and semantic_validation.validator_status == "failed"
-            ):
-                raise HTTPException(
-                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                    detail={
-                        "code": "gpt_bridge.answer_validation_unavailable",
-                        "message": (
-                            "The answer validator could not establish whether the "
-                            "draft satisfies the current hard obligations."
-                        ),
-                        "recoverable": True,
-                        "answer_validation_trace_id": validation_trace_id,
-                        "validator_error": semantic_validation.validator_error,
-                    },
-                )
-            if (
-                settings.answer_obligations_mode == "active"
-                and semantic_validation is not None
-                and not semantic_validation.accepted
-            ):
-                prior_rejections = _gpt_answer_rejection_count(
-                    db,
-                    turn_id=request.turn_id,
-                    exclude_trace_id=validation_trace_id,
-                )
-                detail = {
-                    "code": "gpt_bridge.answer_obligation_failed",
-                    "message": (
-                        "The final draft did not satisfy the current hard answer "
-                        "obligations. Correct it before finalizing."
-                    ),
-                    "recoverable": prior_rejections == 0,
-                    "answer_validation_trace_id": validation_trace_id,
-                    "hard_failure_ids": semantic_validation.hard_failure_ids,
-                    "findings": [
-                        item.model_dump(mode="json")
-                        for item in semantic_validation.findings
-                    ],
-                    "required_next_steps": [
-                        "Use any still-required GPT Action.",
-                        "Correct the answer using the validation findings.",
-                        "Call finalizeScarletBeforeAnswer again with the corrected exact draft.",
-                    ],
-                }
-                if prior_rejections > 0:
-                    repositories.complete_turn(
-                        db,
-                        turn_id=request.turn_id,
-                        status="failed",
-                        latency_ms=int((time.perf_counter() - started) * 1000),
-                        error=detail,
-                    )
-                    record_event(
-                        db,
-                        session_id=request.session_id,
-                        turn_id=request.turn_id,
-                        event_type="turn.failed",
-                        payload=detail,
-                        source="answer_control",
-                        actor="backend",
-                        visibility="debug",
-                        status="failed",
-                        trace_id=validation_trace_id,
-                    )
-                    raise HTTPException(
-                        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-                        detail=detail,
-                    )
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail=detail,
                 )
 
             provider_message_id = new_id("gpt_msg")
@@ -829,8 +675,11 @@ def build_gpt_bridge_router(
                     ],
                     "metadata": request.metadata,
                     "entrypoint": "gpt.finalize",
-                    "answer_validation_trace_id": validation_trace_id,
-                    "answer_obligations": answer_manifest.model_dump(mode="json"),
+                    "finality_contract": {
+                        "accepted": True,
+                        "source": "external_finalize",
+                        "semantic_validation": False,
+                    },
                 },
             )
             trace_ids.append(response_trace.id)
@@ -1382,167 +1231,17 @@ def _tool_call_summaries(db: Session, *, turn_id: str) -> list[dict[str, Any]]:
     return summaries
 
 
-def _record_gpt_answer_manifest(
-    db: Session,
-    *,
-    session_id: str,
-    turn_id: str,
-    manifest: AnswerObligationManifest,
-    mode: str,
-    phase: str,
-) -> str:
-    trace = repositories.add_trace(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        kind="answer.obligations",
-        payload={
-            "mode": mode,
-            "phase": phase,
-            "manifest": manifest.model_dump(mode="json"),
-            "hard_count": sum(
-                1 for item in manifest.obligations if item.severity == "hard"
-            ),
-            "semantic_count": len(manifest.semantic),
+def _gpt_transport_action_policy(
+) -> tuple[dict[str, Any], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Describe transport obligations without judging answer semantics."""
+
+    return (
+        {
+            "schema_version": "gpt-bridge-transport-v1",
+            "action_required": False,
+            "semantic_answer_validation": False,
+            "finalize_required": True,
         },
-    )
-    trace_id = trace.id
-    record_event(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        event_type="answer.obligations.compiled",
-        payload={
-            "mode": mode,
-            "phase": phase,
-            "obligation_ids": [item.id for item in manifest.obligations],
-            "semantic_count": len(manifest.semantic),
-        },
-        source="answer_control",
-        actor="backend",
-        visibility="debug",
-        trace_id=trace_id,
-    )
-    return trace_id
-
-
-def _answer_manifest_for_turn(
-    db: Session,
-    *,
-    turn_id: str,
-) -> AnswerObligationManifest:
-    traces = repositories.list_traces_for_turn(db, turn_id=turn_id)
-    for trace in reversed(traces):
-        if trace.kind != "answer.obligations":
-            continue
-        raw_manifest = trace.payload_json.get("manifest")
-        if not isinstance(raw_manifest, dict):
-            continue
-        return AnswerObligationManifest.model_validate(raw_manifest)
-    return AnswerObligationManifest(transport="gpt_bridge")
-
-
-def _executed_tool_calls_for_turn(
-    db: Session,
-    *,
-    turn_id: str,
-) -> list[LLMExecutedToolCall]:
-    executed: list[LLMExecutedToolCall] = []
-    for trace in repositories.list_traces_for_turn(db, turn_id=turn_id):
-        if trace.kind != "mind.tool_call":
-            continue
-        payload = trace.payload_json
-        provider_tool_use_id = payload.get("provider_tool_use_id")
-        if not isinstance(provider_tool_use_id, str) or not provider_tool_use_id:
-            continue
-        executed.append(
-            LLMExecutedToolCall(
-                provider_tool_use_id=provider_tool_use_id,
-                tool_name=str(payload.get("tool_name") or "mind_shell"),
-                arguments=payload.get("arguments")
-                if isinstance(payload.get("arguments"), dict)
-                else {},
-                result=payload.get("result")
-                if isinstance(payload.get("result"), dict)
-                else {},
-                status=str(payload.get("status") or "error"),
-                latency_ms=payload.get("latency_ms")
-                if isinstance(payload.get("latency_ms"), int)
-                else None,
-                tool_call_id=str(payload.get("tool_call_id"))
-                if payload.get("tool_call_id")
-                else None,
-                trace_id=trace.id,
-            )
-        )
-    return executed
-
-
-def _record_gpt_answer_validation(
-    db: Session,
-    *,
-    session_id: str,
-    turn_id: str,
-    manifest: AnswerObligationManifest,
-    answer: str,
-    validation: AnswerValidationResult | None,
-    accepted: bool,
-    mode: str,
-) -> str:
-    runtime_accepted = mode != "active" or accepted
-    trace = repositories.add_trace(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        kind="answer.validation",
-        payload={
-            "transport": "gpt_bridge",
-            "mode": mode,
-            "accepted": runtime_accepted,
-            "semantic_passed": accepted,
-            "manifest": manifest.model_dump(mode="json"),
-            "semantic": validation.model_dump(mode="json")
-            if validation is not None
-            else None,
-            "draft": {"chars": len(answer), "text": answer},
-        },
-    )
-    trace_id = trace.id
-    record_event(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        event_type="answer.validation.accepted"
-        if runtime_accepted
-        else "answer.validation.rejected",
-        payload={
-            "transport": "gpt_bridge",
-            "mode": mode,
-            "semantic_passed": accepted,
-            "hard_failure_ids": validation.hard_failure_ids
-            if validation is not None
-            else [],
-        },
-        source="answer_control",
-        actor="backend",
-        visibility="debug",
-        status="completed" if runtime_accepted else "error",
-        trace_id=trace_id,
-    )
-    return trace_id
-
-
-def _gpt_answer_rejection_count(
-    db: Session,
-    *,
-    turn_id: str,
-    exclude_trace_id: str,
-) -> int:
-    return sum(
-        1
-        for trace in repositories.list_traces_for_turn(db, turn_id=turn_id)
-        if trace.kind == "answer.validation"
-        and trace.id != exclude_trace_id
-        and trace.payload_json.get("transport") == "gpt_bridge"
-        and trace.payload_json.get("accepted") is False
+        [],
+        [],
     )

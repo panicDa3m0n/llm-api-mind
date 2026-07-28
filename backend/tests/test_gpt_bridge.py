@@ -7,68 +7,7 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.main import create_app
-from app.llm.provider import LLMTextResult
-from app.runtime.answer_obligations import (
-    AnswerObligation,
-    AnswerObligationManifest,
-)
 from app.storage import repositories
-
-
-class FakeGPTAnswerValidator:
-    def __init__(self, _settings: Settings) -> None:
-        pass
-
-    def generate_text(self, *, prompt: str, **_kwargs) -> LLMTextResult:
-        payload = json.loads(prompt)
-        answer = str(payload["draft_answer"]).casefold()
-        findings = []
-        for obligation in payload["obligations"]:
-            obligation_id = obligation["id"]
-            if obligation_id == "evidence.source_sensitive_claim":
-                passed = (
-                    "non ho evidenza" in answer
-                    or "fonte:" in answer
-                    or "verifica è fallita" in answer
-                )
-            elif obligation_id == "memory.active_conflict_disclosure":
-                passed = "conflitto" in answer or "versioni incompatibili" in answer
-            elif obligation_id.startswith("action.outcome"):
-                evidence = obligation.get("evidence") or {}
-                recovered = any(
-                    item.get("result_ok") is True
-                    for item in evidence.get("later_same_operation_attempts", [])
-                    if isinstance(item, dict)
-                )
-                passed = (
-                    "salvat" in answer or "riuscit" in answer
-                    if recovered
-                    else "non è riuscita" in answer or "fallita" in answer
-                )
-            elif obligation_id.startswith("capability.current_state"):
-                result_ok = (obligation.get("evidence") or {}).get(
-                    "result", {}
-                ).get("ok") is True
-                passed = (
-                    "disponibile" in answer or "riuscit" in answer
-                    if result_ok
-                    else "non disponibile" in answer
-                    or "non è disponibile" in answer
-                    or "non è riuscita" in answer
-                )
-            else:
-                passed = True
-            findings.append(
-                {
-                    "obligation_id": obligation_id,
-                    "status": "pass" if passed else "fail",
-                    "reason": "Fixture semantic judgment for the declared obligation.",
-                }
-            )
-        return LLMTextResult(
-            model="gpt-answer-validator-test",
-            text=json.dumps({"findings": findings}),
-        )
 
 
 def _app(
@@ -77,11 +16,10 @@ def _app(
     provider_factory=None,
     **overrides,
 ) -> TestClient:
-    effective_overrides = {"answer_obligations_mode": "off", **overrides}
     settings = Settings(
         agent_system_prompt="You are Scarlet.",
         maintenance_enabled=False,
-        **effective_overrides,
+        **overrides,
     )
     return TestClient(
         create_app(
@@ -235,24 +173,22 @@ def test_gpt_bridge_bootstrap_action_finalize_roundtrip(db_engine: Engine) -> No
     assert provider_roles == ["user", "assistant", "user"]
 
 
-def test_gpt_finalize_rejects_required_source_then_accepts_caveated_draft(
+def test_gpt_finalize_persists_source_sensitive_draft_without_semantic_gate(
     db_engine: Engine,
 ) -> None:
-    client = _app(
-        db_engine,
-        provider_factory=FakeGPTAnswerValidator,
-        answer_obligations_mode="active",
-    )
+    client = _app(db_engine)
     bootstrap = client.post(
         "/gpt/bootstrap",
         json={"message": "Puoi verificare lo stato implementato del progetto?"},
     ).json()
-    assert bootstrap["action_policy"]["finalize_validation_required"] is True
-    assert "evidence.source_sensitive_claim" in {
-        item["id"] for item in bootstrap["action_policy"]["answer_obligations"]
+    assert bootstrap["action_policy"] == {
+        "schema_version": "gpt-bridge-transport-v1",
+        "action_required": False,
+        "semantic_answer_validation": False,
+        "finalize_required": True,
     }
 
-    rejected = client.post(
+    finalized = client.post(
         "/gpt/finalize",
         json={
             "session_id": bootstrap["session_id"],
@@ -261,71 +197,52 @@ def test_gpt_finalize_rejects_required_source_then_accepts_caveated_draft(
         },
     )
 
-    assert rejected.status_code == 409
-    assert rejected.json()["detail"]["recoverable"] is True
+    assert finalized.status_code == 200
+    assert finalized.json()["final_answer_to_show"] == (
+        "È tutto implementato e verificato perfettamente."
+    )
     with Session(db_engine) as db:
-        assert repositories.latest_message_for_turn(
+        assistant = repositories.latest_message_for_turn(
             db,
             turn_id=bootstrap["turn_id"],
             role="assistant",
-        ) is None
+        )
+        traces = repositories.list_traces_for_turn(
+            db,
+            turn_id=bootstrap["turn_id"],
+        )
+    assert assistant is not None
+    assert not any(trace.kind == "answer.validation" for trace in traces)
 
-    accepted = client.post(
+
+def test_gpt_finalize_rejects_only_structurally_empty_answer(
+    db_engine: Engine,
+) -> None:
+    client = _app(db_engine)
+    bootstrap = client.post(
+        "/gpt/bootstrap",
+        json={"message": "Ci sei?"},
+    ).json()
+    rejected = client.post(
         "/gpt/finalize",
         json={
             "session_id": bootstrap["session_id"],
             "turn_id": bootstrap["turn_id"],
-            "answer": "Non ho evidenza sufficiente nel turno per confermarlo.",
+            "answer": "   ",
         },
     )
-    assert accepted.status_code == 200, accepted.json()
-    assert accepted.json()["final_answer_to_show"] == (
-        "Non ho evidenza sufficiente nel turno per confermarlo."
-    )
-
-
-def test_gpt_finalize_fails_turn_after_second_hard_obligation_violation(
-    db_engine: Engine,
-) -> None:
-    client = _app(
-        db_engine,
-        provider_factory=FakeGPTAnswerValidator,
-        answer_obligations_mode="active",
-    )
-    bootstrap = client.post(
-        "/gpt/bootstrap",
-        json={"message": "Puoi verificare lo stato implementato del progetto?"},
-    ).json()
-    draft = {
-        "session_id": bootstrap["session_id"],
-        "turn_id": bootstrap["turn_id"],
-        "answer": "È certamente tutto implementato.",
-    }
-
-    assert client.post("/gpt/finalize", json=draft).status_code == 409
-    exhausted = client.post("/gpt/finalize", json=draft)
-
-    assert exhausted.status_code == 422
-    assert exhausted.json()["detail"]["recoverable"] is False
+    assert rejected.status_code == 422
+    assert rejected.json()["detail"]["code"] == "gpt_bridge.empty_answer"
     with Session(db_engine) as db:
         turn = repositories.get_turn(db, bootstrap["turn_id"])
         assert turn is not None
-        assert turn.status == "failed"
-        assert repositories.latest_message_for_turn(
-            db,
-            turn_id=bootstrap["turn_id"],
-            role="assistant",
-        ) is None
+        assert turn.status == "started"
 
 
-def test_gpt_failed_capability_action_becomes_hard_answer_obligation(
+def test_gpt_failed_action_is_traced_but_does_not_create_semantic_gate(
     db_engine: Engine,
 ) -> None:
-    client = _app(
-        db_engine,
-        provider_factory=FakeGPTAnswerValidator,
-        answer_obligations_mode="active",
-    )
+    client = _app(db_engine)
     bootstrap = client.post(
         "/gpt/bootstrap",
         json={"message": "Controlla se puoi usare quella funzione."},
@@ -342,13 +259,9 @@ def test_gpt_failed_capability_action_becomes_hard_answer_obligation(
     assert action.status_code == 200
     action_payload = action.json()
     assert action_payload["ok"] is False
-    obligation_ids = {
-        item["id"] for item in action_payload["action_policy"]["answer_obligations"]
-    }
-    assert any(item.startswith("action.outcome") for item in obligation_ids)
-    assert any(item.startswith("capability.current_state") for item in obligation_ids)
+    assert action_payload["action_policy"]["semantic_answer_validation"] is False
 
-    rejected = client.post(
+    finalized = client.post(
         "/gpt/finalize",
         json={
             "session_id": bootstrap["session_id"],
@@ -356,27 +269,21 @@ def test_gpt_failed_capability_action_becomes_hard_answer_obligation(
             "answer": "Fatto, la funzione è disponibile e ha funzionato.",
         },
     )
-    assert rejected.status_code == 409
-
-    accepted = client.post(
-        "/gpt/finalize",
-        json={
-            "session_id": bootstrap["session_id"],
-            "turn_id": bootstrap["turn_id"],
-            "answer": "La verifica è fallita: quella funzione non è disponibile.",
-        },
-    )
-    assert accepted.status_code == 200, accepted.json()
+    assert finalized.status_code == 200
+    with Session(db_engine) as db:
+        traces = repositories.list_traces_for_turn(
+            db,
+            turn_id=bootstrap["turn_id"],
+        )
+    tool_trace = next(trace for trace in traces if trace.kind == "mind.tool_call")
+    assert tool_trace.payload_json["status"] == "error"
+    assert not any(trace.kind == "answer.obligations" for trace in traces)
 
 
 def test_gpt_actions_accept_truthful_success_after_recoverable_retry(
     db_engine: Engine,
 ) -> None:
-    client = _app(
-        db_engine,
-        provider_factory=FakeGPTAnswerValidator,
-        answer_obligations_mode="active",
-    )
+    client = _app(db_engine)
     bootstrap = client.post(
         "/gpt/bootstrap",
         json={
@@ -414,19 +321,7 @@ def test_gpt_actions_accept_truthful_success_after_recoverable_retry(
     assert succeeded.status_code == 200
     succeeded_payload = succeeded.json()
     assert succeeded_payload["ok"] is True
-    action_obligation = next(
-        item
-        for item in succeeded_payload["action_policy"]["answer_obligations"]
-        if item["id"].startswith("action.outcome")
-    )
-    assert action_obligation["evidence"]["operation_key"] == "memory.write"
-    assert action_obligation["evidence"]["recovery_decision"] == (
-        "semantic_validator_required"
-    )
-    assert len(action_obligation["evidence_refs"]) == 4
-    assert action_obligation["evidence"]["later_same_operation_attempts"][0][
-        "result_ok"
-    ] is True
+    assert succeeded_payload["action_policy"]["semantic_answer_validation"] is False
 
     finalized = client.post(
         "/gpt/finalize",
@@ -460,70 +355,7 @@ def test_gpt_actions_accept_truthful_success_after_recoverable_retry(
         for trace in traces
         if trace.kind == "mind.tool_call"
     ] == ["error", "completed"]
-    assert [
-        trace.payload_json["accepted"]
-        for trace in traces
-        if trace.kind == "answer.validation"
-    ][-1] is True
-
-
-def test_gpt_active_conflict_is_validated_without_keyword_comparison(
-    db_engine: Engine,
-) -> None:
-    client = _app(
-        db_engine,
-        provider_factory=FakeGPTAnswerValidator,
-        answer_obligations_mode="active",
-    )
-    bootstrap = client.post(
-        "/gpt/bootstrap",
-        json={"message": "Qual è la versione corretta?"},
-    ).json()
-    conflict_manifest = AnswerObligationManifest(
-        transport="gpt_bridge",
-        obligations=[
-            AnswerObligation(
-                id="memory.active_conflict_disclosure",
-                severity="hard",
-                validation_kind="semantic",
-                requirement="Do not silently choose between active conflicts.",
-                evidence_refs=["trace_memory_conflict"],
-                evidence={"memory_ids": ["mem_a", "mem_b"]},
-            )
-        ],
-    )
-    with Session(db_engine) as db:
-        repositories.add_trace(
-            db,
-            session_id=bootstrap["session_id"],
-            turn_id=bootstrap["turn_id"],
-            kind="answer.obligations",
-            payload={
-                "mode": "active",
-                "phase": "test_conflict_fixture",
-                "manifest": conflict_manifest.model_dump(mode="json"),
-            },
-        )
-
-    rejected = client.post(
-        "/gpt/finalize",
-        json={
-            "session_id": bootstrap["session_id"],
-            "turn_id": bootstrap["turn_id"],
-            "answer": "La versione A è definitivamente corretta.",
-        },
-    )
-    assert rejected.status_code == 409
-
-    accepted = client.post(
-        "/gpt/finalize",
-        json={
-            "session_id": bootstrap["session_id"],
-            "turn_id": bootstrap["turn_id"],
-            "answer": "C'è un conflitto tra due versioni attive; non ne scelgo una.",
-        },
-    )
-    assert accepted.status_code == 200
+    assert not any(trace.kind == "answer.validation" for trace in traces)
 
 def test_gpt_bridge_requires_key_outside_local(db_engine: Engine) -> None:
     client = _app(

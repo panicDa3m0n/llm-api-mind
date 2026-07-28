@@ -1111,7 +1111,7 @@ class MemoryProposal(SQLModel, table=True):
     id: str = Field(default_factory=lambda: new_id("prop"), primary_key=True)
     status: str = Field(default="pending", index=True)
     source: str = Field(default="maintenance.memory_review", index=True)
-    proposed_action: str = Field(default="create_new", index=True)
+    proposed_action: str = Field(default="needs_semantic_review", index=True)
     action_confidence: float = Field(default=0.7, ge=0.0, le=1.0)
     risk: str = Field(default="medium", index=True)
     candidate_type: str = Field(index=True)

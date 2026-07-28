@@ -9,6 +9,62 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0087 - Structural Finality And Semantic Authority Boundary
+
+Status: deterministic implementation evidence accepted; focused VPS
+observation pending after deployment
+
+Hypothesis:
+
+Scarlet can preserve reliable turn completion, memory evidence, and background
+review without backend phrase rules or an auxiliary answer judge acting as a
+second semantic authority.
+
+Method:
+
+- exercise native and GPT finalization with answers that do not contain
+  expected keywords;
+- verify `end_turn`, non-empty output, tool completion, and persistence still
+  fail closed structurally;
+- seed or inspect historical fact rows and prove they remain readable but do
+  not alter retrieval text or automatic context;
+- run memory maintenance candidates and prove no semantic memory is created by
+  M2.7 recommendations;
+- have Scarlet's shell list/open proposals and execute accept, reject,
+  duplicate, and supersede decisions while preserving source provenance;
+- emit proposal availability into the Cognitive Workspace as a candidate and
+  prove it is not a forced wake;
+- use natural-language phrases formerly interpreted as affect/metacognitive
+  cues and prove they do not mutate inferred state; and
+- resolve summer and winter temporal intervals using `Europe/Rome`.
+
+Result:
+
+The proposal-review/workspace focused suite passes `80` tests and the complete
+backend passes `342`. Ruff, compileall, mypy over 56 owners, documentation and
+project-skill integrity, GPT OpenAPI parsing, and the frontend production build
+pass. Direct isolated shell use listed/opened a source-backed proposal,
+accepted it, preserved original source provenance, and recorded a separate
+Scarlet decision trace. No full behavioral battery is part of this task.
+
+Interpretation:
+
+The deterministic contract is testable without grading Scarlet's wording.
+Behavioral quality still needs direct observation after deployment, especially
+whether Scarlet uses the existing shell and source evidence sufficiently when
+no backend answer judge forces her to do so.
+
+Evidence:
+
+- `backend/tests/test_chat_api.py`
+- `backend/tests/test_gpt_bridge.py`
+- `backend/tests/test_maintenance.py`
+- `backend/tests/test_memory_proposal_review.py`
+- `backend/tests/test_cognitive_workspace.py`
+- `backend/tests/test_legacy_facts.py`
+- `backend/tests/test_affect_context.py`
+- `backend/tests/test_runtime_time.py`
+
 ## EXP-0086 - Endogenous Cognitive Windows And Explicit Scarlet Adoption
 
 Status: focused deterministic and simulated M3 lifecycle evidence accepted;

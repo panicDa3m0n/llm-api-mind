@@ -4,6 +4,64 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-28 - V1.64.0 Semantic Authority Rework
+
+Area: Core cognitive semantics / Memory / Maintenance / Communication.
+
+Type: Implementazione on `feature/semantic-authority-rework`.
+
+Change:
+
+- removed runtime-generated semantic answer obligations and the auxiliary
+  answer validator from native and GPT turns;
+- retained structural finality through provider `end_turn`, non-empty public
+  output, complete tool lifecycle, persistence, and trace evidence;
+- retired tag/phrase/type-based fact extraction and made historical fact rows
+  non-authoritative audit records excluded from active cognition;
+- changed idle memory maintenance to a proposal ledger where M2.7 can annotate
+  but cannot mutate semantic memory;
+- added Scarlet-owned proposal review through the existing memory shell:
+  list/open plus explicit accept, reject, duplicate, and supersede decisions;
+- preserved original proposal provenance on accepted memory while tracing the
+  current Scarlet decision turn separately;
+- admitted proposal availability to the shared Cognitive Workspace as a
+  candidate rather than a forced wake or backend decision;
+- reduced deterministic duplicate evidence to exact normalized content and
+  retained historical fact divergence as audit-only review evidence;
+- stopped memory, proposal, fact, and lifecycle maintenance from changing the
+  source session's conversation `updated_at`;
+- removed keyword-based natural-language appraisal from automatic affect and
+  metacognitive context;
+- removed episodic substring fallback and made temporal interval resolution
+  use the configured user timezone across DST; and
+- advanced backend, frontend, Android, and module compatibility metadata to
+  V1.64.0.
+
+Verification:
+
+- pre-change focused baseline: `74 passed`;
+- proposal-review, maintenance, workspace, shell, and Mind API suite:
+  `80 passed`;
+- complete backend suite: `342 passed`;
+- Ruff, compileall, mypy over 56 owners, documentation integrity,
+  project-skill validation, GPT OpenAPI JSON parsing, and frontend production
+  build: passed;
+- direct isolated proposal-shell use listed/opened one candidate, accepted it,
+  preserved exact source session/turn/message provenance, and persisted the
+  separate Scarlet decision trace;
+- Ruff, compileall, selected-module mypy, documentation integrity, GPT OpenAPI
+  JSON parsing, and frontend production build: passed;
+- direct isolated bridge/shell use: bootstrap, `help memory`, exact finalize,
+  and memory write with zero automatic facts all completed.
+
+Residual:
+
+- historical fact rows require a separately reviewed migration decision, not
+  automatic deletion or reinterpretation;
+- fuzzy duplicate and semantic conflict discovery remain deliberately outside
+  this slice; Scarlet can already adjudicate candidates supplied explicitly;
+- no long live behavioral battery is part of this release task.
+
 ## 2026-07-28 - V1.63.0 Endogenous Cognition V1
 
 Area: Decision Autonomy / Perception / Cognitive Runtime.

@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-28
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract target: V1.63.0
+Current additive contract target: V1.64.0
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -26,7 +26,7 @@ to operational work.
 |---|---|---|---|
 | **API Mind Core Runtime** | Native turn lifecycle, provider abstraction, canonical history, context, cognitive shell, persistence, traces/events, answer control, maintenance, configuration, and database safety. | Closed V1 baseline; authoritative runtime. | Depends only on selected provider adapters and infrastructure libraries. |
 | **Product UI** | Human-facing web/Android experience and developer inspection over Core contracts. | V1 cockpit/mobile prototype exists; V2 product work is planned. | Consumes versioned Core HTTP/event contracts. It does not own cognition or persistence. |
-| **External Adapters** | Best-effort connection of externally hosted models to the same Core cognition. | GPT Actions bridge is implemented and experimental. | Adapts external transport to Core context, shell, persistence, and answer obligations. |
+| **External Adapters** | Best-effort connection of externally hosted models to the same Core cognition. | GPT Actions bridge is implemented and experimental. | Adapts external transport to Core context, shell, structural finality, and persistence. |
 | **Agentic Modules** | Optional capabilities loaded through declared ports, permissions, modes/tags, dependencies, and lifecycle. | Public V1 contract, opt-in operator-pinned host, and SDK/conformance kit implemented; no product modules installed. | May consume typed Core Ports only. It must not reach Core internals or the database directly. |
 
 The dependency rule is inward toward the Core contract:
@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.63.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.64.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | Scarlet turns and auxiliary semantic workers | `LLMProvider` | MiniMax M3 is Scarlet; non-Scarlet LLM work uses the fixed M2.7 auxiliary profile. Native adapters use stop reasons for continuation, tool dispatch, and finality. |
@@ -59,14 +59,14 @@ the native runtime.
 | Provider-native continuity | `backend/app/api/chat_provider_history.py` and canonical session history | native selected provider | canonical provider messages | Stable authority; compaction never deletes canonical history. |
 | Dynamic model context | `backend/app/mind/context_contracts.py`, `context_projection.py` | native human/autonomous turns and GPT bootstrap | `scarlet-model-context-v2` | One stable model-facing schema for both lifecycles; rich source evidence remains internal. |
 | Semantic context families | `backend/app/mind/context_families.py`, `docs/context-family-registry.md` | V2 projection audit and future context composer | context families V1 / shadow | Typed subject, observer, evidence, mode, activation, and policy registry; no future source is live-admitted. |
-| Cognitive command surface | `backend/app/mind/command_registry.py`, `shell.py`, `schema.py` | native Scarlet and GPT action adapter | registry v2 / shell-organ schema | Single stable model-facing API Mind contract. |
+| Cognitive command surface | `backend/app/mind/command_registry.py`, `shell.py`, `schema.py` | native Scarlet and GPT action adapter | registry v4 / semantic-authority-v2 schema | Single stable model-facing API Mind contract, including Scarlet-owned memory proposal review. |
 | Cognitive operation dispatch | `backend/app/mind/dispatcher.py` and domain owners | shell and internal callers | internal Mind request/response contracts | Internal compatibility boundary, not a second model tool. |
 | Persistence facade | `backend/app/storage/repositories.py` and `storage/repository/*` | Core domain owners | SQLModel/SQLite V1 schema | Stable facade; domain repositories are internal. |
 | Database ownership | `backend/app/storage/database_boundary.py`, `docs/database-topology.md` | startup, tests, evaluation, deploy | production/laboratory/test/preliminary roles | Hard operational boundary. |
 | Trace and event evidence | `backend/app/runtime/events.py`, repositories, `docs/block-registry.md` | Core, developer UI, evaluation | ordered persisted events and typed trace kinds | Append-only evidence contract where practical. |
 | Context accounting/history | `backend/app/runtime/context_accounting.py`, `history_runtime.py`, `history_compaction.py` | native turn and maintenance | accounting v2, history routing/artifact versions | Canonical history is authoritative; derived artifacts fail back visibly. |
-| Answer obligations | `backend/app/runtime/answer_obligations.py` | native turn and GPT finalize | obligations v3 / validation v1 | Shared semantic evidence contract; provider stop reasons, not the validator, own native finality. |
-| Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode. |
+| Turn finality | `backend/app/api/chat_native_turn.py`, `backend/app/plugins/gpt_bridge/router.py` | native turn and GPT finalize | structural finality V1 | Provider `end_turn` owns native finality; non-empty output, tool lifecycle, persistence, and traces are deterministic. No backend component semantically grades Scarlet's final wording. |
+| Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode and may propose but never adjudicate semantic memory. |
 | Autonomous cognition lifecycle | `backend/app/runtime/autonomy.py`, `storage/repository/autonomy.py` | Scarlet internal cycles and Product UI inspection | `scarlet_autonomous` session plus activation ledger V1 | Separate provider chronology and trigger provenance; same V2 compiler, retrieval, organs, policy, and shell as human turns. |
 | Cognitive Workspace | `backend/app/runtime/cognitive_workspace.py`, `mind/wake_registry.py`, `mind/workspace_contracts.py` | autonomous admission and developer inspection | source registry/appraisal/ignition V1 | Shadow-first M2.7 proposals over canonical evidence; cannot impersonate Scarlet or mutate organs. |
 | Endogenous cognition | `backend/app/runtime/endogenous_cognition.py`, `mind/endogenous_contracts.py`, `storage/repository/endogenous.py` | free cognitive windows and existing workspace | endogenous seeds/windows V1 | Adaptive source-backed opportunities; M2.7 proposes only, M3 must explicitly endorse through existing episodes or volition. |
@@ -118,9 +118,9 @@ unless a separately approved contract explicitly promotes them.
 
 The GPT bridge uses three Actions because ChatGPT owns the outer model/tool
 transport. Bootstrap returns the same canonical dynamic context, action calls
-the same shell dispatcher, and finalize uses the same answer-obligation
-semantics. ChatGPT-owned history, tool policy, consent prompts, and token
-accounting remain external limits.
+the same shell dispatcher, and finalize persists the exact non-empty answer.
+ChatGPT-owned history, tool policy, consent prompts, and token accounting
+remain external limits. The bridge does not introduce a semantic answer judge.
 
 ## 6. Internal Boundaries
 

@@ -35,18 +35,18 @@ not permanent thresholds.
 |---|---:|---|---|---|
 | `backend/app/mind/memory.py` | 38 after SCA-38 | compatibility facade for all memory commands | dispatcher, maintenance, maintenance API, shell tests, preliminary gate | high: stable import contract |
 | `backend/app/mind/memory_read.py` | 996 | search/read/facts/graph contracts, ranking, temporal filters, graph navigation, presentation | memory facade, dispatcher, shell tests, preliminary gate | high: manual cognition and evidence |
-| `backend/app/mind/memory_write.py` | 616 | write contracts/policy, exact dedup, facts and backfill | facade, lifecycle, proposals, dispatcher | very high: semantic persistence |
+| `backend/app/mind/memory_write.py` | historical 616 | write contracts/policy, exact dedup, legacy-fact audit/backfill compatibility | facade, lifecycle, proposals, dispatcher | very high: semantic persistence |
 | `backend/app/mind/memory_lifecycle.py` | 462 | deprecate/supersede and fact lifecycle propagation | facade, dispatcher | very high: semantic state mutation |
 | `backend/app/mind/memory_proposals.py` | 555 | maintenance proposal preflight, ledger payload and apply | facade, maintenance runtime/API | high: background semantic candidates |
-| `backend/app/mind/memory_relations.py` | 274 | atomic conflicts and maintenance overlap evidence | facade, dispatcher | high: evidence authority |
+| `backend/app/mind/memory_relations.py` | historical 274 | relation and legacy-divergence review candidates | facade, dispatcher | high: evidence presentation, not semantic authority |
 | `backend/app/mind/memory_shared.py` | 152 | shared fields, payload, normalization, traced errors, activity recording | read and mutation handlers | high: cross-memory contract |
 | `backend/app/api/chat.py` | 218 after SCA-33 | HTTP/debug router registration, request facade, native-service mapping | app factory, chat tests | high: every native HTTP turn |
-| `backend/app/api/chat_native_turn.py` | 1,638 | shared native preflight/completion, sync/stream execution, shell runner, answer obligations | chat facade, GPT context composer, chat tests | very high: every native model turn |
-| `backend/app/plugins/gpt_bridge/router.py` | 1,509 | GPT Action lifecycle, compact context, auth, answer validation | app factory, bridge tests, Custom GPT | high: external transport and continuity |
+| `backend/app/api/chat_native_turn.py` | historical 1,638 before V1.64 | shared native preflight/completion, sync/stream execution, shell runner, structural finality | chat facade, GPT context composer, chat tests | very high: every native model turn |
+| `backend/app/plugins/gpt_bridge/router.py` | historical 1,509 before V1.64 | GPT Action lifecycle, compact context, auth, structural finalize | app factory, bridge tests, Custom GPT | high: external transport and continuity |
 | `backend/app/mind/schema.py` | 1,870 | declarative capability and schema contracts | mind runtime, help, tests | medium: broad imports, but low operational mixing |
 | `backend/app/mind/context.py` | 1,161 after SCA-35 | runtime assembly, compatibility rendering, block construction, temporal context | native chat, GPT bridge, organ tests, preliminary gate | very high: model evidence delivery |
 | `backend/app/mind/context_retrieval.py` | 731 | automatic candidate pooling, ranking, classification, final rerank, negative evidence | context facade, retrieval tests, preliminary gate | high: automatic memory evidence |
-| `backend/app/runtime/maintenance_memory.py` | 746 after SCA-37 | memory review and proposal resolution | scheduler, proposal/memory owners, maintenance tests | high: background semantic mutation |
+| `backend/app/runtime/maintenance_memory.py` | historical 746 after SCA-37 | memory review and non-mutating proposal annotation | scheduler, proposal/memory owners, maintenance tests | high: background evidence; semantic mutation disabled in V1.64 |
 | `backend/app/runtime/maintenance_scheduler.py` | 468 after SCA-37 | schedules, dispatch, worker and job completion | app lifecycle, chat, maintenance API/tests | high: background lifecycle authority |
 | `backend/app/runtime/maintenance_history.py` | 200 after SCA-37 | summary audit/repair, idle summary and history compaction | scheduler, episodic/history runtime, tests | high: episodic continuity |
 | `backend/app/runtime/maintenance.py` | 18 after SCA-37 | stable public facade | app lifecycle, chat, bridge, maintenance API/tests | low: compatibility only |
@@ -107,8 +107,9 @@ Issue: SCA-33, completed in the V1.45.0 candidate.
 
 Native preflight, execution, failure, completion, and scheduling now live in
 `chat_native_turn.py`; `build_chat_router` is a thin HTTP facade. Tool-loop
-order, stop-reason finality, semantic answer obligations, canonical provider
-history, and transport differences are preserved. V1.55.0 additionally moves
+order, stop-reason finality, canonical provider history, and transport
+differences were preserved by that extraction. V1.64 later removed semantic
+answer obligations. V1.55.0 additionally moves
 connection-independent V2 execution into `chat_turn_runner.py`. Frozen pre/post gates pass 9/9,
 OpenAPI is equal, and a directly inspected sync-to-stream MiniMax probe
 preserved continuity. The extraction also fixed BUG-0092, where stream created

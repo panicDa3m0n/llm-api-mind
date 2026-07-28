@@ -163,6 +163,12 @@ def shell_next_actions(target: str, actions: list[str], *, ok: bool) -> list[str
     defaults = {
         "memory.search": ["memory open mem_...", "memory graph mem_... --depth 2"],
         "memory.write": ["memory open mem_..."],
+        "memory.proposals.list": ["memory proposal prop_..."],
+        "memory.proposal.read": [
+            'memory proposal-accept prop_... --reason "..."',
+            'memory proposal-reject prop_... --reason "..."',
+        ],
+        "memory.proposal.decide": ["memory proposals --status open --limit 10"],
         "session.list": ["session open ses_..."],
         "session.open": ['memory search "related fact" --top 5'],
         "focus.read": ['focus set "object" --reason "..."'],

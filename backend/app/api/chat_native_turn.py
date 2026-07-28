@@ -19,7 +19,6 @@ from app.api.chat_accounting import (
     record_context_accounting_preflight,
 )
 from app.api.chat_provider_history import (
-    provider_history_from_result,
     provider_messages_for_turn,
     updated_provider_history,
 )
@@ -42,7 +41,6 @@ from app.config import Settings
 from app.llm.factory import (
     active_provider_max_tokens,
     active_provider_model,
-    auxiliary_provider_settings,
 )
 from app.llm.provider import (
     LLMConfigurationError,
@@ -51,7 +49,6 @@ from app.llm.provider import (
     LLMMessage,
     LLMProvider,
     LLMRequestError,
-    LLMStreamEvent,
     LLMTextResult,
     LLMToolUse,
 )
@@ -65,14 +62,6 @@ from app.mind.dispatcher import (
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
-from app.runtime.answer_obligations import (
-    AnswerObligationManifest,
-    augment_with_tool_evidence,
-    compile_answer_obligations,
-    correction_instruction,
-    render_answer_obligations,
-    validate_answer_semantics,
-)
 from app.runtime.events import (
     record_event,
     record_provider_stream_event,
@@ -118,8 +107,6 @@ class NativeTurnPreparation:
     accounting_trace_id: str
     accounting_payload: dict[str, Any]
     history_routing: HistoryRoutingResult
-    answer_manifest: AnswerObligationManifest
-    answer_obligations_trace_id: str | None
     stream: bool
 
 
@@ -363,30 +350,6 @@ def prepare_native_turn(
             system_prompt.content,
             memory_context.runtime_context,
         ) + history_routing.system_appendix
-        answer_manifest = compile_answer_obligations(
-            transport="native",
-            memory_context=memory_context.payload,
-            metacognitive_context=memory_context.metacognitive_payload,
-        )
-        answer_obligations_trace_id: str | None = None
-        if settings.answer_obligations_mode != "off":
-            answer_obligations_trace_id = record_answer_obligations(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                manifest=answer_manifest,
-                mode=settings.answer_obligations_mode,
-                phase="initial",
-            )
-            trace_ids.append(answer_obligations_trace_id)
-
-        answer_obligations_appendix = ""
-        if (
-            settings.answer_obligations_mode == "active"
-            and answer_manifest.obligations
-        ):
-            answer_obligations_appendix = render_answer_obligations(answer_manifest)
-            effective_system += answer_obligations_appendix
 
         accounting_trace, accounting_payload = record_context_accounting_preflight(
             db,
@@ -399,7 +362,6 @@ def prepare_native_turn(
             messages=model_messages,
             settings=settings,
             compacted_chronology=history_routing.system_appendix,
-            answer_obligations=answer_obligations_appendix,
         )
         accounting_trace_id = accounting_trace.id
         trace_ids.append(accounting_trace_id)
@@ -450,8 +412,11 @@ def prepare_native_turn(
                 if item.role in {"user", "assistant"}
             ],
             "tools": [MIND_SHELL_TOOL_SCHEMA],
-            "answer_obligations_trace_id": answer_obligations_trace_id,
-            "answer_obligations": answer_manifest.model_dump(mode="json"),
+            "finality_contract": {
+                "provider_terminal_stop_reason": "end_turn",
+                "public_answer_required": True,
+                "semantic_validation": False,
+            },
         }
         if stream:
             request_payload["stream"] = True
@@ -505,8 +470,6 @@ def prepare_native_turn(
         accounting_trace_id=accounting_trace_id,
         accounting_payload=accounting_payload,
         history_routing=history_routing,
-        answer_manifest=answer_manifest,
-        answer_obligations_trace_id=answer_obligations_trace_id,
         stream=stream,
     )
 
@@ -517,7 +480,6 @@ def complete_native_turn(
     engine: Engine,
     prepared: NativeTurnPreparation,
     result: LLMTextResult,
-    answer_validation_trace_id: str | None,
     semantic_content_event_seen: bool = False,
 ) -> NativeTurnCompletion:
     """Persist the one shared successful native-turn completion."""
@@ -538,10 +500,6 @@ def complete_native_turn(
                 "usage": result.usage,
                 "stop_reason": result.stop_reason,
                 "completion_recovery": result.completion_recovery,
-                "answer_obligations_trace_id": (
-                    prepared.answer_obligations_trace_id
-                ),
-                "answer_validation_trace_id": answer_validation_trace_id,
             },
         )
         response_payload: dict[str, Any] = {
@@ -556,8 +514,11 @@ def complete_native_turn(
             ],
             "raw_provider_messages": result.raw_provider_messages,
             "completion_recovery": result.completion_recovery,
-            "answer_obligations_trace_id": prepared.answer_obligations_trace_id,
-            "answer_validation_trace_id": answer_validation_trace_id,
+            "finality_contract": {
+                "accepted": result.stop_reason == "end_turn",
+                "source": "provider_stop_reason",
+                "semantic_validation": False,
+            },
         }
         if prepared.stream:
             response_payload["stream"] = True
@@ -745,49 +706,6 @@ def complete_native_turn(
     return NativeTurnCompletion(response=response, runtime_events=runtime_events)
 
 
-def record_answer_obligations(
-    db: Session,
-    *,
-    session_id: str,
-    turn_id: str,
-    manifest: AnswerObligationManifest,
-    mode: str,
-    phase: str,
-) -> str:
-    trace = repositories.add_trace(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        kind="answer.obligations",
-        payload={
-            "mode": mode,
-            "phase": phase,
-            "manifest": manifest.model_dump(mode="json"),
-            "hard_count": sum(
-                1 for item in manifest.obligations if item.severity == "hard"
-            ),
-            "semantic_count": len(manifest.semantic),
-        },
-    )
-    record_event(
-        db,
-        session_id=session_id,
-        turn_id=turn_id,
-        event_type="answer.obligations.compiled",
-        payload={
-            "mode": mode,
-            "phase": phase,
-            "obligation_ids": [item.id for item in manifest.obligations],
-            "semantic_count": len(manifest.semantic),
-        },
-        source="answer_control",
-        actor="backend",
-        visibility="debug",
-        trace_id=trace.id,
-    )
-    return trace.id
-
-
 def record_failed_native_turn(
     engine: Engine,
     *,
@@ -859,25 +777,7 @@ def execute_native_turn(
             tool_runner=tool_runner,
             max_tool_calls=None,
         )
-        result, final_answer_validation_trace_id = (
-            _enforce_native_answer_obligations(
-                engine=engine,
-                settings=settings,
-                provider=provider,
-                validator_provider=provider_factory(
-                    auxiliary_provider_settings(settings)
-                ),
-                manifest=prepared.answer_manifest,
-                result=result,
-                request_messages=prepared.model_messages,
-                system=prepared.effective_system,
-                max_tokens=prepared.max_tokens,
-                tool_runner=tool_runner,
-                session_id=prepared.session_id,
-                turn_id=prepared.turn_id,
-                trace_ids=prepared.trace_ids,
-            )
-        )
+        result = _require_native_end_turn(result)
     except LLMConfigurationError as exc:
         record_failed_native_turn(
             engine,
@@ -951,7 +851,6 @@ def execute_native_turn(
         engine=engine,
         prepared=prepared,
         result=result,
-        answer_validation_trace_id=final_answer_validation_trace_id,
     ).response
 
 
@@ -1063,22 +962,9 @@ def build_mind_tool_runner(
     return run
 
 
-def _enforce_native_answer_obligations(
-    *,
-    engine: Engine,
-    settings: Settings,
-    provider: LLMProvider,
-    validator_provider: LLMProvider,
-    manifest: AnswerObligationManifest,
-    result: LLMTextResult,
-    request_messages: list[LLMMessage],
-    system: str,
-    max_tokens: int,
-    tool_runner: Callable[[LLMToolUse], LLMExecutedToolCall],
-    session_id: str,
-    turn_id: str,
-    trace_ids: list[str],
-) -> tuple[LLMTextResult, str | None]:
+def _require_native_end_turn(result: LLMTextResult) -> LLMTextResult:
+    """Accept only the provider's explicit terminal lifecycle signal."""
+
     if result.stop_reason != "end_turn":
         raise LLMIncompleteResponseError(
             "The provider did not close the turn with end_turn.",
@@ -1089,233 +975,7 @@ def _enforce_native_answer_obligations(
                 "recoverable": False,
             },
         )
-    if settings.answer_obligations_mode != "active":
-        return result, None
-
-    current = result
-    final_validation_trace_id: str | None = None
-    for attempt in range(2):
-        current_manifest = augment_with_tool_evidence(manifest, current.tool_calls)
-        if current_manifest != manifest:
-            with Session(engine) as db:
-                manifest_trace_id = record_answer_obligations(
-                    db,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    manifest=current_manifest,
-                    mode=settings.answer_obligations_mode,
-                    phase=f"draft_{attempt + 1}",
-                )
-                trace_ids.append(manifest_trace_id)
-
-        if not current_manifest.semantic:
-            return current, final_validation_trace_id
-        with Session(engine) as db:
-            record_event(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                event_type="answer.validation.started",
-                payload={"attempt": attempt + 1},
-                source="answer_control",
-                actor="backend",
-                visibility="debug",
-                status="active",
-            )
-        semantic_validation = validate_answer_semantics(
-            provider=validator_provider,
-            manifest=current_manifest,
-            answer=current.text,
-            max_tokens=settings.answer_validation_max_tokens,
-        )
-        accepted = semantic_validation.accepted
-        with Session(engine) as db:
-            validation_trace = repositories.add_trace(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                kind="answer.validation",
-                payload={
-                    "transport": "native",
-                    "attempt": attempt + 1,
-                    "accepted": accepted,
-                    "provider_finality": {
-                        "accepted": current.stop_reason == "end_turn",
-                        "stop_reason": current.stop_reason,
-                        "source": "provider_stop_reason",
-                    },
-                    "semantic": semantic_validation.model_dump(mode="json"),
-                    "manifest": current_manifest.model_dump(mode="json"),
-                    "draft": {
-                        "provider_message_id": current.provider_message_id,
-                        "chars": len(current.text),
-                        "text": current.text,
-                    },
-                },
-            )
-            validation_trace_id = validation_trace.id
-            trace_ids.append(validation_trace_id)
-            final_validation_trace_id = validation_trace_id
-            record_event(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                event_type="answer.validation.accepted"
-                if accepted
-                else "answer.validation.rejected",
-                payload={
-                    "attempt": attempt + 1,
-                    "provider_stop_reason": current.stop_reason,
-                    "hard_failure_ids": semantic_validation.hard_failure_ids,
-                },
-                source="answer_control",
-                actor="backend",
-                visibility="debug",
-                trace_id=validation_trace_id,
-                status="completed" if accepted else "error",
-            )
-        if semantic_validation.validator_status == "failed":
-            raise LLMIncompleteResponseError(
-                "The answer validator could not evaluate the hard obligations.",
-                details={
-                    "reason": "answer_validation_unavailable",
-                    "recoverable": True,
-                    "validator_error": semantic_validation.validator_error,
-                    "answer_validation_trace_id": final_validation_trace_id,
-                },
-            )
-        if accepted:
-            return (
-                _accepted_native_result(
-                    current,
-                    validation_trace_id=final_validation_trace_id,
-                ),
-                final_validation_trace_id,
-            )
-        if attempt == 1:
-            raise LLMIncompleteResponseError(
-                "Scarlet did not satisfy the hard final-answer obligations.",
-                details={
-                    "reason": "answer_obligation_failed",
-                    "attempt_count": 2,
-                    "hard_failure_ids": semantic_validation.hard_failure_ids,
-                    "answer_validation_trace_id": final_validation_trace_id,
-                },
-            )
-
-        with Session(engine) as db:
-            record_event(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                event_type="answer.recovery.requested",
-                payload={
-                    "attempt": 1,
-                    "validation_trace_id": final_validation_trace_id,
-                    "hard_failure_ids": semantic_validation.hard_failure_ids,
-                },
-                source="answer_control",
-                actor="backend",
-                visibility="debug",
-                status="active",
-                trace_id=final_validation_trace_id,
-            )
-        recovery_instruction = correction_instruction(
-            manifest=current_manifest,
-            validation=semantic_validation,
-        )
-        continuation_messages = [
-            *request_messages,
-            *[
-                LLMMessage(role=item["role"], content=item["content"])
-                for item in provider_history_from_result(current)
-            ],
-            LLMMessage(
-                role="user",
-                content=recovery_instruction,
-            ),
-        ]
-        corrected = provider.generate_chat_with_tools(
-            messages=continuation_messages,
-            system=system,
-            max_tokens=max_tokens,
-            tools=[MIND_SHELL_TOOL_SCHEMA],
-            tool_runner=tool_runner,
-            max_tool_calls=None,
-        )
-        current = _merge_answer_recovery_results(
-            current,
-            corrected,
-            recovery_instruction=recovery_instruction,
-        )
-
-    raise AssertionError("answer obligation recovery loop must return or raise")
-
-
-def _accepted_native_result(
-    result: LLMTextResult,
-    *,
-    validation_trace_id: str | None,
-) -> LLMTextResult:
-    raw_messages: list[dict[str, Any]] = []
-    for index, raw_message in enumerate(result.raw_provider_messages):
-        item = dict(raw_message)
-        if index == len(result.raw_provider_messages) - 1:
-            item["answer_disposition"] = "accepted_final"
-        raw_messages.append(item)
-    recovery = dict(result.completion_recovery)
-    recovery["answer_obligations"] = {
-        "recovered": len(raw_messages) > 1,
-        "validation_trace_id": validation_trace_id,
-    }
-    return result.model_copy(
-        update={
-            "raw_provider_messages": raw_messages,
-            "completion_recovery": recovery,
-        }
-    )
-
-
-def _merge_answer_recovery_results(
-    rejected: LLMTextResult,
-    corrected: LLMTextResult,
-    *,
-    recovery_instruction: str,
-) -> LLMTextResult:
-    rejected_messages = [
-        {**item, "answer_disposition": "rejected_progress"}
-        for item in rejected.raw_provider_messages
-    ]
-    usage = dict(rejected.usage)
-    for key, value in corrected.usage.items():
-        if isinstance(value, (int, float)) and isinstance(usage.get(key), (int, float)):
-            usage[key] += value
-        else:
-            usage[key] = value
-    return corrected.model_copy(
-        update={
-            "usage": usage,
-            "tool_calls": [*rejected.tool_calls, *corrected.tool_calls],
-            "raw_provider_messages": [
-                *rejected_messages,
-                *corrected.raw_provider_messages,
-            ],
-            "completion_recovery": {
-                **corrected.completion_recovery,
-                "answer_obligation_attempted": True,
-                "answer_obligation_recovered": True,
-                "rejected_provider_message_id": rejected.provider_message_id,
-            },
-            "provider_history_tail": [
-                *provider_history_from_result(rejected),
-                {
-                    "role": "user",
-                    "content": [{"type": "text", "text": recovery_instruction}],
-                },
-                *provider_history_from_result(corrected),
-            ],
-        }
-    )
+    return result
 
 
 def stream_native_turn(
@@ -1335,7 +995,6 @@ def stream_native_turn(
     memory_context = prepared.memory_context.payload
     metacognitive_context = prepared.memory_context.metacognitive_payload
     runtime_context = prepared.memory_context.runtime_payload
-    answer_manifest = prepared.answer_manifest
     sequence = 0
     pending_runtime_events: list[CognitiveEvent] = []
 
@@ -1393,7 +1052,6 @@ def stream_native_turn(
     )
 
     result: LLMTextResult | None = None
-    final_answer_validation_trace_id: str | None = None
     semantic_content_event_seen = False
     try:
         provider = provider_factory(settings)
@@ -1419,12 +1077,6 @@ def stream_native_turn(
             if stream_event.type == "final_result":
                 result = LLMTextResult.model_validate(stream_event.data["result"])
             else:
-                if (
-                    settings.answer_obligations_mode == "active"
-                    and stream_event.type
-                    in {"assistant_answer", "text_delta", "text_start"}
-                ):
-                    continue
                 if stream_event.type in {
                     "assistant_note",
                     "assistant_answer",
@@ -1443,56 +1095,7 @@ def stream_native_turn(
                 yield emit(stream_event.type, stream_event.data)
         yield from flush_pending_runtime_events()
         if result is not None:
-            original_provider_message_id = result.provider_message_id
-            result, final_answer_validation_trace_id = _enforce_native_answer_obligations(
-                engine=engine,
-                settings=settings,
-                provider=provider,
-                validator_provider=provider_factory(
-                    auxiliary_provider_settings(settings)
-                ),
-                manifest=answer_manifest,
-                result=result,
-                request_messages=llm_messages,
-                system=system,
-                max_tokens=max_tokens,
-                tool_runner=tool_runner,
-                session_id=session_id,
-                turn_id=turn_id,
-                trace_ids=trace_ids,
-            )
-            if result.provider_message_id != original_provider_message_id:
-                yield emit(
-                    "completion_recovery",
-                    {
-                        "reason": "answer_obligation_failed",
-                        "answer_validation_trace_id": final_answer_validation_trace_id,
-                    },
-                )
-            if settings.answer_obligations_mode == "active":
-                accepted_answer_event = LLMStreamEvent(
-                    type="assistant_answer",
-                    data={
-                        "model_step": len(result.raw_provider_messages) or 1,
-                        "index": 0,
-                        "provider_message_id": result.provider_message_id,
-                        "stop_reason": result.stop_reason,
-                        "text": result.text,
-                        "answer_validation_trace_id": (
-                            final_answer_validation_trace_id
-                        ),
-                    },
-                )
-                provider_event = record_provider_stream_event(
-                    engine,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    stream_event=accepted_answer_event,
-                )
-                if provider_event is not None:
-                    yield emit_runtime_event(provider_event)
-                yield emit(accepted_answer_event.type, accepted_answer_event.data)
-                semantic_content_event_seen = True
+            result = _require_native_end_turn(result)
     except LLMConfigurationError as exc:
         failed_event = record_failed_native_turn(
             engine,
@@ -1581,7 +1184,6 @@ def stream_native_turn(
         engine=engine,
         prepared=prepared,
         result=result,
-        answer_validation_trace_id=final_answer_validation_trace_id,
         semantic_content_event_seen=semantic_content_event_seen,
     )
     for event in completion.runtime_events:

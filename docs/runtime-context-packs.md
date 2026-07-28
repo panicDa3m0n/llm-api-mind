@@ -280,11 +280,10 @@ The active gate completed in V1.39 with:
 6. fail-safe fallback to full history when no valid active artifact exists.
 
 Ongoing monitoring still needs naturally longer multi-cycle sessions and
-provider summary drift review. V1.41 adds answer obligations as a separate
-current-turn runtime contract after context compilation; they are measured and
-traced but are not another automatic V2 context pack. The GPT bridge receives
-the same backend V2 packet and obligation semantics, but backend compaction
-cannot see or rewrite native ChatGPT conversation history outside the bridge.
+provider summary drift review. V1.41 historically added answer obligations
+outside the V2 packet; V1.64 removes that validator contract. The GPT bridge
+still receives the same backend V2 packet, while backend compaction cannot see
+or rewrite native ChatGPT conversation history outside the bridge.
 
 New agent modes or mode-tag enforcement require branch-specific behavioral
 scenarios. Native notification collection, continuous sensors, motor actions,

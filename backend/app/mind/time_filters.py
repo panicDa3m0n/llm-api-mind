@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, time, timedelta, timezone
 from typing import Any, Literal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
@@ -72,19 +73,21 @@ def resolve_interval(
     time_filter: TimeFilter | None,
     *,
     now: datetime | None = None,
+    timezone_name: str = "Europe/Rome",
 ) -> dict[str, Any] | None:
     if time_filter is None:
         return None
+    local_now = _local_now(now, timezone_name=timezone_name)
     if time_filter.preset == "this_session":
         return {
             "preset": "this_session",
             "from": None,
             "to": None,
-            "timezone": _local_now(now).tzname(),
-            "utc_offset": _local_now(now).strftime("%z"),
+            "timezone": timezone_name,
+            "timezone_name": local_now.tzname(),
+            "utc_offset": local_now.strftime("%z"),
         }
 
-    local_now = _local_now(now)
     start: datetime | None
     end: datetime | None
     if time_filter.preset == "today":
@@ -105,7 +108,8 @@ def resolve_interval(
         "preset": time_filter.preset,
         "from": ensure_utc(start).isoformat() if start is not None else None,
         "to": ensure_utc(end).isoformat() if end is not None else None,
-        "timezone": local_now.tzname(),
+        "timezone": timezone_name,
+        "timezone_name": local_now.tzname(),
         "utc_offset": local_now.strftime("%z"),
     }
 
@@ -149,11 +153,15 @@ def time_filter_payload(time_filter: TimeFilter | None, resolved: dict[str, Any]
     }
 
 
-def _local_now(now: datetime | None) -> datetime:
+def _local_now(now: datetime | None, *, timezone_name: str) -> datetime:
     value = now or datetime.now(timezone.utc)
     if value.tzinfo is None:
         value = value.replace(tzinfo=timezone.utc)
-    return value.astimezone()
+    try:
+        target_timezone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        target_timezone = timezone.utc
+    return value.astimezone(target_timezone)
 
 
 def _as_local_day_start(value: datetime, local_now: datetime) -> datetime:

@@ -6,6 +6,66 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.64.0 - Semantic Authority Rework
+
+#### Changed
+
+- Make MiniMax `end_turn`, a non-empty public answer, completed tool
+  lifecycles, and persistence the native finality contract. Remove the
+  second-model semantic answer validator and all generated answer obligations.
+- Keep GPT bootstrap/action/finalize as a transport and persistence protocol;
+  finalize stores the exact non-empty draft without semantic adjudication.
+- Retire automatic fact extraction from memory types, tags, and phrase
+  patterns. Historical fact rows remain available as explicitly
+  non-authoritative audit evidence.
+- Exclude legacy facts from active memory retrieval, reranking, graph recall,
+  automatic context conflicts, and maintenance proposal ranking.
+- Make background memory maintenance proposal-only. MiniMax M2.7 may annotate
+  a proposal with a recommendation, but it cannot create, reject, merge,
+  supersede, or deprecate semantic memory.
+- Add source-backed proposal review to Scarlet's existing `memory` shell
+  family. Scarlet can list and open pending proposals, then explicitly accept,
+  reject, mark a duplicate, or supersede an active memory after inspecting the
+  original session, turn, and messages.
+- Admit `memory.proposals.review_ready` to the Cognitive Workspace as an
+  appraisal candidate. Proposal availability can enter attention without
+  forcing a wake or deciding that a memory should be stored.
+- Restrict deterministic duplicate evidence to exact normalized content.
+  Similar tags, tokens, retrieval neighborhoods, and historical fact
+  divergence remain non-authoritative leads for source inspection.
+- Keep `sessions.updated_at` tied to conversation activity. Memory writes,
+  proposal maintenance, fact audit updates, and lifecycle operations no longer
+  make an old source session appear recently active.
+- Remove natural-language keyword appraisal from automatic affect and
+  metacognitive context. Dedicated LLM-backed metacognition remains the
+  semantic self-review path.
+- Replace episodic all-token substring fallback with FTS candidate retrieval,
+  and resolve temporal filters in the configured user timezone with historical
+  daylight-saving behavior.
+
+#### Preserved
+
+- Canonical conversation history, provider-native `max_tokens` continuation,
+  streaming recovery, unrestricted model-controlled shell loops, trace/event
+  evidence, memory records, and all production data remain unchanged.
+- Exact normalized duplicate detection remains deterministic because it tests
+  representation identity, not semantic equivalence.
+
+#### Verification
+
+- Focused proposal-review, maintenance, workspace, shell, and Mind API tests:
+  `80 passed`.
+- Complete backend suite: `342 passed`.
+- Ruff, compileall, mypy over 56 owners, documentation and project-skill
+  integrity, GPT OpenAPI parsing, and frontend production build pass.
+- Direct isolated shell use listed and opened a source-backed proposal,
+  accepted it, preserved exact source session/turn/message provenance, and
+  persisted a separate Scarlet decision trace.
+- An earlier direct isolated bridge/shell probe completes bootstrap, `help memory`,
+  exact finalize persistence, and semantic memory write with zero automatic
+  facts.
+- No full live Scarlet behavioral battery is part of this implementation.
+
 ### V1.63.0 - Endogenous Cognition V1
 
 #### Added

@@ -71,6 +71,13 @@ If ownership is ambiguous, stop implementation and resolve the contract first.
   interpretation, or behavioral quality.
 - Embeddings, graph signals, and rerankers provide evidence. The LLM may still
   need to interpret the selected evidence.
+- Auxiliary maintenance models may discover, summarize, and recommend
+  source-backed memory proposals, but only Scarlet may accept, reject, mark a
+  semantic duplicate, or supersede memory. Proposal availability is an
+  attention candidate, never a forced decision.
+- Preserve the distinction between source provenance and decision provenance:
+  an accepted proposal keeps its original session/turn/message source while
+  the later Scarlet decision receives its own trace.
 - Do not solve a backend semantic defect only by adding stronger prompt text.
 - Do not expose rich maintenance/debug payloads to Scarlet merely because the
   system has them.

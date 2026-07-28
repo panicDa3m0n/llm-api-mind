@@ -88,6 +88,7 @@ from app.storage.repository.autonomy import (
     schedule_autonomous_activation,
 )
 from app.storage.repository.memory import (
+    OPEN_MEMORY_PROPOSAL_STATUSES,
     RESOLVED_MEMORY_PROPOSAL_STATUSES,
     add_memory,
     add_memory_activity,
@@ -217,6 +218,7 @@ __all__ = [
     "OPEN_EPISODE_STATUSES",
     "OPEN_WAKE_STATUSES",
     "RESOLVED_MEMORY_PROPOSAL_STATUSES",
+    "OPEN_MEMORY_PROPOSAL_STATUSES",
     "SessionSummaryState",
     "add_device_observation",
     "add_episode_step",

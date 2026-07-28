@@ -841,7 +841,7 @@ def make_client(
     FakeChatProvider.seen_chat_systems = []
     FakeChatProvider.seen_max_tool_calls = []
     FakeChatProvider.seen_chat_messages = []
-    overrides = {"answer_obligations_mode": "off", **(settings_overrides or {})}
+    overrides = settings_overrides or {}
     settings = Settings(
         app_name="Test Mind",
         environment="test",
@@ -871,7 +871,6 @@ def make_tool_client(db_engine: Engine) -> TestClient:
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
-        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -894,7 +893,6 @@ def make_memory_client(db_engine: Engine) -> TestClient:
         minimax_api_key="test-key",
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
-        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -913,7 +911,6 @@ def make_thinking_only_client(db_engine: Engine) -> TestClient:
         minimax_model="MiniMax-M3",
         minimax_max_tokens=4096,
         maintenance_enabled=False,
-        answer_obligations_mode="off",
     )
     return TestClient(
         create_app(
@@ -937,7 +934,6 @@ def make_answer_boundary_client(
         minimax_model="MiniMax-M3",
         minimax_max_tokens=4096,
         maintenance_enabled=False,
-        answer_obligations_mode="active",
     )
     return TestClient(
         create_app(
@@ -1085,7 +1081,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     metacognitive_context = traces[1]["payload"]
     assert metacognitive_context["mode"] == "shadow"
     assert metacognitive_context["model_facing"] is False
-    assert metacognitive_context["selection"]["selected_count"] == 1
+    assert metacognitive_context["selection"]["selected_count"] == 0
+    assert metacognitive_context["policy"]["lexical_triggering"] is False
     assert memory_context["searched"] is True
     assert memory_context["selected"] == []
     assert memory_context["negative_evidence"] == "no_relevant_memory_selected"
@@ -1205,7 +1202,9 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     ]
     assert [event["seq"] for event in events] == list(range(1, len(events) + 1))
     assert events[2]["payload"]["negative_evidence"] == "no_relevant_memory_selected"
-    assert events[5]["payload"]["schema_version"] == ("metacognitive-context-shadow-v1")
+    assert events[5]["payload"]["schema_version"] == (
+        "metacognitive-context-observation-v2"
+    )
     assert events[6]["payload"]["schema_version"] == "runtime-context-v1"
     assert events[10]["payload"]["text"] == "assistant:hello:history=1"
     assert events[12]["payload"]["kind"] == "session.idle_maintenance"
@@ -1220,7 +1219,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     ]
 
 
-def test_metacognitive_context_inject_mode_is_model_facing(
+def test_metacognitive_context_does_not_inject_without_semantic_component(
     db_engine: Engine,
 ) -> None:
     settings = Settings(
@@ -1230,7 +1229,6 @@ def test_metacognitive_context_inject_mode_is_model_facing(
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
         metacognitive_context_mode="inject",
-        answer_obligations_mode="off",
     )
     client = TestClient(
         create_app(
@@ -1260,20 +1258,19 @@ def test_metacognitive_context_inject_mode_is_model_facing(
     )
 
     assert metacognitive_context["mode"] == "inject"
-    assert metacognitive_context["model_facing"] is True
-    assert request_trace["metacognitive_context_model_facing"] is True
+    assert metacognitive_context["model_facing"] is False
+    assert request_trace["metacognitive_context_model_facing"] is False
     assert [block["type"] for block in runtime_context["blocks"]] == [
         "session_context",
         "agent_mode_context",
         "message_context",
         "scarlet_state",
-        "metacognitive_context",
     ]
-    assert any(
+    assert not any(
         block["type"] == "metacognitive_context"
         for block in runtime_payload["preserved_context"]
     )
-    assert "source_sensitive_claim_guard" in request_trace["runtime_context"]
+    assert "source_sensitive_claim_guard" not in request_trace["runtime_context"]
 
 
 def test_chat_sessions_list_returns_recent_titles(db_engine: Engine) -> None:
@@ -2471,7 +2468,6 @@ def test_chat_turn_returns_503_when_provider_is_not_configured(
         minimax_api_key=None,
         minimax_model="MiniMax-M2.7",
         minimax_max_tokens=4096,
-        answer_obligations_mode="off",
     )
     client = TestClient(create_app(settings, db_engine=db_engine))
     session = client.post("/api/chat/sessions", json={}).json()
@@ -2536,7 +2532,7 @@ def test_streaming_chat_rejects_thinking_only_final_result(
     assert [message.role for message in messages] == ["user"]
 
 
-def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
+def test_native_finality_accepts_provider_end_turn_without_semantic_gate(
     db_engine: Engine,
 ) -> None:
     client = make_answer_boundary_client(
@@ -2552,19 +2548,16 @@ def test_native_semantic_obligation_recovers_an_unsupported_source_claim(
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["assistant_message"]["content"] == (
-        "Non ho evidenza sufficiente per confermarlo."
-    )
+    assert payload["assistant_message"]["content"] == "È tutto verificato."
+    assert FakeSemanticAnswerRecoveryProvider.calls == 1
     traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
-    validations = [trace for trace in traces if trace["kind"] == "answer.validation"]
-    assert len(validations) == 2
-    assert validations[0]["payload"]["provider_finality"] == {
+    assert not any(trace["kind"] == "answer.validation" for trace in traces)
+    response_trace = next(trace for trace in traces if trace["kind"] == "llm.response")
+    assert response_trace["payload"]["finality_contract"] == {
         "accepted": True,
-        "stop_reason": "end_turn",
         "source": "provider_stop_reason",
+        "semantic_validation": False,
     }
-    assert validations[0]["payload"]["semantic"]["accepted"] is False
-    assert validations[1]["payload"]["semantic"]["accepted"] is True
 
 
 def test_native_sync_accepts_truthful_success_after_recoverable_action_retry(
@@ -2591,43 +2584,12 @@ def test_native_sync_accepts_truthful_success_after_recoverable_action_retry(
         "Ho salvato la preferenza dopo aver corretto il comando."
     )
     traces = client.get(f"/api/debug/traces/{payload['turn_id']}").json()
-    manifest = [
-        trace
-        for trace in traces
-        if trace["kind"] == "answer.obligations"
-        and trace["payload"].get("phase") == "draft_1"
-    ][-1]["payload"]["manifest"]
-    action_obligation = next(
-        item
-        for item in manifest["obligations"]
-        if item["id"] == "action.outcome.toolu_failed_memory_write"
-    )
-    assert action_obligation["evidence"]["recovery_decision"] == (
-        "semantic_validator_required"
-    )
-    evidence_refs = action_obligation["evidence_refs"]
-    assert len(evidence_refs) == 4
-    assert evidence_refs[0] == next(
-        trace["id"]
+    assert not any(trace["kind"] == "answer.validation" for trace in traces)
+    assert [
+        trace["payload"]["status"]
         for trace in traces
         if trace["kind"] == "mind.tool_call"
-        and trace["payload"]["provider_tool_use_id"]
-        == "toolu_failed_memory_write"
-    )
-    assert evidence_refs[2] == next(
-        trace["id"]
-        for trace in traces
-        if trace["kind"] == "mind.tool_call"
-        and trace["payload"]["provider_tool_use_id"]
-        == "toolu_successful_memory_write"
-    )
-    assert evidence_refs[1].startswith("tool_")
-    assert evidence_refs[3].startswith("tool_")
-    validation = [
-        trace for trace in traces if trace["kind"] == "answer.validation"
-    ][-1]
-    assert validation["payload"]["accepted"] is True
-    assert validation["payload"]["semantic"]["accepted"] is True
+    ] == ["error", "completed"]
 
     with Session(db_engine) as db:
         memories = repositories.list_memories(db)
@@ -2665,11 +2627,7 @@ def test_native_stream_accepts_truthful_success_after_recoverable_action_retry(
     )
     turn_id = events[-1]["data"]["turn_id"]
     traces = client.get(f"/api/debug/traces/{turn_id}").json()
-    validation = [
-        trace for trace in traces if trace["kind"] == "answer.validation"
-    ][-1]
-    assert validation["payload"]["accepted"] is True
-    assert validation["payload"]["semantic"]["accepted"] is True
+    assert not any(trace["kind"] == "answer.validation" for trace in traces)
     tool_traces = [trace for trace in traces if trace["kind"] == "mind.tool_call"]
     assert [trace["payload"]["status"] for trace in tool_traces] == [
         "error",

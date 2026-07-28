@@ -39,7 +39,6 @@ def build_context_accounting_preflight(
     tools: list[dict[str, Any]],
     settings: Any,
     compacted_chronology: str = "",
-    answer_obligations: str = "",
     external_unobserved_context: list[str] | None = None,
 ) -> dict[str, Any]:
     fallback_ratio = float(settings.context_estimated_chars_per_token)
@@ -52,10 +51,7 @@ def build_context_accounting_preflight(
     message_payloads = [message.model_dump(mode="json") for message in messages]
     history_payloads = message_payloads[:-1] if message_payloads else []
     current_payloads = message_payloads[-1:] if message_payloads else []
-    effective_system = (
-        f"{base_system}\n\n{runtime_context}{compacted_chronology}"
-        f"{answer_obligations}"
-    )
+    effective_system = f"{base_system}\n\n{runtime_context}{compacted_chronology}"
     wire_payload = {
         "system": effective_system,
         "messages": message_payloads,
@@ -71,8 +67,6 @@ def build_context_accounting_preflight(
     }
     if compacted_chronology:
         raw_channels["compacted_chronology"] = compacted_chronology
-    if answer_obligations:
-        raw_channels["answer_obligations"] = answer_obligations
     channels = {
         name: _measurement(value, chars_per_token=ratio)
         for name, value in raw_channels.items()

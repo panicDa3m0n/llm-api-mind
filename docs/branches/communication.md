@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-07-24
-System version assessed: V1.50.1 deployed; V1.55.3 development target
+Last updated: 2026-07-28
+System version assessed: V1.64.0 local; V1.50.1 closed-Core baseline
 Status: active branch
 
 ## Filosofia del ramo
@@ -18,6 +18,9 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 
 - Il prompt di Scarlet contiene identita, presenza conversazionale, postura
   epistemica e obbligo di note pubbliche quando lavora su attivita non banali.
+- V1.64 elimina il validatore semantico finale: `end_turn`, risposta pubblica
+  non vuota, tool completati, persistenza e trace chiudono il turno. Nessun
+  secondo modello giudica le parole della risposta di Scarlet.
 - La UI mostra risposte finali, note, eventi, thinking provider-visible, tool
   calls e runtime context in forma leggibile.
 - V1.55.0 sostituisce le bolle Chat fixture con la proiezione dei soli eventi

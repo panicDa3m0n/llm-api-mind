@@ -125,7 +125,6 @@ def test_turn_runner_survives_stream_consumer_disconnect(tmp_path: Path) -> None
         minimax_api_key="test-key",
         agent_system_prompt="You are Scarlet.",
         maintenance_enabled=False,
-        answer_obligations_mode="off",
     )
     with Session(engine) as db:
         chat_session = repositories.create_chat_session(db, title="Resume test")
@@ -189,7 +188,6 @@ def test_live_feed_delivers_a_frame_before_the_turn_finishes(tmp_path: Path) -> 
         minimax_api_key="test-key",
         agent_system_prompt="You are Scarlet.",
         maintenance_enabled=False,
-        answer_obligations_mode="off",
     )
     with Session(engine) as db:
         chat_session = repositories.create_chat_session(db, title="Live test")

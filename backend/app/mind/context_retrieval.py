@@ -113,10 +113,9 @@ def build_automatic_memory_retrieval(
         scope=None,
         include_low_confidence=False,
     )
-    facts_by_memory = {
-        memory.id: repositories.list_memory_facts(db, memory_id=memory.id)
-        for memory in candidates
-    }
+    # Legacy heuristic facts remain auditable through ``memory facts`` but do
+    # not participate in automatic recall, ranking, or conflict claims.
+    facts_by_memory: dict[str, list[MemoryFact]] = {}
     sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
 
     # This query already contains the current message plus recent context.
@@ -241,7 +240,7 @@ def build_automatic_memory_retrieval(
         selected=selected,
         near_miss=near_miss,
         excluded=excluded,
-        conflicts=_detect_conflicts(selected),
+        conflicts=[],
         negative_evidence=_memory_negative_evidence(
             selected=selected,
             rerank_plan=rerank_plan,
@@ -583,49 +582,6 @@ def _candidate_payload(
     if facts is not None:
         payload["facts"] = [fact_payload(fact) for fact in facts]
     return payload
-
-
-def _detect_conflicts(selected: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    conflicts: list[dict[str, Any]] = []
-    facts_by_key: dict[
-        tuple[str, str], list[tuple[dict[str, Any], dict[str, Any]]]
-    ] = {}
-    for memory in selected:
-        raw_facts = memory.get("facts")
-        facts = raw_facts if isinstance(raw_facts, list) else []
-        for fact in facts:
-            if not isinstance(fact, dict) or fact.get("status") != "active":
-                continue
-            entity = str(fact.get("entity") or "")
-            predicate = str(fact.get("predicate") or "")
-            if not entity or not predicate:
-                continue
-            facts_by_key.setdefault((entity, predicate), []).append((memory, fact))
-
-    for (entity, predicate), items in facts_by_key.items():
-        memory_ids = sorted({str(memory.get("id")) for memory, _ in items})
-        values = {
-            repr(sorted((fact.get("value") or {}).items()))
-            for _, fact in items
-            if isinstance(fact.get("value"), dict)
-        }
-        if len(memory_ids) < 2 or len(values) < 2:
-            continue
-        conflicts.append(
-            {
-                "classification": "atomic_fact_conflict",
-                "basis": "atomic_fact",
-                "confidence": 0.95,
-                "entity": entity,
-                "predicate": predicate,
-                "memory_ids": memory_ids,
-                "reason": (
-                    "selected memories contain active facts with same entity "
-                    "and predicate but different values"
-                ),
-            }
-        )
-    return conflicts
 
 
 def _memory_search_text(

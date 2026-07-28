@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 
 from app.api.chat_serialization import ChatMessageResponse
 from app.mind.context_time import render_user_time
+from app.mind.time_filters import TimeFilter, resolve_interval
 from app.runtime.time import social_date, utc_isoformat
 
 
@@ -43,3 +44,33 @@ def test_transport_timestamps_are_unambiguous_utc() -> None:
     assert response.model_dump(mode="json")["created_at"] == (
         "2026-07-27T13:08:00Z"
     )
+
+
+def test_time_filter_resolves_days_in_configured_timezone_across_dst() -> None:
+    july = resolve_interval(
+        TimeFilter(preset="today"),
+        now=datetime(2026, 7, 12, 13, 30, tzinfo=timezone.utc),
+        timezone_name="Europe/Rome",
+    )
+    december = resolve_interval(
+        TimeFilter(preset="today"),
+        now=datetime(2026, 12, 12, 14, 30, tzinfo=timezone.utc),
+        timezone_name="Europe/Rome",
+    )
+
+    assert july == {
+        "preset": "today",
+        "from": "2026-07-11T22:00:00+00:00",
+        "to": "2026-07-12T22:00:00+00:00",
+        "timezone": "Europe/Rome",
+        "timezone_name": "CEST",
+        "utc_offset": "+0200",
+    }
+    assert december == {
+        "preset": "today",
+        "from": "2026-12-11T23:00:00+00:00",
+        "to": "2026-12-12T23:00:00+00:00",
+        "timezone": "Europe/Rome",
+        "timezone_name": "CET",
+        "utc_offset": "+0100",
+    }

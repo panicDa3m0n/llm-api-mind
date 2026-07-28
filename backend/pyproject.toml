@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "llm-api-mind-backend"
-version = "1.63.0"
+version = "1.64.0"
 description = "FastAPI backend for the LLM API Mind experimental runtime."
 requires-python = ">=3.10"
 dependencies = [
@@ -70,6 +70,7 @@ files = [
     "app/mind/episode.py",
     "app/mind/endogenous_contracts.py",
     "app/mind/memory_lifecycle.py",
+    "app/mind/memory_proposal_review.py",
     "app/mind/memory_proposals.py",
     "app/mind/memory_read.py",
     "app/mind/memory_relations.py",
@@ -83,7 +84,6 @@ files = [
     "app/runtime/device_perception_adapter.py",
     "app/runtime/endogenous_cognition.py",
     "app/runtime/context_accounting.py",
-    "app/runtime/answer_obligations.py",
     "app/runtime/history_compaction.py",
     "app/runtime/maintenance_history.py",
     "app/runtime/maintenance_memory.py",

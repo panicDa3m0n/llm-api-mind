@@ -7,6 +7,81 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0129 - Open Proposals And Source Sessions Had Incorrect Lifecycle Recency
+
+Date Found: 2026-07-28
+Status: fixed locally in V1.64.0; deployment pending
+
+Symptoms:
+
+`pending_review` proposals could be classified as resolved because they had an
+`applied_at` timestamp, and memory/proposal/fact maintenance could update an
+old source session's `updated_at`. This made open work look terminal and could
+make a historical conversation appear to be the most recent session.
+
+Root Cause:
+
+The repository reused one timestamp helper for both open and terminal proposal
+statuses and treated source-linked cognitive mutations as conversation
+activity.
+
+Fix:
+
+Define explicit open and terminal proposal status sets, leave `applied_at`
+empty for open states, and stop source-session touching from memory, proposal,
+fact, and lifecycle maintenance. Session recency now remains tied to messages.
+Scarlet's decision turn is preserved in the proposal-decision trace while an
+accepted memory retains the original source provenance.
+
+Regression:
+
+`test_memory_proposal_review.py` proves open/resolved filtering, source
+provenance, decision traces, all four terminal decisions, and stable source
+session `updated_at`.
+
+The V1.64 release gate also removed the retired
+`app/runtime/answer_obligations.py` path from the mypy target and added
+`app/mind/memory_proposal_review.py`; otherwise static verification would
+continue testing the deleted architecture instead of its replacement.
+
+## BUG-0128 - Backend Semantic Heuristics Could Override Scarlet
+
+Date Found: 2026-07-28
+Status: fixed locally in V1.64.0; deployment pending
+
+Symptoms:
+
+A production turn returned `llm.incomplete_response` with
+`evidence.source_sensitive_claim` after Scarlet had otherwise completed the
+request. Review found the same authority leak in generated answer obligations,
+phrase-derived facts, automatic fact conflicts, maintenance mutation, and
+keyword-based affect/metacognitive appraisal.
+
+Root Cause:
+
+Deterministic and auxiliary-model components crossed from structural evidence
+management into natural-language judgment. Their outputs were then enforced as
+facts, conflicts, emotions, obligations, or memory mutations despite lacking
+Scarlet's semantic confirmation.
+
+Fix:
+
+Remove semantic final-answer validation; make facts legacy audit-only; exclude
+them from active memory cognition; keep maintenance proposals non-mutating;
+remove lexical natural-language appraisal; preserve only structural finality,
+exact identity checks, lifecycle state, persistence, and traces as
+deterministic authorities. Episodic search now uses its retrieval engine
+instead of an all-token substring fallback, and temporal filters use the
+configured user timezone.
+
+Regression:
+
+Focused V1.64 tests assert acceptance of structurally complete answers,
+proposal-only maintenance, Scarlet-owned proposal adjudication,
+non-authoritative legacy facts, absence of keyword-created affect,
+derived-index exclusion, and Europe/Rome DST interval behavior. Final complete
+backend verification is recorded in the release activity and changelog.
+
 ## BUG-0127 - Workspace Tick Retained Detached ORM State And Mixed Datetime Awareness
 
 Date Found: 2026-07-27
@@ -568,7 +643,7 @@ completed markerless at attempt one and persisted its answer.
 Related:
 
 - ADR-0130
-- `backend/app/runtime/answer_obligations.py`
+- historical answer-obligations module (removed in V1.64.0)
 - `backend/app/api/chat_native_turn.py`
 - MiniMax Anthropic-compatible Messages API documentation
 

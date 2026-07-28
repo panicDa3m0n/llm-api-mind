@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-07-27.mind-shell-command-registry-v3"
+COMMAND_REGISTRY_VERSION = "2026-07-28.mind-shell-command-registry-v4"
 
 
 @dataclass(frozen=True)
@@ -64,6 +64,43 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
                 suggested_command="memory graph mem_... --depth 2",
             ),
             "facts": CommandAction(status="implemented", suggested_command="memory facts --query \"...\""),
+            "proposals": CommandAction(
+                status="implemented",
+                suggested_command="memory proposals --status open --limit 10",
+            ),
+            "proposal": CommandAction(
+                status="implemented",
+                requires_any=("arg", "id", "proposal-id"),
+                suggested_command="memory proposal prop_...",
+            ),
+            "proposal-accept": CommandAction(
+                status="implemented",
+                requires_all=("arg", "reason|why"),
+                suggested_command=(
+                    'memory proposal-accept prop_... --reason "..."'
+                ),
+            ),
+            "proposal-reject": CommandAction(
+                status="implemented",
+                requires_all=("arg", "reason|why"),
+                suggested_command=(
+                    'memory proposal-reject prop_... --reason "..."'
+                ),
+            ),
+            "proposal-duplicate": CommandAction(
+                status="implemented",
+                requires_all=("arg2", "reason|why"),
+                suggested_command=(
+                    'memory proposal-duplicate prop_... mem_... --reason "..."'
+                ),
+            ),
+            "proposal-supersede": CommandAction(
+                status="implemented",
+                requires_all=("arg2", "reason|why"),
+                suggested_command=(
+                    'memory proposal-supersede prop_... mem_old --reason "..."'
+                ),
+            ),
             "conflicts": CommandAction(status="implemented", suggested_command="memory conflicts"),
             "deprecate": CommandAction(
                 status="implemented",

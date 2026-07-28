@@ -7,6 +7,115 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0143 - Scarlet Adjudicates Source-Backed Memory Proposals
+
+Date: 2026-07-28
+Status: accepted for V1.64.0
+
+Context:
+
+ADR-0142 removed semantic authority from maintenance workers, but leaving every
+proposal indefinitely internal would make the non-mutating pipeline
+incomplete. The system needs a path from source-backed maintenance evidence to
+durable memory without allowing M2.7, lexical similarity, or repository code
+to decide meaning.
+
+Decision:
+
+- maintenance may discover and annotate proposals, but `pending_review`
+  remains open and unapplied;
+- the existing model-facing `mind_shell` exposes proposal list, open, accept,
+  reject, duplicate, and supersede commands inside the `memory` family;
+- proposal reads expose compact source hooks so Scarlet can inspect the
+  originating session, turn, and messages before deciding;
+- acceptance preserves original source provenance while the decision trace
+  records Scarlet's current session and turn;
+- duplicate and supersede decisions require Scarlet to name the active target
+  memory explicitly;
+- exact normalized content may be detected structurally, but fuzzy similarity
+  and historical fact divergence never decide duplicate or conflict status;
+- proposal availability enters the Cognitive Workspace as an appraisal
+  candidate, not a required wake; and
+- conversation session recency belongs to messages, not later memory or
+  maintenance activity.
+
+Consequences:
+
+The proposal pipeline now closes without introducing a second semantic agent.
+Scarlet can leave a proposal pending when evidence is insufficient, and every
+terminal state is traceable. Future embedding/KG conflict discovery may add
+better candidates, but must reuse this adjudication boundary rather than
+mutating memory automatically.
+
+Links:
+
+- `backend/app/mind/memory_proposal_review.py`
+- `backend/app/runtime/maintenance_memory.py`
+- `backend/app/mind/wake_registry.py`
+- `docs/api-contract.md`
+- `docs/branches/memory.md`
+
+## ADR-0142 - Deterministic Runtime Owns Structure, Scarlet Owns Meaning
+
+Date: 2026-07-28
+Status: accepted for V1.64.0
+
+Context:
+
+Several later Core additions let backend phrase patterns, inferred atomic
+facts, auxiliary-model answer validation, and maintenance decisions behave as
+semantic authorities. This caused a valid Scarlet answer to fail because a
+generated source-sensitive obligation was not satisfied, and exposed a wider
+architectural problem: deterministic evidence and helper-model proposals could
+be mistaken for Scarlet's judgment.
+
+Decision:
+
+- deterministic code owns identities, timestamps, schemas, exact equality,
+  lifecycle transitions, persistence, stop reasons, permissions, receipts,
+  retries, and trace completeness;
+- MiniMax M3 Scarlet owns semantic judgment inside Scarlet turns and explicit
+  cognitive mutations;
+- MiniMax M2.7 workers may retrieve, summarize, propose, or annotate structured
+  evidence, but their output remains provisional and cannot silently mutate
+  Scarlet's semantic memory or reject her final answer;
+- native finality requires provider `end_turn`, a non-empty public answer,
+  completed tool lifecycles, and successful persistence;
+- GPT finality is a bootstrap/action/finalize transport contract with exact
+  non-empty answer persistence, not semantic answer grading;
+- historical heuristic fact rows remain audit evidence with
+  `authoritative=false`; they do not participate in active retrieval, ranking,
+  conflict detection, graph recall, or maintenance decisions;
+- natural-language affect, intent, contradiction, relevance, or evidence
+  sufficiency must not be inferred by keyword lists; semantic components must
+  use an explicit model-backed contract with sources, uncertainty, and traces;
+  and
+- exact normalized duplicate detection remains deterministic because it
+  establishes representation identity only. Semantic duplicates and conflicts
+  require Scarlet or a future explicitly governed semantic review.
+
+Consequences:
+
+The runtime becomes less likely to contradict Scarlet through hidden semantic
+policy. Existing data is preserved, but some historical surfaces are now
+audit-only. ADR-0143 supplies the Scarlet-owned proposal resolution path. This
+intentionally favors honest incompleteness over automatic but weak semantic
+mutation.
+
+Supersedes:
+
+- the semantic authority portions of ADR-0100 answer obligations;
+- the automatic atomic-fact authority described by earlier memory ADRs; and
+- automatic maintenance application by an auxiliary model.
+
+Links:
+
+- `docs/core-runtime-contract.md`
+- `docs/api-contract.md`
+- `docs/branches/memory.md`
+- `backend/app/api/chat_native_turn.py`
+- `backend/app/runtime/maintenance_memory.py`
+
 ## ADR-0141 - Endogenous Seeds Extend The Shared Workspace And Require M3 Endorsement
 
 Date: 2026-07-28
@@ -608,7 +717,7 @@ remain intact.
 Links:
 
 - BUG-0113
-- `backend/app/runtime/answer_obligations.py`
+- historical answer-obligations module (removed in V1.64.0)
 - `backend/app/api/chat_native_turn.py`
 - `docs/api-contract.md`
 
@@ -1716,7 +1825,7 @@ Links:
 - Linear SCA-44
 - BUG-0094
 - EXP-0079
-- `backend/app/runtime/answer_obligations.py`
+- historical answer-obligations module (removed in V1.64.0)
 - `backend/app/api/chat_native_turn.py`
 
 ## ADR-0105 - Evaluator Acceptance Requires Model Delivery And Completed Turns
@@ -2235,7 +2344,7 @@ monitored rather than treated as mathematical proof.
 
 Links:
 
-- `backend/app/runtime/answer_obligations.py`
+- historical answer-obligations module (removed in V1.64.0)
 - `docs/evaluations/v1.41-answer-obligations.md`
 - Linear SCA-28
 

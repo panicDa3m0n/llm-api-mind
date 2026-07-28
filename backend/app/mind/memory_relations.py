@@ -1,5 +1,3 @@
-import re
-from itertools import combinations
 from typing import Any
 
 from sqlmodel import Session
@@ -30,7 +28,7 @@ def handle_memory_conflicts(
             memories,
             facts_by_memory=facts_by_memory,
         )
-        conflicts = relations["conflicts"]
+        review_candidates = relations["review_candidates"]
         related_overlaps = relations["related_overlaps"]
         trace = repositories.add_trace(
             db,
@@ -39,14 +37,16 @@ def handle_memory_conflicts(
             kind="memory.conflicts",
             payload={
                 "operation": "memory.conflicts",
-                "count": len(conflicts),
-                "conflict_counts": _conflict_counts(conflicts),
+                "count": 0,
+                "conflict_counts": {},
+                "review_candidate_count": len(review_candidates),
                 "related_overlap_count": len(related_overlaps),
                 "active_memory_count": len(memories),
                 "active_fact_count": sum(
                     len(facts) for facts in facts_by_memory.values()
                 ),
-                "conflicts": conflicts,
+                "conflicts": [],
+                "review_candidates": review_candidates,
                 "related_overlaps": related_overlaps,
             },
         )
@@ -56,27 +56,25 @@ def handle_memory_conflicts(
         ok=True,
         result={
             "operation": "memory.conflicts",
-            "count": len(conflicts),
-            "conflict_counts": _conflict_counts(conflicts),
-            "conflicts": conflicts,
+            "count": 0,
+            "conflict_counts": {},
+            "conflicts": [],
+            "review_candidate_count": len(review_candidates),
+            "review_candidates": review_candidates,
             "related_overlap_count": len(related_overlaps),
             "related_overlaps": related_overlaps[:20],
             "trace_ids": [trace_id],
         },
         cognitive_hint=(
-            "Unresolved atomic memory conflicts should be named before using "
-            "any conflicting memory as active evidence. Related overlaps are "
-            "maintenance signals, not contradictions."
-        )
-        if conflicts
-        else "No active atomic memory conflicts were detected.",
+            "No conflict was asserted deterministically. Review candidates are "
+            "non-authoritative leads; inspect their memories and provenance "
+            "before deciding whether they conflict."
+        ),
         suggested_next_actions=[
-            "Supersede or deprecate obsolete memories",
-            "Continue with active memory context",
-        ]
-        if conflicts
-        else ["Continue with active memories"],
-        confidence=0.95,
+            "Open candidate memories and source sessions when relevant",
+            "Use Scarlet's semantic judgment before lifecycle changes",
+        ],
+        confidence=1.0,
     )
 
 
@@ -86,59 +84,48 @@ def _detect_active_memory_relations(
     facts_by_memory: dict[str, list[MemoryFact]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
     facts_by_memory = facts_by_memory or {}
-    conflicts = _detect_fact_conflicts(memories, facts_by_memory)
-
-    conflict_memory_sets = {frozenset(conflict["memory_ids"]) for conflict in conflicts}
-    payloads = [
-        _memory_payload(memory, facts=facts_by_memory.get(memory.id, []))
+    review_candidates = _detect_fact_relation_candidates(memories, facts_by_memory)
+    payloads = {
+        memory.id: _memory_payload(
+            memory,
+            facts=facts_by_memory.get(memory.id, []),
+        )
         for memory in memories
-    ]
-    related_overlaps: list[dict[str, Any]] = []
-    corpus_token_sets = {
-        payload["id"]: _subject_tokens(payload["content"]) for payload in payloads
     }
-    document_frequency = _token_document_frequency(corpus_token_sets.values())
-    for left, right in combinations(payloads, 2):
-        if frozenset([left["id"], right["id"]]) in conflict_memory_sets:
-            continue
-        duplicate_candidate = _normalize_memory_text(
-            left["content"]
-        ) == _normalize_memory_text(right["content"])
-        shared_tags = sorted(set(left["tags"]) & set(right["tags"]))
-        shared_tokens = sorted(
-            corpus_token_sets[left["id"]] & corpus_token_sets[right["id"]]
-        )
-        overlap_score = _weighted_overlap_score(
-            shared_tokens,
-            document_frequency=document_frequency,
-        )
-        if not duplicate_candidate and not shared_tags and overlap_score < 1.5:
-            continue
-        related_overlaps.append(
-            {
-                "classification": "duplicate_candidate"
-                if duplicate_candidate
-                else "related_overlap",
-                "basis": "exact_content"
-                if duplicate_candidate
-                else "tag_token_similarity",
-                "confidence": 0.9
-                if duplicate_candidate
-                else min(0.75, overlap_score / 4),
-                "memory_ids": [left["id"], right["id"]],
-                "memory_claims": _memory_claims(left, right),
-                "shared_tags": shared_tags,
-                "shared_tokens": shared_tokens[:12],
-                "overlap_score": round(overlap_score, 4),
-                "reason": (
-                    "active memories may describe the same stored subject"
-                    if duplicate_candidate
-                    else "active memories share maintenance-level semantic overlap"
-                ),
-            }
-        )
+    duplicate_groups: dict[str, list[str]] = {}
+    for memory in memories:
+        duplicate_groups.setdefault(
+            _normalize_memory_text(memory.content),
+            [],
+        ).append(memory.id)
+    related_overlaps = [
+        {
+            "classification": "exact_duplicate_candidate",
+            "basis": "exact_normalized_content",
+            "authoritative": False,
+            "memory_ids": memory_ids,
+            "memory_claims": [
+                {
+                    "id": payloads[memory_id]["id"],
+                    "content": payloads[memory_id]["content"],
+                    "source_session_id": payloads[memory_id][
+                        "source_session_id"
+                    ],
+                    "source_turn_id": payloads[memory_id]["source_turn_id"],
+                }
+                for memory_id in memory_ids
+            ],
+            "reason": (
+                "active memories have identical normalized content; Scarlet "
+                "must inspect provenance before applying lifecycle changes"
+            ),
+        }
+        for memory_ids in duplicate_groups.values()
+        if len(memory_ids) > 1
+    ]
     return {
-        "conflicts": conflicts,
+        "conflicts": [],
+        "review_candidates": review_candidates,
         "related_overlaps": related_overlaps,
     }
 
@@ -151,7 +138,7 @@ def _conflict_counts(conflicts: list[dict[str, Any]]) -> dict[str, int]:
     return counts
 
 
-def _detect_fact_conflicts(
+def _detect_fact_relation_candidates(
     memories: list[MemoryRecord],
     facts_by_memory: dict[str, list[MemoryFact]],
 ) -> list[dict[str, Any]]:
@@ -162,7 +149,7 @@ def _detect_fact_conflicts(
         for fact in facts
         if fact.status == "active"
     ]
-    conflicts: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     grouped: dict[tuple[str, str], list[MemoryFact]] = {}
     for fact in active_facts:
         grouped.setdefault((fact.entity, fact.predicate), []).append(fact)
@@ -180,11 +167,11 @@ def _detect_fact_conflicts(
             for memory_id in memory_ids
             if memory_id in memories_by_id
         ]
-        conflicts.append(
+        candidates.append(
             {
-                "classification": "atomic_fact_conflict",
-                "basis": "atomic_fact",
-                "confidence": 0.95,
+                "classification": "legacy_fact_divergence_candidate",
+                "basis": "legacy_heuristic_fact",
+                "authoritative": False,
                 "entity": entity,
                 "predicate": predicate,
                 "fact_ids": [fact.id for fact in facts],
@@ -200,75 +187,13 @@ def _detect_fact_conflicts(
                 ],
                 "values": [fact.value_json for fact in facts],
                 "reason": (
-                    "active facts share entity and predicate but have different values"
+                    "legacy heuristic propositions share an entity/predicate "
+                    "label and have different values; semantic review is required"
                 ),
             }
         )
-    return conflicts
-
-
-def _memory_claims(*payloads: dict[str, Any]) -> list[dict[str, Any]]:
-    return [
-        {
-            "id": payload.get("id"),
-            "content": payload.get("content"),
-            "source_session_id": payload.get("source_session_id"),
-            "source_turn_id": payload.get("source_turn_id"),
-        }
-        for payload in payloads
-    ]
-
-
-def _token_document_frequency(token_sets: Any) -> dict[str, int]:
-    frequency: dict[str, int] = {}
-    for tokens in token_sets:
-        for token in tokens:
-            frequency[token] = frequency.get(token, 0) + 1
-    return frequency
-
-
-def _weighted_overlap_score(
-    shared_tokens: list[str],
-    *,
-    document_frequency: dict[str, int],
-) -> float:
-    score = 0.0
-    for token in shared_tokens:
-        frequency = max(document_frequency.get(token, 1), 1)
-        score += 1 / frequency
-    return score
+    return candidates
 
 
 def _normalize_fact_value(value: dict[str, Any]) -> str:
     return repr(sorted(value.items()))
-
-
-def _subject_tokens(value: str) -> set[str]:
-    return {
-        token
-        for token in _tokens(value)
-        if token not in _generic_conflict_tokens() and len(token) > 2
-    }
-
-
-def _generic_conflict_tokens() -> set[str]:
-    return {
-        "a",
-        "and",
-        "che",
-        "con",
-        "di",
-        "e",
-        "il",
-        "in",
-        "la",
-        "memoria",
-        "memory",
-        "protocol",
-        "protocollo",
-        "the",
-    }
-
-
-def _tokens(value: str) -> list[str]:
-    return re.findall(r"\w+", value.casefold())

@@ -166,6 +166,17 @@ shared answer obligations with `ANSWER_OBLIGATIONS_MODE=active` and a 4,096
 token semantic-validator output budget. These settings change answer control,
 not database ownership or canonical history.
 
+V1.64.0 supersedes only that answer-control policy: generated semantic answer
+obligations and their auxiliary validator are removed. Historical traces and
+stored data remain unchanged. No V1.64 migration deletes fact rows or memory
+proposals; legacy facts are read-only non-authoritative audit evidence, and
+background proposal review cannot mutate semantic memory. `pending_review`
+remains an open status until Scarlet decides through the memory shell.
+Proposal acceptance preserves the original source provenance and records the
+later decision turn separately. Memory, proposal, fact, and lifecycle
+maintenance no longer changes `sessions.updated_at`; that field represents
+conversation activity and therefore remains aligned with the latest message.
+
 V1.42.0 preserves the same data and maintenance boundary. It adds ordered
 per-block agent-mode routing receipts and stricter resumable-mode ownership;
 these changes affect model-context delivery and traces, not database ownership

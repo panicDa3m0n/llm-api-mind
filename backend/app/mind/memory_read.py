@@ -59,6 +59,7 @@ from app.mind.time_filters import (
     resolve_interval,
     time_filter_payload,
 )
+from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
 from app.storage.models import (
     MemoryFact,
@@ -230,8 +231,18 @@ def handle_memory_search(
             scope=request.scope,
             include_low_confidence=request.include_low_confidence,
         )
-        facts_by_memory = _facts_by_memory(db, candidates)
-        resolved_time = resolve_interval(request.time)
+        # Legacy heuristic facts are available through the dedicated audit
+        # command, not as active evidence for search, ranking, or time filters.
+        facts_by_memory: dict[str, list[MemoryFact]] = {}
+        runtime_timezone = (
+            load_runtime_preferences(db, context.settings).timezone
+            if context.settings is not None
+            else "Europe/Rome"
+        )
+        resolved_time = resolve_interval(
+            request.time,
+            timezone_name=runtime_timezone,
+        )
         candidates = _filter_memories_by_time(
             db,
             candidates,

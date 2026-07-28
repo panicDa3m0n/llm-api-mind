@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-28
-Current app target: V1.63.0; V1.50.1 remains release-accepted
+Current app target: V1.64.0; V1.50.1 remains release-accepted
 Process baseline: V1.0.1
 Status: accepted
 
@@ -223,7 +223,7 @@ finality recovery and passed the protected release boundary at merge
 line includes:
 
 - local MiniMax-based Scarlet runtime;
-- persistent sessions, traces, events, semantic memories, atomic facts, and
+- persistent sessions, traces, events, semantic memories, legacy fact audit rows, and
   episodic summaries;
 - `mind_shell` as the single model-facing API Mind command tool, with legacy
   endpoint dispatch retained for backend/debug compatibility;

@@ -273,7 +273,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "intent",
     ]
     assert body["result"]["schema_version"] == (
-        "2026-07-27.unified-lifecycle-v1"
+        "2026-07-28.semantic-authority-v2"
     )
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
@@ -291,10 +291,20 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
     assert route_status[("POST", "/mind/memory/search")] == "implemented"
     assert route_status[("GET", "/mind/memory/{memory_id}")] == "implemented"
     assert route_status[("GET", "/mind/memory/facts")] == "implemented"
-    assert route_status[("POST", "/mind/memory/facts/backfill")] == "implemented"
+    assert route_status[("POST", "/mind/memory/facts/backfill")] == (
+        "internal_maintenance_only"
+    )
     assert route_status[("POST", "/mind/memory/graph")] == "implemented"
     assert route_status[("GET", "/mind/memory/conflicts")] == "implemented"
-    assert ("GET", "/mind/memory/proposals") not in route_status
+    assert route_status[("GET", "/mind/memory/proposals")] == "implemented"
+    assert (
+        route_status[("GET", "/mind/memory/proposals/{proposal_id}")]
+        == "implemented"
+    )
+    assert (
+        route_status[("POST", "/mind/memory/proposals/decide")]
+        == "implemented"
+    )
     assert route_status[("POST", "/mind/memory/deprecate")] == "implemented"
     assert route_status[("POST", "/mind/memory/supersede")] == "implemented"
     assert route_status[("GET", "/mind/sessions")] == "implemented"
@@ -374,7 +384,9 @@ def test_mind_error_includes_endpoint_usage_guide(db_engine: Engine) -> None:
     assert "Call GET /mind/schema" not in body["suggested_next_actions"]
 
 
-def test_mind_memory_proposals_are_not_model_facing(db_engine: Engine) -> None:
+def test_mind_memory_proposals_are_model_facing_candidates(
+    db_engine: Engine,
+) -> None:
     client = make_client(db_engine)
     session = client.post("/api/chat/sessions", json={"title": "Hidden proposal"}).json()
 
@@ -391,9 +403,9 @@ def test_mind_memory_proposals_are_not_model_facing(db_engine: Engine) -> None:
 
     assert response.status_code == 200
     body = response.json()
-    assert body["ok"] is False
-    assert body["error"]["code"] == "mind.route_not_available"
-    assert "memory/proposals" not in json.dumps(body["result"])
+    assert body["ok"] is True
+    assert body["result"]["operation"] == "memory.proposals.list"
+    assert body["result"]["proposals"] == []
 
 
 def test_mind_call_records_tool_call_and_session_trace(db_engine: Engine) -> None:
@@ -962,7 +974,7 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
     memory_id = write_body["result"]["memory_id"]
     assert memory_id.startswith("mem_")
     assert write_body["result"]["memory"]["source_turn_id"] == write_turn_id
-    assert write_body["result"]["memory"]["facts"][0]["entity"] == "sal-updates"
+    assert write_body["result"]["memory"]["facts"] == []
     with Session(db_engine) as db:
         surfaces = repositories.list_memory_surfaces(db, target_id=memory_id)
         graph_nodes = repositories.list_memory_graph_nodes(
@@ -975,7 +987,6 @@ def test_mind_memory_write_and_search_are_traceable_across_sessions(
         "preference_text",
         "future_use_text",
         "temporal_text",
-        "fact_bundle_text",
     }.issubset(surface_kinds)
     memory_text_surface = next(
         surface for surface in surfaces if surface.surface_kind == "memory_text"
@@ -2736,13 +2747,10 @@ def test_mind_memory_fact_alias_matching_uses_phrase_boundaries(
     assert sal_response.status_code == 200
     sal_body = sal_response.json()
     assert sal_body["ok"] is True
-    assert sal_body["result"]["memory"]["facts"][0]["entity"] == "sal-updates"
-    assert sal_body["result"]["memory"]["facts"][0]["predicate"] == (
-        "user_preference"
-    )
+    assert sal_body["result"]["memory"]["facts"] == []
 
 
-def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
+def test_mind_memory_writes_do_not_create_heuristic_facts_or_conflicts(
     db_engine: Engine,
 ) -> None:
     client = make_client(db_engine)
@@ -2818,21 +2826,8 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     new_body = new_response.json()
     old_memory_id = old_body["result"]["memory_id"]
     new_memory_id = new_body["result"]["memory_id"]
-    old_fact = old_body["result"]["memory"]["facts"][0]
-    new_fact = new_body["result"]["memory"]["facts"][0]
-    assert old_fact["entity"] == "protocollo-zero-luce"
-    assert old_fact["predicate"] == "response_format"
-    assert old_fact["value"]["blocks"] == [
-        "Contesto",
-        "Evidenza",
-        "Prossima azione",
-    ]
-    assert new_fact["value"]["blocks"] == [
-        "Contesto",
-        "Evidenza",
-        "Rischio",
-        "Prossima azione",
-    ]
+    assert old_body["result"]["memory"]["facts"] == []
+    assert new_body["result"]["memory"]["facts"] == []
 
     facts_response = client.post(
         "/mind/call",
@@ -2852,10 +2847,8 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     assert facts_response.status_code == 200
     facts_body = facts_response.json()
     assert facts_body["ok"] is True
-    assert facts_body["result"]["count"] == 2
-    assert {
-        fact["memory_id"] for fact in facts_body["result"]["facts"]
-    } == {old_memory_id, new_memory_id}
+    assert facts_body["result"]["count"] == 0
+    assert facts_body["result"]["facts"] == []
 
     unfiltered_facts_response = client.post(
         "/mind/call",
@@ -2875,10 +2868,8 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     assert unfiltered_facts_response.status_code == 200
     unfiltered_facts_body = unfiltered_facts_response.json()
     assert unfiltered_facts_body["ok"] is True
-    assert unfiltered_facts_body["result"]["count"] == 2
-    assert {
-        fact["memory_id"] for fact in unfiltered_facts_body["result"]["facts"]
-    } == {old_memory_id, new_memory_id}
+    assert unfiltered_facts_body["result"]["count"] == 0
+    assert unfiltered_facts_body["result"]["facts"] == []
 
     conflicts_response = client.post(
         "/mind/call",
@@ -2894,12 +2885,8 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     assert conflicts_response.status_code == 200
     conflicts_body = conflicts_response.json()
     assert conflicts_body["ok"] is True
-    fact_conflict = conflicts_body["result"]["conflicts"][0]
-    assert fact_conflict["classification"] == "atomic_fact_conflict"
-    assert fact_conflict["basis"] == "atomic_fact"
-    assert fact_conflict["entity"] == "protocollo-zero-luce"
-    assert fact_conflict["predicate"] == "response_format"
-    assert set(fact_conflict["memory_ids"]) == {old_memory_id, new_memory_id}
+    assert conflicts_body["result"]["count"] == 0
+    assert conflicts_body["result"]["conflicts"] == []
 
     supersede_response = client.post(
         "/mind/call",
@@ -2921,9 +2908,8 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     supersede_body = supersede_response.json()
     old_facts = supersede_body["result"]["old_memory"]["facts"]
     new_facts = supersede_body["result"]["new_memory"]["facts"]
-    assert old_facts[0]["status"] == "deprecated"
-    assert old_facts[0]["superseded_by_fact_id"] == new_facts[0]["id"]
-    assert new_facts[0]["supersedes_fact_id"] == old_facts[0]["id"]
+    assert old_facts == []
+    assert new_facts == []
 
     resolved_response = client.post(
         "/mind/call",
@@ -2940,7 +2926,7 @@ def test_mind_memory_atomic_facts_support_alias_query_and_conflicts(
     assert resolved_response.json()["result"]["count"] == 0
 
 
-def test_mind_memory_facts_backfill_is_traceable(db_engine: Engine) -> None:
+def test_mind_memory_facts_backfill_is_traceable_noop(db_engine: Engine) -> None:
     client = make_client(db_engine)
     session = client.post(
         "/api/chat/sessions",
@@ -2983,8 +2969,8 @@ def test_mind_memory_facts_backfill_is_traceable(db_engine: Engine) -> None:
     assert response.status_code == 200
     body = response.json()
     assert body["ok"] is True
-    assert body["result"]["created_count"] == 1
-    assert body["result"]["facts"][0]["entity"] == "protocollo-zero-luce"
+    assert body["result"]["created_count"] == 0
+    assert body["result"]["facts"] == []
 
     traces = client.get(f"/api/debug/traces/{turn_id}").json()
     trace_kinds = [trace["kind"] for trace in traces]
@@ -2992,7 +2978,7 @@ def test_mind_memory_facts_backfill_is_traceable(db_engine: Engine) -> None:
     assert "mind.tool_call" in trace_kinds
 
 
-def test_mind_memory_facts_backfill_rebuilds_supersession_links(
+def test_mind_memory_facts_backfill_preserves_memory_lifecycle_without_facts(
     db_engine: Engine,
 ) -> None:
     client = make_client(db_engine)
@@ -3063,11 +3049,12 @@ def test_mind_memory_facts_backfill_rebuilds_supersession_links(
     assert response.status_code == 200
     body = response.json()
     facts = body["result"]["facts"]
-    old_fact = next(fact for fact in facts if fact["memory_id"] == old_memory_id)
-    new_fact = next(fact for fact in facts if fact["memory_id"] == new_memory_id)
-    assert old_fact["status"] == "deprecated"
-    assert old_fact["superseded_by_fact_id"] == new_fact["id"]
-    assert new_fact["supersedes_fact_id"] == old_fact["id"]
+    assert facts == []
+    with Session(db_engine) as db:
+        old_after = repositories.get_memory(db, old_memory_id)
+        new_after = repositories.get_memory(db, new_memory_id)
+    assert old_after is not None and old_after.status == "deprecated"
+    assert new_after is not None and new_after.status == "active"
 
 
 def test_mind_memory_lifecycle_supersedes_and_deprecates_conflict(
@@ -3130,15 +3117,9 @@ def test_mind_memory_lifecycle_supersedes_and_deprecates_conflict(
     conflicts_body = conflicts_response.json()
     assert conflicts_body["ok"] is True
     assert conflicts_body["result"]["count"] == 0
-    assert conflicts_body["result"]["related_overlap_count"] == 1
-    assert set(conflicts_body["result"]["related_overlaps"][0]["memory_ids"]) == {
-        old_memory_id,
-        new_memory_id,
-    }
-    assert conflicts_body["result"]["related_overlaps"][0]["classification"] in {
-        "related_overlap",
-        "duplicate_candidate",
-    }
+    assert conflicts_body["result"]["related_overlap_count"] == 0
+    assert conflicts_body["result"]["related_overlaps"] == []
+    assert conflicts_body["result"]["review_candidates"] == []
 
     supersede_response = client.post(
         "/mind/call",

@@ -5,19 +5,16 @@ from pydantic import ValidationError
 from sqlmodel import Session
 
 from app.mind.contracts import MindAPIContext
-from app.mind.facts import extracted_fact_payload, extract_memory_facts, fact_payload
-from app.mind.memory_read import _facts_by_memory, _score_memories
+from app.mind.memory_read import _score_memories
 from app.mind.memory_shared import (
     DEFAULT_MEMORY_SCOPE,
     _isoformat,
-    _memory_payload,
     _normalize_memory_text,
 )
 from app.mind.memory_write import (
     NEUTRAL_STORED_CONFIDENCE,
     NEUTRAL_STORED_SALIENCE,
     MemoryWriteBody,
-    _ensure_memory_facts,
     _evaluate_write_policy,
     _find_duplicate,
 )
@@ -25,10 +22,9 @@ from app.mind.search import (
     search_documents,
     sparse_results_by_source,
     sync_memory_documents,
-    sync_memory_retrieval_artifacts,
 )
 from app.storage import repositories
-from app.storage.models import MemoryFact, MemoryProposal, MemoryRecord, utc_now
+from app.storage.models import MemoryProposal
 
 
 def create_memory_proposal_from_review_candidate(
@@ -48,7 +44,7 @@ def create_memory_proposal_from_review_candidate(
             _string(candidate.get("reason")) or "Memory review candidate needs repair."
         )
         decision: dict[str, Any] = {
-            "proposed_action": "needs_review",
+            "proposed_action": "needs_semantic_review",
             "reason": "candidate failed memory write validation",
             "validation_error": validation_error,
             "retrieval_stages": [],
@@ -68,7 +64,7 @@ def create_memory_proposal_from_review_candidate(
                 content=content,
             ),
             source=source,
-            proposed_action="needs_review",
+            proposed_action="needs_semantic_review",
             action_confidence=0.0,
             risk="high",
             candidate_type=_string(candidate.get("type")) or "task_context",
@@ -125,8 +121,6 @@ def create_memory_proposal_from_review_candidate(
         source_message_ids=_candidate_source_message_ids(candidate),
         tags=request.tags,
         similar_memory_ids=decision["similar_memory_ids"],
-        related_fact_ids=decision["related_fact_ids"],
-        candidate_facts=decision["candidate_facts"],
         decision=decision,
         metadata={"source_candidate": candidate},
     )
@@ -162,16 +156,12 @@ def _proposal_decision_for_request(
     request: MemoryWriteBody,
 ) -> dict[str, Any]:
     policy = _evaluate_write_policy(request)
-    candidate_facts = [
-        extracted_fact_payload(fact)
-        for fact in extract_memory_facts(_transient_memory(request))
-    ]
     candidates = repositories.list_memories(
         db,
         scope=None,
         include_low_confidence=True,
     )
-    facts_by_memory = _facts_by_memory(db, candidates)
+    facts_by_memory: dict[str, list[Any]] = {}
     sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
     sparse_matches = sparse_results_by_source(
         search_documents(
@@ -189,36 +179,27 @@ def _proposal_decision_for_request(
     )
     similar = scored[:5]
     exact_duplicate = _find_duplicate(db, request)
-    matching_fact_ids, conflicting_fact_ids = _candidate_fact_matches(
-        candidate_facts,
-        facts_by_memory,
-    )
 
     if not policy["accepted"]:
         action = "reject_candidate"
-        action_confidence = 0.95
+        action_confidence = 1.0
         risk = "low"
         reason = policy["reason"]
-    elif exact_duplicate is not None or matching_fact_ids:
+    elif exact_duplicate is not None:
         action = "noop_duplicate"
-        action_confidence = 0.95
+        action_confidence = 1.0
         risk = "low"
-        reason = "equivalent active memory or active canonical fact already exists"
-    elif conflicting_fact_ids:
-        action = "needs_review"
-        action_confidence = 0.85
-        risk = "high"
-        reason = "candidate appears to conflict with active canonical facts"
+        reason = "an exact normalized active-memory duplicate already exists"
     elif similar:
         action = "review_similar"
-        action_confidence = 0.75
+        action_confidence = 0.0
         risk = "medium"
-        reason = "candidate has similar active memories; review before writing"
+        reason = "retrieval found related memories; semantic review is required"
     else:
-        action = "create_new"
-        action_confidence = 0.8
+        action = "needs_semantic_review"
+        action_confidence = 0.0
         risk = "medium"
-        reason = "no duplicate, fact match, or conflict detected by current preflight"
+        reason = "candidate passed structural checks and awaits Scarlet's judgment"
 
     similar_payloads = [
         {
@@ -229,9 +210,7 @@ def _proposal_decision_for_request(
             "score": round(score, 4),
             "why_relevant": why,
             "content": memory.content,
-            "facts": [
-                fact_payload(fact) for fact in facts_by_memory.get(memory.id, [])
-            ],
+            "facts": [],
         }
         for memory, score, why in similar
     ]
@@ -249,10 +228,7 @@ def _proposal_decision_for_request(
                 "score": None,
                 "why_relevant": "exact normalized text duplicate",
                 "content": exact_duplicate.content,
-                "facts": [
-                    fact_payload(fact)
-                    for fact in facts_by_memory.get(exact_duplicate.id, [])
-                ],
+                "facts": [],
             },
         )
     maintenance_assessment = _proposal_maintenance_assessment(
@@ -260,9 +236,6 @@ def _proposal_decision_for_request(
         risk=risk,
         policy=policy,
         similar_payloads=similar_payloads,
-        matching_fact_ids=matching_fact_ids,
-        conflicting_fact_ids=conflicting_fact_ids,
-        candidate_facts=candidate_facts,
     )
 
     return {
@@ -272,62 +245,15 @@ def _proposal_decision_for_request(
         "reason": reason,
         "write_policy": policy,
         "normalized_request": request.model_dump(mode="json"),
-        "candidate_facts": candidate_facts,
-        "matching_fact_ids": matching_fact_ids,
-        "conflicting_fact_ids": conflicting_fact_ids,
         "similar_memories": similar_payloads,
         "similar_memory_ids": [item["id"] for item in similar_payloads],
-        "related_fact_ids": sorted(set(matching_fact_ids + conflicting_fact_ids)),
-        "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1", "atomic_fact_v1"],
+        "retrieval_stages": ["fts5_sparse_v1", "lexical_fallback_v1"],
         "maintenance_assessment": maintenance_assessment,
         "future_ready": {
             "embedding_vector_id": None,
-            "graph_node_ids": [
-                f"{fact['entity']}::{fact['predicate']}"
-                for fact in candidate_facts
-                if fact.get("entity") and fact.get("predicate")
-            ],
+            "graph_node_ids": [],
         },
     }
-
-
-def _transient_memory(request: MemoryWriteBody) -> MemoryRecord:
-    return MemoryRecord(
-        memory_type=request.memory_type,
-        scope=request.scope,
-        content=request.content,
-        reason_for_storage=request.reason_for_storage,
-        expected_future_use=request.expected_future_use,
-        confidence=NEUTRAL_STORED_CONFIDENCE,
-        salience=NEUTRAL_STORED_SALIENCE,
-        tags_json=request.tags,
-        metadata_json=request.metadata,
-    )
-
-
-def _candidate_fact_matches(
-    candidate_facts: list[dict[str, Any]],
-    facts_by_memory: dict[str, list[MemoryFact]],
-) -> tuple[list[str], list[str]]:
-    matching: list[str] = []
-    conflicting: list[str] = []
-    for candidate in candidate_facts:
-        entity = candidate.get("entity")
-        predicate = candidate.get("predicate")
-        value = candidate.get("value")
-        if not entity or not predicate:
-            continue
-        for facts in facts_by_memory.values():
-            for fact in facts:
-                if fact.status != "active":
-                    continue
-                if fact.entity != entity or fact.predicate != predicate:
-                    continue
-                if fact.value_json == value:
-                    matching.append(fact.id)
-                else:
-                    conflicting.append(fact.id)
-    return sorted(set(matching)), sorted(set(conflicting))
 
 
 def _proposal_maintenance_assessment(
@@ -336,30 +262,21 @@ def _proposal_maintenance_assessment(
     risk: str,
     policy: dict[str, Any],
     similar_payloads: list[dict[str, Any]],
-    matching_fact_ids: list[str],
-    conflicting_fact_ids: list[str],
-    candidate_facts: list[dict[str, Any]],
 ) -> dict[str, Any]:
     if proposed_action in {"reject_candidate", "noop_duplicate"}:
         lane = "deterministic_archive"
-    elif proposed_action == "create_new":
-        lane = "cautious_resolution"
+    elif proposed_action == "needs_semantic_review":
+        lane = "semantic_review"
     else:
         lane = "pending_review"
 
     review_focus: list[str] = []
     if not policy.get("accepted"):
         review_focus.append("write_policy")
-    if matching_fact_ids:
-        review_focus.append("duplicate_fact")
-    elif proposed_action == "noop_duplicate":
+    if proposed_action == "noop_duplicate":
         review_focus.append("duplicate_memory")
-    if conflicting_fact_ids:
-        review_focus.append("fact_conflict")
     if similar_payloads:
         review_focus.append("similarity_merge_update_or_duplicate")
-    if candidate_facts:
-        review_focus.append("canonical_fact_quality")
     if not review_focus:
         review_focus.append("new_memory_candidate")
 
@@ -370,21 +287,19 @@ def _proposal_maintenance_assessment(
         "review_focus": review_focus,
         "counts": {
             "similar_memories": len(similar_payloads),
-            "matching_facts": len(matching_fact_ids),
-            "conflicting_facts": len(conflicting_fact_ids),
-            "candidate_facts": len(candidate_facts),
         },
         "decision_policy": {
             "safe_deterministic": [
                 "reject_candidate",
                 "noop_duplicate",
             ],
-            "cautious_resolution": ["create_new"],
+            "semantic_review": ["needs_semantic_review", "review_similar"],
             "pending_review": [
                 "review_similar",
-                "needs_review",
+                "needs_semantic_review",
             ],
-            "auto_apply_is_owned_by": "runtime.maintenance",
+            "semantic_authority": "scarlet",
+            "auto_apply_enabled": False,
         },
     }
 
@@ -469,87 +384,3 @@ def memory_proposal_payload(proposal: MemoryProposal) -> dict[str, Any]:
         "updated_at": _isoformat(proposal.updated_at),
         "applied_at": _isoformat(proposal.applied_at),
     }
-
-
-def apply_create_memory_proposal(
-    db: Session,
-    *,
-    proposal: MemoryProposal,
-    resolver: str,
-    reason: str,
-    decision: dict[str, Any] | None = None,
-) -> tuple[MemoryRecord, MemoryProposal]:
-    resolution = {
-        "resolver": resolver,
-        "outcome": "apply_create",
-        "reason": reason,
-        "decision": decision or {},
-        "decided_at": _isoformat(utc_now()),
-    }
-    metadata = {
-        **(proposal.metadata_json or {}),
-        "proposal_id": proposal.id,
-        "proposal_origin": proposal.source,
-        "maintenance_job_id": proposal.maintenance_job_id,
-        "resolution": resolution,
-    }
-    memory = repositories.add_memory(
-        db,
-        memory_type=proposal.candidate_type,
-        scope=proposal.candidate_scope,
-        content=proposal.content,
-        reason_for_storage=proposal.reason_for_storage,
-        expected_future_use=proposal.expected_future_use,
-        confidence=NEUTRAL_STORED_CONFIDENCE,
-        salience=NEUTRAL_STORED_SALIENCE,
-        created_by="maintenance",
-        source_session_id=proposal.source_session_id,
-        source_turn_id=proposal.source_turn_id,
-        source_message_id=(
-            proposal.source_message_ids_json[0]
-            if proposal.source_message_ids_json
-            else None
-        ),
-        tags=proposal.tags_json,
-        metadata=metadata,
-    )
-    repositories.add_memory_activity(
-        db,
-        memory_id=memory.id,
-        activity_kind="write",
-        source="maintenance.proposal.apply_create",
-        actor="maintenance",
-        session_id=proposal.source_session_id,
-        turn_id=proposal.source_turn_id,
-        message_id=memory.source_message_id,
-        trace_id=proposal.source_trace_id,
-        metadata={"proposal_id": proposal.id},
-    )
-    facts, _ = _ensure_memory_facts(
-        db,
-        memory,
-        source_trace_id=proposal.source_trace_id,
-    )
-    sync_memory_retrieval_artifacts(
-        db,
-        [memory],
-        facts_by_memory={memory.id: facts},
-    )
-    memory_snapshot = _memory_payload(memory, facts=facts)
-    resolved = repositories.resolve_memory_proposal(
-        db,
-        proposal_id=proposal.id,
-        status="applied_create",
-        result={
-            "resolution": resolution,
-            "memory_result": {
-                "memory_id": memory.id,
-                "memory_snapshot": memory_snapshot,
-            },
-            "preflight_snapshot": proposal.decision_json,
-            "dream_review_candidate": True,
-        },
-    )
-    if resolved is None:
-        raise ValueError(f"Memory proposal not found after apply: {proposal.id}")
-    return memory, resolved

@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-28
-System version assessed: V1.63.0 rollout target over the V1.50.1 Core
+System version assessed: V1.64.0 rollout target over the V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -199,10 +199,16 @@ Destinations:
 | `memory.context` | only through compact V2 projection | yes | yes |
 | `runtime.context` | only preserved V2 projection | yes | yes |
 | `llm.request` | request itself | yes | yes |
-| `answer.obligations` | native appendix only in active mode; GPT policy object | yes | yes |
-| `answer.validation` | no; validates a draft | yes | yes |
+| historical `answer.obligations` | no; retired in V1.64 | yes | audit only |
+| historical `answer.validation` | no; retired in V1.64 | yes | audit only |
 | raw KG/vector/rerank payloads | no | yes | yes |
-| maintenance jobs/proposals | no | evaluator UI/API | yes |
+| maintenance jobs | no | evaluator UI/API | yes |
+| memory proposals | only when Scarlet calls proposal shell commands | evaluator UI/API | yes |
+
+`memory.proposals.review_ready` is a private completed event admitted to the
+Cognitive Workspace as an appraisal candidate. It exposes proposal
+availability and source hooks; it does not force a wake or place proposal
+content in ordinary model context.
 
 ## 4. Stream And Historical UI Blocks
 

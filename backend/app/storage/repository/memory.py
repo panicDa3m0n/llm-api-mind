@@ -18,12 +18,21 @@ from app.storage.models import (
 from app.storage.repository._shared import touch_session as _touch_session
 
 
+OPEN_MEMORY_PROPOSAL_STATUSES = {
+    "pending",
+    "pending_review",
+}
+
+
 RESOLVED_MEMORY_PROPOSAL_STATUSES = {
+    "accepted_create",
+    "accepted_supersede",
     "applied_create",
     "archived_manual",
     "archived_noop_duplicate",
     "archived_rejected",
-    "pending_review",
+    "rejected_by_scarlet",
+    "resolved_duplicate",
 }
 
 
@@ -168,8 +177,6 @@ def add_memory(
         metadata_json=metadata or {},
     )
     db.add(memory)
-    if source_session_id is not None:
-        _touch_session(db, source_session_id)
     db.commit()
     db.refresh(memory)
     return memory
@@ -212,8 +219,6 @@ def add_memory_fact(
         metadata_json=metadata or {},
     )
     db.add(fact)
-    if source_session_id is not None:
-        _touch_session(db, source_session_id)
     db.commit()
     db.refresh(fact)
     return fact
@@ -326,8 +331,6 @@ def upsert_memory_proposal(
         metadata_json=metadata or {},
     )
     db.add(proposal)
-    if source_session_id is not None:
-        _touch_session(db, source_session_id)
     db.commit()
     db.refresh(proposal)
     return proposal, True
@@ -406,10 +409,10 @@ def resolve_memory_proposal(
     now = utc_now()
     proposal.status = status
     proposal.result_json = result or {}
-    proposal.applied_at = now
+    proposal.applied_at = (
+        None if status in OPEN_MEMORY_PROPOSAL_STATUSES else now
+    )
     proposal.updated_at = now
-    if proposal.source_session_id is not None:
-        _touch_session(db, proposal.source_session_id, at=now)
     db.add(proposal)
     db.commit()
     db.refresh(proposal)
@@ -544,7 +547,7 @@ def update_memory_lifecycle(
     memory_id: str,
     status: str | None = None,
     metadata: dict[str, Any] | None = None,
-    touch_source_session: bool = True,
+    touch_source_session: bool = False,
 ) -> MemoryRecord | None:
     memory = db.get(MemoryRecord, memory_id)
     if memory is None:
