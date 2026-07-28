@@ -39,6 +39,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Exclude `cognition.signal.dispositioned` receipt events from Cognitive
   Workspace source ingestion. The receipt remains observable but can no
   longer create an infinite one-for-one event chain.
+- Bound canonical session, memory, focus, intention, and episode text at the
+  endogenous substrate projection boundary, preventing one long historical
+  record from crashing every autonomous worker cycle.
 - Remove natural-language keyword appraisal from automatic affect and
   metacognitive context. Dedicated LLM-backed metacognition remains the
   semantic self-review path.
@@ -58,8 +61,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Focused proposal-review, maintenance, workspace, shell, and Mind API tests:
   `80 passed`.
-- Complete backend suite: `343 passed`, including the non-recursive workspace
-  receipt regression.
+- Complete backend suite: `344 passed`, including the non-recursive workspace
+  receipt and bounded endogenous substrate regressions.
 - Ruff, compileall, mypy over 56 owners, documentation and project-skill
   integrity, GPT OpenAPI parsing, and frontend production build pass.
 - Direct isolated shell use listed and opened a source-backed proposal,

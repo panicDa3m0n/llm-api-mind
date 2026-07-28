@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 ENDOGENOUS_SCHEMA_VERSION = "endogenous-impulse-seeds-v1"
+ENDOGENOUS_SUBSTRATE_SUMMARY_MAX_CHARS = 2000
 IMPULSE_FAMILIES = (
     "personal_continuity",
     "curiosity",
@@ -28,7 +29,10 @@ class EndogenousSubstrateItem(BaseModel):
     source_kind: str = Field(min_length=2, max_length=80)
     context_family: str = Field(min_length=2, max_length=120)
     observed_at: str
-    summary: str = Field(min_length=1, max_length=2000)
+    summary: str = Field(
+        min_length=1,
+        max_length=ENDOGENOUS_SUBSTRATE_SUMMARY_MAX_CHARS,
+    )
     details: dict[str, Any] = Field(default_factory=dict)
 
 

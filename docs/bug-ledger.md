@@ -7,6 +7,38 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0131 - Long Canonical Text Crashed Every Endogenous Worker Cycle
+
+Date Found: 2026-07-28
+Status: fixed in V1.64.0 during protected rollout
+
+Symptoms:
+
+After the recursive receipt loop was stopped, the autonomous worker still
+failed every cycle because a real historical session summary exceeded the
+2,000-character `EndogenousSubstrateItem.summary` contract.
+
+Root Cause:
+
+Canonical summaries and memory content can legitimately be longer than the
+bounded M2.7 substrate projection. The collector passed them directly into the
+projection model and relied on validation to reject oversized input, turning
+one historical record into a permanent worker failure.
+
+Fix:
+
+Keep canonical text unchanged and apply one deterministic 2,000-character
+projection at the substrate boundary for sessions, memories, focus,
+intentions, and episodes. This is transport bounding, not semantic
+classification.
+
+Regression:
+
+`test_endogenous_substrate_bounds_long_canonical_text_before_validation`
+injects oversized canonical session and memory text, proves the cognitive
+window completes, and verifies every delivered substrate summary respects the
+shared limit.
+
 ## BUG-0130 - Workspace Receipt Events Recursively Generated More Receipts
 
 Date Found: 2026-07-28

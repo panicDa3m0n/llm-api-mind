@@ -112,6 +112,22 @@ class EndogenousProvider:
         )
 
 
+class CapturingEndogenousProvider(EndogenousProvider):
+    substrate_summaries: list[str] = []
+
+    def generate_text(self, *, prompt: str, system=None, max_tokens=None):
+        payload = json.loads(prompt)
+        if "cognitive_window" in payload:
+            self.__class__.substrate_summaries = [
+                item["summary"] for item in payload["substrate"]
+            ]
+        return super().generate_text(
+            prompt=prompt,
+            system=system,
+            max_tokens=max_tokens,
+        )
+
+
 class EndorsingScarletProvider:
     candidate_id = ""
 
@@ -205,7 +221,12 @@ def _settings(**overrides) -> Settings:
     )
 
 
-def _seed_human_continuity(engine: Engine) -> tuple[str, str]:
+def _seed_human_continuity(
+    engine: Engine,
+    *,
+    summary: str | None = None,
+    memory_content: str | None = None,
+) -> tuple[str, str]:
     with Session(engine) as db:
         session = repositories.create_chat_session(
             db,
@@ -235,7 +256,8 @@ def _seed_human_continuity(engine: Engine) -> tuple[str, str]:
         repositories.upsert_session_summary(
             db,
             session_id=session.id,
-            summary=(
+            summary=summary
+            or (
                 "L'utente ha lasciato aperto un filo personale da riprendere "
                 "con calma."
             ),
@@ -251,7 +273,8 @@ def _seed_human_continuity(engine: Engine) -> tuple[str, str]:
             db,
             memory_type="user_preference",
             scope="user",
-            content="L'utente preferisce che i fili personali non vengano forzati.",
+            content=memory_content
+            or "L'utente preferisce che i fili personali non vengano forzati.",
             reason_for_storage="Aiuta la continuità relazionale.",
             source_session_id=session.id,
             source_turn_id=turn.id,
@@ -285,6 +308,38 @@ def _seed_human_continuity(engine: Engine) -> tuple[str, str]:
             source_session_id=session.id,
         )
         return session.id, memory.id
+
+
+def test_endogenous_substrate_bounds_long_canonical_text_before_validation(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    CapturingEndogenousProvider.models = []
+    CapturingEndogenousProvider.empty = False
+    CapturingEndogenousProvider.substrate_summaries = []
+    _seed_human_continuity(
+        db_engine,
+        summary="S" * 2400,
+        memory_content="M" * 2600,
+    )
+
+    result = run_cognitive_workspace_tick(
+        db_engine,
+        settings=_settings(),
+        provider_factory=CapturingEndogenousProvider,
+        now=utc_now(),
+    )
+
+    assert result["endogenous"]["status"] == "seeds_proposed"
+    assert CapturingEndogenousProvider.substrate_summaries
+    assert all(
+        len(summary) <= 2000
+        for summary in CapturingEndogenousProvider.substrate_summaries
+    )
+    assert any(
+        summary.endswith("...")
+        for summary in CapturingEndogenousProvider.substrate_summaries
+    )
 
 
 def test_endogenous_window_proposes_source_backed_seed_and_schedules_m3(

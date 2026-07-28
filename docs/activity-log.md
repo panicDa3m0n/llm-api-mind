@@ -34,6 +34,9 @@ Change:
   recursively fed the event source, then excluded only
   `cognition.signal.dispositioned` from re-ingestion while preserving the
   observable receipt;
+- bounded long canonical text only at the endogenous M2.7 substrate projection
+  after a real historical summary exceeded the transport contract and blocked
+  every autonomous worker cycle;
 - removed keyword-based natural-language appraisal from automatic affect and
   metacognitive context;
 - removed episodic substring fallback and made temporal interval resolution
@@ -46,8 +49,8 @@ Verification:
 - pre-change focused baseline: `74 passed`;
 - proposal-review, maintenance, workspace, shell, and Mind API suite:
   `80 passed`;
-- complete backend suite: `343 passed`, including the non-recursive workspace
-  receipt regression;
+- complete backend suite: `344 passed`, including the non-recursive workspace
+  receipt and bounded endogenous substrate regressions;
 - Ruff, compileall, mypy over 56 owners, documentation integrity,
   project-skill validation, GPT OpenAPI JSON parsing, and frontend production
   build: passed;

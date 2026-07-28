@@ -25,6 +25,7 @@ from app.llm.provider import (
 from app.mind.context_families import CONTEXT_FAMILIES
 from app.mind.endogenous_contracts import (
     ENDOGENOUS_SCHEMA_VERSION,
+    ENDOGENOUS_SUBSTRATE_SUMMARY_MAX_CHARS,
     ENDOGENOUS_SYSTEM_PROMPT,
     EndogenousImpulseBatch,
     EndogenousSubstrateItem,
@@ -381,7 +382,7 @@ def _collect_substrate(
                 observed_at=(
                     state.last_message_at or state.chat_session.updated_at
                 ).isoformat(),
-                summary=summary,
+                summary=_substrate_summary(summary),
                 details={
                     "updated_at": state.chat_session.updated_at.isoformat(),
                     "turn_count": state.turn_count,
@@ -418,7 +419,7 @@ def _collect_substrate(
                 source_kind="memory",
                 context_family="memory_continuity",
                 observed_at=(memory.last_used_at or memory.updated_at).isoformat(),
-                summary=memory.content,
+                summary=_substrate_summary(memory.content),
                 details={
                     "type": memory.memory_type,
                     "scope": memory.scope,
@@ -461,7 +462,7 @@ def _collect_substrate(
                 source_kind="focus",
                 context_family="foreground_attention",
                 observed_at=focus.updated_at.isoformat(),
-                summary=focus.focus_object,
+                summary=_substrate_summary(focus.focus_object),
                 details={
                     "status": focus.status,
                     "type": focus.focus_type,
@@ -482,7 +483,7 @@ def _collect_substrate(
                 source_kind="intention",
                 context_family="agent_posture",
                 observed_at=intention.updated_at.isoformat(),
-                summary=intention.desire,
+                summary=_substrate_summary(intention.desire),
                 details={
                     "status": intention.status,
                     "reason": intention.reason,
@@ -518,7 +519,7 @@ def _collect_substrate(
                 source_kind="episode",
                 context_family="agent_posture",
                 observed_at=episode.updated_at.isoformat(),
-                summary=episode.question,
+                summary=_substrate_summary(episode.question),
                 details={
                     "status": episode.status,
                     "expected_transformation": episode.expected_transformation,
@@ -592,6 +593,16 @@ def _collect_substrate(
     for item in items:
         deduplicated.setdefault(item.source_ref, item)
     return list(deduplicated.values())[:40]
+
+
+def _substrate_summary(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) <= ENDOGENOUS_SUBSTRATE_SUMMARY_MAX_CHARS:
+        return normalized
+    return (
+        normalized[: ENDOGENOUS_SUBSTRATE_SUMMARY_MAX_CHARS - 3].rstrip()
+        + "..."
+    )
 
 
 def _persist_seeds(
