@@ -1,7 +1,7 @@
 # Branch: Autonomia Decisionale
 
 Last updated: 2026-07-28
-System version assessed: V1.64.0 rollout target; V1.61.0 deployed before rollout
+System version assessed: V1.64.0 deployed
 Status: shared lifecycle verified; Cognitive Workspace, episodes, and
 Endogenous Cognition V1 implemented
 
@@ -44,7 +44,7 @@ retrieve/rerank, memorie, sessioni, focus, volition, affect, prompt e shell sono
 gli stessi del turno umano. Ogni dato dichiara la provenienza per evitare di
 attribuire all'utente un'elaborazione nata nei cicli interni.
 
-Sistema valutato: V1.62.0 localmente, con V1.61.0 ancora in produzione.
+Sistema valutato: V1.64.0 in produzione.
 
 La prima attivazione naturale dopo il reset archivistico della cronologia ha
 confermato in produzione il contratto condiviso: due sessioni umane come hint,
@@ -197,6 +197,23 @@ risolve nella volizione e la finestra registra la trasformazione. Resta da
 verificare in produzione la qualità naturale, la varietà, la non ripetizione,
 la frequenza dei no-work e il costo reale.
 
+## Verifica V1.64.0
+
+Il rollout protetto ha confermato che la finestra endogena condivide il runtime
+reale senza affidare significato al backend. Un primo difetto operativo
+reintroduceva nell'ingresso del workspace le sue stesse receipt
+`cognition.signal.dispositioned`; la query ora esclude soltanto quel meta-evento
+e il contatore è rimasto stabile nelle osservazioni successive. Un secondo
+difetto permetteva a testo canonico lungo di violare il limite del substrato
+M2.7; il testo originale resta intatto e viene limitata soltanto la proiezione
+di trasporto.
+
+Dopo i due fix, una finestra reale si è chiusa come `seeds_proposed`, ha letto
+11 elementi sorgente e ha generato quattro candidati provvisori con M2.7,
+senza eccezioni del worker. Questa è evidenza di operabilità, non ancora di
+varietà o qualità longitudinale. MiniMax M3 resta l'unica Scarlet e l'unica
+autorità che può adottare semanticamente quei candidati.
+
 ## Evolutive
 
 - Observe V1.63 adaptive windows and verify that real endogenous seeds vary,
@@ -209,7 +226,8 @@ la frequenza dei no-work e il costo reale.
 - Rollback a `shadow`, `advisory` o `off` se l'attivazione reale produce
   regressioni.
 - Espansione del source registry quando esistono contratti reali.
-- Validator per promesse non mantenute, claim forti, conflitti ignorati.
+- Valutazione comportamentale diretta di promesse, claim forti e conflitti
+  ignorati, senza reintrodurre un giudice semantico backend sulla risposta.
 - Autonomy budget come criterio semantico di costo/beneficio, non punteggio
   numerico.
 - Iniziativa esterna solo dopo permission, reversibilita e receipt dedicate.

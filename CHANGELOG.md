@@ -71,6 +71,17 @@ This project uses a practical changelog rather than a release-only log: each mea
 - An earlier direct isolated bridge/shell probe completes bootstrap, `help memory`,
   exact finalize persistence, and semantic memory write with zero automatic
   facts.
+- Protected VPS rollout deployed backend image
+  `scarlet-mobile-api:v1.64.0-a3453eb` and the V1.64 frontend while preserving
+  the production database and protected environment. Internal/public health,
+  authenticated OpenAPI `1.64.0`, copied-database canary, and final production
+  preflight passed with SQLite integrity `ok`.
+- Production observation caught and fixed a recursive
+  `cognition.signal.dispositioned` receipt chain. Its count remained stable at
+  `311311` across repeated post-fix observations.
+- The first post-fix endogenous window completed as `seeds_proposed` over 11
+  bounded source items and produced four provisional M2.7 candidates without
+  an autonomous-worker exception.
 - No full live Scarlet behavioral battery is part of this implementation.
 
 ### V1.63.0 - Endogenous Cognition V1

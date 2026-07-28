@@ -1,9 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-28
-App target: V1.64.0 implemented locally with the semantic-authority correction
-over V1.63.0 Endogenous Cognition; V1.61.0 remains deployed pending rollout;
-V1.50.1 remains the closed-Core release baseline
+App target: V1.64.0 deployed with the semantic-authority correction over
+V1.63.0 Endogenous Cognition; V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"

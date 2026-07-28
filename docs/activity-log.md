@@ -62,6 +62,34 @@ Verification:
 - direct isolated bridge/shell use: bootstrap, `help memory`, exact finalize,
   and memory write with zero automatic facts all completed.
 
+Protected VPS rollout:
+
+- retained the real production database and protected `.env`; no local or test
+  database was transferred;
+- created `/var/backups/scarlet-mobile-test/v1640-20260728T152333Z/` with an
+  online database backup, writable copied-DB canary, previous compose,
+  protected runtime environment, and previous frontend;
+- deployed the V1.64 frontend and backend image
+  `scarlet-mobile-api:v1.64.0-a3453eb`;
+- passed internal health, authenticated public health, OpenAPI `1.64.0`,
+  copied-database canary, and final production preflight;
+- final production preflight reported `production`, `codex_test=false`,
+  direct isolation, SQLite integrity `ok`, 45 tables, 329 memories, 243 facts,
+  246 sessions, 1,137 messages, and 320,100 events;
+- halted the recursive workspace receipt chain discovered during rollout:
+  `cognition.signal.dispositioned` remained at 311,311 rows and the same latest
+  timestamp across repeated observations;
+- observed the first post-fix real endogenous window complete as
+  `seeds_proposed` over 11 source items with four provisional M2.7 candidates
+  and no worker exception; and
+- retained all 311,311 historical receipt rows. Cleanup or retention policy is
+  a separate guarded data task, not part of this cognitive release.
+
+Release-process learning was folded back into the repository release skill:
+broad transfers must exclude every SQLite/cache residue, and event,
+maintenance, or scheduler rollouts require bounded count/timestamp observation
+in addition to endpoint health.
+
 Residual:
 
 - historical fact rows require a separately reviewed migration decision, not

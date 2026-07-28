@@ -3,7 +3,7 @@
 Last updated: 2026-07-27
 Status: Core V1 context active; V1.59 semantic family routing shadow;
 V1.62 shared V2 plus provisional workspace orientation
-App baseline: V1.50.1 release-accepted; V1.61.0 development target
+App baseline: V1.50.1 closed-Core baseline; V1.64.0 deployed runtime
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system

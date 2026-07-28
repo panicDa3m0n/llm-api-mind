@@ -74,7 +74,7 @@ remain stable.
 ## BUG-0129 - Open Proposals And Source Sessions Had Incorrect Lifecycle Recency
 
 Date Found: 2026-07-28
-Status: fixed locally in V1.64.0; deployment pending
+Status: fixed and deployed in V1.64.0
 
 Symptoms:
 
@@ -111,7 +111,7 @@ continue testing the deleted architecture instead of its replacement.
 ## BUG-0128 - Backend Semantic Heuristics Could Override Scarlet
 
 Date Found: 2026-07-28
-Status: fixed locally in V1.64.0; deployment pending
+Status: fixed and deployed in V1.64.0
 
 Symptoms:
 

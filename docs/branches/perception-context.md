@@ -1,7 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-27
-System version assessed: V1.61.0 development target
+System version assessed: V1.64.0 deployed
 Status: active branch
 
 ## Filosofia del ramo

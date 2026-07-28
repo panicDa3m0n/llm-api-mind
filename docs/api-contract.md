@@ -3,7 +3,7 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-28
-App target: V1.64.0 local; V1.50.1 remains the closed-Core baseline
+App target: V1.64.0 deployed; V1.50.1 remains the closed-Core baseline
 
 ## V1.64 Semantic Authority Boundary
 

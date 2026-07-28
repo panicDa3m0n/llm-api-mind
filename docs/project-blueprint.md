@@ -1,6 +1,6 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.64.0 semantic-authority target
+Architecture baseline: Core V1.50.1 closed; V1.64.0 semantic-authority runtime deployed
 Status: Core V1 closed; V2 product and module architecture active
 Last updated: 2026-07-28
 Primary human: project owner, evaluator, direction, validation  

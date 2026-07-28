@@ -1,7 +1,7 @@
 # Branch: Memoria
 
 Last updated: 2026-07-28
-System version assessed: V1.64.0 local
+System version assessed: V1.64.0 deployed
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo

@@ -1,7 +1,7 @@
 # Branch: Emotivita Computazionale
 
 Last updated: 2026-07-28
-System version assessed: V1.64.0 local
+System version assessed: V1.64.0 deployed
 Status: structural appraisal retained; semantic affect appraisal requires redesign
 
 ## Filosofia del ramo

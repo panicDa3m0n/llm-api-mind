@@ -11,8 +11,8 @@ rewritten.
 
 ## EXP-0087 - Structural Finality And Semantic Authority Boundary
 
-Status: deterministic implementation evidence accepted; focused VPS
-observation pending after deployment
+Status: deterministic implementation and focused VPS observation accepted;
+owner behavioral testing remains open
 
 Hypothesis:
 
@@ -45,14 +45,22 @@ backend passes `344`. Ruff, compileall, mypy over 56 owners, documentation and
 project-skill integrity, GPT OpenAPI parsing, and the frontend production build
 pass. Direct isolated shell use listed/opened a source-backed proposal,
 accepted it, preserved original source provenance, and recorded a separate
-Scarlet decision trace. No full behavioral battery is part of this task.
+Scarlet decision trace. The protected VPS rollout preserved the production
+database, passed the copied-database canary and final integrity preflight, and
+served authenticated OpenAPI `1.64.0`. A rollout observation found a recursive
+workspace-receipt chain and an oversized endogenous projection; both received
+focused regressions and patch images before acceptance. After the final image,
+the receipt count stayed stable and one real endogenous window completed over
+11 source items with four provisional M2.7 candidates. No full behavioral
+battery is part of this task.
 
 Interpretation:
 
 The deterministic contract is testable without grading Scarlet's wording.
-Behavioral quality still needs direct observation after deployment, especially
-whether Scarlet uses the existing shell and source evidence sufficiently when
-no backend answer judge forces her to do so.
+Behavioral quality still needs owner-directed observation, especially whether
+Scarlet uses the existing shell and source evidence sufficiently when no
+backend answer judge forces her to do so. The focused production evidence
+accepts runtime safety and operability, not longitudinal behavioral quality.
 
 Evidence:
 

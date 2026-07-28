@@ -2,7 +2,7 @@
 
 Status: Core V1 memory baseline closed; residual work is future research
 Last updated: 2026-07-28
-App baseline: V1.64.0 local; V1.50.1 closed-Core baseline
+App baseline: V1.64.0 deployed; V1.50.1 closed-Core baseline
 
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,

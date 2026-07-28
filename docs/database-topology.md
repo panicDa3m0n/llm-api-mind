@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-27
-Backend baseline: V1.61.0 (deployed with fresh active autonomous chronology)
+Last updated: 2026-07-28
+Backend baseline: V1.64.0 deployed
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -50,7 +50,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.61.0 is deployed at `d6a88b3` with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The quiescent pre-reset backup is `/var/backups/scarlet-mobile-test/v1610-20260727T144642Z/app.db.pre-autonomy-reset` (SHA-256 `4b6d1d67b0234d59957beb9d89e74b756663488898b3c75660218cdd76b15a0d`). The original autonomous session is archived with all 92 provider-history items; the active replacement began empty with one +600-second activation. Immediate post-switch counts were 319 memories, 239 facts, 243 sessions, 990 messages, 7,415 events, and 34 tables. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.64.0 is deployed as `scarlet-mobile-api:v1.64.0-a3453eb` with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, direct isolation, and SQLite integrity `ok`. The protected V1.64 backup and writable copied-DB canary are under `/var/backups/scarlet-mobile-test/v1640-20260728T152333Z/`; the earlier V1.61 chronology-reset backup remains retained. Final read-only preflight reported 45 tables, 329 memories, 243 facts, 246 sessions, 1,137 messages, and 320,100 events. |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; Git LFS-tracked file | The explicit 2026-07-23 cross-machine checkpoint publishes SHA-256 `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`: integrity `ok`, 27 tables, 36 memories, 26 facts, 163 sessions, 598 messages, and 3,597 events. It is not production, a test target, or a deployment seed. Future changes still require a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -176,6 +176,18 @@ Proposal acceptance preserves the original source provenance and records the
 later decision turn separately. Memory, proposal, fact, and lifecycle
 maintenance no longer changes `sessions.updated_at`; that field represents
 conversation activity and therefore remains aligned with the latest message.
+
+The protected V1.64 rollout retained the production mount and environment,
+created an online backup plus writable copied-DB canary, and passed new-image,
+post-switch, and final read-only preflights. Production observation exposed a
+historical recursive receipt chain: workspace ingestion was reading
+`cognition.signal.dispositioned` and emitting the same receipt again. The
+runtime now excludes only that self-referential meta-event; its production
+count remained stable at 311,311 across repeated observations. Existing rows
+were not deleted because retention cleanup is a separate reviewed data
+operation. A second patch bounds only the M2.7 endogenous projection of long
+canonical text. The first resulting real window completed successfully with
+11 source items and four provisional candidates.
 
 V1.42.0 preserves the same data and maintenance boundary. It adds ordered
 per-block agent-mode routing receipts and stricter resumable-mode ownership;

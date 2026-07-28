@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.64.0 target | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.64.0 deployed | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Native chat lifecycle | `backend/app/api/chat.py`, `backend/app/api/chat_native_turn.py` | Product UI and direct clients | V1 plus additive `scarlet-stream-v2` | V1-compatible while clients migrate to the V2 event port. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | Scarlet turns and auxiliary semantic workers | `LLMProvider` | MiniMax M3 is Scarlet; non-Scarlet LLM work uses the fixed M2.7 auxiliary profile. Native adapters use stop reasons for continuation, tool dispatch, and finality. |

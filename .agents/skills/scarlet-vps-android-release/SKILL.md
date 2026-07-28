@@ -45,7 +45,10 @@ unreviewed source to copy back into the repository.
   code, schema, or containers.
 - Verify backup existence and perform the configured SQLite preflight.
 - Exclude `backend/data`, repository and backend `.env` files, credentials, and
-  local build artifacts from code transfer.
+  local build artifacts from code transfer. A broad source transfer must also
+  exclude every `*.db`, `.tmp`, and cache path; prefer an explicit changed-file
+  transfer when possible because ignored SQLite residues may exist outside
+  `backend/data`.
 - Run mutating canaries only on an isolated copied database.
 - After rollout, rerun integrity and application preflights against production
   without creating test sessions or memories.
@@ -71,9 +74,13 @@ unreviewed source to copy back into the repository.
    and affected endpoints.
 10. For streaming changes, verify headers, early chunk delivery, durable replay,
    same-turn recovery, and no proxy buffering.
-11. Retain the previous image/config/static/database backup until acceptance.
-12. Record the deployed commit rather than copying a later documentation-only
-   commit into runtime metadata.
+11. When ingestion, scheduling, maintenance, or event coordination changed,
+    compare relevant event/window counts and timestamps across a bounded
+    observation interval. A healthy endpoint alone cannot detect a recursive
+    receipt loop or a worker that fails between ticks.
+12. Retain the previous image/config/static/database backup until acceptance.
+13. Record the deployed commit rather than copying a later documentation-only
+    commit into runtime metadata.
 
 Rollback immediately when health, migration, authentication, streaming, or
 data integrity fails. Restore the previous container/config/static artifact;
