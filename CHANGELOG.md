@@ -36,6 +36,9 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Keep `sessions.updated_at` tied to conversation activity. Memory writes,
   proposal maintenance, fact audit updates, and lifecycle operations no longer
   make an old source session appear recently active.
+- Exclude `cognition.signal.dispositioned` receipt events from Cognitive
+  Workspace source ingestion. The receipt remains observable but can no
+  longer create an infinite one-for-one event chain.
 - Remove natural-language keyword appraisal from automatic affect and
   metacognitive context. Dedicated LLM-backed metacognition remains the
   semantic self-review path.
@@ -55,7 +58,8 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Focused proposal-review, maintenance, workspace, shell, and Mind API tests:
   `80 passed`.
-- Complete backend suite: `342 passed`.
+- Complete backend suite: `343 passed`, including the non-recursive workspace
+  receipt regression.
 - Ruff, compileall, mypy over 56 owners, documentation and project-skill
   integrity, GPT OpenAPI parsing, and frontend production build pass.
 - Direct isolated shell use listed and opened a source-backed proposal,

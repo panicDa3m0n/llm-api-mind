@@ -7,6 +7,38 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0130 - Workspace Receipt Events Recursively Generated More Receipts
+
+Date Found: 2026-07-28
+Status: fixed in V1.64.0 during protected rollout
+
+Symptoms:
+
+The production database already contained more than 314,000 events and grew by
+roughly 3,000 `cognition.signal.dispositioned` rows during the V1.64 rollout,
+despite no comparable human traffic.
+
+Root Cause:
+
+Every ingested event generated an observable disposition receipt event. The
+wake registry correctly classified that event as `trace_only`, but source
+ingestion still treated it as a new event and generated another disposition
+receipt. Each workspace tick therefore consumed and recreated the same bounded
+batch forever.
+
+Fix:
+
+Exclude `cognition.signal.dispositioned` from the event-source query. The
+receipt event remains persisted for UI/debug visibility, while the workspace
+cannot re-ingest its own receipt. Other `cognition.*` events remain
+classifiable and a real source event still creates one observable receipt.
+
+Regression:
+
+`test_signal_disposition_receipt_does_not_recursively_feed_workspace` runs a
+source-backed tick followed by a quiet tick and proves event and receipt counts
+remain stable.
+
 ## BUG-0129 - Open Proposals And Source Sessions Had Incorrect Lifecycle Recency
 
 Date Found: 2026-07-28

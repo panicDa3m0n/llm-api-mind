@@ -41,7 +41,7 @@ Method:
 Result:
 
 The proposal-review/workspace focused suite passes `80` tests and the complete
-backend passes `342`. Ruff, compileall, mypy over 56 owners, documentation and
+backend passes `343`. Ruff, compileall, mypy over 56 owners, documentation and
 project-skill integrity, GPT OpenAPI parsing, and the frontend production build
 pass. Direct isolated shell use listed/opened a source-backed proposal,
 accepted it, preserved original source provenance, and recorded a separate

@@ -210,6 +210,10 @@ Cognitive Workspace as an appraisal candidate. It exposes proposal
 availability and source hooks; it does not force a wake or place proposal
 content in ordinary model context.
 
+`cognition.signal.dispositioned` is an observable workspace receipt, not a
+signal source. It is deliberately excluded from event ingestion so receipt
+telemetry cannot recursively manufacture more receipts.
+
 ## 4. Stream And Historical UI Blocks
 
 `scarlet-stream-v2` is the durable Product UI event contract. Every V2 item

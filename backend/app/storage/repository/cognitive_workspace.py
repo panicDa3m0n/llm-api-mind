@@ -233,6 +233,7 @@ def list_unprocessed_events(
         select(CognitiveEvent, ChatSession)
         .join(ChatSession, ChatSession.id == CognitiveEvent.session_id)
         .where(ChatSession.profile_id == profile_id)
+        .where(CognitiveEvent.type != "cognition.signal.dispositioned")
         .where(~receipt_exists)
     )
     if cursor is not None and cursor.last_observed_at is not None:

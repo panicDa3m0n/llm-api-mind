@@ -30,6 +30,10 @@ Change:
   retained historical fact divergence as audit-only review evidence;
 - stopped memory, proposal, fact, and lifecycle maintenance from changing the
   source session's conversation `updated_at`;
+- discovered during protected rollout that workspace receipt events
+  recursively fed the event source, then excluded only
+  `cognition.signal.dispositioned` from re-ingestion while preserving the
+  observable receipt;
 - removed keyword-based natural-language appraisal from automatic affect and
   metacognitive context;
 - removed episodic substring fallback and made temporal interval resolution
@@ -42,7 +46,8 @@ Verification:
 - pre-change focused baseline: `74 passed`;
 - proposal-review, maintenance, workspace, shell, and Mind API suite:
   `80 passed`;
-- complete backend suite: `342 passed`;
+- complete backend suite: `343 passed`, including the non-recursive workspace
+  receipt regression;
 - Ruff, compileall, mypy over 56 owners, documentation integrity,
   project-skill validation, GPT OpenAPI JSON parsing, and frontend production
   build: passed;

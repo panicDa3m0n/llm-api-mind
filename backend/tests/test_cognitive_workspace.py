@@ -208,6 +208,82 @@ def test_shadow_workspace_uses_m27_and_never_schedules_scarlet(
         assert any(item.source_type == "turn.completed" for item in receipts)
 
 
+def test_signal_disposition_receipt_does_not_recursively_feed_workspace(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    settings = _settings("shadow")
+    run_cognitive_workspace_tick(
+        db_engine,
+        settings=settings,
+        provider_factory=WorkspaceProvider,
+    )
+    _completed_human_turn(db_engine)
+
+    run_cognitive_workspace_tick(
+        db_engine,
+        settings=settings,
+        provider_factory=WorkspaceProvider,
+    )
+    # Drain the finite cognition events created while appraising the source
+    # turn. Their receipt events must remain terminal telemetry.
+    run_cognitive_workspace_tick(
+        db_engine,
+        settings=settings,
+        provider_factory=WorkspaceProvider,
+    )
+
+    with Session(db_engine) as db:
+        autonomous_session = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id="local-user",
+        )
+        receipt_events_before = [
+            event
+            for event in repositories.list_events_for_session(
+                db,
+                session_id=autonomous_session.id,
+                limit=100,
+            )
+            if event.type == "cognition.signal.dispositioned"
+        ]
+        receipts_before = repositories.list_signal_receipts(
+            db,
+            profile_id="local-user",
+            limit=100,
+        )
+
+    run_cognitive_workspace_tick(
+        db_engine,
+        settings=settings,
+        provider_factory=WorkspaceProvider,
+    )
+
+    with Session(db_engine) as db:
+        receipt_events_after = [
+            event
+            for event in repositories.list_events_for_session(
+                db,
+                session_id=autonomous_session.id,
+                limit=100,
+            )
+            if event.type == "cognition.signal.dispositioned"
+        ]
+        receipts_after = repositories.list_signal_receipts(
+            db,
+            profile_id="local-user",
+            limit=100,
+        )
+
+    assert receipt_events_before
+    assert len(receipt_events_after) == len(receipt_events_before)
+    assert len(receipts_after) == len(receipts_before)
+    assert all(
+        receipt.source_type != "cognition.signal.dispositioned"
+        for receipt in receipts_after
+    )
+
+
 def test_active_workspace_schedules_m3_activation_without_running_it(
     db_engine: Engine,
 ) -> None:
