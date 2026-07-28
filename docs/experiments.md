@@ -12,7 +12,7 @@ rewritten.
 ## EXP-0088 - Native Lifecycle Convergence
 
 Status: deterministic acceptance complete locally; protected deployment and
-normal production observation pending
+bounded normal production observation complete
 
 Hypothesis:
 

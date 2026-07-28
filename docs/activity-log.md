@@ -44,9 +44,18 @@ Verification:
 
 Deployment:
 
-- pending protected VPS backup, copied-database canary, production preflight,
-  restart, health/OpenAPI check, and bounded post-switch observation. No local,
-  preliminary, or test database is eligible for transfer.
+- deployed to the protected VPS from source commit `04b62ee` as image
+  `scarlet-mobile-api:v1.65.0-04b62ee` after an online production backup at
+  `/var/backups/scarlet-mobile-test/v1650-20260728T190946Z`;
+- a reflinked copy of the production SQLite database passed the V1.65
+  database preflight, app-factory import, and integrity check before the
+  switch;
+- the mounted production database then passed the same preflight: role
+  `production`, `CODEX_TEST=false`, `integrity=ok`, 45 tables, and no test
+  database transfer or mutation;
+- loopback health, OpenAPI, and installed package all report V1.65.0; and
+- a bounded post-switch event observation remained stable and container logs
+  contained only normal startup and health/OpenAPI requests.
 
 ## 2026-07-28 - V1.64.0 Semantic Authority Rework
 

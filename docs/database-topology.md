@@ -1,8 +1,7 @@
 # Database Topology And Safety Boundaries
 
 Last updated: 2026-07-28
-Backend baseline: V1.65.0 target pending protected deployment; V1.64.0 remains
-deployed
+Backend baseline: V1.65.0 deployed on the protected VPS
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in

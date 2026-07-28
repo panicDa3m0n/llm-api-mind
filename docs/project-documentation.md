@@ -1,8 +1,7 @@
 # Project Documentation Index
 
 Last updated: 2026-07-28
-App target: V1.65.0 pending protected deployment; V1.50.1 remains
-release-accepted
+App deployment: V1.65.0 on the protected VPS; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:

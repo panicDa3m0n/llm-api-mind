@@ -2,8 +2,8 @@
 
 Last updated: 2026-07-28
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.65.0 pending protected
-deployment
+Contract introduced: V1.51.0; current app deployment: V1.65.0 on the
+protected VPS
 Linear issue: SCA-47
 
 ## 1. Purpose

@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0132 - Autonomous Turns Bypassed Shared Lifecycle Receipts
 
 Date Found: 2026-07-28
-Status: fixed locally in V1.65.0; protected deployment pending
+Status: fixed and deployed in V1.65.0
 
 Symptoms:
 

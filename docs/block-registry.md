@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-28
-System version assessed: V1.65.0 target pending protected deployment over the
+System version assessed: V1.65.0 deployed on the protected VPS over the
 V1.50.1 Core
 Status: active diagnostic map
 

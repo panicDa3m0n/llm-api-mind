@@ -1,7 +1,7 @@
 # Branch: Gestione Operativa
 
 Last updated: 2026-07-28
-System version assessed: V1.65.0 target pending protected deployment
+System version assessed: V1.65.0 deployed on the protected VPS
 Status: focus, mode routing, and autonomous activation substrate implemented
 
 ## Filosofia del ramo

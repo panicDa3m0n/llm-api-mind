@@ -1,9 +1,8 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-28
-App target: V1.65.0 pending protected deployment with shared human/autonomous
-turn kernels; V1.64.0 remains deployed; V1.50.1 remains the closed-Core
-release baseline
+App deployment: V1.65.0 with shared human/autonomous turn kernels is deployed
+on the protected VPS; V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"

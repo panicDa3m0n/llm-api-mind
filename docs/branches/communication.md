@@ -1,8 +1,8 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-28
-System version assessed: V1.65.0 target pending protected deployment; V1.64.0
-remains deployed; V1.50.1 closed-Core baseline
+System version assessed: V1.65.0 deployed on the protected VPS; V1.50.1
+closed-Core baseline
 Status: active branch
 
 ## Filosofia del ramo

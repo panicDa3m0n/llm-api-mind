@@ -1,8 +1,7 @@
 # Branch: Emotivita Computazionale
 
 Last updated: 2026-07-28
-System version assessed: V1.65.0 target pending protected deployment; V1.64.0
-remains deployed
+System version assessed: V1.65.0 deployed on the protected VPS
 Status: structural appraisal retained; semantic affect appraisal requires redesign
 
 ## Filosofia del ramo

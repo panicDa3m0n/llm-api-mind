@@ -1,7 +1,7 @@
 # Development Process
 
 Last updated: 2026-07-28
-Current app target: V1.65.0 pending protected deployment; V1.50.1 remains
+Current app deployment: V1.65.0 on the protected VPS; V1.50.1 remains
 release-accepted
 Process baseline: V1.0.1
 Status: accepted

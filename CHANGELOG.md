@@ -47,8 +47,10 @@ This project uses a practical changelog rather than a release-only log: each mea
 - A direct in-memory `mind_shell help memory` probe traversed the shared tool
   runner and persisted one tool call, `mind.tool_call.started`,
   `mind.tool_call.completed`, and one `mind.tool_call` trace.
-- Protected VPS deployment evidence is recorded in the activity log after the
-  reviewed source commit is switched.
+- Protected VPS deployment completed from source commit `04b62ee`: an online
+  production backup, copied-database canary, production preflight, version,
+  health, and bounded post-switch observation all passed without transferring
+  any local or test database.
 
 ### V1.64.0 - Semantic Authority Rework
 

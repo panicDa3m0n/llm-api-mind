@@ -1,8 +1,7 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-27
-System version assessed: V1.65.0 target pending protected deployment; V1.64.0
-remains deployed
+System version assessed: V1.65.0 deployed on the protected VPS
 Status: active branch
 
 ## Filosofia del ramo

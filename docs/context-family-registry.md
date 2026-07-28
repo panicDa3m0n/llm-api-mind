@@ -1,8 +1,8 @@
 # Context Family Registry
 
 Last updated: 2026-07-28
-Target version: V1.65.0; family-routing behavior unchanged by lifecycle
-convergence
+Current deployment: V1.65.0 on the protected VPS; family-routing behavior is
+unchanged by lifecycle convergence
 Status: typed registry and model-context routing remain shadow; a narrow device
 adapter admits bounded transitions to the perception inbox, not to chat context
 

@@ -3,8 +3,8 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-28
-App target: V1.65.0 pending protected deployment; V1.64.0 remains deployed;
-V1.50.1 remains the closed-Core baseline
+App deployment: V1.65.0 deployed on the protected VPS; V1.50.1 remains the
+closed-Core baseline
 
 ## V1.65 Shared Turn Lifecycle Boundary
 
