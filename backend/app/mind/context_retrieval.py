@@ -10,27 +10,21 @@ from typing import Any
 from sqlmodel import Session
 
 from app.mind.facts import fact_payload, fact_search_text
-from app.mind.graph_retrieval import (
-    build_memory_graph_expansion,
-    graph_signals_by_memory,
+from app.mind.memory_recall import (
+    collect_memory_recall_evidence,
+    run_memory_recall_pipeline,
 )
 from app.mind.relevance_rerank import (
     FINAL_RERANK_POLICY,
     MemoryRerankEntry,
     MemoryRerankPlan,
-    build_memory_recall_pool,
     rerank_status_payload,
-    run_memory_relevance_rerank,
 )
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
     retrieval_stage_manifest,
-    search_documents,
-    sparse_results_by_source,
-    sync_memory_documents,
 )
-from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.storage import repositories
 from app.storage.models import MemoryFact, MemoryRecord
 
@@ -116,82 +110,35 @@ def build_automatic_memory_retrieval(
     # Legacy heuristic facts remain auditable through ``memory facts`` but do
     # not participate in automatic recall, ranking, or conflict claims.
     facts_by_memory: dict[str, list[MemoryFact]] = {}
-    sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
-
     # This query already contains the current message plus recent context.
     # Joining every diagnostic variant would duplicate the current message.
     sparse_query = lexical_queries[-1]
-    sparse_matches = sparse_results_by_source(
-        search_documents(
-            db,
-            query=sparse_query,
-            kind="memory",
-            limit=INTERNAL_CANDIDATE_LIMIT * 4,
-        )
-    )
-    graph_expansion = build_memory_graph_expansion(
+    evidence = collect_memory_recall_evidence(
         db,
         query=sparse_query,
         memories=candidates,
         facts_by_memory=facts_by_memory,
-        limit=INTERNAL_CANDIDATE_LIMIT,
-    )
-    graph_signals = graph_signals_by_memory(graph_expansion)
-    rerank_candidate_limit = int(
-        getattr(settings, "retrieval_shadow_rerank_candidate_limit", 20) or 20
-    )
-    final_rerank_enabled = str(
-        getattr(settings, "retrieval_hybrid_mode", "off") or "off"
-    ).lower() in {"shadow", "active"}
-    retrieval_shadow = run_memory_surface_shadow_search(
-        db,
-        query=sparse_query,
-        candidate_memory_ids=[memory.id for memory in candidates],
         settings=settings,
-        limit=rerank_candidate_limit,
-        include_surface_rerank=not final_rerank_enabled,
+        sparse_limit=INTERNAL_CANDIDATE_LIMIT * 4,
+        graph_limit=INTERNAL_CANDIDATE_LIMIT,
     )
     ranked_base = _rank_candidates(
         candidates,
         current_user_message=current_user_message,
         recent_dialogue=recent_dialogue,
         facts_by_memory=facts_by_memory,
-        sparse_matches=sparse_matches,
-        graph_signals=graph_signals,
+        sparse_matches=evidence.sparse_matches,
+        graph_signals=evidence.graph_signals,
     )
-    recall_pool = build_memory_recall_pool(
-        candidates,
-        facts_by_memory=facts_by_memory,
-        routes={
-            "sparse": list(sparse_matches),
-            "dense": [
-                str(item["target_id"])
-                for item in retrieval_shadow.get("grouped_results", [])
-                if item.get("active_rank_eligible") is True
-                and isinstance(item.get("target_id"), str)
-            ],
-            "graph": list(graph_signals),
-            "lexical": [item.memory.id for item in ranked_base],
-        },
-        limit=rerank_candidate_limit,
-    )
-    rerank_plan = run_memory_relevance_rerank(
-        query=sparse_query,
-        candidates=recall_pool,
+    pipeline = run_memory_recall_pipeline(
+        evidence,
+        lexical_memory_ids=[item.memory.id for item in ranked_base],
         settings=settings,
         selected_limit=MODEL_SELECTED_LIMIT,
+        off_mode_stage="lexical_guard_v1",
     )
-    retrieval_stages = (
-        [
-            "fts5_sparse_v1",
-            "dense_memory_surfaces_v1",
-            "networkx_graph_recall_v1",
-            "round_robin_recall_pool_v1",
-            FINAL_RERANK_POLICY,
-        ]
-        if rerank_plan.status.get("mode") != "off"
-        else ["fts5_sparse_v1", "lexical_guard_v1"]
-    )
+    rerank_plan = pipeline.rerank_plan
+    retrieval_stages = pipeline.retrieval_stages
     if rerank_plan.active:
         ranked = _context_candidates_from_final_rerank(
             rerank_plan.entries,
@@ -234,8 +181,8 @@ def build_automatic_memory_retrieval(
         lexical_queries=lexical_queries,
         sparse_query=sparse_query,
         retrieval_stages=retrieval_stages,
-        retrieval_graph=graph_expansion,
-        retrieval_shadow=retrieval_shadow,
+        retrieval_graph=evidence.graph_expansion,
+        retrieval_shadow=evidence.retrieval_shadow,
         retrieval_rerank=rerank_payload,
         selected=selected,
         near_miss=near_miss,

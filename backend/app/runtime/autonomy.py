@@ -13,38 +13,35 @@ from typing import Any
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
-from app.api.chat_native_turn import (
-    build_mind_tool_runner,
-    compose_system_with_runtime_context,
-)
-from app.api.chat_serialization import (
-    memory_context_event_payload,
-    recent_memory_context_event_payload,
-    runtime_context_event_payload,
-    session_continuity_event_payload,
-)
 from app.api.chat_provider_history import (
-    updated_provider_history,
     valid_provider_history,
 )
 from app.config import Settings
 from app.llm.factory import active_provider_max_tokens, active_provider_model
-from app.llm.provider import LLMMessage, LLMProvider, LLMTextResult
-from app.mind.context import build_memory_context
+from app.llm.provider import (
+    LLMIncompleteResponseError,
+    LLMMessage,
+    LLMProvider,
+    LLMTextResult,
+)
 from app.mind.context_time import render_user_time
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.prompts.system import resolve_agent_system_prompt
 from app.runtime.events import (
     record_event,
     record_provider_stream_event,
-    record_response_content_events,
 )
 from app.runtime.endogenous_cognition import record_endogenous_activation_feedback
-from app.runtime.history_compaction import build_chronology_source_map
-from app.runtime.history_runtime import route_history_for_model
-from app.runtime.maintenance import schedule_history_compaction
 from app.runtime.preferences import load_runtime_preferences
 from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
+from app.runtime.mind_tool_runner import build_mind_tool_runner
+from app.runtime.turn_kernel import (
+    ModelTurnPreparation,
+    complete_model_turn,
+    prepare_model_turn,
+    record_failed_model_turn,
+    require_terminal_response,
+)
 from app.storage import repositories
 from app.storage.models import AutonomousActivation, ChatSession, Message, utc_now
 
@@ -166,6 +163,8 @@ def run_autonomous_activation(
     autonomous_session_id: str | None = None
     activation_message_id: str | None = None
     trace_ids: list[str] = []
+    model_context: dict[str, Any] = {}
+    prepared: ModelTurnPreparation | None = None
     started_perf = time.perf_counter()
     try:
         with Session(engine) as db:
@@ -192,6 +191,17 @@ def run_autonomous_activation(
             activation.updated_at = utc_now()
             db.add(activation)
             db.commit()
+            record_event(
+                db,
+                session_id=chat_session.id,
+                turn_id=turn_id,
+                event_type="turn.started",
+                payload={"model": model, "entrypoint": "autonomy.activation"},
+                source="runtime",
+                actor="backend",
+                visibility="private",
+                status="active",
+            )
             record_event(
                 db,
                 session_id=chat_session.id,
@@ -232,12 +242,12 @@ def run_autonomous_activation(
                 event_type="autonomy.activation.persisted",
                 payload={
                     "activation_id": activation.id,
-                    "message_id": activation_message.id,
+                    "message_id": activation_message_id,
                 },
                 source="autonomy",
                 actor="backend",
                 visibility="private",
-                message_id=activation_message.id,
+                message_id=activation_message_id,
             )
             history = repositories.list_messages(db, session_id=chat_session.id)
             retrieval_dialogue = _autonomous_retrieval_dialogue(
@@ -246,28 +256,50 @@ def run_autonomous_activation(
                 profile_id=preferences.profile_id,
                 privacy_scope=preferences.privacy_scope,
             )
-            memory_context = build_memory_context(
+            canonical_messages = _autonomous_provider_messages(
+                chat_session.provider_history_json,
+                history,
+                activation_message,
+            )
+            provider_history_source = (
+                "session.provider_history_json"
+                if valid_provider_history(chat_session.provider_history_json)
+                else "messages.text_reconstructed"
+            )
+            system_prompt = resolve_agent_system_prompt(settings)
+            prepared = prepare_model_turn(
                 db,
+                settings=settings,
                 chat_session=chat_session,
                 turn_id=turn_id,
-                current_user_message=activation_message,
+                source_message=activation_message,
                 history=history,
+                canonical_messages=canonical_messages,
+                provider_history_source=provider_history_source,
+                base_system=system_prompt.content,
+                system_source=system_prompt.source,
+                system_path=system_prompt.path,
+                model=model,
+                max_tokens=active_provider_max_tokens(settings),
+                started=started_perf,
+                stream=False,
+                entrypoint="autonomy.activation",
+                accounting_transport="autonomous_stream",
+                runtime_trigger="autonomous_activation",
                 now=started_at,
                 runtime_preferences=preferences,
-                settings=settings,
-                runtime_trigger="autonomous_activation",
                 retrieval_dialogue=retrieval_dialogue,
+                context_event_visibility="private",
+                request_event_visibility="private",
+                request_event_status="active",
+                request_metadata={
+                    "entrypoint": "autonomy.activation",
+                    "activation_id": activation.id,
+                },
+                response_visibility="private",
             )
-            trace_ids.extend(
-                [
-                    memory_context.trace_id,
-                    memory_context.runtime_trace_id,
-                ]
-            )
-            if memory_context.metacognitive_trace_id is not None:
-                trace_ids.append(memory_context.metacognitive_trace_id)
-            if memory_context.model_context_trace_id is not None:
-                trace_ids.append(memory_context.model_context_trace_id)
+            trace_ids = prepared.trace_ids
+            memory_context = prepared.memory_context
             model_context = memory_context.model_context_payload or {}
             context_audit = {
                 "profile": memory_context.model_context_profile,
@@ -300,118 +332,13 @@ def run_autonomous_activation(
                 visibility="private",
                 trace_id=memory_context.model_context_trace_id,
             )
-            record_event(
-                db,
-                session_id=chat_session.id,
-                turn_id=turn_id,
-                event_type="memory.context.built",
-                payload=memory_context_event_payload(memory_context.payload),
-                source="memory",
-                actor="backend",
-                visibility="private",
-                trace_id=memory_context.trace_id,
-            )
-            if memory_context.model_context_payload is not None:
-                record_event(
-                    db,
-                    session_id=chat_session.id,
-                    turn_id=turn_id,
-                    event_type="memory.recent_context.built",
-                    payload=recent_memory_context_event_payload(
-                        memory_context.model_context_payload
-                    ),
-                    source="memory",
-                    actor="backend",
-                    visibility="private",
-                    trace_id=memory_context.model_context_trace_id,
-                )
-                record_event(
-                    db,
-                    session_id=chat_session.id,
-                    turn_id=turn_id,
-                    event_type="session.continuity.built",
-                    payload=session_continuity_event_payload(
-                        memory_context.model_context_payload
-                    ),
-                    source="session",
-                    actor="backend",
-                    visibility="private",
-                    trace_id=memory_context.model_context_trace_id,
-                )
-            record_event(
-                db,
-                session_id=chat_session.id,
-                turn_id=turn_id,
-                event_type="runtime.context.built",
-                payload=runtime_context_event_payload(
-                    memory_context.runtime_payload
-                ),
-                source="runtime",
-                actor="backend",
-                visibility="private",
-                trace_id=memory_context.runtime_trace_id,
-            )
-            canonical_messages = _autonomous_provider_messages(
-                chat_session.provider_history_json,
-                history,
-                activation_message,
-            )
-            history_routing = route_history_for_model(
-                db,
-                session_id=chat_session.id,
-                canonical_messages=canonical_messages,
-                chars_per_token=float(settings.context_estimated_chars_per_token),
-                mode=settings.history_compaction_mode,
-            )
-            system_prompt = resolve_agent_system_prompt(settings)
-            effective_system = (
-                compose_system_with_runtime_context(
-                    system_prompt.content,
-                    memory_context.runtime_context,
-                )
-                + history_routing.system_appendix
-            )
-            request_trace = repositories.add_trace(
-                db,
-                session_id=chat_session.id,
-                turn_id=turn_id,
-                kind="llm.request",
-                payload={
-                    "entrypoint": "autonomy.activation",
-                    "activation_id": activation.id,
-                    "model": model,
-                    "max_tokens": active_provider_max_tokens(settings),
-                    "system_source": system_prompt.source,
-                    "context_trace_id": memory_context.model_context_trace_id
-                    or memory_context.runtime_trace_id,
-                    "history_routing": history_routing.payload,
-                    "provider_messages": [
-                        item.model_dump(mode="json")
-                        for item in history_routing.model_messages
-                    ],
-                    "tools": [MIND_SHELL_TOOL_SCHEMA],
-                },
-            )
-            trace_ids.append(request_trace.id)
-            record_event(
-                db,
-                session_id=chat_session.id,
-                turn_id=turn_id,
-                event_type="llm.request.created",
-                payload={
-                    "entrypoint": "autonomy.activation",
-                    "activation_id": activation.id,
-                    "model": model,
-                },
-                source="llm",
-                actor="backend",
-                visibility="private",
-                status="active",
-                trace_id=request_trace.id,
-            )
 
         provider = provider_factory(settings)
-        if autonomous_session_id is None or activation_message_id is None:
+        if (
+            autonomous_session_id is None
+            or activation_message_id is None
+            or prepared is None
+        ):
             raise RuntimeError("Autonomous turn preparation did not retain its ids.")
         base_tool_runner = build_mind_tool_runner(
             engine,
@@ -419,7 +346,7 @@ def run_autonomous_activation(
             provider_factory=provider_factory,
             session_id=autonomous_session_id,
             turn_id=turn_id,
-            source_message_id=activation_message_id,
+            source_message_id=prepared.source_message_id,
             trace_ids=trace_ids,
             runtime_trigger="autonomous_activation",
         )
@@ -438,9 +365,9 @@ def run_autonomous_activation(
         result: LLMTextResult | None = None
         semantic_events_seen = False
         for stream_event in provider.stream_chat_with_tools(
-            messages=history_routing.model_messages,
-            system=effective_system,
-            max_tokens=active_provider_max_tokens(settings),
+            messages=prepared.model_messages,
+            system=prepared.effective_system,
+            max_tokens=prepared.max_tokens,
             tools=[MIND_SHELL_TOOL_SCHEMA],
             tool_runner=tool_runner,
             max_tool_calls=None,
@@ -479,113 +406,70 @@ def run_autonomous_activation(
                 semantic_events_seen = True
         if result is None:
             raise RuntimeError("Autonomous provider stream ended without final_result.")
+        result = require_terminal_response(result)
 
-        latency_ms = int((time.perf_counter() - started_perf) * 1000)
+        if prepared is None:
+            raise RuntimeError("Autonomous turn preparation was lost before completion.")
+        completion = complete_model_turn(
+            settings=settings,
+            engine=engine,
+            prepared=prepared,
+            result=result,
+            semantic_content_event_seen=semantic_events_seen,
+            assistant_metadata={
+                "activation_id": activation_id,
+                "visibility": "internal_cognition",
+            },
+            response_metadata={
+                "entrypoint": "autonomy.activation",
+                "activation_id": activation_id,
+            },
+            assistant_event_source="autonomy",
+            assistant_event_visibility="private",
+            response_event_visibility="private",
+            turn_event_visibility="private",
+            schedule_idle_maintenance=False,
+        )
         with Session(engine) as db:
-            assistant_message = repositories.add_message(
-                db,
-                session_id=autonomous_session_id,
-                turn_id=turn_id,
-                role="assistant",
-                content=result.text,
-                provider_message_id=result.provider_message_id,
-                raw_content=result.raw_content,
-                metadata={
-                    "activation_id": activation_id,
-                    "visibility": "internal_cognition",
-                    "model": result.model,
-                    "usage": result.usage,
-                    "stop_reason": result.stop_reason,
-                    "completion_recovery": result.completion_recovery,
-                },
-            )
-            response_trace = repositories.add_trace(
-                db,
-                session_id=autonomous_session_id,
-                turn_id=turn_id,
-                kind="llm.response",
-                payload={
-                    "entrypoint": "autonomy.activation",
-                    "activation_id": activation_id,
-                    "model": result.model,
-                    "text": result.text,
-                    "usage": result.usage,
-                    "provider_message_id": result.provider_message_id,
-                    "stop_reason": result.stop_reason,
-                    "raw_content": result.raw_content,
-                    "tool_calls": [
-                        item.model_dump(mode="json") for item in result.tool_calls
-                    ],
-                    "raw_provider_messages": result.raw_provider_messages,
-                    "completion_recovery": result.completion_recovery,
-                },
-            )
-            trace_ids.append(response_trace.id)
-            if not semantic_events_seen:
-                record_response_content_events(
-                    db,
-                    session_id=autonomous_session_id,
-                    turn_id=turn_id,
-                    raw_provider_messages=result.raw_provider_messages
-                    or [
-                        {
-                            "id": result.provider_message_id,
-                            "stop_reason": result.stop_reason,
-                            "content": result.raw_content
-                            or [{"type": "text", "text": result.text}],
-                        }
-                    ],
-                    response_trace_id=response_trace.id,
-                    assistant_message_id=assistant_message.id,
-                    assistant_visibility="private",
-                )
-            repositories.update_chat_session_provider_history(
-                db,
-                session_id=autonomous_session_id,
-                provider_history=updated_provider_history(
-                    canonical_messages,
-                    result,
-                ),
-            )
-            completed_turn = repositories.complete_turn(
-                db,
-                turn_id=turn_id,
-                latency_ms=latency_ms,
-            )
+            activation = db.get(AutonomousActivation, activation_id)
+            if activation is None:
+                raise ValueError(f"Autonomous activation not found: {activation_id}")
             completed_event = record_event(
                 db,
-                session_id=autonomous_session_id,
-                turn_id=turn_id,
+                session_id=activation.session_id,
+                turn_id=prepared.turn_id,
                 event_type="autonomy.activation.completed",
                 payload={
                     "activation_id": activation_id,
-                    "latency_ms": latency_ms,
+                    "latency_ms": completion.latency_ms,
                     "tool_call_count": len(result.tool_calls),
-                    "assistant_message_id": assistant_message.id,
-                    "trace_ids": trace_ids,
+                    "assistant_message_id": completion.assistant_message_id,
+                    "trace_ids": prepared.trace_ids,
                 },
                 source="autonomy",
                 actor="scarlet",
                 visibility="private",
-                status=completed_turn.status,
-                trace_id=response_trace.id,
-                message_id=assistant_message.id,
+                status="completed",
+                trace_id=completion.response_trace_id,
+                message_id=completion.assistant_message_id,
             )
             completed = repositories.complete_autonomous_activation(
                 db,
                 activation_id=activation_id,
                 status="completed",
-                turn_id=turn_id,
+                turn_id=prepared.turn_id,
                 active_mode=(
                     model_context.get("session", {})
                     .get("agent_mode", {})
                     .get("active_tag")
                 ),
                 outcome={
-                    "latency_ms": latency_ms,
+                    "latency_ms": completion.latency_ms,
                     "tool_call_count": len(result.tool_calls),
-                    "assistant_message_id": assistant_message.id,
-                    "trace_ids": trace_ids,
+                    "assistant_message_id": completion.assistant_message_id,
+                    "trace_ids": prepared.trace_ids,
+                    "turn_completed_event_id": completion.turn_completed_event_id,
+                    "activation_completed_event_id": completed_event.id,
                 },
             )
             _reconcile_workspace_activation(
@@ -597,14 +481,6 @@ def run_autonomous_activation(
                 db,
                 activation=completed,
             )
-            _schedule_autonomous_compaction(
-                db,
-                settings=settings,
-                activation=completed,
-                turn_id=turn_id,
-                trigger_event_id=completed_event.id,
-                context=model_context or memory_context.runtime_payload,
-            )
             if settings.cognitive_workspace_mode != "active":
                 repositories.ensure_next_periodic_activation(
                     db,
@@ -613,12 +489,13 @@ def run_autonomous_activation(
                     interval_seconds=settings.autonomous_activation_interval_seconds,
                     from_time=utc_now(),
                 )
+
         return {
             "activation_id": activation_id,
             "session_id": autonomous_session_id,
             "turn_id": turn_id,
             "status": "completed",
-            "latency_ms": latency_ms,
+            "latency_ms": completion.latency_ms,
             "tool_call_count": len(result.tool_calls),
         }
     except AutonomousYieldToHuman as exc:
@@ -633,10 +510,25 @@ def run_autonomous_activation(
     except Exception as exc:
         error = {"type": type(exc).__name__, "message": str(exc)}
         logger.exception("Autonomous activation %s failed.", activation_id)
+        failed_turn_event = None
+        if prepared is not None:
+            failure_details: dict[str, Any] = {
+                "exception_type": type(exc).__name__,
+            }
+            if isinstance(exc, LLMIncompleteResponseError):
+                failure_details["provider_details"] = exc.details
+            failed_turn_event = record_failed_model_turn(
+                engine,
+                prepared=prepared,
+                code="autonomy.activation_failed",
+                message=str(exc) or type(exc).__name__,
+                details=failure_details,
+                visibility="private",
+            )
         with Session(engine) as db:
             activation = db.get(AutonomousActivation, activation_id)
             if activation is not None:
-                if turn_id is not None:
+                if turn_id is not None and prepared is None:
                     repositories.complete_turn(
                         db,
                         turn_id=turn_id,
@@ -644,6 +536,7 @@ def run_autonomous_activation(
                         latency_ms=int((time.perf_counter() - started_perf) * 1000),
                         error=error,
                     )
+                if turn_id is not None:
                     record_event(
                         db,
                         session_id=activation.session_id,
@@ -654,6 +547,11 @@ def run_autonomous_activation(
                         actor="backend",
                         visibility="private",
                         status="failed",
+                        parent_event_id=(
+                            failed_turn_event.id
+                            if failed_turn_event is not None
+                            else None
+                        ),
                     )
                 failed = repositories.complete_autonomous_activation(
                     db,
@@ -1069,34 +967,3 @@ def _autonomous_retrieval_dialogue(
         }
         for message in candidates[-8:]
     ]
-
-
-def _schedule_autonomous_compaction(
-    db: Session,
-    *,
-    settings: Settings,
-    activation: AutonomousActivation,
-    turn_id: str,
-    trigger_event_id: str,
-    context: dict[str, Any],
-) -> None:
-    chars_per_token = float(settings.context_estimated_chars_per_token)
-    source_map = build_chronology_source_map(
-        db,
-        session_id=activation.session_id,
-        chars_per_token=chars_per_token,
-    )
-    external_context_tokens = max(
-        1,
-        int(len(str(context)) / chars_per_token),
-    )
-    schedule_history_compaction(
-        db,
-        settings=settings,
-        session_id=activation.session_id,
-        trigger_turn_id=turn_id,
-        trigger_event_id=trigger_event_id,
-        source_map=source_map,
-        external_context_tokens=external_context_tokens,
-        chars_per_token=chars_per_token,
-    )

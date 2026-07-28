@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
 Last reviewed: 2026-07-28
-Code baseline reviewed: V1.64.0
+Code baseline reviewed: V1.65.0 target pending protected deployment
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
@@ -45,6 +45,11 @@ uses the same compact provisional `workspace` hook. Its full substrate,
 adaptive-window bookkeeping, device raw observations, seed alternatives, and
 M2.7 traces remain backend/trace evidence. Scarlet receives selected candidate
 summaries and exact source references only after normal workspace ignition.
+
+V1.65 changes no packet field or automatic-delivery rule. It makes both native
+adapters compile the existing packet, routing, accounting, response evidence,
+and compaction plan through one lifecycle owner; autonomous provenance and
+private visibility remain adapter-owned.
 
 V1.64.0 preserves the compact packet shape while correcting semantic
 authority. Legacy fact rows are excluded from automatic memory selection,

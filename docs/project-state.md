@@ -1,8 +1,9 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-28
-App target: V1.64.0 deployed with the semantic-authority correction over
-V1.63.0 Endogenous Cognition; V1.50.1 remains the closed-Core release baseline
+App target: V1.65.0 pending protected deployment with shared human/autonomous
+turn kernels; V1.64.0 remains deployed; V1.50.1 remains the closed-Core
+release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -96,6 +97,11 @@ Implemented and verified:
   accounting owners behind the unchanged router facade;
 - native sync/stream preparation, execution, answer control, failure, and
   completion owned by one typed turn service behind the thin HTTP facade;
+- V1.65 converges that human lifecycle and autonomous cycles after their
+  adapter-specific source-message boundary: one kernel now builds V2 context,
+  routes history, records accounting and request/response evidence, persists
+  provider history, applies `end_turn`, completes/fails the turn, and schedules
+  non-destructive compaction without erasing autonomous provenance or privacy;
 - provider-native completion boundaries: `max_tokens` continues the same
   response with exact native assistant blocks, `tool_use` alone authorizes
   dispatch, and `end_turn` alone closes the native answer;

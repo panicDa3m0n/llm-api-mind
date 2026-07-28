@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-import hashlib
-import json
 from typing import Any, Callable
 
-from pydantic import ValidationError
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
@@ -33,7 +30,11 @@ from app.mind.endogenous_contracts import (
 )
 from app.mind.workspace_contracts import (
     JSON_REPAIR_SYSTEM_PROMPT,
-    repair_prompt,
+)
+from app.runtime.auxiliary_structured import run_auxiliary_structured_call
+from app.runtime.cognitive_candidates import (
+    candidate_source,
+    persist_cognitive_candidate,
 )
 from app.runtime.events import record_event
 from app.runtime.time import aware_utc
@@ -184,10 +185,14 @@ def run_endogenous_cognition_window(
     )
     try:
         provider = provider_factory(aux_settings)
-        result, parsed, repaired = _structured_call(
+        result, parsed, repaired = run_auxiliary_structured_call(
             provider=provider,
             prompt=prompt,
+            system=ENDOGENOUS_SYSTEM_PROMPT,
             max_tokens=settings.endogenous_cognition_max_tokens,
+            schema_name=ENDOGENOUS_SCHEMA_VERSION,
+            parser=EndogenousImpulseBatch.model_validate,
+            repair_system=JSON_REPAIR_SYSTEM_PROMPT,
         )
     except (LLMConfigurationError, LLMRequestError) as exc:
         return _complete_provider_failure(
@@ -627,13 +632,7 @@ def _persist_seeds(
             if seed.context_family in KNOWN_CONTEXT_FAMILIES
             else FAMILY_FALLBACKS[seed.impulse_family]
         )
-        fingerprint = _candidate_fingerprint(
-            profile_id=profile_id,
-            candidate_kind=f"endogenous_{seed.impulse_family}",
-            claim=seed.claim,
-            source_refs=refs,
-        )
-        candidate, _ = repositories.create_candidate(
+        candidate, _ = persist_cognitive_candidate(
             db,
             profile_id=profile_id,
             candidate_kind=f"endogenous_{seed.impulse_family}",
@@ -643,17 +642,16 @@ def _persist_seeds(
             cognitive_question=seed.cognitive_question,
             expected_transformation=seed.expected_transformation,
             uncertainty=seed.uncertainty,
-            exact_fingerprint=fingerprint,
+            source_refs=refs,
             sources=[
-                {
-                    "source_kind": ref.split(":", 1)[0],
-                    "source_id": ref.split(":", 1)[1],
-                    "observed_at": _parse_datetime(by_ref[ref].observed_at),
-                    "metadata": {
+                candidate_source(
+                    ref,
+                    observed_at=_parse_datetime(by_ref[ref].observed_at),
+                    metadata={
                         "endogenous_window_id": window.id,
                         "impulse_family": seed.impulse_family,
                     },
-                }
+                )
                 for ref in refs
             ],
             appraisal_model=model,
@@ -809,67 +807,6 @@ def _empty_cadence(
         ),
     )
     return cadence, empty_count
-
-
-def _structured_call(
-    *,
-    provider: LLMProvider,
-    prompt: str,
-    max_tokens: int,
-) -> tuple[
-    LLMTextResult,
-    EndogenousImpulseBatch | None,
-    LLMTextResult | None,
-]:
-    result = provider.generate_text(
-        prompt=prompt,
-        system=ENDOGENOUS_SYSTEM_PROMPT,
-        max_tokens=max_tokens,
-    )
-    parsed = _parse_batch(result.text)
-    repaired: LLMTextResult | None = None
-    if parsed is None:
-        repaired = provider.generate_text(
-            prompt=repair_prompt(
-                malformed=result.text,
-                schema_name=ENDOGENOUS_SCHEMA_VERSION,
-            ),
-            system=JSON_REPAIR_SYSTEM_PROMPT,
-            max_tokens=max_tokens,
-        )
-        parsed = _parse_batch(repaired.text)
-    return result, parsed, repaired
-
-
-def _parse_batch(text: str) -> EndogenousImpulseBatch | None:
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        lines = cleaned.splitlines()[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        cleaned = "\n".join(lines).strip()
-    try:
-        return EndogenousImpulseBatch.model_validate(json.loads(cleaned))
-    except (json.JSONDecodeError, ValidationError, TypeError, ValueError):
-        return None
-
-
-def _candidate_fingerprint(
-    *,
-    profile_id: str,
-    candidate_kind: str,
-    claim: str,
-    source_refs: list[str],
-) -> str:
-    payload = {
-        "profile_id": profile_id,
-        "candidate_kind": candidate_kind,
-        "claim": " ".join(claim.lower().split()),
-        "source_refs": sorted(set(source_refs)),
-    }
-    return hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    ).hexdigest()
 
 
 def _window_result(window: EndogenousCognitiveWindow) -> dict[str, Any]:

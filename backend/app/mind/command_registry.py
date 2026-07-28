@@ -358,6 +358,164 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
 }
 
 
+# This is deliberately co-located with COMMAND_FAMILIES.  It is the one
+# model-facing presentation of commands that the validator below accepts;
+# schema/help consumers must never maintain a second catalog elsewhere.
+COMMAND_CATALOG_METADATA: dict[str, dict[str, Any]] = {
+    "help": {
+        "purpose": "Inspect available cognitive command families and examples.",
+        "commands": [
+            "help",
+            "help memory",
+            "help session",
+            "help focus",
+            "help volition",
+            "help affect",
+            "help mode",
+            "help perception",
+            "help episode",
+            "help metacognition",
+        ],
+    },
+    "memory": {
+        "purpose": "Search, write, inspect, and maintain semantic memories.",
+        "commands": [
+            'memory search "query" --top 5',
+            'memory write --type user_preference --scope user --content "..." --reason "..." --future-use "..."',
+            "memory open mem_...",
+            "memory graph mem_... --depth 2 --limit 30",
+            'memory facts --query "entity or question"',
+            "memory proposals --status open --limit 10",
+            "memory proposal prop_...",
+            'memory proposal-accept prop_... --reason "..."',
+            'memory proposal-reject prop_... --reason "..."',
+            'memory proposal-duplicate prop_... mem_... --reason "..."',
+            'memory proposal-supersede prop_... mem_old --reason "..."',
+            "memory conflicts",
+            'memory deprecate mem_... --reason "..."',
+            'memory supersede mem_old mem_new --reason "..."',
+        ],
+    },
+    "session": {
+        "purpose": "Navigate episodic chat sessions, summaries, and transcripts.",
+        "commands": [
+            'session list --query "topic or date" --limit 5',
+            "session open ses_... --limit 200",
+            "session message msg_...",
+            "session turn turn_...",
+            "session summarize ses_... --force",
+        ],
+    },
+    "focus": {
+        "purpose": "Read and mutate Scarlet's single foreground focus state.",
+        "commands": [
+            "focus read",
+            "focus list --status active --limit 10",
+            'focus search "query" --limit 10',
+            'focus set "object" --type investigation --reason "..." --intensity 0.7',
+            'focus update --id foc_... --object "..." --reason "..."',
+            'focus hold --id foc_... --reason "..."',
+            'focus shift "new object" --reason "..."',
+            'focus defer --id foc_... --reason "..."',
+            'focus resolve --id foc_... --resolution "..."',
+            'focus impossible --id foc_... --reason "..."',
+            "focus timeline --limit 10",
+        ],
+    },
+    "volition": {
+        "purpose": "Manage Scarlet's latent self-generated intentions.",
+        "commands": [
+            "volition list active --limit 10",
+            "volition list due --limit 10",
+            'volition search "query" --limit 10',
+            'volition create "desire" --reason "..." --candidate-id cand_... --horizon long --intensity 0.6 --next-review-at "2026-07-14T10:00:00+02:00" --review-interval-seconds 86400',
+            "volition read int_...",
+            'volition update int_... --reason "..."',
+            'volition defer int_... --reason "..." --next-review-at "2026-07-14T10:00:00+02:00"',
+            'volition review int_... --reason "..." --review-interval-seconds 86400',
+            'volition promote int_... --reason "..."',
+            'volition resolve int_... --resolution "..."',
+            'volition impossible int_... --reason "..."',
+            'volition deprecate int_... --reason "..."',
+        ],
+    },
+    "affect": {
+        "purpose": "Read backend-appraised affect state and emotion prototypes.",
+        "commands": [
+            "affect read",
+            "affect list --limit 10",
+            "affect prototypes",
+        ],
+    },
+    "mode": {
+        "purpose": "Inspect or select Scarlet's foreground agent operating posture.",
+        "commands": [
+            "mode read",
+            "mode list",
+            'mode set idle --reason "..."',
+            'mode set scouting --reason "..."',
+        ],
+    },
+    "perception": {
+        "purpose": (
+            "Inspect external observation channels and open source-labelled "
+            "evidence. Autonomous cognition remains in session history."
+        ),
+        "commands": [
+            "perception status",
+            "perception open notifications --limit 10",
+            "perception read per_...",
+        ],
+    },
+    "episode": {
+        "purpose": (
+            "Own bounded cognitive inquiries, checkpoints, predictions, and "
+            "deterministic wake contracts."
+        ),
+        "commands": [
+            "episode list --status active",
+            "episode read episode_...",
+            'episode open cand_... --question "..." --expected-transformation "..."',
+            'episode checkpoint episode_... --progress "..." --next "..." --source event:evt_...',
+            'episode suspend episode_... --reason "..." --resume-at "2026-07-28T09:00:00+02:00"',
+            "episode resume episode_...",
+            'episode resolve episode_... --resolution "..."',
+            'episode reject cand_... --reason "..."',
+            'episode expectation-add episode_... --claim "..." --observable-outcome "..."',
+            'episode wake-add --episode episode_... --event-type "organ.volition.created"',
+            "episode wake-list",
+            "episode wake-cancel wake_...",
+        ],
+    },
+    "metacognition": {
+        "purpose": "Run one internal metacognitive step when deeper self-review matters.",
+        "commands": [
+            'metacognition step --objective "..." --mode critic --question "..."',
+            'metacognition step --objective "..." --mode memory_curator --draft "..."',
+            'metacognition step --objective "..." --mode review_previous_turn --turn-scope previous --detail digest',
+        ],
+    },
+}
+
+
+def command_catalog(namespace: str | None = None) -> list[dict[str, Any]]:
+    """Return executable model-facing shell guidance from the validator source."""
+
+    if namespace is None:
+        namespaces = list(COMMAND_FAMILIES)
+    else:
+        canonical = canonical_command_namespace(namespace)
+        namespaces = [canonical] if canonical is not None else []
+    return [
+        {
+            "namespace": item,
+            "purpose": COMMAND_CATALOG_METADATA[item]["purpose"],
+            "commands": list(COMMAND_CATALOG_METADATA[item]["commands"]),
+        }
+        for item in namespaces
+    ]
+
+
 def validate_shell_command(command: str | None) -> dict[str, Any]:
     if command is None or not command.strip():
         return _validation(

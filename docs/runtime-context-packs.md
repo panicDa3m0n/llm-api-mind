@@ -3,7 +3,8 @@
 Last updated: 2026-07-27
 Status: Core V1 context active; V1.59 semantic family routing shadow;
 V1.62 shared V2 plus provisional workspace orientation
-App baseline: V1.50.1 closed-Core baseline; V1.64.0 deployed runtime
+App baseline: V1.50.1 closed-Core baseline; V1.65.0 target pending protected
+deployment
 
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
@@ -61,6 +62,11 @@ Every native turn writes:
 context.accounting.preflight
 context.accounting.observed
 ```
+
+V1.65 records those same receipts through the shared turn kernel for both
+human and autonomous turns. Autonomous visibility remains private, but its
+input accounting, V2 build, history routing, observed usage, and post-turn
+compaction scheduling are no longer an independent implementation path.
 
 Accounting v2 keeps exact JSON character and UTF-8 byte counts separate from
 token estimates for:

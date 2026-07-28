@@ -6,6 +6,50 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.65.0 - Core Convergence Kernels
+
+#### Changed
+
+- Route native human and autonomous Scarlet turns through one shared lifecycle
+  kernel after their adapter-specific source-message boundary. The kernel now
+  owns V2 context construction, history routing, accounting, request/response
+  traces, provider-history persistence, terminal turn receipts, and
+  non-destructive compaction scheduling.
+- Apply the same provider-native `end_turn` finality rule to autonomous M3
+  cycles. Human answers remain public; autonomous checkpoints remain private.
+  This is a visibility distinction, not a second finality policy.
+- Move the sole model-facing `mind_shell` tool execution path out of the HTTP
+  adapter so human and autonomous M3 turns persist identical tool-call
+  evidence.
+- Share automatic and manual memory-recall evidence collection and final
+  rerank preparation without changing the existing retrieval policy or each
+  caller's presentation and activity semantics.
+- Share M2.7 structured-call repair and cognitive-candidate persistence
+  helpers, and expose the command catalog from one registry-derived source.
+- Add the new shared runtime modules to the explicit mypy boundary and isolate
+  ordinary tests from a developer machine's active retrieval `.env` settings.
+
+#### Preserved
+
+- Human sessions remain the authoritative native behavior. Autonomous cycles
+  retain their own session, activation ledger, trigger provenance, private
+  visibility, and human-priority yielding while using the same core turn
+  contract.
+- No API route, database schema, production data, model prompt, GPT bridge
+  protocol, rerank policy, or UI block contract changes in this release.
+
+#### Verification
+
+- Focused human sync/stream, autonomous, workspace, endogenous, recall, shell,
+  context-accounting, and compaction suites pass.
+- Ruff, compileall, selected-file mypy, project-skill validation, database
+  boundary guard, and the complete backend suite (`346 passed`) pass locally.
+- A direct in-memory `mind_shell help memory` probe traversed the shared tool
+  runner and persisted one tool call, `mind.tool_call.started`,
+  `mind.tool_call.completed`, and one `mind.tool_call` trace.
+- Protected VPS deployment evidence is recorded in the activity log after the
+  reviewed source commit is switched.
+
 ### V1.64.0 - Semantic Authority Rework
 
 #### Changed

@@ -6,7 +6,11 @@ from sqlmodel import Session
 
 from app.config import Settings
 from app.llm.provider import LLMTextResult
-from app.mind.command_registry import COMMAND_FAMILIES, validate_shell_command
+from app.mind.command_registry import (
+    COMMAND_FAMILIES,
+    command_catalog,
+    validate_shell_command,
+)
 from app.mind.memory import MindAPIContext
 from app.mind.schema import MIND_SHELL_COMMANDS
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
@@ -152,6 +156,11 @@ def test_mind_shell_registry_and_help_examples_are_executable_contracts(
         for command in family["commands"]:
             validation = validate_shell_command(command)
             assert validation["call_is_available"] is True, command
+
+    assert [item["namespace"] for item in MIND_SHELL_COMMANDS] == list(
+        COMMAND_FAMILIES
+    )
+    assert command_catalog("mem") == [MIND_SHELL_COMMANDS[1]]
 
 
 def test_mind_shell_opens_source_message_and_public_turn_bundle(

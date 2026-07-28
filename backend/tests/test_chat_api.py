@@ -2556,6 +2556,7 @@ def test_native_finality_accepts_provider_end_turn_without_semantic_gate(
     assert response_trace["payload"]["finality_contract"] == {
         "accepted": True,
         "source": "provider_stop_reason",
+        "response_visibility": "public",
         "semantic_validation": False,
     }
 

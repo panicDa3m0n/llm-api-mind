@@ -21,7 +21,7 @@ from app.mind.organs import (
     build_organ_runtime_block,
     organ_runtime_modes,
 )
-from app.runtime.events import compact_event_for_context
+from app.runtime.events import compact_event_for_context, record_event
 from app.runtime.preferences import RuntimePreferences
 from app.mind.command_registry import COMMAND_FAMILIES
 from app.mind.context_projection import compile_model_context_v2_with_audit
@@ -929,7 +929,7 @@ def _focus_context_block(
             },
         },
     )
-    repositories.add_event(
+    record_event(
         db,
         session_id=chat_session.id,
         turn_id=turn_id,

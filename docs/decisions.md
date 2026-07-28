@@ -7,6 +7,57 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0144 - One Shared Lifecycle Kernel For Native Scarlet Turns
+
+Date: 2026-07-28
+Status: accepted for V1.65.0
+
+Context:
+
+V1.61 unified what human and autonomous turns *receive*, but their lifecycle
+implementations still diverged. Human and autonomous paths separately built
+context, routed history, recorded accounting, persisted response evidence, and
+completed a turn. That duplication made parity accidental: an autonomous turn
+could preserve its intended private activation semantics yet miss a common
+receipt, validation boundary, or future fix.
+
+Decision:
+
+- create a transport-neutral turn kernel after an adapter has persisted its
+  source message and canonical provider history;
+- make the kernel own V2 context construction, history routing, accounting,
+  request/response tracing, provider-history persistence, provider `end_turn`
+  finality, terminal turn receipts, failure receipts, and compaction scheduling;
+- retain adapters for their genuine differences only: human HTTP/stream
+  transport and public answer delivery; autonomous activation claim, private
+  chronology, human-priority yielding, workspace reconciliation, and trigger
+  provenance;
+- use one runtime `mind_shell` execution runner for both native M3 lifecycles;
+- share retrieval evidence/final-rerank preparation without merging each
+  caller's query construction, candidate filtering, presentation, or memory
+  activity semantics;
+- share M2.7 structured-output repair and candidate-persistence mechanics,
+  not their domain prompts or policy decisions; and
+- keep GPT Actions outside this kernel: it remains an external transport
+  adapter with its own bootstrap/action/finalize boundary.
+
+Consequences:
+
+Human behavior remains authoritative. Autonomous cognition becomes aligned to
+that behavior instead of a parallel near-copy, while private visibility and
+separate chronology remain explicit. Future lifecycle changes must enter the
+kernel unless they are proven adapter-specific; a new duplicated path requires
+an ADR-level reason.
+
+Links:
+
+- `backend/app/runtime/turn_kernel.py`
+- `backend/app/runtime/mind_tool_runner.py`
+- `backend/app/mind/memory_recall.py`
+- `backend/app/api/chat_native_turn.py`
+- `backend/app/runtime/autonomy.py`
+- `docs/core-runtime-contract.md`
+
 ## ADR-0143 - Scarlet Adjudicates Source-Backed Memory Proposals
 
 Date: 2026-07-28

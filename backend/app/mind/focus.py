@@ -9,6 +9,7 @@ from app.mind.contracts import (
     serializable_validation_errors,
 )
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
+from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import FocusRecord, FocusTransition
 
@@ -699,7 +700,7 @@ def _record_focus_event(
     if session_id is None:
         return
     event_type = ORGAN_EVENT_TYPES["focus"][event_name]
-    repositories.add_event(
+    record_event(
         db,
         session_id=session_id,
         turn_id=source.get("turn_id"),

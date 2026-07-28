@@ -1,7 +1,7 @@
 # Branch: Gestione Operativa
 
-Last updated: 2026-07-27
-System version assessed: V1.60.0 development target
+Last updated: 2026-07-28
+System version assessed: V1.65.0 target pending protected deployment
 Status: focus, mode routing, and autonomous activation substrate implemented
 
 ## Filosofia del ramo
@@ -29,6 +29,11 @@ separare task attivi da idee future, e mantenere il filo operativo.
 - V1.32.0 corregge `focus hold` affinche persista davvero `status=held`, rende
   esplicita la paginazione di list/search/timeline e restituisce
   `focus.not_found` per letture mirate inesistenti.
+- V1.65 conserva l'activation ledger, la cronologia privata, il defer/yield a
+  priorita umana e la provenienza autonoma come confini dell'adapter, ma usa il
+  medesimo kernel del turno umano per V2, retrieval, shell, accounting,
+  `end_turn`, persistenza e compattazione. Non esiste piu una seconda
+  implementazione operativa di questi passaggi.
 
 ## Stato attuale
 

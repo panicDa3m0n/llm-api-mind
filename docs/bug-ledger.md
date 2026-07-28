@@ -7,6 +7,41 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0132 - Autonomous Turns Bypassed Shared Lifecycle Receipts
+
+Date Found: 2026-07-28
+Status: fixed locally in V1.65.0; protected deployment pending
+
+Symptoms:
+
+Human and autonomous turns already shared V2 context, retrieval, static policy,
+and `mind_shell`, but they still used independent orchestration paths. The
+autonomous path could therefore miss human lifecycle improvements such as a
+common observed-accounting receipt, terminal `end_turn` enforcement, generic
+turn completion evidence, or post-turn compaction scheduling.
+
+Root Cause:
+
+V1.61 converged model inputs rather than the entire lifecycle. Repeated
+implementation of structurally identical preparation and completion stages
+left parity dependent on manual maintenance across two code paths.
+
+Fix:
+
+Introduce the shared turn kernel and route both native adapters through it once
+their source-message boundary is complete. The autonomous adapter retains only
+activation-specific coordination and uses private visibility; it now receives
+the same context/accounting/history/finality/persistence/compaction contract
+as a human turn. One neutral `mind_shell` runner and one shared recall pipeline
+remove two further near-duplicate paths.
+
+Regression:
+
+`test_autonomy.py` proves autonomous generic start/completion, preflight and
+observed accounting, private response finality, and rejection of a non-terminal
+provider result. Human sync/stream, context-accounting, compaction, recall,
+shell, workspace, and endogenous suites protect the shared owners.
+
 ## BUG-0131 - Long Canonical Text Crashed Every Endogenous Worker Cycle
 
 Date Found: 2026-07-28

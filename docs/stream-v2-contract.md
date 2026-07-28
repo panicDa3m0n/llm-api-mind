@@ -1,8 +1,9 @@
 # Scarlet Stream V2 Contract
 
-Last updated: 2026-07-26
+Last updated: 2026-07-28
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app target: V1.57.0
+Contract introduced: V1.51.0; current app target: V1.65.0 pending protected
+deployment
 Linear issue: SCA-47
 
 ## 1. Purpose
@@ -16,6 +17,11 @@ canonical recovery and replay contract.
 
 The contract is additive. The V1 NDJSON endpoint remains available during
 migration, but new clients should use V2.
+
+V1.65 changes no V2 envelope, reducer, or replay semantics. The shared native
+turn kernel merely makes human and autonomous lifecycle receipts originate
+through one owner; autonomous events remain private unless a separately
+approved projection exposes them.
 
 ## 2. Source Of Truth
 

@@ -1,7 +1,8 @@
 # Branch: Percezione E Contesto
 
 Last updated: 2026-07-27
-System version assessed: V1.64.0 deployed
+System version assessed: V1.65.0 target pending protected deployment; V1.64.0
+remains deployed
 Status: active branch
 
 ## Filosofia del ramo
@@ -133,6 +134,12 @@ caratteri/byte esatti, stima token, primo step e totale tool loop. Il router
 modalita e attivo solo sui blocchi automatici; la shell resta disponibile on
 demand. La compattazione 100k + coda desiderata di 8 turni resta non mutante
 finche sessioni reali lunghe non definiscono una degradazione sicura.
+
+Aggiornamento V1.65.0: i due receipt accounting, la costruzione V2, il routing
+cronologico e la pianificazione della compattazione sono ora posseduti da un
+kernel comune a turno umano e attivazione autonoma. La visibilita autonoma
+resta privata e la sua cronologia resta distinta; il dato consegnato al modello
+non segue piu una seconda via implementativa.
 
 Aggiornamento V1.35.0: `preserved_context` non e piu una zona di compatibilita.
 Il proiettore copia solo campi cognitivamente utilizzabili di focus, affect e

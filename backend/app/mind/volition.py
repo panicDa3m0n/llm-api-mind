@@ -10,6 +10,7 @@ from app.mind.contracts import (
     serializable_validation_errors,
 )
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
+from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import IntentionLink, IntentionRecord, utc_now
 
@@ -919,7 +920,7 @@ def _record_volition_event(
     session_id = source.get("session_id")
     if session_id is None:
         return
-    repositories.add_event(
+    record_event(
         db,
         session_id=session_id,
         turn_id=source.get("turn_id"),

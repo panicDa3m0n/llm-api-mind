@@ -3,7 +3,29 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-28
-App target: V1.64.0 deployed; V1.50.1 remains the closed-Core baseline
+App target: V1.65.0 pending protected deployment; V1.64.0 remains deployed;
+V1.50.1 remains the closed-Core baseline
+
+## V1.65 Shared Turn Lifecycle Boundary
+
+Native human and autonomous Scarlet turns now meet at one shared kernel once
+their adapter has created its source message and canonical provider history.
+The kernel owns dynamic V2 context construction, history routing, accounting,
+`llm.request`/`llm.response` traces, provider-history persistence, structural
+`end_turn` finality, turn completion/failure receipts, and compaction
+scheduling. Adapters still own their genuine boundary differences: human HTTP
+and stream transport versus autonomous activation claiming, private
+chronology, and human-priority yield.
+
+`mind_shell` execution is likewise one runtime tool path for both native
+lifecycles. The shell commands, request/response shapes, memory provenance,
+and tool receipts are unchanged. The GPT Action bridge stays an external
+transport adapter and is not part of this native lifecycle kernel.
+
+The convergence introduces no route or schema change. It strengthens the
+existing guarantee that a human and an autonomous turn receive the same model
+context, retrieval, static policy, shell contract, accounting, and terminal
+provider lifecycle while retaining clear provenance and visibility.
 
 ## V1.64 Semantic Authority Boundary
 

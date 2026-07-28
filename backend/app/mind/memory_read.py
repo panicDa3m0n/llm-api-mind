@@ -22,9 +22,9 @@ from app.mind.facts import (
     fact_payload,
     fact_search_text,
 )
-from app.mind.graph_retrieval import (
-    build_memory_graph_expansion,
-    graph_signals_by_memory,
+from app.mind.memory_recall import (
+    collect_memory_recall_evidence,
+    run_memory_recall_pipeline,
 )
 from app.mind.memory_shared import (
     TYPE_ALIASES,
@@ -39,20 +39,14 @@ from app.mind.memory_shared import (
 from app.mind.relevance_rerank import (
     FINAL_RERANK_POLICY,
     MemoryRerankEntry,
-    build_memory_recall_pool,
     rerank_status_payload,
-    run_memory_relevance_rerank,
 )
 from app.mind.search import (
     entity_token_groups,
     query_tokens,
     retrieval_stage_manifest,
-    search_documents,
-    sparse_results_by_source,
-    sync_memory_documents,
     sync_memory_retrieval_artifacts,
 )
-from app.mind.shadow_retrieval import run_memory_surface_shadow_search
 from app.mind.time_filters import (
     TimeFilter,
     interval_contains,
@@ -254,86 +248,35 @@ def handle_memory_search(
         facts_by_memory = {
             memory.id: facts_by_memory.get(memory.id, []) for memory in candidates
         }
-        sync_memory_documents(db, candidates, facts_by_memory=facts_by_memory)
         retrieval_query = _expanded_retrieval_query(
             request.query,
             memory_types=list(request.memory_types),
         )
-        sparse_matches = sparse_results_by_source(
-            search_documents(
-                db,
-                query=retrieval_query,
-                kind="memory",
-                limit=max(50, request.top_k * 8),
-            )
-        )
-        graph_expansion = build_memory_graph_expansion(
+        evidence = collect_memory_recall_evidence(
             db,
             query=retrieval_query,
             memories=candidates,
             facts_by_memory=facts_by_memory,
-            limit=max(request.top_k, 20),
-        )
-        graph_signals = graph_signals_by_memory(graph_expansion)
-        rerank_candidate_limit = int(
-            getattr(
-                context.settings,
-                "retrieval_shadow_rerank_candidate_limit",
-                20,
-            )
-            or 20
-        )
-        final_rerank_enabled = str(
-            getattr(context.settings, "retrieval_hybrid_mode", "off") or "off"
-        ).lower() in {"shadow", "active"}
-        retrieval_shadow = run_memory_surface_shadow_search(
-            db,
-            query=retrieval_query,
-            candidate_memory_ids=[memory.id for memory in candidates],
             settings=context.settings,
-            limit=rerank_candidate_limit,
-            include_surface_rerank=not final_rerank_enabled,
+            sparse_limit=max(50, request.top_k * 8),
+            graph_limit=max(request.top_k, 20),
         )
         scored = _score_memories(
             candidates,
             retrieval_query,
             facts_by_memory=facts_by_memory,
-            sparse_matches=sparse_matches,
-            graph_signals=graph_signals,
+            sparse_matches=evidence.sparse_matches,
+            graph_signals=evidence.graph_signals,
         )
-        recall_pool = build_memory_recall_pool(
-            candidates,
-            facts_by_memory=facts_by_memory,
-            routes={
-                "sparse": list(sparse_matches),
-                "dense": [
-                    str(item["target_id"])
-                    for item in retrieval_shadow.get("grouped_results", [])
-                    if item.get("active_rank_eligible") is True
-                    and isinstance(item.get("target_id"), str)
-                ],
-                "graph": list(graph_signals),
-                "lexical": [memory.id for memory, _, _ in scored],
-            },
-            limit=rerank_candidate_limit,
-        )
-        rerank_plan = run_memory_relevance_rerank(
-            query=retrieval_query,
-            candidates=recall_pool,
+        pipeline = run_memory_recall_pipeline(
+            evidence,
+            lexical_memory_ids=[memory.id for memory, _, _ in scored],
             settings=context.settings,
             selected_limit=request.top_k,
+            off_mode_stage="lexical_fallback_v1",
         )
-        retrieval_stages = (
-            [
-                "fts5_sparse_v1",
-                "dense_memory_surfaces_v1",
-                "networkx_graph_recall_v1",
-                "round_robin_recall_pool_v1",
-                FINAL_RERANK_POLICY,
-            ]
-            if rerank_plan.status.get("mode") != "off"
-            else ["fts5_sparse_v1", "lexical_fallback_v1"]
-        )
+        rerank_plan = pipeline.rerank_plan
+        retrieval_stages = pipeline.retrieval_stages
         if rerank_plan.active:
             scored = _memory_scores_from_final_rerank(rerank_plan.entries)
         hybrid_signals_by_id = {
@@ -347,7 +290,7 @@ def handle_memory_search(
                 "domains": signal.domains,
                 "paths": signal.paths[:5],
             }
-            for memory_id, signal in graph_signals.items()
+            for memory_id, signal in evidence.graph_signals.items()
         }
         selected = scored[: request.top_k]
 
@@ -371,8 +314,8 @@ def handle_memory_search(
                 ),
                 "retrieval_stages": retrieval_stages,
                 "retrieval_readiness": retrieval_stage_manifest(),
-                "retrieval_graph": graph_expansion,
-                "retrieval_shadow": retrieval_shadow,
+                "retrieval_graph": evidence.graph_expansion,
+                "retrieval_shadow": evidence.retrieval_shadow,
                 "retrieval_rerank": rerank_status_payload(rerank_plan),
                 "retrieval_hybrid": rerank_status_payload(rerank_plan),
             },
@@ -414,8 +357,8 @@ def handle_memory_search(
             "time": time_filter_payload(request.time, resolved_time),
             "retrieval_stages": retrieval_stages,
             "retrieval_readiness": retrieval_stage_manifest(),
-            "retrieval_graph": graph_expansion,
-            "retrieval_shadow": retrieval_shadow,
+            "retrieval_graph": evidence.graph_expansion,
+            "retrieval_shadow": evidence.retrieval_shadow,
             "retrieval_rerank": rerank_status_payload(rerank_plan),
             "retrieval_hybrid": rerank_status_payload(rerank_plan),
             "memories": memories,

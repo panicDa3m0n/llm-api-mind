@@ -3,6 +3,8 @@ import json
 from copy import deepcopy
 from typing import Any
 
+from app.mind.command_registry import command_catalog
+
 
 MIND_API_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
 MIND_SHELL_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
@@ -69,151 +71,7 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
 }
 
 
-MIND_SHELL_COMMANDS: list[dict[str, Any]] = [
-    {
-        "namespace": "help",
-        "purpose": "Inspect available cognitive command families and examples.",
-        "commands": [
-            "help",
-            "help memory",
-            "help session",
-            "help focus",
-            "help volition",
-            "help affect",
-            "help mode",
-            "help perception",
-            "help episode",
-            "help metacognition",
-        ],
-    },
-    {
-        "namespace": "memory",
-        "purpose": "Search, write, inspect, and maintain semantic memories.",
-        "commands": [
-            "memory search \"query\" --top 5",
-            "memory write --type user_preference --scope user --content \"...\" --reason \"...\" --future-use \"...\"",
-            "memory open mem_...",
-            "memory graph mem_... --depth 2 --limit 30",
-            "memory facts --query \"entity or question\"",
-            "memory proposals --status open --limit 10",
-            "memory proposal prop_...",
-            "memory proposal-accept prop_... --reason \"...\"",
-            "memory proposal-reject prop_... --reason \"...\"",
-            "memory proposal-duplicate prop_... mem_... --reason \"...\"",
-            "memory proposal-supersede prop_... mem_old --reason \"...\"",
-            "memory conflicts",
-            "memory deprecate mem_... --reason \"...\"",
-            "memory supersede mem_old mem_new --reason \"...\"",
-        ],
-    },
-    {
-        "namespace": "session",
-        "purpose": "Navigate episodic chat sessions, summaries, and transcripts.",
-        "commands": [
-            "session list --query \"topic or date\" --limit 5",
-            "session open ses_... --limit 200",
-            "session message msg_...",
-            "session turn turn_...",
-            "session summarize ses_... --force",
-        ],
-    },
-    {
-        "namespace": "focus",
-        "purpose": "Read and mutate Scarlet's single foreground focus state.",
-        "commands": [
-            "focus read",
-            "focus list --status active --limit 10",
-            "focus search \"query\" --limit 10",
-            "focus set \"object\" --type investigation --reason \"...\" --intensity 0.7",
-            "focus update --id foc_... --object \"...\" --reason \"...\"",
-            "focus hold --id foc_... --reason \"...\"",
-            "focus shift \"new object\" --reason \"...\"",
-            "focus defer --id foc_... --reason \"...\"",
-            "focus resolve --id foc_... --resolution \"...\"",
-            "focus impossible --id foc_... --reason \"...\"",
-            "focus timeline --limit 10",
-        ],
-    },
-    {
-        "namespace": "volition",
-        "purpose": "Manage Scarlet's latent self-generated intentions.",
-        "commands": [
-            "volition list active --limit 10",
-            "volition list due --limit 10",
-            "volition search \"query\" --limit 10",
-            "volition create \"desire\" --reason \"...\" --candidate-id cand_... --horizon long --intensity 0.6 --next-review-at \"2026-07-14T10:00:00+02:00\" --review-interval-seconds 86400",
-            "volition read int_...",
-            "volition update int_... --reason \"...\"",
-            "volition defer int_... --reason \"...\" --next-review-at \"2026-07-14T10:00:00+02:00\"",
-            "volition review int_... --reason \"...\" --review-interval-seconds 86400",
-            "volition promote int_... --reason \"...\"",
-            "volition resolve int_... --resolution \"...\"",
-            "volition impossible int_... --reason \"...\"",
-            "volition deprecate int_... --reason \"...\"",
-        ],
-    },
-    {
-        "namespace": "affect",
-        "purpose": "Read backend-appraised affect state and emotion prototypes.",
-        "commands": [
-            "affect read",
-            "affect list --limit 10",
-            "affect prototypes",
-        ],
-    },
-    {
-        "namespace": "mode",
-        "purpose": "Inspect or select Scarlet's foreground agent operating posture.",
-        "commands": [
-            "mode read",
-            "mode list",
-            "mode set idle --reason \"...\"",
-            "mode set scouting --reason \"...\"",
-        ],
-    },
-    {
-        "namespace": "perception",
-        "purpose": (
-            "Inspect external observation channels and open source-labelled "
-            "evidence. Autonomous cognition remains in session history."
-        ),
-        "commands": [
-            "perception status",
-            "perception open notifications --limit 10",
-            "perception read per_...",
-        ],
-    },
-    {
-        "namespace": "episode",
-        "purpose": (
-            "Own bounded cognitive inquiries, checkpoints, predictions, and "
-            "deterministic wake contracts."
-        ),
-        "commands": [
-            "episode list --status active",
-            "episode read episode_...",
-            'episode open cand_... --question "..." --expected-transformation "..."',
-            'episode checkpoint episode_... --progress "..." --next "..." --source event:evt_...',
-            'episode suspend episode_... --reason "..." --resume-at "2026-07-28T09:00:00+02:00"',
-            "episode resume episode_...",
-            'episode resolve episode_... --resolution "..."',
-            'episode reject cand_... --reason "..."',
-            'episode expectation-add episode_... --claim "..." --observable-outcome "..."',
-            'episode wake-add --episode episode_... --event-type "organ.volition.created"',
-            "episode wake-list",
-            "episode wake-cancel wake_...",
-        ],
-    },
-    {
-        "namespace": "metacognition",
-        "purpose": "Run one internal metacognitive step when deeper self-review matters.",
-        "commands": [
-            "metacognition step --objective \"...\" --mode critic --question \"...\"",
-            "metacognition step --objective \"...\" --mode memory_curator --draft \"...\"",
-            "metacognition step --objective \"...\" --mode review_previous_turn --turn-scope previous --detail digest",
-        ],
-    },
-]
+MIND_SHELL_COMMANDS: list[dict[str, Any]] = command_catalog()
 
 
 MIND_API_ROUTES: list[dict[str, Any]] = [
@@ -1939,14 +1797,7 @@ def shell_metadata() -> dict[str, str]:
 
 
 def shell_command_catalog(namespace: str | None = None) -> list[dict[str, Any]]:
-    if namespace is None:
-        return deepcopy(MIND_SHELL_COMMANDS)
-    normalized = namespace.strip().casefold().replace("_", "-")
-    return [
-        deepcopy(item)
-        for item in MIND_SHELL_COMMANDS
-        if str(item.get("namespace", "")).casefold().replace("_", "-") == normalized
-    ]
+    return command_catalog(namespace)
 
 
 def shell_command_usage_guide(namespace: str | None = None) -> dict[str, Any]:

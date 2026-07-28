@@ -1,7 +1,8 @@
 # Runtime And UI Block Registry
 
 Last updated: 2026-07-28
-System version assessed: V1.64.0 deployed over the V1.50.1 Core
+System version assessed: V1.65.0 target pending protected deployment over the
+V1.50.1 Core
 Status: active diagnostic map
 
 This registry distinguishes the exact document delivered to Scarlet from the
@@ -19,6 +20,11 @@ These are required delivery surfaces, not dynamic context packs:
 
 They have dedicated lifecycle and are not selected by the future dynamic
 context router.
+
+V1.65 changes no block payload or audience. It makes the native human and
+autonomous adapters emit their common context/accounting/response/turn receipts
+through one kernel; autonomous records remain private and are not reclassified
+as human-chat blocks.
 
 ## 2. Active Dynamic Model Document
 

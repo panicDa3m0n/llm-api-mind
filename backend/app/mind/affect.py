@@ -16,6 +16,7 @@ from app.mind.organs import (
     build_organ_runtime_block,
     organ_runtime_modes,
 )
+from app.runtime.events import record_event
 from app.runtime.preferences import RuntimePreferences
 from app.storage import repositories
 from app.storage.models import AffectState, ChatSession, Message
@@ -380,7 +381,7 @@ def build_affective_context(
         payload=payload,
     )
     payload["trace_id"] = trace.id
-    repositories.add_event(
+    record_event(
         db,
         session_id=chat_session.id,
         turn_id=turn_id,
@@ -401,7 +402,7 @@ def build_affective_context(
         trace_id=trace.id,
     )
     if state is not None and block is not None:
-        repositories.add_event(
+        record_event(
             db,
             session_id=chat_session.id,
             turn_id=turn_id,

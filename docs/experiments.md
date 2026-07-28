@@ -9,6 +9,63 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0088 - Native Lifecycle Convergence
+
+Status: deterministic acceptance complete locally; protected deployment and
+normal production observation pending
+
+Hypothesis:
+
+Human and autonomous Scarlet turns can share one lifecycle kernel without
+altering human interaction behavior, autonomous provenance, visibility, or the
+separate autonomous chronology.
+
+Method:
+
+- preserve each adapter's existing source-message boundary;
+- run human sync and stream paths through the shared kernel;
+- run autonomous activation through the same kernel while retaining private
+  events, activation ledger, and human-priority yield;
+- prove the shared request/context/accounting/response/finality/compaction
+  receipts are present for both paths;
+- exercise a non-terminal autonomous provider result and require the same
+  `end_turn` failure as native chat;
+- exercise automatic and manual recall routes over the shared evidence/final
+  rerank preparation without changing their caller-specific output semantics;
+- run the complete deterministic backend suite and inspect a bounded isolated
+  native/autonomous trace rather than launching a broad live behavioral battery.
+
+Result:
+
+The full backend suite passes `346` tests. Focused human sync/stream,
+autonomous, workspace, endogenous, recall, shell, context-accounting, and
+compaction targets pass. Ruff, compileall, selected-file mypy, project-skill
+validation, and the database boundary guard pass. A direct in-memory
+`mind_shell help memory` execution through the shared runner persisted exactly
+one tool call, started/completed tool events, and a `mind.tool_call` trace.
+
+No live M3 behavioral campaign ran: the approved question is lifecycle
+equivalence, not a claim about autonomous reasoning quality.
+
+Interpretation:
+
+This is an architecture-equivalence experiment, not a claim that autonomous
+reasoning quality or wake selection is solved. Acceptance means the two session
+types no longer maintain parallel implementations of the same model-turn
+mechanics. Production observation must still inspect real private activation
+traces for ordinary lifecycle health and must not treat a successful endpoint
+as evidence of useful autonomous cognition.
+
+Evidence:
+
+- `backend/app/runtime/turn_kernel.py`
+- `backend/tests/test_chat_api.py`
+- `backend/tests/test_chat_stream_v2.py`
+- `backend/tests/test_autonomy.py`
+- `backend/tests/test_context_accounting.py`
+- `backend/tests/test_history_compaction.py`
+- `backend/tests/test_mind_shell.py`
+
 ## EXP-0087 - Structural Finality And Semantic Authority Boundary
 
 Status: deterministic implementation and focused VPS observation accepted;

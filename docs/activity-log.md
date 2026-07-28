@@ -4,6 +4,50 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-28 - V1.65.0 Core Convergence Kernels
+
+Area: Core runtime / Native communication / Autonomy / Memory recall.
+
+Type: Implementazione on `feature/core-convergence-kernels`.
+
+Change:
+
+- introduced `runtime/turn_kernel.py` as the shared lifecycle after each
+  adapter has persisted its source message and canonical provider history;
+- routed native sync/stream and autonomous M3 turns through the same V2
+  context, history routing, accounting, request/response trace, provider
+  history, `end_turn`, completion/failure, and compaction owners;
+- retained human/public versus autonomous/private visibility, autonomous
+  session/activation provenance, human-priority yield, and workspace/endogenous
+  reconciliation as genuine adapter-specific behavior;
+- moved model-facing `mind_shell` execution receipts into one neutral runtime
+  runner used by both native lifecycles;
+- converged manual/automatic recall evidence plus final-rerank preparation,
+  M2.7 structured-call repair, cognitive-candidate persistence, command-catalog
+  derivation, and event-envelope helpers without changing their semantic
+  policies; and
+- isolated ordinary tests from accidental local `.env` retrieval activation;
+  active-rerank scenarios continue to pass their settings explicitly.
+
+Verification:
+
+- focused lifecycle, autonomy, workspace, endogenous, recall, shell,
+  accounting, and compaction groups passed during implementation;
+- complete backend suite: `346 passed`;
+- Ruff, compileall, selected-file mypy, project-skill validation, `git diff
+  --check`, and staged database-boundary guard passed;
+- direct in-memory shared-runner probe executed `mind_shell help memory`, then
+  read one completed tool call, `mind.tool_call.started`,
+  `mind.tool_call.completed`, and one `mind.tool_call` trace from SQLite; and
+- no full live behavioral battery was run, by scope. This verifies lifecycle
+  parity, not the quality or novelty of autonomous cognition.
+
+Deployment:
+
+- pending protected VPS backup, copied-database canary, production preflight,
+  restart, health/OpenAPI check, and bounded post-switch observation. No local,
+  preliminary, or test database is eligible for transfer.
+
 ## 2026-07-28 - V1.64.0 Semantic Authority Rework
 
 Area: Core cognitive semantics / Memory / Maintenance / Communication.

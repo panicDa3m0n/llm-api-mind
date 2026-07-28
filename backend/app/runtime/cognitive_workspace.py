@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import hashlib
 import json
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable
 
 from pydantic import ValidationError
 from sqlalchemy.engine import Engine
@@ -40,7 +40,11 @@ from app.mind.workspace_contracts import (
     IgnitionCoalition,
     appraisal_prompt,
     ignition_prompt,
-    repair_prompt,
+)
+from app.runtime.auxiliary_structured import run_auxiliary_structured_call
+from app.runtime.cognitive_candidates import (
+    candidate_source,
+    persist_cognitive_candidate,
 )
 from app.runtime.endogenous_cognition import run_endogenous_cognition_window
 from app.runtime.events import record_event
@@ -60,7 +64,6 @@ from app.storage.models import (
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
-StructuredResult = TypeVar("StructuredResult")
 KNOWN_CONTEXT_FAMILIES = {item.id for item in CONTEXT_FAMILIES}
 WORKSPACE_TRACE_KIND = "cognition.workspace"
 
@@ -643,13 +646,14 @@ def _appraise_signals(
     prompt = appraisal_prompt(envelopes)
     try:
         provider = provider_factory(aux_settings)
-        result, parsed, repaired = _structured_call(
+        result, parsed, repaired = run_auxiliary_structured_call(
             provider=provider,
             prompt=prompt,
             system=APPRAISER_SYSTEM_PROMPT,
             max_tokens=settings.cognitive_workspace_appraisal_max_tokens,
             schema_name=APPRAISAL_SCHEMA_VERSION,
             parser=CognitiveAppraisalBatch.model_validate,
+            repair_system=JSON_REPAIR_SYSTEM_PROMPT,
         )
     except (LLMConfigurationError, LLMRequestError) as exc:
         with Session(engine) as db:
@@ -763,13 +767,7 @@ def _appraise_signals(
                 if item.context_family in KNOWN_CONTEXT_FAMILIES
                 else related[0].context_family
             )
-            fingerprint = _candidate_fingerprint(
-                profile_id=profile_id,
-                candidate_kind=item.candidate_kind,
-                claim=item.claim,
-                source_refs=valid_refs,
-            )
-            candidate, _ = repositories.create_candidate(
+            candidate, _ = persist_cognitive_candidate(
                 db,
                 profile_id=profile_id,
                 candidate_kind=item.candidate_kind,
@@ -779,13 +777,12 @@ def _appraise_signals(
                 cognitive_question=item.cognitive_question,
                 expected_transformation=item.expected_transformation,
                 uncertainty=item.uncertainty,
-                exact_fingerprint=fingerprint,
+                source_refs=valid_refs,
                 sources=[
-                    {
-                        "source_kind": ref.split(":", 1)[0],
-                        "source_id": ref.split(":", 1)[1],
-                        "observed_at": _parse_datetime(by_ref[ref].observed_at),
-                    }
+                    candidate_source(
+                        ref,
+                        observed_at=_parse_datetime(by_ref[ref].observed_at),
+                    )
                     for ref in valid_refs
                 ],
                 appraisal_model=result.model,
@@ -928,7 +925,7 @@ def _arbitrate_candidates(
         aux_settings = auxiliary_provider_settings(settings)
         try:
             provider = provider_factory(aux_settings)
-            provider_result, decision, repaired = _structured_call(
+            provider_result, decision, repaired = run_auxiliary_structured_call(
                 provider=provider,
                 prompt=ignition_prompt(
                     candidates=candidate_payloads,
@@ -939,6 +936,7 @@ def _arbitrate_candidates(
                 max_tokens=settings.cognitive_workspace_arbitration_max_tokens,
                 schema_name=IGNITION_SCHEMA_VERSION,
                 parser=CognitiveIgnitionDecision.model_validate,
+                repair_system=JSON_REPAIR_SYSTEM_PROMPT,
             )
         except (LLMConfigurationError, LLMRequestError) as exc:
             return {"status": "provider_error", "error": str(exc)}
@@ -1244,13 +1242,7 @@ def _create_required_candidate(
     receipt: CognitiveSignalReceipt,
     envelope: CognitiveSignalEnvelope,
 ) -> CognitiveCandidate:
-    fingerprint = _candidate_fingerprint(
-        profile_id=profile_id,
-        candidate_kind="required_wake",
-        claim=envelope.summary,
-        source_refs=[envelope.source_ref],
-    )
-    candidate, _ = repositories.create_candidate(
+    candidate, _ = persist_cognitive_candidate(
         db,
         profile_id=profile_id,
         candidate_kind="required_wake",
@@ -1264,13 +1256,12 @@ def _create_required_candidate(
             "Verify the source and produce a traceable decision or suspension."
         ),
         uncertainty="low",
-        exact_fingerprint=fingerprint,
+        source_refs=[envelope.source_ref],
         sources=[
-            {
-                "source_kind": envelope.source_ref.split(":", 1)[0],
-                "source_id": envelope.source_ref.split(":", 1)[1],
-                "observed_at": _parse_datetime(envelope.observed_at),
-            }
+            candidate_source(
+                envelope.source_ref,
+                observed_at=_parse_datetime(envelope.observed_at),
+            )
         ],
         metadata={"required_wake": True},
     )
@@ -1298,50 +1289,6 @@ def _link_endogenous_windows(
             window_id=window_id,
             activation_id=activation.id,
         )
-
-
-def _structured_call(
-    *,
-    provider: LLMProvider,
-    prompt: str,
-    system: str,
-    max_tokens: int,
-    schema_name: str,
-    parser: Callable[[Any], StructuredResult],
-) -> tuple[LLMTextResult, StructuredResult | None, LLMTextResult | None]:
-    result = provider.generate_text(
-        prompt=prompt,
-        system=system,
-        max_tokens=max_tokens,
-    )
-    parsed = _parse_structured(result.text, parser)
-    repaired: LLMTextResult | None = None
-    if parsed is None:
-        repaired = provider.generate_text(
-            prompt=repair_prompt(malformed=result.text, schema_name=schema_name),
-            system=JSON_REPAIR_SYSTEM_PROMPT,
-            max_tokens=max_tokens,
-        )
-        parsed = _parse_structured(repaired.text, parser)
-    return result, parsed, repaired
-
-
-def _parse_structured(
-    text: str,
-    parser: Callable[[Any], StructuredResult],
-) -> StructuredResult | None:
-    cleaned = text.strip()
-    if cleaned.startswith("```"):
-        lines = cleaned.splitlines()
-        if lines:
-            lines = lines[1:]
-        if lines and lines[-1].strip() == "```":
-            lines = lines[:-1]
-        cleaned = "\n".join(lines).strip()
-    try:
-        return parser(json.loads(cleaned))
-    except (json.JSONDecodeError, ValidationError, TypeError, ValueError):
-        return None
 
 
 def _event_details(
@@ -1542,24 +1489,6 @@ def _pool_fingerprint(
     }
     return hashlib.sha256(
         json.dumps(payload, sort_keys=True).encode("utf-8")
-    ).hexdigest()
-
-
-def _candidate_fingerprint(
-    *,
-    profile_id: str,
-    candidate_kind: str,
-    claim: str,
-    source_refs: list[str],
-) -> str:
-    payload = {
-        "profile_id": profile_id,
-        "candidate_kind": candidate_kind,
-        "claim": " ".join(claim.lower().split()),
-        "source_refs": sorted(set(source_refs)),
-    }
-    return hashlib.sha256(
-        json.dumps(payload, ensure_ascii=False, sort_keys=True).encode("utf-8")
     ).hexdigest()
 
 

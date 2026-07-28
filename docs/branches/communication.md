@@ -1,7 +1,8 @@
 # Branch: Comunicazione Agente-Utente
 
 Last updated: 2026-07-28
-System version assessed: V1.64.0 deployed; V1.50.1 closed-Core baseline
+System version assessed: V1.65.0 target pending protected deployment; V1.64.0
+remains deployed; V1.50.1 closed-Core baseline
 Status: active branch
 
 ## Filosofia del ramo
@@ -21,6 +22,10 @@ interni. La comunicazione deve essere naturale ma fondata su evidenze.
 - V1.64 elimina il validatore semantico finale: `end_turn`, risposta pubblica
   non vuota, tool completati, persistenza e trace chiudono il turno. Nessun
   secondo modello giudica le parole della risposta di Scarlet.
+- V1.65 fa applicare la stessa finalita provider-native dal kernel condiviso
+  usato dai turni sync e stream. Il contratto di blocchi e di streaming non
+  cambia: la convergenza elimina una duplicazione interna, non una fase visibile
+  della conversazione umana.
 - La UI mostra risposte finali, note, eventi, thinking provider-visible, tool
   calls e runtime context in forma leggibile.
 - V1.55.0 sostituisce le bolle Chat fixture con la proiezione dei soli eventi

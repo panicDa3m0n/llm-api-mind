@@ -148,6 +148,46 @@ class FakeAutonomyProvider:
         )
 
 
+class NonTerminalAutonomyProvider:
+    """Provider fixture that proves autonomous turns use native finality."""
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def stream_chat_with_tools(self, **_kwargs):
+        result = LLMTextResult(
+            model=self.settings.minimax_model,
+            text="Checkpoint non terminale.",
+            stop_reason="max_tokens",
+            provider_message_id="provider_autonomy_non_terminal",
+            raw_content=[{"type": "text", "text": "Checkpoint non terminale."}],
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
+class EmptyTerminalAutonomyProvider:
+    """Provider fixture that proves private checkpoints cannot be empty."""
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+
+    def stream_chat_with_tools(self, **_kwargs):
+        result = LLMTextResult(
+            model=self.settings.minimax_model,
+            text="",
+            stop_reason="end_turn",
+            provider_message_id="provider_autonomy_empty_terminal",
+            raw_content=[{"type": "thinking", "thinking": "Nessun checkpoint."}],
+        )
+        yield LLMStreamEvent(
+            type="final_result",
+            data={"result": result.model_dump(mode="json")},
+        )
+
+
 def _settings() -> Settings:
     return Settings(
         agent_system_prompt="You are Scarlet.",
@@ -321,6 +361,8 @@ def test_autonomous_cycle_persists_private_chronology_and_tool_actions(
         assert "assistant.note.emitted" in event_types
         assert "mind.tool_call.started" in event_types
         assert "mind.tool_call.completed" in event_types
+        assert "turn.started" in event_types
+        assert "turn.completed" in event_types
         assert "autonomy.activation.completed" in event_types
         notes = [item for item in events if item.type == "assistant.note.emitted"]
         assert all(item.visibility == "private" for item in notes)
@@ -335,6 +377,31 @@ def test_autonomous_cycle_persists_private_chronology_and_tool_actions(
             "user",
             "assistant",
         ]
+        traces = repositories.list_traces_for_turn(
+            db,
+            turn_id=completed.turn_id,
+        )
+        trace_kinds = {item.kind for item in traces}
+        assert {
+            "context.accounting.preflight",
+            "context.accounting.observed",
+            "llm.request",
+            "llm.response",
+        } <= trace_kinds
+        request_trace = next(item for item in traces if item.kind == "llm.request")
+        response_trace = next(item for item in traces if item.kind == "llm.response")
+        assert request_trace.payload_json["finality_contract"] == {
+            "provider_terminal_stop_reason": "end_turn",
+            "response_required": True,
+            "response_visibility": "private",
+            "semantic_validation": False,
+        }
+        assert response_trace.payload_json["finality_contract"] == {
+            "accepted": True,
+            "source": "provider_stop_reason",
+            "response_visibility": "private",
+            "semantic_validation": False,
+        }
 
     delivered_system = FakeAutonomyProvider.seen_systems[-1] or ""
     assert "<runtime_context>" in delivered_system
@@ -342,6 +409,105 @@ def test_autonomous_cycle_persists_private_chronology_and_tool_actions(
     assert '"schema_version": "scarlet-model-context-v2"' in delivered_system
     assert '"origin": "autonomous_cognition"' in delivered_system
     assert '"session_kind": "scarlet_autonomous"' in delivered_system
+
+
+def test_autonomous_cycle_rejects_non_terminal_provider_result(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    settings = _settings()
+    now = utc_now()
+    with Session(db_engine) as db:
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+        )
+        activation = repositories.schedule_autonomous_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=autonomous.id,
+            scheduled_at=now,
+            trigger_kind="manual_lab",
+            schedule_key="test-autonomy-non-terminal",
+        )
+
+    result = run_autonomous_activation(
+        db_engine,
+        settings=settings,
+        provider_factory=NonTerminalAutonomyProvider,
+        activation_id=activation.id,
+        now=now,
+    )
+
+    assert result["status"] == "failed"
+    with Session(db_engine) as db:
+        stored = db.get(type(activation), activation.id)
+        assert stored is not None
+        assert stored.status == "failed"
+        assert stored.turn_id is not None
+        turn = repositories.get_turn(db, stored.turn_id)
+        assert turn is not None
+        assert turn.status == "failed"
+        events = repositories.list_events_for_turn(db, turn_id=stored.turn_id)
+        assert "turn.failed" in {item.type for item in events}
+        assert "autonomy.activation.failed" in {item.type for item in events}
+        error_trace = next(
+            item
+            for item in repositories.list_traces_for_turn(db, turn_id=stored.turn_id)
+            if item.kind == "llm.error"
+        )
+    assert error_trace.payload_json["details"]["provider_details"][
+        "reason"
+    ] == "non_terminal_provider_result"
+
+
+def test_autonomous_cycle_rejects_empty_terminal_checkpoint(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    settings = _settings()
+    now = utc_now()
+    with Session(db_engine) as db:
+        autonomous = repositories.get_or_create_autonomous_session(
+            db,
+            profile_id=settings.user_profile_id,
+        )
+        activation = repositories.schedule_autonomous_activation(
+            db,
+            profile_id=settings.user_profile_id,
+            session_id=autonomous.id,
+            scheduled_at=now,
+            trigger_kind="manual_lab",
+            schedule_key="test-autonomy-empty-terminal",
+        )
+
+    result = run_autonomous_activation(
+        db_engine,
+        settings=settings,
+        provider_factory=EmptyTerminalAutonomyProvider,
+        activation_id=activation.id,
+        now=now,
+    )
+
+    assert result["status"] == "failed"
+    with Session(db_engine) as db:
+        stored = db.get(type(activation), activation.id)
+        assert stored is not None
+        assert stored.status == "failed"
+        assert stored.turn_id is not None
+        turn = repositories.get_turn(db, stored.turn_id)
+        assert turn is not None
+        assert turn.status == "failed"
+        messages = repositories.list_messages(db, session_id=stored.session_id)
+        error_trace = next(
+            item
+            for item in repositories.list_traces_for_turn(db, turn_id=stored.turn_id)
+            if item.kind == "llm.error"
+        )
+    assert [message.role for message in messages] == ["activation"]
+    assert error_trace.payload_json["details"]["provider_details"][
+        "reason"
+    ] == "empty_terminal_result"
 
 
 def test_autonomous_cycle_uses_shared_memory_rerank_with_human_continuity(
@@ -430,7 +596,7 @@ def test_autonomous_cycle_uses_shared_memory_rerank_with_human_continuity(
         )
 
     monkeypatch.setattr(
-        "app.mind.context_retrieval.run_memory_relevance_rerank",
+        "app.mind.memory_recall.run_memory_relevance_rerank",
         accept_first_candidate,
     )
     result = run_autonomous_activation(
