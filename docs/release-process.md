@@ -94,6 +94,31 @@ source-tree `backend/.env` from transfer, then run the new image's read-only
 preflight with `--expect-role production` before restart. Git pushes do not
 deploy runtime data.
 
+## Product UI Artifact Parity
+
+The protected web preview and Android APK are two delivery profiles of one
+Product UI source tree. A release may use different asset and API bases, but it
+must not use a different UI implementation, Core contract, or stale build.
+
+For every Product UI publication:
+
+1. identify the exact source commit and Product UI version;
+2. build the web artifact only with `cd frontend && npm run build:vps`;
+3. require `npm run verify:release:vps` to pass before copying that `dist/`
+   tree to `/var/www/scarlet`;
+4. back up the old static tree, then verify the authenticated public index,
+   every asset it references, and `release-manifest.json` all return `200`;
+5. build the APK only with `npm run android:debug`, which must complete
+   `verify:release:android` after Gradle assembly; and
+6. when a device is available, compare installed package id/version with the
+   APK metadata and verify the real Product UI against the same VPS API.
+
+Never publish generic `npm run build` output to `/var/www/scarlet`: its root
+asset base makes a path-hosted `/scarlet/` index load HTML while its JavaScript,
+CSS, and runtime media return `404`. The release manifest is evidence of build
+profile, source commit, product version, asset base, and API base; it does not
+replace direct public-request verification.
+
 ## Documentation Mapping
 
 Each meaningful commit should usually touch at least one project memory file:

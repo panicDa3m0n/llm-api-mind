@@ -114,10 +114,12 @@ it.
 
 ## Maintenance Contract
 
-Update this skill when a cognitive implementation, provider contract, direct
-Scarlet probe, regression, or owner correction reveals a better invariant or
-workflow. Prefer evidence from exact model delivery, traces, persisted state,
-and provider-native results. Change canonical contracts first when semantics
-or ownership change. Remove obsolete advice instead of accumulating
-compatibility folklore, while preserving historical experiments and decisions
-in their proper records.
+Update this skill and fix it when a cognitive implementation, provider contract,
+direct Scarlet probe, regression, error, newly verified solution, or owner
+correction reveals a better invariant or workflow. Add the smallest
+evidence-backed prevention during the same task when it would stop the same
+mistake recurring. Prefer evidence from exact model delivery, traces,
+persisted state, and provider-native results. Change canonical contracts first
+when semantics or ownership change. Remove obsolete advice instead of
+accumulating compatibility folklore, while preserving historical experiments
+and decisions in their proper records.

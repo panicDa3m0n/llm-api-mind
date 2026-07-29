@@ -2,7 +2,7 @@
 
 Tailwind React dashboard for the local Scarlet / LLM API Mind runtime.
 
-Development target: V1.56.0. Deployed Core baseline: V1.50.1.
+Product artifact target: V1.65.0. Deployed Core baseline: V1.50.1.
 
 Current scope:
 
@@ -78,6 +78,10 @@ Protected HoneyLabs web build:
 npm run build:vps
 ```
 
+`build:vps` is the only build allowed for publication at
+`https://honeylabs.cloud/scarlet/`. It writes a release manifest and rejects a
+root-based asset bundle before deployment.
+
 Android debug APK:
 
 ```bash
@@ -94,3 +98,21 @@ The Android application bundles the Product UI and calls
 into the debug preview. The native app forwards it only after entry and
 forgets the resulting authorization value after a cold start. It is not a
 secret or a production account boundary.
+
+## Delivery Parity
+
+Web and Android are two packaging profiles of the same Product UI source. The
+only intended runtime differences are the static asset base path, transport
+authentication, and native device capability access:
+
+- VPS web: `npm run build:vps`, asset base `/scarlet/`, API base
+  `/scarlet-api`;
+- Android: `npm run android:debug`, asset base `/`, API base
+  `https://honeylabs.cloud/scarlet-api`.
+
+Never publish the generic `npm run build` output to `/var/www/scarlet`: it is
+root-hosted and will make the protected path preview request missing assets.
+Run `npm run verify:release:vps` before copying the web bundle and
+`npm run verify:release:android` after APK assembly. Each artifact contains a
+`release-manifest.json` with its source commit, version, profile, asset base,
+and API base for release inspection.

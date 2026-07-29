@@ -89,9 +89,19 @@ incorrectly.
 
 ## Product UI Workflow
 
-- Build with the intended Vite profile, especially `vps` for HoneyLabs.
-- Verify asset base paths, API URL, authentication forwarding, and no embedded
-  unintended authoring assets.
+- Build with the intended Vite profile, especially `npm run build:vps` for
+  HoneyLabs. Never publish a generic root-hosted `npm run build` artifact to
+  `/var/www/scarlet`.
+- Run `npm run verify:release:vps` against the exact `dist/` about to be
+  published. It must prove the `/scarlet/` asset base, `/scarlet-api` base,
+  Product UI contract fragments, referenced static files, and release manifest.
+- Back up the active `/var/www/scarlet` tree, publish only the verified VPS
+  artifact, then request the protected index and every referenced script,
+  stylesheet, image, and media asset over the public URL. Every reference must
+  return `200`; an HTML `200` alone is not a successful web release.
+- Record the public `release-manifest.json` source commit, product version,
+  build profile, asset base, and API base as part of release evidence.
+- Verify authentication forwarding and no embedded unintended authoring assets.
 - Exercise mobile and desktop rendering with console/network inspection.
 - Confirm Product UI consumes Core contracts and does not invent cognition,
   memory, or completion state.
@@ -99,8 +109,11 @@ incorrectly.
 ## Android Workflow
 
 1. Use the supported Node, JDK, Android SDK, Capacitor, and Gradle versions.
-2. Build through the repository command documented in `frontend/README.md`.
-3. Inspect package id, version name/code, API URL, bundled files, and
+2. Build through `npm run android:debug`; do not reuse a prior APK merely
+   because its filename is unchanged. The command must finish with
+   `npm run verify:release:android`.
+3. Inspect package id, version name/code, API URL, bundled files, release
+   manifest, and
    credentials policy.
 4. Install on the connected device and start from a cold app state.
 5. Verify login, dashboard hydration, new and existing sessions, live chat
@@ -136,10 +149,12 @@ surface was actually checked.
 
 ## Maintenance Contract
 
-Update this skill after every verified deployment lesson, rollback, build
-failure, device incompatibility, configuration drift, or safer production-data
-procedure. Add evidence-backed checks and remove obsolete commands when the
-repository changes. Keep `docs/release-process.md`,
+Update this skill and fix it after every verified deployment lesson, rollback,
+build failure, device incompatibility, configuration drift, missed parity
+check, or safer production-data procedure. When an error or a newly verified
+solution would prevent a repeat failure, add the smallest evidence-backed rule
+here during the same task and remove obsolete commands when the repository
+changes. Keep `docs/release-process.md`,
 `docs/database-topology.md`, deployment records, and this skill aligned. Never
 store secrets, host credentials, ephemeral backup names, or machine-specific
 paths in the skill.

@@ -106,9 +106,10 @@ risk.
 
 ## Maintenance Contract
 
-Update this skill after verified incidents, false diagnoses, provider changes,
-streaming failures, deployment drift, or new observability surfaces. Add a
-check only when it would have shortened a real investigation or prevented a
-demonstrated error. Reflect contract changes in canonical docs first. Keep
-incident evidence in `docs/bug-ledger.md` and `docs/activity-log.md`; do not
-turn this skill into an incident archive.
+Update this skill and fix it after verified incidents, false diagnoses, provider
+changes, streaming failures, deployment drift, new observability surfaces,
+errors, or newly verified diagnostic solutions. Add a check only when it would
+have shortened a real investigation or prevented a demonstrated error, so the
+same failure is less likely to recur. Reflect contract changes in canonical
+docs first. Keep incident evidence in `docs/bug-ledger.md` and
+`docs/activity-log.md`; do not turn this skill into an incident archive.

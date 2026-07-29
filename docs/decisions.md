@@ -600,6 +600,10 @@ Decision:
 - keep one React Product UI over the same Core contracts for browser and
   Android;
 - select it explicitly through versioned `vps` and `android` Vite profiles;
+- require profile-specific artifact verification and a release manifest before
+  protected web publication or Android assembly is accepted;
+- publish only a `build:vps` artifact under `/scarlet/`, then verify every
+  referenced public asset rather than accepting an HTML response alone;
 - bundle web assets inside the Android application and point only API traffic
   at `https://honeylabs.cloud/scarlet-api`;
 - use Capacitor HTTP for the first native preview; its global fetch-patching
@@ -619,6 +623,10 @@ Decision:
 Consequences:
 
 The APK and protected web preview now exercise the same Product UI and Core.
+Their asset base, API address form, authentication transport, and native device
+capability access may differ by delivery environment; their React source,
+Product UI contracts, and connected Core behavior may not. The release
+verifier and manifest turn that boundary into inspectable deployment evidence.
 The current login remains a private-preview gate, not production identity.
 Real account ownership, secure token issuance, release signing, Play Store
 delivery, revocable credentials, and persistent native credential storage

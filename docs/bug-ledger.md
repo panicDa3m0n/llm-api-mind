@@ -7,6 +7,44 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0133 - Product UI Artifact Drift Broke The Protected Browser Preview
+
+Date Found: 2026-07-29
+Status: fixed locally; protected static publication pending
+
+Symptoms:
+
+`https://honeylabs.cloud/scarlet/` returned its protected `index.html`, but
+that HTML referenced `/assets/...` and `/prototype/...` at the domain root.
+Nginx serves the Product UI tree only beneath `/scarlet/`, so the public
+JavaScript, stylesheet, portrait, and greeting media requests returned `404`.
+The local debug APK was also an old V1.58.1 artifact although source metadata
+had advanced, leaving no trustworthy proof that browser and Android used the
+same current Product UI.
+
+Root Cause:
+
+The root-hosted generic Vite `dist/` was copied into the path-hosted web
+directory. `frontend/.env.vps` and `npm run build:vps` already described the
+correct `/scarlet/` profile, but release procedure had not made that build or
+an asset-by-asset public verification mandatory. Android assembly had likewise
+not rejected stale `output-metadata.json` or a stale APK.
+
+Fix:
+
+Add profile-aware release verification, a static `release-manifest.json`, and
+mandatory commands for VPS and Android builds. The verifier checks profile
+base path, API base, Product UI contract fragments, every index-referenced
+asset, manifest metadata, frontend/Android version agreement, and APK output
+metadata. The release skill and release process now require an authenticated
+public-asset smoke after static publication.
+
+Regression:
+
+`npm run build:vps` and `npm run android:debug` invoke the verifier. The
+protected release smoke must request the published index, each referenced
+asset, and the manifest before parity can be claimed.
+
 ## BUG-0132 - Autonomous Turns Bypassed Shared Lifecycle Receipts
 
 Date Found: 2026-07-28

@@ -70,6 +70,26 @@ the same application exposes technical evidence through an optional developer
 lens instead of duplicating the product or mixing diagnostic payloads into the
 conversation.
 
+## Delivery Parity
+
+`https://honeylabs.cloud/scarlet/` and the debug Android APK must deliver the
+same React Product UI and Core contracts from one source commit. They are not
+two alternate clients.
+
+The allowed packaging differences are deliberate and inspectable:
+
+| Surface | Build | Asset base | API base | Capability difference |
+|---|---|---|---|---|
+| Protected web | `npm run build:vps` | `/scarlet/` | `/scarlet-api` | Nginx protects the browser request. |
+| Android debug | `npm run android:debug` | `/` inside Capacitor WebView | `https://honeylabs.cloud/scarlet-api` | The app forwards preview authorization and can use native device plugins. |
+
+Each profile writes `release-manifest.json`. The release verifier rejects a
+wrong asset base, missing referenced assets, incorrect API base, missing Product
+UI contract fragments, a stale Android metadata file, or a mismatched frontend
+and Android version. Publication additionally verifies the real authenticated
+web URLs, because a locally valid artifact can still be copied to the wrong VPS
+directory.
+
 ## Entry Flow
 
 The default local flow is:

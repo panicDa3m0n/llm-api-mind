@@ -126,9 +126,11 @@ smallest useful intervention. Do not hide actual outputs behind pass totals.
 
 ## Maintenance Contract
 
-Update this skill when a real evaluation reveals a better scenario design,
-invalid oracle, misleading comparator, missing evidence layer, database risk,
-or more reliable judging practice. Preserve frozen suites and historical
-reports unchanged; version improvements prospectively. Owner corrections and
-direct behavioral evidence override generic testing habits, and canonical
+Update this skill and fix it when a real evaluation reveals a better scenario
+design, invalid oracle, misleading comparator, missing evidence layer,
+database risk, error, or newly verified judging practice. Add the smallest
+evidence-backed prevention during the same task when it would stop the same
+evaluation mistake recurring. Preserve frozen suites and historical reports
+unchanged; version improvements prospectively. Owner corrections and direct
+behavioral evidence override generic testing habits, and canonical
 evaluation/process documents must stay aligned with this skill.

@@ -12,7 +12,7 @@ or the canonical documents under `docs/`.
 | `scarlet-cognitive-change` | Changes to a cognitive organ, model context, provider lifecycle, prompt policy, history, or the model-facing shell. |
 | `scarlet-runtime-debugging` | Real turn failures, stalls, wrong answers, missing events, retrieval problems, persistence issues, or UI/runtime disagreement. |
 | `scarlet-e2e-evaluation` | Behavioral scenarios, frozen regression suites, natural live probes, and qualitative pre/post evaluation. |
-| `scarlet-vps-android-release` | VPS rollout, Product UI publication, Android build/install, production preflight, canary, and rollback. |
+| `scarlet-vps-android-release` | VPS rollout, Product UI profile/artifact parity, Android build/install, production preflight, canary, and rollback. |
 
 The stewardship skill may be used with one operational skill. Runtime
 debugging should normally precede a cognitive fix when the failure layer is

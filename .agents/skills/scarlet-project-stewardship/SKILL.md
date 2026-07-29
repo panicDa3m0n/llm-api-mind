@@ -98,10 +98,12 @@ behavioral conclusion.
 
 ## Maintenance Contract
 
-Update this skill when verified evidence changes Scarlet's architectural
-direction, ownership boundaries, development process, or recurring decision
-checks. Learn from owner corrections, code reviews, failed experiments,
-production incidents, and successful releases. Canonical documentation must be
-updated before or with this skill when policy changes. Never preserve a
-workaround here after the underlying contract has changed, and never rewrite
-historical evidence to make the current guidance appear older than it is.
+Update this skill and fix it when verified evidence changes Scarlet's
+architectural direction, ownership boundaries, development process, recurring
+decision checks, or exposes an error that a clearer workflow could prevent.
+Learn from owner corrections, code reviews, failed experiments, production
+incidents, and successful releases; record newly verified solutions here when
+they prevent repetition. Canonical documentation must be updated before or
+with this skill when policy changes. Never preserve a workaround here after the
+underlying contract has changed, and never rewrite historical evidence to make
+the current guidance appear older than it is.

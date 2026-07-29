@@ -38,6 +38,17 @@ This project uses a practical changelog rather than a release-only log: each mea
 - No API route, database schema, production data, model prompt, GPT bridge
   protocol, rerank policy, or UI block contract changes in this release.
 
+#### Fixed
+
+- Make Product UI delivery profile-aware and release-verifiable: VPS bundles
+  now require `/scarlet/` assets and `/scarlet-api`, while Android bundles
+  require the Capacitor root asset base and the protected absolute VPS API.
+- Generate an inspectable Product UI release manifest and reject missing
+  assets, wrong profile/API bases, absent Product UI stream contracts, stale
+  Android metadata, or frontend/Android version drift before publication.
+- Align the Product UI splash, npm metadata, and Android debug package at
+  V1.65.0 rather than retaining the stale V1.58.1 APK artifact.
+
 #### Verification
 
 - Focused human sync/stream, autonomous, workspace, endogenous, recall, shell,
