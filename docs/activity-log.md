@@ -55,6 +55,15 @@ Deployment:
   the same source commit. No ADB device was attached, so installation and
   visual device acceptance remain pending.
 
+Follow-up release lesson:
+
+- the final audit intentionally ran the VPS verifier after an Android build;
+  it failed because `dist/` had correctly become an Android-profile artifact,
+  not because the deployed VPS output was wrong. The release skill, canonical
+  release process, and frontend README now require rebuilding `vps`
+  immediately before VPS verification/publication and explain that Android
+  verification uses the separate Capacitor-synced output.
+
 ## 2026-07-28 - V1.65.0 Core Convergence Kernels
 
 Area: Core runtime / Native communication / Autonomy / Memory recall.

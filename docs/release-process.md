@@ -113,6 +113,12 @@ For every Product UI publication:
 6. when a device is available, compare installed package id/version with the
    APK metadata and verify the real Product UI against the same VPS API.
 
+`frontend/dist/` is intentionally one mutable build directory, not a store of
+multiple release profiles. A generic or Android Vite build replaces it. The VPS
+sequence must therefore be `build:vps` immediately followed by
+`verify:release:vps` and publication. Android verification is performed from
+the Capacitor-synced `android/app/src/main/assets/public/` artifact instead.
+
 Never publish generic `npm run build` output to `/var/www/scarlet`: its root
 asset base makes a path-hosted `/scarlet/` index load HTML while its JavaScript,
 CSS, and runtime media return `404`. The release manifest is evidence of build

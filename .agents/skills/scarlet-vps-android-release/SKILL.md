@@ -92,6 +92,11 @@ incorrectly.
 - Build with the intended Vite profile, especially `npm run build:vps` for
   HoneyLabs. Never publish a generic root-hosted `npm run build` artifact to
   `/var/www/scarlet`.
+- `dist/` is a single mutable output directory: a later Android or generic
+  build replaces its contents. Immediately before a VPS verification or
+  publication, run `npm run build:vps` and then `npm run verify:release:vps`;
+  do not validate a VPS artifact after an Android build. Android verification
+  instead reads the Capacitor-synced `android/.../assets/public` artifact.
 - Run `npm run verify:release:vps` against the exact `dist/` about to be
   published. It must prove the `/scarlet/` asset base, `/scarlet-api` base,
   Product UI contract fragments, referenced static files, and release manifest.

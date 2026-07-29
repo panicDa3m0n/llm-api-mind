@@ -48,6 +48,10 @@ This project uses a practical changelog rather than a release-only log: each mea
   Android metadata, or frontend/Android version drift before publication.
 - Align the Product UI splash, npm metadata, and Android debug package at
   V1.65.0 rather than retaining the stale V1.58.1 APK artifact.
+- Make the release procedure explicit that `dist/` contains only the most
+  recently built delivery profile: rebuild the VPS profile immediately before
+  VPS verification and publication, while Android verification reads the
+  Capacitor-synced artifact.
 
 #### Verification
 

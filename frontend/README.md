@@ -82,6 +82,11 @@ npm run build:vps
 `https://honeylabs.cloud/scarlet/`. It writes a release manifest and rejects a
 root-based asset bundle before deployment.
 
+`dist/` only holds the most recently built profile. Run `build:vps` immediately
+before `verify:release:vps` and publication; an Android or generic build
+overwrites it. Android verification uses the Capacitor-synced assets rather
+than the current `dist/` directory.
+
 Android debug APK:
 
 ```bash

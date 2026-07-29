@@ -37,13 +37,18 @@ mandatory commands for VPS and Android builds. The verifier checks profile
 base path, API base, Product UI contract fragments, every index-referenced
 asset, manifest metadata, frontend/Android version agreement, and APK output
 metadata. The release skill and release process now require an authenticated
-public-asset smoke after static publication.
+public-asset smoke after static publication. They also state that `dist/` is a
+single mutable Vite output: the VPS profile must be rebuilt immediately before
+its verifier and publication, while Android verification uses Capacitor's
+separate synced artifact.
 
 Regression:
 
-`npm run build:vps` and `npm run android:debug` invoke the verifier. The
-protected release smoke must request the published index, each referenced
-asset, and the manifest before parity can be claimed.
+`npm run build:vps` and `npm run android:debug` invoke the verifier. Run
+`build:vps` immediately before `verify:release:vps`; do not validate a VPS
+bundle after an Android build has replaced `dist/`. The protected release smoke
+must request the published index, each referenced asset, and the manifest
+before parity can be claimed.
 
 Deployment Evidence:
 
