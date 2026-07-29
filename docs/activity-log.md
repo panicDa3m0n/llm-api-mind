@@ -4,6 +4,57 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-29 - V1.65.0 Product UI Artifact Parity Repair
+
+Area: Product UI delivery / protected VPS static publication / Android preview.
+
+Type: Fix on `feature/core-convergence-kernels`.
+
+Change:
+
+- made `vps` and `android` Vite profiles explicit release artifacts rather
+  than interchangeable `dist/` output;
+- added a local release verifier that rejects a wrong asset/API base, missing
+  index-referenced file, absent Product UI contract fragment, stale Android
+  output metadata, or version drift before publication;
+- generated a profile-specific `release-manifest.json` containing the Product
+  version, source commit, asset base, API base, entrypoint hash, and static
+  references;
+- aligned frontend metadata, Android Gradle metadata, and splash version at
+  V1.65.0 / Android code `16500`; and
+- updated all five repository-local skills so each explicitly requires its own
+  correction after an error or newly verified solution, with the release skill
+  now owning the web/Android artifact-parity gate.
+
+Verification:
+
+- `npm run build:vps` passed and verified the `/scarlet/` asset base,
+  `/scarlet-api` base, Product UI route fragments, entry assets, and manifest;
+- a deliberately generic root-hosted Vite artifact was rejected because its
+  `/prototype/...` path violates the VPS `/scarlet/` contract;
+- `npm run android:debug` completed Vite Android build, Capacitor sync, Gradle
+  assembly, and final APK metadata/bundle verification;
+- `backend/.venv/bin/python scripts/check_project_skills.py`,
+  `python3 scripts/check_documentation.py`, `git diff --check`, and the staged
+  database-boundary guard passed; and
+- no complete live Scarlet evaluation was run because this is an artifact and
+  release-process fix, not a Core behavioral change.
+
+Deployment:
+
+- backed up the old VPS static tree at
+  `/var/backups/scarlet-mobile-test/product-ui-20260729T124416Z/scarlet`;
+- published the verified web artifact from source commit `417906a` to
+  `/var/www/scarlet` without rebuilding the backend or transferring any DB;
+- remote `index.html` SHA-256 matched the local verified hash
+  `9514c12305fb080843cbda190383173cb687a53cf81222abdb3d3dfce80ebb1b`;
+- authenticated `https://honeylabs.cloud/scarlet/`, public manifest, and all
+  22 files of the published static tree returned `200`; protected API health
+  also remained `200`; and
+- rebuilt Android debug APK reports V1.65.0 / `16500` and its manifest cites
+  the same source commit. No ADB device was attached, so installation and
+  visual device acceptance remain pending.
+
 ## 2026-07-28 - V1.65.0 Core Convergence Kernels
 
 Area: Core runtime / Native communication / Autonomy / Memory recall.

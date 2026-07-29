@@ -10,7 +10,7 @@ history were not rewritten.
 ## BUG-0133 - Product UI Artifact Drift Broke The Protected Browser Preview
 
 Date Found: 2026-07-29
-Status: fixed locally; protected static publication pending
+Status: fixed and deployed as the V1.65.0 Product UI artifact correction
 
 Symptoms:
 
@@ -44,6 +44,17 @@ Regression:
 `npm run build:vps` and `npm run android:debug` invoke the verifier. The
 protected release smoke must request the published index, each referenced
 asset, and the manifest before parity can be claimed.
+
+Deployment Evidence:
+
+The protected static tree was backed up at
+`/var/backups/scarlet-mobile-test/product-ui-20260729T124416Z/scarlet` before
+the verified V1.65.0 artifact from source commit `417906a` replaced it. The
+public index, manifest, all 22 published static files, and protected API health
+returned `200`; the published manifest reports `/scarlet/` and
+`/scarlet-api`. The rebuilt Android debug APK reports V1.65.0 / `16500` and
+contains its matching Android-profile manifest. No ADB device was attached for
+installation or visual acceptance in this repair.
 
 ## BUG-0132 - Autonomous Turns Bypassed Shared Lifecycle Receipts
 
