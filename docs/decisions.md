@@ -7,6 +7,118 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0146 - Autonomous M3 Scheduling Is Shared, Coalesced, And Non-Semantic
+
+Date: 2026-07-30
+Status: accepted for V1.65.1
+
+Context:
+
+Production inspection showed two concrete lifecycle failures inside an
+otherwise shared human/autonomous runtime. Legacy autonomous request traces
+stored native text as a string, causing every later chronology source map to
+fall back and preventing active compaction. Separately, selected Workspace
+candidates that Scarlet did not explicitly adopt were mechanically returned to
+the eligible pool after the old activation interval, producing repetitive M3
+cycles even when no new evidence existed. Direct scheduling paths also had no
+one owner for a minimum inter-cycle boundary or coalescence.
+
+Decision:
+
+- normalize only legacy string-form provider content at the derived chronology
+  source-map boundary; canonical provider history and original traces remain
+  untouched;
+- introduce `parked` for a candidate Scarlet has inspected without an explicit
+  episode, volition, or rejection decision; parked candidates are excluded from
+  ordinary eligibility;
+- permit re-entry only when M2.7 explicitly names a supplied parked id and
+  attaches novel canonical source evidence; M2.7 may not rewrite a parked
+  question as a new paraphrase candidate;
+- make one shared scheduler own active M3 timing for Workspace ignition,
+  maximum-silence orientation, human-priority retry, and laboratory requests;
+- keep scheduler authority structural only: merge candidate/source packets,
+  prevent a concurrent M3 start, impose a configurable 900-second minimum M3
+  gap, and guarantee a non-semantic orientation opportunity within 10,800
+  seconds; and
+- reconcile existing exact legacy retry rows only through a guarded,
+  production-only dry-run/apply operator command after a verified backup.
+
+Consequences:
+
+The fix does not add a score, an impulse classifier, a second context path, or
+a forced Scarlet answer. M2.7 remains a provisional semantic appraiser while
+M3 Scarlet remains the sole agent that can adopt or mutate cognition. The same
+scheduler applies to every autonomous source, preserving one inspectable
+activation packet instead of competing direct schedules. Generic suspended
+candidates retain their existing lifecycle and are not bulk-mutated.
+
+Links:
+
+- `backend/app/runtime/autonomy_schedule.py`
+- `backend/app/runtime/cognitive_workspace.py`
+- `backend/app/runtime/history_compaction.py`
+- `backend/app/ops/park_legacy_workspace_candidates.py`
+- `docs/cognitive-workspace.md`
+- `docs/endogenous-cognition.md`
+
+## ADR-0145 - V2 Uses Shared Episodes, Source Admission, And Temporal Perception
+
+Date: 2026-07-30
+Status: accepted for V2 planning
+
+Context:
+
+V1 now has a shared native turn kernel, separate interactive and autonomous
+chronologies, a Cognitive Workspace, an endogenous candidate path, a Device
+Exploration Layer, source-family classification, and a Product UI foundation.
+Future companion, device, sensor, and embodiment work could nevertheless
+fragment Scarlet by treating data sources as session types, injecting raw or
+stale observations directly into prompts, or making realtime execution a
+second agent.
+
+Decision:
+
+- retain two episode lineages only: many interactive sessions and one
+  long-lived autonomous session per profile;
+- use the same kernel, context contract, retrieval, organs, shell, finality,
+  provenance, and consolidation for both; distinguish them by session type,
+  activation cause, agent mode, and visibility rather than divergent code;
+- classify notifications, device records, cameras, microphones, webhooks, and
+  future actuators as source families, never as automatic session categories;
+- retain raw and rich source evidence outside provider history/model context,
+  then admit compact source-backed observations through explicit family,
+  freshness, mode, and attention contracts;
+- separate live state, recent evidence, historical episode, and durable memory;
+- extend the existing Cognitive Workspace rather than introduce a parallel
+  Global Workspace or deterministic impulse/desire engine;
+- preserve M2.7 as a provisional source-backed appraiser and M3 Scarlet as the
+  only semantic adopter, cognitive mutator, and relational decision maker;
+- treat future realtime audio/video/robotics as an execution profile beside the
+  deliberative plane, linked to the originating session/turn and evidence, not
+  as another Scarlet or a third session; and
+- use the Product UI only to render canonical Core evidence and truthful
+  availability states.
+
+Consequences:
+
+V2 can add relationship continuity, selected perception, autonomous initiative,
+and future embodiment compatibility without replacing working V1 behavior.
+Every source must be source-labelled, temporally valid, inspectable, and
+admitted deliberately. Full realtime execution, product modules, universal
+connectors, and a developer ecosystem remain later work defined in the V2
+companion plan's V3 boundary.
+
+Links:
+
+- `docs/v2-cognitive-companion-plan.md`
+- `docs/cognitive-workspace.md`
+- `docs/endogenous-cognition.md`
+- `docs/context-family-registry.md`
+- `docs/device-exploration-layer.md`
+- `docs/core-runtime-contract.md`
+- `docs/branches/perception-context.md`
+- `docs/branches/decision-autonomy.md`
+
 ## ADR-0144 - One Shared Lifecycle Kernel For Native Scarlet Turns
 
 Date: 2026-07-28

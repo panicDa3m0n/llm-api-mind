@@ -512,6 +512,7 @@ def update_candidate(
     candidate_id: str,
     status: str | None = None,
     deferred_until: datetime | None = None,
+    clear_deferred_until: bool = False,
     increment_deferral: bool = False,
     selected_episode_id: str | None = None,
     resolution: str | None = None,
@@ -523,6 +524,8 @@ def update_candidate(
         candidate.status = status
     if deferred_until is not None:
         candidate.deferred_until = deferred_until
+    elif clear_deferred_until:
+        candidate.deferred_until = None
     if increment_deferral:
         candidate.deferral_count += 1
     if selected_episode_id is not None:
@@ -531,6 +534,66 @@ def update_candidate(
         candidate.resolution = resolution
     if status in {"resolved", "rejected", "invalidated"}:
         candidate.resolved_at = utc_now()
+    candidate.updated_at = utc_now()
+    db.add(candidate)
+    db.commit()
+    db.refresh(candidate)
+    return candidate
+
+
+def reconsider_candidate(
+    db: Session,
+    *,
+    candidate_id: str,
+    sources: list[dict[str, Any]],
+    appraisal_model: str | None,
+    appraisal_trace_id: str | None,
+    metadata: dict[str, Any] | None = None,
+) -> CognitiveCandidate:
+    """Re-open a parked candidate only with newly attached source evidence."""
+
+    candidate = get_candidate(db, candidate_id)
+    if candidate is None:
+        raise ValueError(f"Cognitive candidate not found: {candidate_id}")
+    if candidate.status != "parked":
+        raise ValueError(f"Cognitive candidate is not parked: {candidate_id}")
+
+    existing_sources = {
+        (item.source_kind, item.source_id, item.relation)
+        for item in list_candidate_sources(db, candidate_id=candidate.id)
+    }
+    added = 0
+    for source in sources:
+        source_kind = str(source["source_kind"])
+        source_id = str(source["source_id"])
+        relation = str(source.get("relation") or "supports")
+        identity = (source_kind, source_id, relation)
+        if identity in existing_sources:
+            continue
+        db.add(
+            CognitiveCandidateSource(
+                candidate_id=candidate.id,
+                source_kind=source_kind,
+                source_id=source_id,
+                observed_at=source.get("observed_at"),
+                metadata_json=dict(source.get("metadata") or {}),
+                relation=relation,
+            )
+        )
+        existing_sources.add(identity)
+        added += 1
+    if not added:
+        raise ValueError(
+            "Reconsidering a parked candidate requires newly attached source evidence."
+        )
+    candidate.status = "proposed"
+    candidate.deferred_until = None
+    candidate.appraisal_model = appraisal_model
+    candidate.appraisal_trace_id = appraisal_trace_id
+    candidate.metadata_json = {
+        **candidate.metadata_json,
+        "last_reconsideration": metadata or {},
+    }
     candidate.updated_at = utc_now()
     db.add(candidate)
     db.commit()

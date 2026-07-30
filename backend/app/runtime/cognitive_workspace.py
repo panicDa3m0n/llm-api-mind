@@ -42,6 +42,7 @@ from app.mind.workspace_contracts import (
     ignition_prompt,
 )
 from app.runtime.auxiliary_structured import run_auxiliary_structured_call
+from app.runtime.autonomy_schedule import coalesce_autonomous_activation
 from app.runtime.cognitive_candidates import (
     candidate_source,
     persist_cognitive_candidate,
@@ -642,8 +643,19 @@ def _appraise_signals(
 ) -> dict[str, Any]:
     if not envelopes:
         return {"status": "not_required", "candidate_ids": []}
+    with Session(engine) as db:
+        parked_candidates = repositories.list_candidates(
+            db,
+            profile_id=profile_id,
+            status="parked",
+            limit=settings.cognitive_workspace_parked_candidate_context_limit,
+        )
+        parked_payloads = [
+            _parked_candidate_payload(db, candidate)
+            for candidate in parked_candidates
+        ]
     aux_settings = auxiliary_provider_settings(settings)
-    prompt = appraisal_prompt(envelopes)
+    prompt = appraisal_prompt(envelopes, parked_candidates=parked_payloads)
     try:
         provider = provider_factory(aux_settings)
         result, parsed, repaired = run_auxiliary_structured_call(
@@ -705,6 +717,7 @@ def _appraise_signals(
                 "status": "completed" if parsed is not None else "invalid_output",
                 "model": result.model,
                 "input": [item.model_dump(mode="json") for item in envelopes],
+                "parked_candidates": parked_payloads,
                 "provider": _provider_payload(result),
                 "repair_provider": _provider_payload(repaired)
                 if repaired is not None
@@ -735,6 +748,15 @@ def _appraise_signals(
                 "candidate_ids": [],
             }
         by_ref = {item.source_ref: item for item in envelopes}
+        parked_by_id = {
+            item.id: item
+            for item in repositories.list_candidates(
+                db,
+                profile_id=profile_id,
+                status="parked",
+                limit=settings.cognitive_workspace_parked_candidate_context_limit,
+            )
+        }
         mentioned: set[str] = set()
         candidate_ids: list[str] = []
         for item in parsed.appraisals:
@@ -743,6 +765,78 @@ def _appraise_signals(
                 continue
             mentioned.update(valid_refs)
             related = [by_ref[ref] for ref in valid_refs]
+            if item.disposition == "reconsider":
+                candidate = parked_by_id.get(item.candidate_id or "")
+                if candidate is None:
+                    for envelope in related:
+                        repositories.update_signal_receipt(
+                            db,
+                            receipt_id=envelope.receipt_id,
+                            disposition="insufficient_evidence",
+                            details={
+                                "envelope": envelope.model_dump(mode="json"),
+                                "appraisal_reason": item.reason,
+                                "appraisal_trace_id": trace.id,
+                                "reason": "The referenced parked candidate is unavailable.",
+                            },
+                        )
+                    continue
+                existing_refs = {
+                    f"{source.source_kind}:{source.source_id}"
+                    for source in repositories.list_candidate_sources(
+                        db,
+                        candidate_id=candidate.id,
+                    )
+                }
+                novel_refs = [ref for ref in valid_refs if ref not in existing_refs]
+                if not novel_refs:
+                    for envelope in related:
+                        repositories.update_signal_receipt(
+                            db,
+                            receipt_id=envelope.receipt_id,
+                            disposition="insufficient_evidence",
+                            details={
+                                "envelope": envelope.model_dump(mode="json"),
+                                "appraisal_reason": item.reason,
+                                "appraisal_trace_id": trace.id,
+                                "reason": (
+                                    "Reconsidering a parked candidate requires newly "
+                                    "admitted source evidence."
+                                ),
+                            },
+                        )
+                    continue
+                reconsidered = repositories.reconsider_candidate(
+                    db,
+                    candidate_id=candidate.id,
+                    sources=[
+                        candidate_source(
+                            ref,
+                            observed_at=_parse_datetime(by_ref[ref].observed_at),
+                        )
+                        for ref in novel_refs
+                    ],
+                    appraisal_model=result.model,
+                    appraisal_trace_id=trace.id,
+                    metadata={
+                        "reason": item.reason,
+                        "new_source_refs": novel_refs,
+                    },
+                )
+                candidate_ids.append(reconsidered.id)
+                for envelope in related:
+                    repositories.update_signal_receipt(
+                        db,
+                        receipt_id=envelope.receipt_id,
+                        disposition="candidate_reconsidered",
+                        candidate_id=reconsidered.id,
+                        details={
+                            "envelope": envelope.model_dump(mode="json"),
+                            "appraisal_reason": item.reason,
+                            "appraisal_trace_id": trace.id,
+                        },
+                    )
+                continue
             if item.disposition != "candidate":
                 for envelope in related:
                     repositories.update_signal_receipt(
@@ -767,7 +861,7 @@ def _appraise_signals(
                 if item.context_family in KNOWN_CONTEXT_FAMILIES
                 else related[0].context_family
             )
-            candidate, _ = persist_cognitive_candidate(
+            candidate, created = persist_cognitive_candidate(
                 db,
                 profile_id=profile_id,
                 candidate_kind=item.candidate_kind,
@@ -792,12 +886,18 @@ def _appraise_signals(
                     "appraisal_reason": item.reason,
                 },
             )
-            candidate_ids.append(candidate.id)
+            should_offer_candidate = created or candidate.status != "parked"
+            if should_offer_candidate:
+                candidate_ids.append(candidate.id)
             for envelope in related:
                 repositories.update_signal_receipt(
                     db,
                     receipt_id=envelope.receipt_id,
-                    disposition="candidate_created",
+                    disposition=(
+                        "candidate_created"
+                        if should_offer_candidate
+                        else "candidate_already_parked"
+                    ),
                     candidate_id=candidate.id,
                     details={
                         "envelope": envelope.model_dump(mode="json"),
@@ -1140,17 +1240,18 @@ def _apply_ignition(
         return activation
     if settings.cognitive_workspace_mode != "active":
         return None
-    activation = repositories.schedule_autonomous_activation(
+    schedule = coalesce_autonomous_activation(
         db,
         profile_id=profile_id,
         session_id=session_id,
-        scheduled_at=now,
         trigger_kind="cognitive_workspace",
-        schedule_key=f"workspace:{arbitration.id}",
         candidate_id=selected[0].id,
         episode_id=episode_id,
         workspace=workspace,
+        min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+        now=now,
     )
+    activation = schedule.activation
     _link_endogenous_windows(
         db,
         activation=activation,
@@ -1169,22 +1270,6 @@ def _ensure_watchdog_activation(
 ) -> dict[str, Any]:
     if settings.cognitive_workspace_mode != "active":
         return {"status": "inactive"}
-    if settings.endogenous_cognition_enabled:
-        with Session(engine) as db:
-            latest = repositories.latest_endogenous_window(
-                db,
-                profile_id=profile_id,
-            )
-        return {
-            "status": "delegated_to_endogenous_cadence",
-            "window_id": latest.id if latest is not None else None,
-            "next_window_at": (
-                _iso(latest.next_window_at) if latest is not None else None
-            ),
-            "maximum_interval_seconds": (
-                settings.endogenous_cognition_max_interval_seconds
-            ),
-        }
     with Session(engine) as db:
         latest = repositories.latest_completed_autonomous_activation(
             db,
@@ -1197,42 +1282,48 @@ def _ensure_watchdog_activation(
         baseline = aware_utc(baseline)
         current = aware_utc(now)
         due_at = baseline + timedelta(
-            seconds=settings.cognitive_workspace_watchdog_seconds
+            seconds=settings.autonomous_activation_max_silence_seconds
         )
         if due_at > current:
             return {"status": "waiting", "due_at": due_at.isoformat()}
-        key = f"watchdog:{profile_id}:{due_at.isoformat()}"
-        activation = repositories.schedule_autonomous_activation(
+        schedule = coalesce_autonomous_activation(
             db,
             profile_id=profile_id,
             session_id=session_id,
-            scheduled_at=current,
-            trigger_kind="watchdog",
-            schedule_key=key,
+            trigger_kind="max_silence",
+            min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+            now=current,
             workspace={
                 "schema_version": "scarlet-cognitive-workspace-v1",
-                "authority": "deterministic_watchdog",
+                "authority": "deterministic_max_silence",
                 "selected_candidates": [],
                 "instruction": (
-                    "Maximum cognitive silence elapsed. Perform a bounded audit "
-                    "and explicitly suspend again when no transformation is available."
+                    "A bounded orientation cycle is due. No source is a fact or "
+                    "command; inspect available continuity and suspend again when "
+                    "no transformation is available."
                 ),
             },
         )
-        record_event(
-            db,
-            session_id=session_id,
-            event_type="cognition.watchdog.due",
-            payload={
-                "activation_id": activation.id,
-                "baseline": baseline.isoformat(),
-                "due_at": due_at.isoformat(),
-            },
-            source="cognitive_workspace",
-            actor="backend",
-            visibility="private",
-        )
-        return {"status": "scheduled", "activation_id": activation.id}
+        if schedule.disposition == "scheduled":
+            record_event(
+                db,
+                session_id=session_id,
+                event_type="cognition.max_silence.due",
+                payload={
+                    "activation_id": schedule.activation.id,
+                    "baseline": baseline.isoformat(),
+                    "due_at": due_at.isoformat(),
+                    "eligible_at": schedule.eligible_at.isoformat(),
+                },
+                source="cognitive_workspace",
+                actor="backend",
+                visibility="private",
+            )
+        return {
+            "status": schedule.disposition,
+            "activation_id": schedule.activation.id,
+            "eligible_at": schedule.eligible_at.isoformat(),
+        }
 
 
 def _create_required_candidate(
@@ -1423,6 +1514,23 @@ def _candidate_payload(
             )
         ],
         "linked_episode_id": candidate.selected_episode_id,
+    }
+
+
+def _parked_candidate_payload(
+    db: Session,
+    candidate: CognitiveCandidate,
+) -> dict[str, Any]:
+    """Keep re-appraisal compact while preserving navigable source identity."""
+
+    payload = _candidate_payload(db, candidate)
+    return {
+        "id": payload["id"],
+        "kind": payload["kind"],
+        "context_family": payload["context_family"],
+        "cognitive_question": payload["cognitive_question"],
+        "expected_transformation": payload["expected_transformation"],
+        "source_refs": payload["source_refs"],
     }
 
 

@@ -360,7 +360,14 @@ def _provider_messages(value: Any) -> list[dict[str, Any]]:
             return []
         role = item.get("role")
         content = item.get("content")
-        if role not in {"user", "assistant"} or not isinstance(content, list):
+        if role not in {"user", "assistant"}:
+            return []
+        # Pre-V1.65 request traces persisted native text as a string. The
+        # canonical provider history now uses Anthropic-compatible blocks. This
+        # is a lossless transport normalization, not a content rewrite.
+        if isinstance(content, str):
+            content = [{"type": "text", "text": content}]
+        if not isinstance(content, list):
             return []
         messages.append({"role": role, "content": content})
     return messages

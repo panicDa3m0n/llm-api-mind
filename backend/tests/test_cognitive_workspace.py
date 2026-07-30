@@ -10,6 +10,12 @@ from sqlmodel import Session
 from app.config import Settings
 from app.llm.provider import LLMStreamEvent, LLMTextResult
 from app.mind.contracts import MindAPIContext
+from app.mind.workspace_contracts import (
+    APPRAISAL_SCHEMA_VERSION,
+    CognitiveAppraisalBatch,
+    CognitiveSignalEnvelope,
+    appraisal_prompt,
+)
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
 from app.runtime.autonomy import (
@@ -51,7 +57,7 @@ class WorkspaceProvider:
             ]
             text = json.dumps(
                 {
-                    "schema_version": "cognitive-appraisal-v1",
+                    "schema_version": APPRAISAL_SCHEMA_VERSION,
                     "appraisals": appraisals,
                 }
             )
@@ -365,12 +371,121 @@ def test_active_workspace_executes_the_selected_m3_cycle(
         assert activation.status == "completed"
         assert activation.trigger_kind == "cognitive_workspace"
         assert activation.turn_id is not None
+        candidate_id = activation.workspace_json["selected_candidate_ids"][0]
+        candidate = repositories.get_candidate(db, candidate_id)
+        assert candidate is not None
+        assert candidate.status == "parked"
         messages = repositories.list_messages_for_turn(
             db,
             turn_id=activation.turn_id,
         )
         assert [item.role for item in messages] == ["activation", "assistant"]
         assert "Checkpoint interno" in messages[-1].content
+
+
+def test_parked_candidate_requires_new_source_backed_reconsideration(
+    db_engine: Engine,
+) -> None:
+    init_db(db_engine)
+    now = utc_now()
+    with Session(db_engine) as db:
+        candidate, _ = repositories.create_candidate(
+            db,
+            profile_id="local-user",
+            candidate_kind="continuity_question",
+            context_family="session_continuity",
+            claim="Un filo precedente potrebbe meritare un controllo futuro.",
+            why_now="Il primo segnale e stato gia esaminato da Scarlet.",
+            cognitive_question="C'e nuova evidenza che riapre il filo?",
+            expected_transformation="Riattivare solo un'indagine supportata.",
+            uncertainty="medium",
+            exact_fingerprint="parked-candidate-reconsideration",
+            sources=[
+                {
+                    "source_kind": "event",
+                    "source_id": "evt_original",
+                    "observed_at": now,
+                }
+            ],
+        )
+        repositories.update_candidate(
+            db,
+            candidate_id=candidate.id,
+            status="parked",
+        )
+
+        assert repositories.list_eligible_candidates(
+            db,
+            profile_id="local-user",
+            now=now + timedelta(days=1),
+        ) == []
+        with pytest.raises(ValueError, match="newly attached source evidence"):
+            repositories.reconsider_candidate(
+                db,
+                candidate_id=candidate.id,
+                sources=[
+                    {
+                        "source_kind": "event",
+                        "source_id": "evt_original",
+                        "observed_at": now,
+                    }
+                ],
+                appraisal_model="MiniMax-M2.7",
+                appraisal_trace_id=None,
+            )
+
+        reopened = repositories.reconsider_candidate(
+            db,
+            candidate_id=candidate.id,
+            sources=[
+                {
+                    "source_kind": "event",
+                    "source_id": "evt_new_evidence",
+                    "observed_at": now + timedelta(minutes=1),
+                }
+            ],
+            appraisal_model="MiniMax-M2.7",
+            appraisal_trace_id=None,
+        )
+
+    assert reopened.status == "proposed"
+
+
+def test_appraisal_contract_exposes_parked_candidates_for_exact_reconsideration() -> None:
+    signal = CognitiveSignalEnvelope(
+        receipt_id="receipt_1",
+        source_ref="event:evt_new_evidence",
+        source_type="turn.completed",
+        policy="candidate",
+        context_family="session_continuity",
+        observed_at=utc_now().isoformat(),
+        summary="A new source could reopen a known continuity question.",
+    )
+    prompt = appraisal_prompt(
+        [signal],
+        parked_candidates=[
+            {
+                "id": "cand_parked",
+                "cognitive_question": "What changed after the earlier review?",
+            }
+        ],
+    )
+    parsed = CognitiveAppraisalBatch.model_validate(
+        {
+            "schema_version": APPRAISAL_SCHEMA_VERSION,
+            "appraisals": [
+                {
+                    "source_refs": ["event:evt_new_evidence"],
+                    "disposition": "reconsider",
+                    "candidate_id": "cand_parked",
+                    "reason": "The new event directly reopens the same question.",
+                }
+            ],
+        }
+    )
+
+    assert '"id": "cand_parked"' in prompt
+    assert parsed.appraisals[0].candidate_id == "cand_parked"
 
 
 def test_advisory_workspace_attaches_to_periodic_cycle_without_rescheduling(

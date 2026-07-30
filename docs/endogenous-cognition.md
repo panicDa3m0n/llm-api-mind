@@ -1,9 +1,10 @@
 # Endogenous Cognition V1
 
-Last updated: 2026-07-28
-Target: V1.63.0
+Last updated: 2026-07-30
+Target: V1.65.1 integration hardening
 Implementation status: complete locally; focused deterministic and simulated
-M3 lifecycle evidence accepted; production and longitudinal evidence pending
+M3 lifecycle evidence accepted; V1.65.1 scheduling integration and production
+observation pending
 Linear: SCA-58
 
 ## Purpose
@@ -38,7 +39,7 @@ Defaults:
 | minimum interval | 900 seconds | retry floor and provider-failure interval |
 | base interval | 3600 seconds | initial free-window interval |
 | productive follow-up | 1800 seconds | next review after useful seeds |
-| maximum interval | 21600 seconds | silence ceiling |
+| maximum interval | 10800 seconds | auxiliary free-window ceiling |
 | maximum seeds | 4 | bounded proposal count |
 
 Consecutive empty windows double the prior interval up to the maximum.
@@ -108,7 +109,9 @@ Scarlet may:
 A candidate-linked volition is explicit adoption evidence. The candidate is
 resolved into that existing volition rather than becoming a second intention
 record. If Scarlet makes no explicit episode, volition, or rejection decision,
-the candidate is suspended and remains inspectable.
+the candidate is parked and remains inspectable. It does not re-enter merely
+because a timer elapsed; M2.7 must cite genuinely new source evidence to reopen
+the same candidate.
 
 ## Outcome Evidence
 
@@ -149,8 +152,9 @@ inserted into normal chat context.
 - provider failure: persist trace/error and retry at the minimum interval;
 - duplicate seed fingerprint: reuse canonical candidate state;
 - concurrent opening: reuse the idempotent window;
-- `ENDOGENOUS_COGNITION_ENABLED=false`: restore the prior Cognitive Workspace
-  watchdog behavior;
+- `ENDOGENOUS_COGNITION_ENABLED=false`: stop endogenous seed synthesis while
+  the active Workspace scheduler still retains the bounded M3
+  maximum-silence orientation contract;
 - `COGNITIVE_WORKSPACE_MODE=shadow|advisory|off`: retain the existing
   workspace rollback semantics.
 

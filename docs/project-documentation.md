@@ -1,7 +1,8 @@
 # Project Documentation Index
 
-Last updated: 2026-07-28
-App deployment: V1.65.0 on the protected VPS; V1.50.1 remains release-accepted
+Last updated: 2026-07-30
+App deployment: V1.65.0 on the protected VPS; V1.65.1 is locally verified and
+pending deployment; V1.50.1 remains release-accepted
 Status: canonical documentation map
 
 This is the entry point for project documentation. It separates two layers:
@@ -49,6 +50,9 @@ discussed before a new fix is attempted.
   not replacements for canonical contracts.
 - `docs/project-blueprint.md`: durable philosophy and architecture principles.
 - `docs/project-state.md`: current implementation map and convergent roadmap.
+- `docs/v2-cognitive-companion-plan.md`: owner-approved V2 architecture,
+  dependency order, acceptance evidence, V3 boundary, and explicitly deferred
+  embodiment/module work.
 - `docs/core-runtime-contract.md`: canonical Core Runtime, Product UI,
   External Adapter, and Agentic Module boundary, including owners and
   compatibility classes.

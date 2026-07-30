@@ -2,9 +2,9 @@
 
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-28
+Last reviewed: 2026-07-30
 App deployment: V1.65.0 deployed on the protected VPS; V1.50.1 remains the
-closed-Core baseline
+closed-Core baseline. V1.65.1 is locally verified and pending deployment.
 
 ## V1.65 Shared Turn Lifecycle Boundary
 
@@ -390,6 +390,8 @@ Configuration:
 ```txt
 AUTONOMOUS_ACTIVATION_ENABLED=true
 AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS=600
+AUTONOMOUS_ACTIVATION_MIN_GAP_SECONDS=900
+AUTONOMOUS_ACTIVATION_MAX_SILENCE_SECONDS=10800
 AUTONOMOUS_ACTIVATION_WORKER_INTERVAL_SECONDS=5
 AUTONOMOUS_ACTIVATION_LEASE_SECONDS=900
 AUTONOMOUS_ACTIVATION_DEFER_SECONDS=60
@@ -400,19 +402,23 @@ COGNITIVE_WORKSPACE_MODE=active
 COGNITIVE_WORKSPACE_SIGNAL_BATCH_SIZE=100
 COGNITIVE_WORKSPACE_APPRAISAL_BATCH_SIZE=20
 COGNITIVE_WORKSPACE_CANDIDATE_POOL_LIMIT=20
+COGNITIVE_WORKSPACE_PARKED_CANDIDATE_CONTEXT_LIMIT=12
 COGNITIVE_WORKSPACE_APPRAISAL_MAX_TOKENS=8192
 COGNITIVE_WORKSPACE_ARBITRATION_MAX_TOKENS=8192
 COGNITIVE_WORKSPACE_MAX_DEFERRALS=3
-COGNITIVE_WORKSPACE_WATCHDOG_SECONDS=3600
 ```
 
-The current 600-second interval is for field observation and remains
-configurable. Startup schedules the next interval rather than invoking
-immediately, downtime does not replay every missed tick, and an active human
-turn defers the activation. If a human turn starts after provider execution
-has begun, the autonomous cycle yields at the next semantic stream boundary or
-before the next tool call, persists a `deferred` turn/activation and partial
-evidence, then schedules a retry.
+`AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS` is retained only for `off` and
+`advisory` compatibility. In active mode, the scheduler preserves one pending
+activation per profile, coalesces compact source-backed packets into it, and
+applies a 900-second minimum M3 gap. A deterministic 10,800-second
+maximum-silence bound schedules a non-semantic orientation cycle if no M3
+autonomous cycle has completed. Startup does not invoke M3 immediately,
+downtime does not replay every missed tick, and an active human turn defers the
+activation. If a human turn starts after provider execution has begun, the
+autonomous cycle yields at the next semantic stream boundary or before the next
+tool call, persists a `deferred` turn/activation and partial evidence, then
+coalesces a retry.
 
 Foreground detection considers only `human_dialogue` turns whose persisted
 status is `started` and whose `started_at` falls inside the configured

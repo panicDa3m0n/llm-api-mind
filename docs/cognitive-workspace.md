@@ -1,9 +1,10 @@
 # Cognitive Workspace And Event-Driven Autonomy
 
-Last updated: 2026-07-28
-Target: V1.63.0
-Implementation status: V1.62 workspace complete; V1.63 endogenous extension
-complete locally and awaiting deployment
+Last updated: 2026-07-30
+Target: V1.65.1
+Implementation status: Workspace/endogenous lifecycle complete; V1.65.1
+compaction, parking, and scheduling hardening is locally verified and awaiting
+protected deployment
 Linear: SCA-57
 
 ## Purpose
@@ -111,7 +112,12 @@ A candidate must contain:
 - a stable exact fingerprint for deduplication.
 
 Candidate state is not a truth judgment. `proposed`, `selected`, `suspended`,
-`resolved`, and `rejected` describe lifecycle, not epistemic certainty.
+`parked`, `resolved`, and `rejected` describe lifecycle, not epistemic
+certainty. `parked` means Scarlet has already received the question in an M3
+activation but made no explicit episode, volition, or rejection decision. It
+is deliberately excluded from the ordinary eligible pool. The M2.7 appraiser
+may reopen it only by citing its exact id and attaching genuinely new canonical
+source evidence; it may not paraphrase the same question into a fresh loop.
 M2.7 may recommend `hold`, `consider`, or `wake_now`, but cannot make the
 final Scarlet decision.
 
@@ -152,10 +158,28 @@ When `active` starts, any still-pending blind `periodic` activation is
 cancelled with a persisted reason and lifecycle event. Started or genuinely
 deferred work is preserved.
 
-In V1.63 `active`, the fixed watchdog delegates to adaptive endogenous
-cognitive windows. Those windows may propose no work and back off up to a
-configured ceiling. Disabling Endogenous Cognition restores the prior bounded
-watchdog behavior.
+## Active M3 Scheduling
+
+Active mode has one deterministic scheduling owner. It never assigns semantic
+importance: the Workspace and Scarlet retain that authority. Its mechanics are
+limited to preserving a single inspectable pending activation per profile and
+merging compact source-backed workspaces into it.
+
+- `AUTONOMOUS_ACTIVATION_MIN_GAP_SECONDS` defaults to 900 seconds: two M3
+  autonomous cycles cannot start closer together, including manual laboratory
+  requests and deferred work;
+- `AUTONOMOUS_ACTIVATION_MAX_SILENCE_SECONDS` defaults to 10,800 seconds: if
+  no M3 autonomous cycle has completed by the bound, the system schedules one
+  bounded orientation cycle with no fabricated semantic candidate;
+- concurrent incoming evidence merges its candidate ids, source payloads, and
+  trigger provenance into the next eligible activation rather than launching
+  another M3 turn; and
+- an already running M3 turn is never mutated. New evidence is retained in a
+  later pending packet and is re-timed after completion if necessary.
+
+Endogenous M2.7 windows remain adaptive source appraisal, not the M3
+maximum-silence guarantee. The old periodic interval remains only for `off`
+and `advisory` compatibility modes.
 
 ## Endogenous Extension
 

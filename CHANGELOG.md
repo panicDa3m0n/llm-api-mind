@@ -6,6 +6,44 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.65.1 - Autonomous Runtime Hardening
+
+#### Fixed
+
+- Normalize legacy string-form native provider messages only at the derived
+  chronology source-map boundary, allowing active history compaction to cover
+  the existing autonomous chronology without mutating canonical history.
+- Park Workspace candidates that Scarlet has already inspected without an
+  explicit episode, volition, or rejection decision. They now return only
+  when M2.7 cites their exact id and attaches new source evidence, rather than
+  being retried by a timer or paraphrased into a duplicate candidate.
+- Replace direct active-mode autonomous scheduling with one shared coalescing
+  scheduler. It enforces a 15-minute M3 minimum gap, keeps a three-hour
+  maximum-silence orientation bound, merges candidate/source packets, and
+  protects against an overlapping running M3 cycle.
+
+#### Operational
+
+- Add a guarded, production-only dry-run/apply operator command to park only
+  rows produced by the exact retired candidate retry path after a verified VPS
+  backup. Generic suspended candidates are intentionally untouched.
+- Expose active scheduling bounds in the autonomy overview and retire the
+  unused active-workspace watchdog setting.
+
+### V2 Cognitive Companion Architecture Plan
+
+#### Documentation
+
+- Record the owner-approved V2 direction: a shared interactive/autonomous
+  cognitive lifecycle, dynamic source and policy admission, temporal
+  perception, source-backed autonomous cognition, relational/open-thread
+  development, and truthful Product UI expression.
+- Clarify that the existing module contracts, host, and SDK kit are V2
+  preparation; actual product modules, universal connectors, and the complete
+  external developer platform are V3 work.
+- Reserve low-latency audio/video/robotics as future-compatible realtime
+  execution architecture rather than implying that it is already implemented.
+
 ### V1.65.0 - Core Convergence Kernels
 
 #### Changed

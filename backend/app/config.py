@@ -52,7 +52,11 @@ class Settings(BaseSettings):
     summary_reconcile_retry_backoff_seconds: int = Field(default=60, ge=1)
 
     autonomous_activation_enabled: bool = True
+    # The legacy periodic interval is retained for non-active workspace modes.
+    # Active cognition is governed by the shared min-gap/max-silence scheduler.
     autonomous_activation_interval_seconds: int = Field(default=600, ge=30)
+    autonomous_activation_min_gap_seconds: int = Field(default=900, ge=60)
+    autonomous_activation_max_silence_seconds: int = Field(default=10800, ge=900)
     autonomous_activation_worker_interval_seconds: float = Field(
         default=5.0,
         gt=0,
@@ -75,6 +79,11 @@ class Settings(BaseSettings):
     cognitive_workspace_signal_batch_size: int = Field(default=100, ge=1, le=1000)
     cognitive_workspace_appraisal_batch_size: int = Field(default=20, ge=1, le=100)
     cognitive_workspace_candidate_pool_limit: int = Field(default=20, ge=1, le=100)
+    cognitive_workspace_parked_candidate_context_limit: int = Field(
+        default=12,
+        ge=0,
+        le=50,
+    )
     cognitive_workspace_appraisal_max_tokens: int = Field(
         default=8192,
         ge=512,
@@ -86,7 +95,6 @@ class Settings(BaseSettings):
         le=32768,
     )
     cognitive_workspace_max_deferrals: int = Field(default=3, ge=1, le=20)
-    cognitive_workspace_watchdog_seconds: int = Field(default=3600, ge=300)
     endogenous_cognition_enabled: bool = True
     endogenous_cognition_min_interval_seconds: int = Field(
         default=900,
@@ -97,7 +105,7 @@ class Settings(BaseSettings):
         ge=300,
     )
     endogenous_cognition_max_interval_seconds: int = Field(
-        default=21600,
+        default=10800,
         ge=900,
     )
     endogenous_cognition_productive_followup_seconds: int = Field(
@@ -240,6 +248,14 @@ class Settings(BaseSettings):
             raise ValueError(
                 "endogenous base interval must stay between the minimum and "
                 "maximum cognitive-window intervals"
+            )
+        if (
+            self.autonomous_activation_max_silence_seconds
+            < self.autonomous_activation_min_gap_seconds
+        ):
+            raise ValueError(
+                "autonomous activation max silence must not be shorter than the "
+                "minimum M3 activation gap"
             )
         return self
 

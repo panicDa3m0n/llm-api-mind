@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any
-from uuid import uuid4
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel, ConfigDict, Field
@@ -14,9 +13,10 @@ from sqlmodel import Session
 from app.config import Settings
 from app.llm.factory import build_llm_provider
 from app.runtime.autonomy import run_autonomous_activation
+from app.runtime.autonomy_schedule import coalesce_autonomous_activation
 from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
 from app.runtime.events import event_payload
-from app.runtime.time import utc_isoformat
+from app.runtime.time import aware_utc, utc_isoformat
 from app.storage import repositories
 from app.storage.models import AutonomousActivation, PerceptionEvent, utc_now
 
@@ -88,7 +88,13 @@ def build_autonomy_router(
         return {
             "operation": "autonomy.overview",
             "enabled": settings.autonomous_activation_enabled,
-            "interval_seconds": settings.autonomous_activation_interval_seconds,
+            "legacy_periodic_interval_seconds": (
+                settings.autonomous_activation_interval_seconds
+            ),
+            "m3_min_gap_seconds": settings.autonomous_activation_min_gap_seconds,
+            "m3_max_silence_seconds": (
+                settings.autonomous_activation_max_silence_seconds
+            ),
             "worker_interval_seconds": (
                 settings.autonomous_activation_worker_interval_seconds
             ),
@@ -247,16 +253,30 @@ def build_autonomy_router(
                 db,
                 profile_id=settings.user_profile_id,
             )
-            activation = repositories.schedule_autonomous_activation(
+            scheduled = coalesce_autonomous_activation(
                 db,
                 profile_id=settings.user_profile_id,
                 session_id=session.id,
-                scheduled_at=now,
                 trigger_kind="manual_lab",
-                schedule_key=(
-                    f"manual_lab:{settings.user_profile_id}:{uuid4().hex}"
-                ),
+                workspace={
+                    "schema_version": "scarlet-cognitive-workspace-v1",
+                    "authority": "manual_lab_request",
+                    "selected_candidates": [],
+                    "instruction": (
+                        "A manual internal-cycle request is pending. Inspect the "
+                        "available continuity and do not manufacture activity."
+                    ),
+                },
+                min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+                now=now,
             )
+            activation = scheduled.activation
+        if aware_utc(activation.scheduled_at) > aware_utc(now):
+            return {
+                "activation_id": activation.id,
+                "status": "scheduled",
+                "eligible_at": aware_utc(activation.scheduled_at).isoformat(),
+            }
         return run_autonomous_activation(
             engine,
             settings=settings,

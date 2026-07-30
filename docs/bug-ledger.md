@@ -7,6 +7,39 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0135 - Unadopted Workspace Candidates Re-entered On A Blind Timer
+
+Date Found: 2026-07-30
+Status: fixed locally in V1.65.1; guarded production reconciliation pending
+
+The old no-decision fallback stored a selected candidate as `suspended` and
+made it eligible again after `AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS`, despite
+no new source evidence. This generated repeated autonomous M3 cycles.
+
+The fallback now stores `parked`, clears the obsolete deferral, and records an
+explicit lifecycle event. M2.7 can reopen a parked candidate only by exact id
+and genuinely new attached source evidence. The guarded operator command
+matches only the exact retired event/reason and leaves other suspension states
+untouched.
+
+Regression: `test_cognitive_workspace.py` covers parking and source-backed
+reconsideration; `test_park_legacy_workspace_candidates.py` proves the
+operator selection excludes an unrelated explicit suspension.
+
+## BUG-0134 - Legacy Autonomous Trace Shape Blocked History Compaction
+
+Date Found: 2026-07-30
+Status: fixed locally in V1.65.1; production observation pending
+
+Early autonomous request traces stored native content as a string while later
+canonical provider history used blocks. The strict source mapper rejected the
+legacy entry, preventing a complete source map and active compaction.
+
+The derived mapper now normalizes only the legacy string to one text block;
+canonical history and stored trace evidence are unchanged. Regression:
+`test_history_compaction.py` proves a mixed legacy/current chronology maps
+completely without rewriting canonical history.
+
 ## BUG-0133 - Product UI Artifact Drift Broke The Protected Browser Preview
 
 Date Found: 2026-07-29

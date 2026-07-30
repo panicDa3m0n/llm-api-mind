@@ -152,6 +152,88 @@ def test_source_map_preserves_exact_turn_boundaries_without_mutation(db_engine) 
     assert stored.provider_history_json == before
 
 
+def test_source_map_normalizes_legacy_string_content_without_changing_history(
+    db_engine,
+) -> None:
+    """A legacy trace must not permanently block later shared compaction."""
+
+    init_db(db_engine)
+    with Session(db_engine) as db:
+        chat_session = repositories.create_chat_session(
+            db,
+            title="Legacy autonomous chronology",
+            kind="scarlet_autonomous",
+        )
+        first_turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        first_user = {"role": "user", "content": _block("legacy activation")}
+        first_assistant = {
+            "role": "assistant",
+            "content": _block("legacy checkpoint"),
+        }
+        repositories.add_trace(
+            db,
+            session_id=chat_session.id,
+            turn_id=first_turn.id,
+            kind="llm.request",
+            payload={
+                "provider_messages": [
+                    {"role": "user", "content": "legacy activation"}
+                ]
+            },
+        )
+        repositories.complete_turn(db, turn_id=first_turn.id)
+
+        second_turn = repositories.create_turn(
+            db,
+            session_id=chat_session.id,
+            model="MiniMax-M3",
+        )
+        second_user = {"role": "user", "content": _block("current activation")}
+        second_assistant = {
+            "role": "assistant",
+            "content": _block("current checkpoint"),
+        }
+        repositories.add_trace(
+            db,
+            session_id=chat_session.id,
+            turn_id=second_turn.id,
+            kind="llm.request",
+            payload={
+                "canonical_provider_messages": [
+                    first_user,
+                    first_assistant,
+                    second_user,
+                ]
+            },
+        )
+        repositories.complete_turn(db, turn_id=second_turn.id)
+        canonical = [first_user, first_assistant, second_user, second_assistant]
+        repositories.update_chat_session_provider_history(
+            db,
+            session_id=chat_session.id,
+            provider_history=canonical,
+        )
+
+        source_map = build_chronology_source_map(
+            db,
+            session_id=chat_session.id,
+            chars_per_token=2.0,
+        )
+        stored = repositories.get_chat_session(db, chat_session.id)
+
+    assert source_map["status"] == "complete"
+    assert [item["turn_id"] for item in source_map["turns"]] == [
+        first_turn.id,
+        second_turn.id,
+    ]
+    assert stored is not None
+    assert stored.provider_history_json == canonical
+
+
 def test_source_map_treats_a_new_session_as_complete_empty_history(db_engine) -> None:
     init_db(db_engine)
     with Session(db_engine) as db:

@@ -1,8 +1,9 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-28
+Last updated: 2026-07-30
 App deployment: V1.65.0 with shared human/autonomous turn kernels is deployed
-on the protected VPS; V1.50.1 remains the closed-Core release baseline
+on the protected VPS; V1.65.1 runtime hardening is locally verified and
+pending deployment. V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -120,8 +121,10 @@ Implemented and verified:
   ordered per-block receipts that separate eligibility from delivery;
 - a V1.60 autonomous cognition lifecycle with one profile-scoped internal
   session, persisted scheduled activations, human-turn deferral and cooperative
-  mid-cycle yield, streaming model/tool evidence, and a configurable
-  600-second observation cadence;
+  mid-cycle yield, streaming model/tool evidence, and active-mode source
+  coalescence with a 15-minute M3 minimum gap plus a three-hour bounded
+  orientation guarantee; the old 600-second cadence remains only for
+  off/advisory compatibility;
 - V1.61 routes human and autonomous turns through the same
   `scarlet-model-context-v2`, automatic retrieval/rerank, organ projection,
   static policy, and shell while retaining separate provider histories and
@@ -562,55 +565,26 @@ Current engineering baseline:
 
 ## 6. Active V2 Plan
 
-The operational roadmap is Linear SCA-46. The repository describes its
-technical invariants; Linear owns ordering and work state.
+The owner-approved V2 plan is
+`docs/v2-cognitive-companion-plan.md`. It replaces the old linear P0/P1/P2
+listing as the canonical repository roadmap while preserving completed issue
+evidence in Linear, the activity log, and their implementation documents.
 
-### P0 - Architecture And Core Contract
+V2 is a cognitive companion product phase: dynamic context/policy composition,
+source-backed temporal perception, meaningful autonomous cognition,
+relationship/open-thread development, one or more companion vertical slices,
+and truthful Product UI expression. Product UI delivery and the module
+contract/host/SDK kit are existing foundations to use and verify, not evidence
+that all consumer flows or a third-party module ecosystem are complete.
 
-1. SCA-51 is complete: Core Runtime, Product UI, External Adapters, and Agentic
-   Modules have named sources of truth and compatibility rules.
-2. SCA-47 implements `scarlet-stream-v2`, idempotent client state, replay, and
-   recovery without changing provider-native continuity and is merged with
-   local and remote verification complete.
+V3 is reserved for actual product modules, universal connectors, a
+developer-facing SDK/distribution ecosystem, and the associated trust and
+isolation work. Full realtime embodiment is a later hardware/model milestone;
+V2 prepares compatible boundaries but does not implement it.
 
-### P1 - Product UI And Android
-
-1. SCA-48 has produced an isolated, schema-realistic mobile-first prototype at
-   `/prototype`, with the revised Scarlet Signal visual system, responsive
-   browser evidence, an integrated developer lens, and the first sequential
-   app flow from readiness-driven loader/splash through a shortened preloaded
-   natural-speed half-greeting transition to locally persistent fake
-   Login/registration and a fixture-backed responsive shell using one bottom
-   dock across Home, viewport Chat, extended Memory, Sessions, and grouped
-   Profile/Settings with inspectable JSON; sequential screen review and
-   explicit owner approval remain the next acceptance gates.
-2. SCA-50 builds one responsive UI foundation and design system.
-3. SCA-49 connects the Product UI and developer lens to Core contracts.
-4. SCA-52 verifies the same client as an Android Capacitor application.
-
-### P2 - Agentic Modules And SDK
-
-1. SCA-53 is complete: strict manifest, typed Core Ports, modes/tags,
-   permissions, dependencies, lifecycle, compatibility, and deterministic
-   activation planning are accepted without loading code.
-2. SCA-54 is complete: registry, host, observability, and failure isolation are
-   implemented as an opt-in operator-trust boundary.
-3. SCA-55 is complete: SDK 1.0.0, scaffold, schema export, module-side runtime,
-   and distributable conformance kit are implemented without a product module.
-
-### P2.5 - Cognitive Autonomy
-
-1. SCA-57 implements the Cognitive Workspace, source receipts, M2.7
-   appraisal/ignition, Scarlet-owned episodes, and event/condition wake
-   contracts with local `active` field verification.
-2. The next acceptance gate is longitudinal evidence across admission,
-   no-wake, M3 execution, episode outcomes, and repetition. Shadow, advisory,
-   and off remain immediate rollback modes.
-
-### P3 - Release Candidate
-
-SCA-56 proves migration from V1.50.1, Core regression, web/Android behavior,
-module conformance, protected deployment, and rollback before V2 acceptance.
+Linear retains ordering and individual issue state. Before new V2 code begins,
+SCA-46 and its children must be reconciled to the new plan rather than carrying
+stale prototype/module descriptions forward as active work.
 
 ## 7. Deferred Evidence And Ideas
 

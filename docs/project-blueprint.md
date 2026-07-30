@@ -1,8 +1,9 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.64.0 semantic-authority runtime deployed
-Status: Core V1 closed; V2 product and module architecture active
-Last updated: 2026-07-28
+Architecture baseline: Core V1.50.1 closed; V1.65.0 shared lifecycle runtime
+deployed, with V1.65.1 autonomous hardening locally verified and pending deploy
+Status: Core V1 closed; V2 cognitive companion plan accepted
+Last updated: 2026-07-30
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
@@ -53,13 +54,21 @@ non-waking rollback and replay mode. The workspace does not replace organs or
 make external-world actions available. V1.63 adds adaptive free cognitive
 windows over that same workspace: M2.7 may propose source-backed endogenous
 seeds, while M3 Scarlet alone may adopt them through existing episodes or
-volition. No second Scarlet, context compiler, or deterministic desire engine
-is introduced.
+volition. V1.65.1 keeps autonomous M3 cycles mechanically bounded through one
+source-packet scheduler: coalesced pending work, a minimum interval, and a
+maximum-silence orientation cycle, without a deterministic importance score or
+a second Scarlet/context compiler/desire engine.
 
 The canonical integrated status and convergent roadmap now live in:
 
 ```txt
 docs/project-state.md
+```
+
+The owner-approved V2 architecture and dependency plan lives in:
+
+```txt
+docs/v2-cognitive-companion-plan.md
 ```
 
 The canonical ownership, dependency, and compatibility boundary lives in:
@@ -1576,18 +1585,23 @@ Avoid:
 ## 20. Current Next Steps
 
 The Core V1 foundation described by the original implementation sequence is
-closed on V1.50.1. Product UI, Stream V2, and the Agentic Module contract/host/
-SDK now exist. The active research sequence after V1.64.0 is:
+closed on V1.50.1. Stream V2, Product UI delivery, and the initial Agentic
+Module contract/host/SDK kit now exist. The next work is governed by
+`docs/v2-cognitive-companion-plan.md`:
 
 ```txt
-1. Deploy and observe endogenous windows, seeds, no-work choices, and M3 outcomes.
-2. Validate variation, non-repetition, explicit volition adoption, and cadence cost.
-3. Roll back endogenous cognition or workspace mode if field evidence regresses.
-4. Expand device admission only from real source contracts and observer boundaries.
-5. Design initiative delivery and external action only with separate permission and receipt contracts.
+1. Preserve one shared cognitive lifecycle while making dynamic source and
+   policy admission explicit.
+2. Develop source-backed relationship/open-thread continuity and temporal
+   perception without automatic prompt flooding.
+3. Mature the existing Cognitive Workspace into meaningful, non-repetitive
+   autonomous episodes with M3 Scarlet retaining semantic authority.
+4. Prove a first companion vertical from evidence to a truthful user-visible
+   outcome.
+5. Verify module readiness without prematurely shipping a module ecosystem.
 ```
 
-The exact boundary is `docs/core-runtime-contract.md`; Linear SCA-46 owns the
-operational order. Monitoring findings and immature research branches remain
-sourceable future annotations. They do not reopen the Core without current
-evidence or an explicit owner decision.
+Realtime embodiment, external actions, product modules, universal connectors,
+and the public developer platform remain later milestones. Monitoring findings
+and immature research branches remain sourceable future annotations; they do
+not reopen the Core without current evidence or an explicit owner decision.

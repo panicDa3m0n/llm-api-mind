@@ -4,6 +4,80 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-30 - V1.65.1 Autonomous Runtime Hardening
+
+Area: shared autonomous lifecycle, Workspace candidate lifecycle, and native
+history compaction on `feature/core-convergence-kernels`.
+
+Type: Fix. Scope: source-map compatibility, non-repetitive candidate handoff,
+and deterministic M3 timing. Device/Perception, GPT Actions, static Scarlet
+policy, answer semantics, and UI behavior were explicitly out of scope.
+
+Changes:
+
+- normalized legacy native string content only in the derived chronology source
+  mapper, restoring full historical source mapping for autonomous compaction;
+- introduced `parked` candidate lifecycle and source-backed M2.7
+  reconsideration, avoiding automatic re-entry after a no-decision M3 cycle;
+- added one shared autonomous scheduler for active Workspace ignition,
+  maximum-silence orientation, human-priority retry, and manual lab requests;
+  it coalesces pending packets, uses a 900-second minimum M3 gap, and preserves
+  a 10,800-second maximum-silence orientation bound;
+- added a guarded production operator command to reconcile only legacy retry
+  rows after backup/preflight, never generic suspended candidates; and
+- revised configuration, API overview, contracts, ADRs, bug ledger, and
+  changelog to remove the obsolete active-workspace watchdog setting.
+
+Verification:
+
+- focused compaction, Workspace, autonomy, scheduler, and operator-command
+  suites: `42 passed`;
+- Ruff over `backend/app` and the focused tests passed;
+- direct in-memory scheduler probe confirmed that two source packets resolve
+  to the same pending activation with both candidate ids retained.
+
+Next step:
+
+Run the deployment procedure with a production backup and copied-DB canary,
+then execute the candidate operator command dry-run before its guarded apply.
+
+## 2026-07-30 - Accepted V2 Cognitive Companion Architecture Plan
+
+Area: V2 architecture and roadmap documentation.
+
+Type: Implementazione documentale on `feature/core-convergence-kernels`; no
+runtime, database, provider, prompt, UI artifact, or deployment change.
+
+Decision record:
+
+- recorded the owner-approved V2 plan in
+  `docs/v2-cognitive-companion-plan.md` and ADR-0145;
+- fixed the V2 boundary around one shared cognitive kernel, two source-labelled
+  episode lineages, dynamic policy/context admission, temporal perception,
+  source-backed workspace candidates, relationship/open-thread development,
+  truthful Product UI expression, and evidence-led companion verticals;
+- explicitly classified continuous audio/video/realtime as future-compatible
+  architecture rather than a V2 implementation commitment;
+- clarified that the existing module manifest, host, and SDK kit are V2
+  preparation only, while product modules, universal connectors, and the
+  complete developer platform belong to V3; and
+- replaced the stale issue-oriented V2 summary in project state with a link to
+  the canonical plan while retaining Linear as the issue tracker.
+
+Verification:
+
+- reviewed the deployed V1.65 current-state map, shared-kernel ADR-0144,
+  context/perception/workspace/endogenous contracts, module host/SDK boundary,
+  product delivery evidence, and relevant branch documents before writing;
+- `python3 scripts/check_documentation.py` and `git diff --check` passed after
+  the documentation update.
+
+Next step:
+
+Reconcile Linear SCA-46 and descendants to this plan, then discuss and approve
+one narrow V2 implementation issue. The first vertical source and companion
+outcome remain intentionally unselected.
+
 ## 2026-07-29 - V1.65.0 Product UI Artifact Parity Repair
 
 Area: Product UI delivery / protected VPS static publication / Android preview.

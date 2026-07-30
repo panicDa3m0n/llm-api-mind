@@ -1,8 +1,8 @@
 # API Mind Core Runtime Contract
 
-Last updated: 2026-07-28
+Last updated: 2026-07-30
 Core runtime baseline: V1.50.1 deployed and release-accepted
-Current additive contract: V1.65.0 deployed on the protected VPS
+Current additive contract: V1.65.1 pending deployment on the protected VPS
 Contract status: Core V1 closed; V2 architecture boundary accepted
 Linear issue: SCA-51
 
@@ -51,7 +51,7 @@ the native runtime.
 
 | Contract | Owner / source of truth | Consumer | Version or identity | Stability |
 |---|---|---|---|---|
-| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.65.0 deployed | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
+| Application composition | `backend/app/main.py`, `backend/app/asgi.py` | deployment and tests | app V1.65.1 pending deployment | Stable factory and ASGI entrypoint over the closed V1.50.1 Core. |
 | Shared native turn lifecycle | `backend/app/runtime/turn_kernel.py`, `api/chat_native_turn.py`, `runtime/autonomy.py` | native human and autonomous M3 turns | V1 plus additive `scarlet-stream-v2` | One kernel owns V2 context, history routing, accounting, trace/event receipts, persistence, provider-native finality, and compaction; adapters own only their source/transport boundary. |
 | Product UI event port | `backend/app/api/chat_stream_v2.py`, `backend/app/api/chat_turn_runner.py`, `docs/stream-v2-contract.md` | web and future Android clients | `scarlet-stream-v2` | Stable envelope, detached turn runner, same-turn resume cursor, and reducer semantics. |
 | Provider port | `backend/app/llm/provider.py`, `backend/app/llm/factory.py` | Scarlet turns and auxiliary semantic workers | `LLMProvider` | MiniMax M3 is Scarlet; non-Scarlet LLM work uses the fixed M2.7 auxiliary profile. Native adapters use stop reasons for continuation, tool dispatch, and finality. |
@@ -64,11 +64,11 @@ the native runtime.
 | Persistence facade | `backend/app/storage/repositories.py` and `storage/repository/*` | Core domain owners | SQLModel/SQLite V1 schema | Stable facade; domain repositories are internal. |
 | Database ownership | `backend/app/storage/database_boundary.py`, `docs/database-topology.md` | startup, tests, evaluation, deploy | production/laboratory/test/preliminary roles | Hard operational boundary. |
 | Trace and event evidence | `backend/app/runtime/events.py`, repositories, `docs/block-registry.md` | Core, developer UI, evaluation | ordered persisted events and typed trace kinds | Append-only evidence contract where practical. |
-| Context accounting/history | `backend/app/runtime/context_accounting.py`, `history_runtime.py`, `history_compaction.py`, `runtime/turn_kernel.py` | human and autonomous native turns | accounting v2, history routing/artifact versions | Canonical history is authoritative; derived artifacts fail back visibly and one kernel schedules post-turn compaction. |
+| Context accounting/history | `backend/app/runtime/context_accounting.py`, `history_runtime.py`, `history_compaction.py`, `runtime/turn_kernel.py` | human and autonomous native turns | accounting v2, history routing/artifact versions | Canonical history is authoritative; derived artifacts fail back visibly, legacy native-string traces normalize losslessly for source mapping, and one kernel schedules post-turn compaction. |
 | Turn finality | `backend/app/runtime/turn_kernel.py`, `backend/app/plugins/gpt_bridge/router.py` | native turn and GPT finalize | structural finality V1 | Provider `end_turn` owns native finality in both human/public and autonomous/private turns; output visibility differs, but no backend component semantically grades Scarlet's wording. |
 | Maintenance lifecycle | `backend/app/runtime/maintenance.py` and domain owners | Core worker and maintenance API | persisted job kinds and statuses | One stable facade; maintenance is not an agent mode and may propose but never adjudicate semantic memory. |
-| Autonomous cognition lifecycle | `backend/app/runtime/autonomy.py`, `runtime/turn_kernel.py`, `storage/repository/autonomy.py` | Scarlet internal cycles and Product UI inspection | `scarlet_autonomous` session plus activation ledger V1 | Separate provider chronology and trigger provenance; the same shared turn kernel, V2 compiler, retrieval, organs, policy, shell, accounting, finality, and compaction as human turns. |
-| Cognitive Workspace | `backend/app/runtime/cognitive_workspace.py`, `mind/wake_registry.py`, `mind/workspace_contracts.py` | autonomous admission and developer inspection | source registry/appraisal/ignition V1 | Shadow-first M2.7 proposals over canonical evidence; cannot impersonate Scarlet or mutate organs. |
+| Autonomous cognition lifecycle | `backend/app/runtime/autonomy.py`, `runtime/autonomy_schedule.py`, `runtime/turn_kernel.py`, `storage/repository/autonomy.py` | Scarlet internal cycles and Product UI inspection | `scarlet_autonomous` session plus activation ledger V1 | Separate provider chronology and trigger provenance; the shared kernel is identical to human turns, while one scheduler coalesces pending source packets, enforces an M3 minimum gap, and preserves a maximum-silence orientation bound. |
+| Cognitive Workspace | `backend/app/runtime/cognitive_workspace.py`, `mind/wake_registry.py`, `mind/workspace_contracts.py` | autonomous admission and developer inspection | source registry/appraisal/ignition V2 | Shadow-first M2.7 proposals over canonical evidence; it cannot impersonate Scarlet or mutate organs. Parked questions can re-enter only through M2.7 appraisal of new attached source evidence. |
 | Endogenous cognition | `backend/app/runtime/endogenous_cognition.py`, `mind/endogenous_contracts.py`, `storage/repository/endogenous.py` | free cognitive windows and existing workspace | endogenous seeds/windows V1 | Adaptive source-backed opportunities; M2.7 proposes only, M3 must explicitly endorse through existing episodes or volition. |
 | Cognitive episodes | `backend/app/mind/episode.py`, `storage/repository/cognitive_workspace.py` | M3 Scarlet through `mind_shell` | episode lifecycle V1 | Scarlet owns open/checkpoint/suspend/resolve/reject and deterministic wake contracts. |
 | Perception inbox | `backend/app/storage/repository/perception.py`, `backend/app/mind/perception.py`, `backend/app/runtime/device_perception_adapter.py` | common `mind_shell` and workspace | availability/index/open/read plus device adapter V1 | External observations only; a narrow Android adapter admits bounded transitions while raw laboratory evidence remains separate and no event is auto-injected into chat context. |
@@ -190,18 +190,21 @@ experiment, branch, and Linear histories.
 
 ## 9. V2 Execution Boundary
 
-The active sequence is tracked in Linear under SCA-46:
+The V2 execution boundary is `docs/v2-cognitive-companion-plan.md`; Linear
+SCA-46 tracks its individual issues. V2 may extend Core only through its
+existing ownership and compatibility rules: one shared native lifecycle, one
+model-facing shell, source-preserving context admission, and a Product UI that
+renders rather than owns cognition.
 
-1. SCA-51: this architecture and closure contract.
-2. SCA-47: `scarlet-stream-v2` and client recovery.
-3. SCA-48, SCA-50, SCA-49, SCA-52: Product UI and Android.
-4. SCA-53, SCA-54, and SCA-55 are complete: contracts, host, SDK, and
-   conformance kit share the accepted public schemas.
-5. SCA-56: migration, regression, deployment, and V2 release acceptance.
+The existing module manifest, host, and SDK kit are V2 preparation. They are
+not a promise that V2 ships product modules, universal connectors, package
+distribution, hostile-code sandboxing, or a complete third-party developer
+platform. Those are V3 work.
 
-Duplicate/conflict adjudication, authenticated multi-user ownership, new
-cognitive organs, external operativity, and embodiment remain separate future
-annotations unless explicitly promoted. They do not block the closed Core.
+Duplicate/conflict adjudication, authenticated multi-user ownership, full
+realtime embodiment, and external operativity remain separate future scopes
+unless an approved V2 slice explicitly promotes a bounded prerequisite. They
+do not block the closed Core.
 
 ## 10. Documentation Authority
 

@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-APPRAISAL_SCHEMA_VERSION = "cognitive-appraisal-v1"
+APPRAISAL_SCHEMA_VERSION = "cognitive-appraisal-v2"
 IGNITION_SCHEMA_VERSION = "cognitive-ignition-v1"
 
 
@@ -29,7 +29,13 @@ class CognitiveAppraisalItem(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     source_refs: list[str] = Field(min_length=1, max_length=20)
-    disposition: Literal["candidate", "irrelevant", "insufficient_evidence"]
+    disposition: Literal[
+        "candidate",
+        "reconsider",
+        "irrelevant",
+        "insufficient_evidence",
+    ]
+    candidate_id: str | None = None
     candidate_kind: str | None = Field(default=None, max_length=120)
     context_family: str | None = Field(default=None, max_length=120)
     claim: str | None = Field(default=None, max_length=1600)
@@ -42,6 +48,10 @@ class CognitiveAppraisalItem(BaseModel):
 
     @model_validator(mode="after")
     def candidate_fields_are_complete(self) -> "CognitiveAppraisalItem":
+        if self.disposition == "reconsider":
+            if not self.candidate_id:
+                raise ValueError("reconsider appraisal requires candidate_id")
+            return self
         if self.disposition != "candidate":
             return self
         required = {
@@ -109,13 +119,18 @@ You are not Scarlet and you do not speak for her. You may only turn supplied,
 source-backed changes into provisional candidates for Scarlet's attention.
 You cannot mutate memory, focus, volition, affect, episodes, or operations.
 
-Return only valid JSON matching cognitive-appraisal-v1. Every appraisal must
+Return only valid JSON matching cognitive-appraisal-v2. Every appraisal must
 cite one or more exact source_ref values from the supplied signals. Do not
 invent sources. A technical lifecycle event is not automatically meaningful.
 Use disposition=irrelevant when the signal adds no possible cognitive
 transformation. Use insufficient_evidence when significance cannot yet be
 assessed. Use candidate only when there is a sourceable question Scarlet could
-resolve, connect, learn from, or deliberately suspend.
+resolve, connect, learn from, or deliberately suspend. You may receive parked
+candidates that Scarlet has already seen but did not explicitly adopt. Do not
+recreate their question under different wording. Return disposition=reconsider
+with that exact candidate_id only when at least one supplied signal is new
+evidence that materially reopens the same source-backed question. Otherwise
+you may return irrelevant or insufficient_evidence.
 
 Do not treat numeric metadata as semantic importance. Do not call a possible
 conflict, emotion, intention, prediction failure, or safety concern established
@@ -147,18 +162,24 @@ Preserve source ids and meaning. Do not add markdown or explanatory prose.
 """
 
 
-def appraisal_prompt(signals: list[CognitiveSignalEnvelope]) -> str:
+def appraisal_prompt(
+    signals: list[CognitiveSignalEnvelope],
+    *,
+    parked_candidates: list[dict[str, Any]],
+) -> str:
     payload = {
         "schema_version": APPRAISAL_SCHEMA_VERSION,
         "signals": [item.model_dump(mode="json") for item in signals],
+        "parked_candidates": parked_candidates,
         "required_output": {
             "schema_version": APPRAISAL_SCHEMA_VERSION,
             "appraisals": [
                 {
                     "source_refs": ["exact supplied source_ref"],
                     "disposition": (
-                        "candidate|irrelevant|insufficient_evidence"
+                        "candidate|reconsider|irrelevant|insufficient_evidence"
                     ),
+                    "candidate_id": "required only for reconsider",
                     "candidate_kind": "required for candidate",
                     "context_family": "required for candidate",
                     "claim": "required for candidate",

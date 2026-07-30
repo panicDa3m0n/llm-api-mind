@@ -34,6 +34,10 @@ from app.runtime.events import (
 from app.runtime.endogenous_cognition import record_endogenous_activation_feedback
 from app.runtime.preferences import load_runtime_preferences
 from app.runtime.cognitive_workspace import run_cognitive_workspace_tick
+from app.runtime.autonomy_schedule import (
+    activation_min_gap_deadline,
+    coalesce_autonomous_activation,
+)
 from app.runtime.mind_tool_runner import build_mind_tool_runner
 from app.runtime.turn_kernel import (
     ModelTurnPreparation,
@@ -124,6 +128,57 @@ def run_autonomous_activation(
         )
         if activation is None:
             return {"activation_id": activation_id, "status": "not_claimed"}
+        min_gap_deadline = activation_min_gap_deadline(
+            db,
+            profile_id=activation.profile_id,
+            min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+            now=started_at,
+        )
+        if min_gap_deadline is not None:
+            deferred = repositories.complete_autonomous_activation(
+                db,
+                activation_id=activation.id,
+                status="deferred",
+                turn_id=None,
+                active_mode=None,
+                outcome={
+                    "reason": "minimum_m3_gap_not_elapsed",
+                    "eligible_at": min_gap_deadline.isoformat(),
+                },
+            )
+            rescheduled = coalesce_autonomous_activation(
+                db,
+                profile_id=deferred.profile_id,
+                session_id=deferred.session_id,
+                trigger_kind=deferred.trigger_kind,
+                candidate_id=deferred.candidate_id,
+                episode_id=deferred.episode_id,
+                wake_condition_id=deferred.wake_condition_id,
+                workspace=deferred.workspace_json,
+                min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+                now=started_at,
+            )
+            record_event(
+                db,
+                session_id=deferred.session_id,
+                event_type="autonomy.activation.deferred",
+                payload={
+                    "activation_id": deferred.id,
+                    "reason": "minimum_m3_gap_not_elapsed",
+                    "eligible_at": min_gap_deadline.isoformat(),
+                    "rescheduled_activation_id": rescheduled.activation.id,
+                },
+                source="autonomy",
+                actor="backend",
+                visibility="private",
+                status="deferred",
+            )
+            return {
+                "activation_id": activation.id,
+                "status": "deferred",
+                "reason": "minimum_m3_gap_not_elapsed",
+                "eligible_at": min_gap_deadline.isoformat(),
+            }
         human_turn_active_since = started_at - timedelta(
             seconds=(
                 settings.autonomous_activation_human_turn_freshness_seconds
@@ -141,17 +196,22 @@ def run_autonomous_activation(
                 active_mode=None,
                 outcome={"reason": "human_turn_active"},
             )
-            repositories.schedule_autonomous_activation(
+            coalesce_autonomous_activation(
                 db,
                 profile_id=deferred.profile_id,
                 session_id=deferred.session_id,
-                scheduled_at=utc_now()
-                + timedelta(seconds=settings.autonomous_activation_defer_seconds),
                 trigger_kind="deferred_human_active",
                 candidate_id=deferred.candidate_id,
                 episode_id=deferred.episode_id,
                 wake_condition_id=deferred.wake_condition_id,
                 workspace=deferred.workspace_json,
+                min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+                now=(
+                    utc_now()
+                    + timedelta(
+                        seconds=settings.autonomous_activation_defer_seconds
+                    )
+                ),
             )
             return {
                 "activation_id": activation.id,
@@ -754,17 +814,20 @@ def _defer_started_activation(
                 "latency_ms": latency_ms,
             },
         )
-        repositories.schedule_autonomous_activation(
+        coalesce_autonomous_activation(
             db,
             profile_id=deferred.profile_id,
             session_id=deferred.session_id,
-            scheduled_at=utc_now()
-            + timedelta(seconds=settings.autonomous_activation_defer_seconds),
             trigger_kind="deferred_human_active",
             candidate_id=deferred.candidate_id,
             episode_id=deferred.episode_id,
             wake_condition_id=deferred.wake_condition_id,
             workspace=deferred.workspace_json,
+            min_gap_seconds=settings.autonomous_activation_min_gap_seconds,
+            now=(
+                utc_now()
+                + timedelta(seconds=settings.autonomous_activation_defer_seconds)
+            ),
         )
     return {
         "activation_id": activation_id,
@@ -861,20 +924,19 @@ def _reconcile_workspace_activation(
         repositories.update_candidate(
             db,
             candidate_id=candidate.id,
-            status="suspended",
-            deferred_until=utc_now()
-            + timedelta(seconds=settings.autonomous_activation_interval_seconds),
-            increment_deferral=True,
+            status="parked",
+            clear_deferred_until=True,
         )
         record_event(
             db,
             session_id=activation.session_id,
             turn_id=activation.turn_id,
-            event_type="cognition.candidate.suspended",
+            event_type="cognition.candidate.parked",
             payload={
                 "candidate_id": candidate.id,
                 "activation_id": activation.id,
                 "reason": "no_explicit_episode_or_volition_decision",
+                "reentry": "new_source_backed_appraisal_only",
             },
             source="cognitive_workspace",
             actor="backend",

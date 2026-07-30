@@ -193,6 +193,44 @@ def ensure_next_periodic_activation(
     )
 
 
+def get_pending_autonomous_activation(
+    db: Session,
+    *,
+    profile_id: str,
+) -> AutonomousActivation | None:
+    """Return the next pending activation that can still absorb new evidence."""
+
+    return db.exec(
+        select(AutonomousActivation)
+        .where(AutonomousActivation.profile_id == profile_id)
+        .where(AutonomousActivation.status == "pending")
+        .order_by(
+            AutonomousActivation.scheduled_at,
+            AutonomousActivation.created_at,
+        )
+        .limit(1)
+    ).first()
+
+
+def get_running_autonomous_activation(
+    db: Session,
+    *,
+    profile_id: str,
+) -> AutonomousActivation | None:
+    """Return an in-flight M3 activation for the profile, when one exists."""
+
+    return db.exec(
+        select(AutonomousActivation)
+        .where(AutonomousActivation.profile_id == profile_id)
+        .where(AutonomousActivation.status == "running")
+        .order_by(
+            AutonomousActivation.started_at,
+            AutonomousActivation.created_at,
+        )
+        .limit(1)
+    ).first()
+
+
 def list_due_autonomous_activations(
     db: Session,
     *,
