@@ -75,6 +75,19 @@ Verification:
 - focused local temporary-database dashboard API test passed;
 - Lab focused tests, Ruff, Python compilation, and VPS Product UI build passed.
 
+Deployment:
+
+- created the online production backup
+  `/var/backups/scarlet-mobile-test/v1.67.0-20260730T212706Z/app.db.pre-v1.67.0`;
+- passed the new-image read-only production preflight, then deployed
+  `scarlet-mobile-api:v1.67.0-4753fe0` while preserving the existing Lab
+  runner container;
+- published the matching `V1.67.0` VPS bundle, whose manifest references
+  commit `4753fe0`; and
+- verified authenticated public index, manifest, referenced assets, and the
+  read-only dashboard endpoint. No Lab run, artifact deletion, local database,
+  or production test data was created during deployment.
+
 ## 2026-07-30 - Canonical Technical Stack Map
 
 Area: developer documentation on `feature/core-convergence-kernels`.

@@ -23,6 +23,13 @@ This project uses a practical changelog rather than a release-only log: each mea
   preservation with a focused temporary-database API test; compile/lint the
   backend and build the shared VPS Product UI.
 
+#### Operational
+
+- Deploy API image `scarlet-mobile-api:v1.67.0-4753fe0` and the matching web
+  bundle to the protected VPS. Verify production/direct database role, health,
+  route availability, authenticated public index/manifest/assets, and the
+  read-only artifact dashboard endpoint without creating or deleting Lab data.
+
 ### V1.66.0 - Research Lab
 
 #### Added
