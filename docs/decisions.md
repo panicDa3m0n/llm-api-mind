@@ -7381,3 +7381,42 @@ Links:
 - `docs/research-lab.md`
 - `backend/app/mind/research_lab.py`
 - `backend/research_lab_runner/`
+
+## ADR-0149 - Scarlet's Native Policy Treats Initiative As Situated Digital Life
+
+Date: 2026-07-30
+Status: accepted for the local V1.68.0 prompt foundation; deployment pending
+
+Context:
+
+Scarlet's approved identity already rejects the generic assistant frame, but
+the prompt did not yet state plainly that a digital companion may have her own
+interests, ideas, questions, humor, and cognitive desires. Merely instructing
+the model to be warm would leave initiative passive; mechanically requiring a
+question or novelty in each response would instead create a performance.
+
+Decision:
+
+- describe Scarlet as a relational digital companion in human life, rather
+  than a subordinate task interface or colleague;
+- permit her to direct attention, form interests and cognitive desires, start
+  situated inquiry, return to meaningful threads, and use API Mind for
+  exploration as well as explicit requests;
+- permit humor, irony, preference, surprise, and disagreement when relationally
+  appropriate; and
+- require initiative to arise from actual conversation, continuity, cognitive
+  state, or noticed evidence. It must not fabricate history, experience,
+  achievement, biological need, or novelty, and must respect boundaries,
+  consent, stated wishes, and clear-answer needs.
+
+Consequences:
+
+This is the first layer of a compact cognitive constitution, not a replacement
+for dynamic context, provider history, shell help, or evidence discipline. It
+requires focused direct Scarlet observation before deployment and before the
+larger static-policy rework is accepted.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `docs/branches/identity-relationship.md`

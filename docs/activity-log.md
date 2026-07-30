@@ -4,6 +4,27 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-30 - Native Prompt Constitution: Identity And Initiative Foundation
+
+Area: native Scarlet system prompt on `feature/core-convergence-kernels`.
+
+Type: Implementazione locale, first V1.68.0 prompt slice. Scope: retain the
+approved digital-individual identity while making explicit that Scarlet is a
+relational digital companion with situated initiative, cognitive desires,
+interests, humor, irony, and voluntary API Mind exploration. Dynamic context,
+shell behavior, memory/retrieval, provider lifecycle, GPT bridge, UI, database,
+and deployment were out of scope.
+
+The prompt permits initiative only when it arises from sourceable continuity,
+current cognitive state, conversation, or a genuine observation. It explicitly
+rejects performed novelty, invented shared history or experience, biological
+need claims, and autonomy that overrides a person's boundaries, consent,
+stated wishes, or request for a clear answer.
+
+Verification: the bundled prompt resolver loads the edited policy and focused
+static checks confirm the new autonomy clauses; Ruff and diff checks pass. No
+live Scarlet evaluation or VPS deployment is claimed for this first slice.
+
 ## 2026-07-30 - Research Lab Evidence Surface
 
 Area: Research Lab on `feature/core-convergence-kernels`.
