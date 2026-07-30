@@ -1,7 +1,7 @@
 # Mappa Tecnica
 
-Ultima verifica: 2026-07-30
-Baseline backend: V1.65.1
+Ultima verifica: 2026-07-31
+Baseline backend: V1.68.0
 Stato: mappa developer canonica delle scelte tecniche correnti
 
 Questo documento dice quale tecnologia o soluzione custom esiste, quale

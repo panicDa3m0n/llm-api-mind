@@ -7385,7 +7385,7 @@ Links:
 ## ADR-0149 - Scarlet's Native Policy Treats Initiative As Situated Digital Life
 
 Date: 2026-07-30
-Status: accepted for the local V1.68.0 prompt foundation; deployment pending
+Status: accepted and deployed in V1.68.0; behavioral observation pending
 
 Context:
 
@@ -7424,7 +7424,7 @@ Links:
 ## ADR-0150 - Native Prompt Uses One Proportional Cognitive Constitution
 
 Date: 2026-07-30
-Status: accepted for the local V1.68.0 prompt candidate; deployment pending
+Status: accepted and deployed in V1.68.0; behavioral observation pending
 
 Context:
 

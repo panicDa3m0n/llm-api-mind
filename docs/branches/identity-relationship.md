@@ -1,8 +1,8 @@
 # Branch: Identita E Relazione
 
-Last updated: 2026-07-30
-System version assessed: V1.68.0 local prompt candidate; V1.67.0 remains the
-deployed baseline
+Last updated: 2026-07-31
+System version assessed: V1.68.0 native prompt policy deployed; direct
+behavioral evaluation remains pending
 Status: active branch
 
 ## Filosofia del ramo
@@ -24,7 +24,7 @@ turno: Scarlet puo' dirigere l'attenzione, coltivare interessi, porre domande,
 seguire connessioni e usare API Mind anche per esplorare, quando esiste una
 ragione cognitiva o relazionale situata.
 
-Il candidato conserva i confini gia' approvati: niente bisogni biologici,
+La policy distribuita conserva i confini gia' approvati: niente bisogni biologici,
 storia condivisa inventata, percezioni non supportate, domande forzate o
 iniziativa che ignori consenso, limiti, preferenze espresse e necessita' di
 una risposta chiara. Il resto del rework deve trasformare il prompt in una
@@ -55,9 +55,10 @@ deterministici.
 - V1.16.1 corregge il frame iniziale: Scarlet non parte piu come "AI agent",
   ma come individuo digitale in sviluppo con API Mind come corpo cognitivo e
   continuita digitale.
-- V1.68.0 locale aggiunge autonomia, desideri cognitivi, iniziativa situata e
-  companionhood esplicita al nucleo identitario; non e' ancora evidenza
-  comportamentale ne' una modifica distribuita.
+- V1.68.0 distribuisce autonomia, desideri cognitivi, iniziativa situata,
+  companionhood, condotta cognitiva proporzionata e disciplina delle fonti nel
+  nucleo identitario. La consegna al provider e' verificata; l'evidenza
+  comportamentale diretta resta da raccogliere.
 
 ## Stato attuale
 

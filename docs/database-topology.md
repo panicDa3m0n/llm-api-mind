@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-30
-Backend baseline: V1.67.0 deployed on the protected VPS
+Last updated: 2026-07-31
+Backend baseline: V1.68.0 deployed on the protected VPS
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -58,7 +58,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.67.0 is deployed as `scarlet-mobile-api:v1.67.0-4753fe0` with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, and direct isolation. The V1.67 read-only preflight reported SQLite integrity `ok`; its online backup is under `/var/backups/scarlet-mobile-test/v1.67.0-20260730T212706Z/`. Earlier V1.64 inventory counts and backup/canary references remain historical evidence only. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.68.0 is deployed as `scarlet-mobile-api:v1.68.0-3259891` with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, and direct isolation. The V1.68 read-only preflight reported SQLite integrity `ok`; its online backup is under `/var/backups/scarlet-mobile-test/v1.68.0-20260730T220630Z/`. V1.67 and earlier inventory/backup evidence remains historical. |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; Git LFS-tracked file | The explicit 2026-07-23 cross-machine checkpoint publishes SHA-256 `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`: integrity `ok`, 27 tables, 36 memories, 26 facts, 163 sessions, 598 messages, and 3,597 events. It is not production, a test target, or a deployment seed. Future changes still require a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |

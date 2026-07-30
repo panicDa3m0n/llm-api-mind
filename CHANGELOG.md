@@ -6,7 +6,7 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
-### V1.68.0 - Native Prompt Constitution Candidate
+### V1.68.0 - Native Prompt Constitution
 
 #### Changed
 
@@ -23,8 +23,15 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Focused native chat trace tests confirm the bundled policy delivered to the
   provider includes the new constitution sections. Static resolution, Ruff,
   documentation integrity, and database-boundary checks pass.
-- This is a local prompt candidate only. Native MiniMax behavioral observation
-  and VPS deployment remain pending.
+
+#### Operational
+
+- Deploy backend image `scarlet-mobile-api:v1.68.0-3259891` to the protected
+  VPS after a 2.6 GiB production backup and read-only new-image preflight.
+  Health, OpenAPI V1.68.0, production/direct database integrity, the bundled
+  prompt sections, and the retained Research Lab runner pass inspection.
+- No interactive MiniMax prompt probe, Lab command, or production test data was
+  created during deployment. Focused behavioral observation remains pending.
 
 ### V1.67.0 - Research Lab Artifact Library
 

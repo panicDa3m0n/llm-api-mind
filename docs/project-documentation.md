@@ -1,7 +1,7 @@
 # Project Documentation Map
 
-Last updated: 2026-07-30
-Current deployment: V1.65.1 on the protected VPS
+Last updated: 2026-07-31
+Current deployment: V1.68.0 on the protected VPS
 Status: canonical routing map, not a second architecture specification
 
 This is the entry point for documentation. Read the smallest source that owns

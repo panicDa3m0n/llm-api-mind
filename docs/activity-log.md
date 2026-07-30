@@ -4,6 +4,35 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-31 - V1.68.0 Native Prompt Constitution Deployment
+
+Area: protected VPS backend release on `feature/core-convergence-kernels`.
+
+Scope: deploy the two local native prompt-constitution slices and the matching
+FastAPI/package V1.68.0 marker. Product UI, Android APK, GPT bridge, shell,
+dynamic context, retrieval, database schema, production data, and Lab
+execution were out of scope.
+
+Deployment evidence:
+
+- created the online production backup
+  `/var/backups/scarlet-mobile-test/v1.68.0-20260730T220630Z/app.db.pre-v1.68.0`
+  with SHA-256
+  `d0cac7bfb4edb92cdf91940c4de71cc36a4f115a9d760372f82c973bfd06b2a7`;
+- transferred only `backend/app/prompts/scarlet_system.md`,
+  `backend/app/main.py`, and `backend/pyproject.toml`; the remote database,
+  `.env`, web/Android artifacts, and Research Lab sidecar were preserved;
+- built `scarlet-mobile-api:v1.68.0-3259891`, passed its mounted-production
+  read-only preflight, and switched only the API container; and
+- confirmed health, OpenAPI V1.68.0, direct production ownership, SQLite
+  integrity, the resolved bundled prompt sections, and the healthy retained
+  Research Lab runner. No chat turn, MiniMax prompt probe, Lab command, or
+  production test data was created for this release.
+
+Residual: deployment verifies transport and runtime presence, not the quality
+of Scarlet's new native behavior. Focused direct MiniMax observation remains a
+separate, owner-directed step.
+
 ## 2026-07-30 - Native Prompt Constitution: Cognitive Conduct And Evidence
 
 Area: native Scarlet system prompt on `feature/core-convergence-kernels`.

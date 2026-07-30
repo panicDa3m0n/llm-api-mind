@@ -1,9 +1,9 @@
 # Project State And Convergent Roadmap
 
-Last updated: 2026-07-30
-App deployment: V1.65.1 with shared human/autonomous turn kernels and runtime
-hardening is deployed on the protected VPS. V1.50.1 remains the closed-Core
-release baseline
+Last updated: 2026-07-31
+App deployment: V1.68.0 deploys the native prompt constitution on the
+protected VPS. V1.65.1 remains the shared human/autonomous lifecycle hardening
+baseline; V1.50.1 remains the closed-Core release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"
@@ -113,6 +113,10 @@ Implemented and verified:
   Scarlet closes on provider `end_turn`, a non-empty public answer, completed
   tool lifecycle, and persistence; GPT finalize persists its exact non-empty
   answer after the mandatory transport protocol;
+- V1.68 deploys the native fixed-policy constitution: situated companion
+  initiative plus proportional cognitive conduct and evidence discipline.
+  It changes no dynamic context, shell, retrieval, provider lifecycle, or
+  semantic authority contract; direct behavioral observation remains pending;
 - per-turn accounting v2 with separate policy/V2/history/current/shell
   channels, cache-aware provider steps, exact chronology source maps, and
   active non-destructive recursive `C/H/A` compaction with canonical fallback;

@@ -1,6 +1,6 @@
 # API Contract
 
-Last reviewed: 2026-07-30 against V1.67.0 code
+Last reviewed: 2026-07-31 against V1.68.0 code
 Status: current contract sections are explicitly labelled; later historical,
 deprecated, and roadmap sections preserve evidence only
 
@@ -11,7 +11,7 @@ claim without current code and direct evidence.
 
 This file documents stable API contracts once they are implemented.
 
-App deployment: V1.65.1 deployed on the protected VPS; V1.50.1 remains the
+App deployment: V1.68.0 deployed on the protected VPS; V1.50.1 remains the
 closed-Core baseline.
 
 ## V1.65 Shared Turn Lifecycle Boundary
