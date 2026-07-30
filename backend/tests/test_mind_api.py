@@ -272,9 +272,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
         "path",
         "intent",
     ]
-    assert body["result"]["schema_version"] == (
-        "2026-07-28.semantic-authority-v2"
-    )
+    assert body["result"]["schema_version"] == schema_metadata()["schema_version"]
     assert body["result"]["schema_digest"].startswith("sha256:")
     assert body["result"]["schema_digest"] == schema_metadata()["schema_digest"]
     assert body["result"]["schema_policy"]["source_of_truth"] == "GET /mind/schema"
@@ -307,6 +305,7 @@ def test_mind_schema_exposes_tool_and_current_routes(db_engine: Engine) -> None:
     )
     assert route_status[("POST", "/mind/memory/deprecate")] == "implemented"
     assert route_status[("POST", "/mind/memory/supersede")] == "implemented"
+    assert route_status[("POST", "/mind/lab")] == "implemented"
     assert route_status[("GET", "/mind/sessions")] == "implemented"
     assert route_status[("GET", "/mind/sessions/{session_id}")] == "implemented"
     assert (

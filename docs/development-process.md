@@ -140,17 +140,20 @@ pre/post live-model campaigns. When explicitly authorized, use the frozen DB,
 four-layer judgment, and evidence rules defined below. Existing deterministic
 CI gates may still run automatically because they do not call the live model.
 
-If a test cannot be run, record why in the final answer and in the activity log
-when the work is meaningful.
+If a test cannot be run, record why in the final answer and in the owning
+evidence record when one is needed. Do not add routine activity-log entries
+solely to explain a skipped local check.
 
 ## 5. Commit Policy
 
 After a verified implementation:
 
-1. update the app version where applicable;
-2. update `CHANGELOG.md`;
-3. update branch and project documentation;
-4. make a focused commit with the release-process message format.
+1. update the app version only when the declared release changes it;
+2. update the one current contract or state document that owns changed truth;
+3. add a decision, bug, experiment, activity, or changelog entry only when
+   that record owns new evidence or a released/project-visible change; and
+4. make a focused commit with the release-process message format when a commit
+   is in scope.
 
 Commits should be high-level, mapped to the branch or roadmap area, and should
 not mix unrelated fixes.
@@ -214,7 +217,11 @@ adapters, and UI are not themselves agentic branches. They support one or more
 branches. The branch document should explain why the infrastructure matters to
 Scarlet's actual behavior.
 
-## 9. Current Baseline
+## 9. Historical V1.50.1 Closed-Core Baseline
+
+This section preserves the V1.50.1 release baseline. It is not the current
+implementation map; use `docs/project-state.md` and
+`docs/core-runtime-contract.md` for current V1.65.1 truth.
 
 The current V1.50.1 baseline consolidates the V1.44.0 through V1.50.0 work.
 V1.50.0 reached the VPS but was not release-accepted because focused native

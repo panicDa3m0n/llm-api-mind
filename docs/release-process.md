@@ -1,5 +1,9 @@
 # Release Process
 
+Last reviewed: 2026-07-30
+Status: active operational process; use current deployment and database
+evidence rather than an old release note as proof of a live state
+
 This project uses Git history, `CHANGELOG.md`, and roadmap documentation together. The goal is that commit analysis always maps back to concrete project progress.
 
 From V1.0.1 onward, version selection and scope discipline are governed by
@@ -93,6 +97,11 @@ remote DB, exclude `backend/data/`, the deployment-root `.env`, and any
 source-tree `backend/.env` from transfer, then run the new image's read-only
 preflight with `--expect-role production` before restart. Git pushes do not
 deploy runtime data.
+
+The root `docker-compose.yml` is the versioned backend deployment baseline.
+Feature-specific Compose overrides must also live in the repository and be
+passed explicitly during build, preflight, restart, and rollback; do not leave
+an active service topology only on the VPS.
 
 ## Product UI Artifact Parity
 

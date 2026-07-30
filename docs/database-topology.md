@@ -36,6 +36,12 @@ records are derived, append-only chronology artifacts; they never replace
 `sessions.provider_history_json` or canonical messages. Their absence or
 validation failure causes model routing to use full canonical history.
 
+The unreleased V1.66.0 Research Lab adds `research_lab_runs`,
+`research_lab_sources`, and `research_lab_artifacts` through the same normal
+schema initialization when code is deployed. They are bounded source and
+computation receipts in the selected database role, not memories, perception
+events, or a second database. This schema has not been deployed to production.
+
 `CODEX_TEST` remains the legacy, useful *copy-once isolation mechanism*. It is
 not a role. When true, it selects `CODEX_TEST_DATABASE_URL` and may create it
 by copying `CODEX_TEST_SEED_DATABASE_URL` (or `DATABASE_URL`) once. Production

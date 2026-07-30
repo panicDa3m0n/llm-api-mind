@@ -1,0 +1,34 @@
+services:
+  scarlet-api:
+    depends_on:
+      research-lab-runner:
+        condition: service_healthy
+    volumes:
+      - ${RESEARCH_LAB_SOCKET_DIR:-/var/lib/scarlet/research-lab}:/run/research-lab
+
+  research-lab-runner:
+    build:
+      context: ./backend/research_lab_runner
+    image: scarlet-research-lab-runner:v1.66.0
+    restart: unless-stopped
+    network_mode: "none"
+    read_only: true
+    pids_limit: 16
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - ${RESEARCH_LAB_SOCKET_DIR:-/var/lib/scarlet/research-lab}:/run/research-lab
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket; s = socket.socket(socket.AF_UNIX); s.connect('/run/research-lab/runner.sock'); s.close()"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s

@@ -4,6 +4,107 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-30 - Research Lab Evidence Surface
+
+Area: Research Lab on `feature/core-convergence-kernels`.
+
+Type: Implementazione V1.66.0 local. Scope: one operator-gated `lab` family
+under the existing `mind_shell`, bounded source/run/artifact persistence,
+public HTTPS read-only retrieval, and a separate network-disabled Python/SymPy
+runner descriptor. Memory retrieval, automatic context, session lifecycle,
+autonomy, Workspace, MiniMax prompts, GPT bridge, UI, production database, and
+deployment were out of scope.
+
+Changes:
+
+- added `lab status`, `lab web open`, `lab source`, `lab python`, `lab run`,
+  and `lab artifact`, all through the existing shell/dispatcher/tool receipt
+  path;
+- added source-labelled SQLite receipt tables and repository ownership without
+  a new cognitive store;
+- added a public-host/HTTPS/content-type/size-bounded web reader with no
+  redirects; and
+- added the runner sidecar contract: Unix socket only, no network, unprivileged
+  user, read-only root, dropped capabilities, bounded temporary work, timeout,
+  resource limits, and no backend/database/repository/secrets mount.
+
+Verification:
+
+- focused `tests/test_research_lab.py tests/test_research_lab_runner.py
+  tests/test_mind_shell.py tests/test_mind_api.py tests/test_database_boundary.py`:
+  `70 passed`;
+- Ruff and full configured Mypy passed for the changed backend/runner files;
+- Python compilation and `git diff --check` passed; and
+- a direct temporary-DB shell probe opened/reopened `https://example.com` and
+  confirmed Python fails closed without a configured socket; database-boundary,
+  documentation-integrity, and project-skill validators passed.
+
+Residual:
+
+The Docker daemon/sidecar was not started locally, so a live SymPy execution
+and operator mount handshake are not claimed. The capability remains disabled
+by default and has not been deployed.
+
+## 2026-07-30 - Canonical Technical Stack Map
+
+Area: developer documentation on `feature/core-convergence-kernels`.
+
+Type: Implementazione documentale. Scope: one concise technical map for the
+actual stack, custom Core solutions, and their state. No runtime,
+configuration, database, UI, provider, or deployment change was made.
+
+The new `docs/technology-map.md` is the short technical entry point. It
+separates active runtime paths, configuration-dependent paths, experiments,
+and shadow mechanisms; records the reason and owner of each material choice;
+and links outward only when a detailed contract is needed. In particular it
+states that Milvus Lite is a rebuildable shadow route with a non-semantic local
+hash embedding, not the active vector index. SQLite remains canonical, while
+OpenRouter dense retrieval/reranking is configuration-dependent and does not
+replace source provenance or final reranking policy.
+
+Next step: update this map together with any technology lifecycle decision;
+do not use a dependency declaration as evidence that a capability is active.
+
+## 2026-07-30 - Documentation And Workflow Authority Simplification
+
+Area: documentation and repository-local engineering skills on
+`feature/core-convergence-kernels`.
+
+Type: Implementazione documentale. Scope: simplify the operational reading
+path, distinguish current contracts from historical evidence, align skills,
+and make capability claims evidence-bound. Runtime code, database content,
+configuration, Product UI, providers, VPS, and deployment were out of scope.
+
+Changes:
+
+- replaced the expansive default reading checklist with a compact `AGENTS.md`
+  that requires current code and direct evidence before any capability claim;
+- reduced `docs/project-documentation.md` to a routing map and explicitly
+  classified historical ledgers, completed plans, research notes, and retired
+  experiments;
+- marked mixed or historical roadmap/notebook entry points with their current
+  successors and refreshed the V1.65.1 headers of active context, stream,
+  block, and branch maps;
+- simplified all five repository skills around their actual trigger,
+  evidence, workflow, and maintenance boundary; and
+- recorded ADR-0147 so shadow/prototype/compatibility paths require an owner,
+  purpose, evidence, and an explicit bounded future decision.
+
+Verification:
+
+- cross-checked the active Core/runtime contract with current lifecycle,
+  context, retrieval, shell, and configuration code;
+- confirmed that the optional Milvus Lite route remains diagnostic and does
+  not itself decide active recall, while the current memory path uses the
+  configured final reranker when enabled; and
+- documentation integrity, skill validation, and diff checks are required
+  before this documentation-only slice is closed.
+
+Next step:
+
+Use the new map on the next code-analysis slice. Do not change a runtime path
+solely because its documentation status was clarified here.
+
 ## 2026-07-30 - V1.65.1 Autonomous Runtime Hardening
 
 Area: shared autonomous lifecycle, Workspace candidate lifecycle, and native

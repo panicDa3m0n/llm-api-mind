@@ -6,6 +6,26 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.66.0 - Research Lab
+
+#### Added
+
+- Add an operator-gated `lab` family to the single `mind_shell` surface for
+  explicit source reading, isolated Python/SymPy computation, and reopening
+  bounded run/source/artifact receipts.
+- Add a separate network-disabled runner descriptor with Unix-socket transport;
+  model-supplied code has no in-process backend, database, repository, secret,
+  or network access.
+- Add a bounded public HTTPS read-only gateway. Sources and Lab output remain
+  explicit evidence and are never automatic context, semantic memory, KG,
+  perception, Workspace input, or autonomous wake material.
+
+#### Operational
+
+- Keep the capability disabled by default and undistributed until the runner
+  sidecar and its minimal shared socket mount are deliberately installed and
+  verified.
+
 ### V1.65.1 - Autonomous Runtime Hardening
 
 #### Fixed

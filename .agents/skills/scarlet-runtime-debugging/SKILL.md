@@ -1,115 +1,63 @@
 ---
 name: scarlet-runtime-debugging
-description: Diagnose Scarlet runtime failures across provider, context, memory, shell, persistence, streaming, Product UI, Android, VPS, and GPT bridge. Use for stalls, missing live blocks, wrong or absent retrieval, repeated actions, incomplete turns, state disagreement, or behavior that may be model variance rather than a Core bug. Diagnose before fixing and do not use this skill to justify broad refactors.
+description: Diagnose a Scarlet runtime symptom across provider, turn lifecycle, context, memory, shell, persistence, streaming, Product UI, Android, VPS, or GPT bridge. Use it for stalls, absent blocks, unexpected retrieval, repeated actions, incomplete turns, or state disagreement. Diagnose before fixing; do not use it to justify a broad refactor.
 ---
 
 # Scarlet Runtime Debugging
 
 ## Purpose
 
-Find the failing layer from end-to-end evidence. Do not infer a Core defect
-from a disappointing final answer, an evaluator score, or a UI symptom alone.
+Locate the failing layer from end-to-end evidence. A poor answer, a UI symptom,
+or a score alone does not prove a Core defect.
 
 ## Authoritative Sources
 
-Read the contracts relevant to the symptom:
-
-- `docs/core-runtime-contract.md`
-- `docs/api-contract.md`
-- `docs/block-registry.md`
-- `docs/stream-v2-contract.md`
-- `docs/database-topology.md`
-- `docs/bug-ledger.md`
-- `docs/branches/communication.md`
-- the affected organ branch document
-
-Inspect current provider code, runtime configuration, traces, persisted events,
-and UI reducer/rendering code. Provider documentation is authoritative for
-native stop, tool, usage, and stream semantics.
+Read `AGENTS.md`, `docs/core-runtime-contract.md`, the affected executable
+path, and the smallest relevant API, stream, database, branch, or bug contract.
+Use provider documentation for provider-native stops, tools, usage, and stream
+semantics. Inspect actual configuration, traces, events, persisted rows, and
+the UI reducer when that layer is involved.
 
 ## Evidence Ladder
 
-Follow the same turn through:
+For one concrete turn or operation, inspect in order:
 
-1. user request and session/turn identity;
-2. automatic retrieval and rich runtime evidence;
-3. exact V2 model projection;
-4. provider request/history and streamed native blocks;
-5. model stop reason and tool request;
-6. shell validation, dispatch, result, and state mutation;
-7. Core events and assistant persistence;
-8. durable Stream V2 plus any connection-local live frame;
-9. frontend transport, reducer identity, and rendered lifecycle;
-10. external adapter translation when the GPT bridge is involved.
+1. request, session, turn, profile, and runtime mode;
+2. source evidence and automatic context/retrieval selection;
+3. exact model projection and provider request/history;
+4. provider deltas, thinking, tool use, notes, stop reason, and retries;
+5. shell command/result and persistence receipts;
+6. persisted event/trace ordering and final session state; and
+7. stream transport, replay/live frames, reducer state, and rendered block.
 
-Use read-only production inspection by default. Work on a copied database for
-any mutation or replay.
+Classify the result as provider behavior, Core defect, adapter limitation,
+configuration/deployment drift, UI rendering defect, data quality issue, or
+unproven model variance. Keep the classification provisional until the
+evidence reaches the suspected boundary.
 
-## Failure Classification
+## Debug Rules
 
-Assign one primary class before proposing a fix:
+- Preserve the original evidence. Do not clean up, replay against production,
+  or mutate data merely to make a trace easier to read.
+- Compare the same contract across native and adapter paths only after proving
+  their inputs are equivalent.
+- `shadow` evidence is diagnostic unless the active contract says otherwise.
+- Inspect the actual model/context payload before blaming retrieval or prompt.
+- An interrupted stream requires proof of transport loss, provider loss, or
+  client reducer loss before a retry policy is changed.
+- Report an unrelated weakness instead of fixing it opportunistically.
 
-- `core_contract`: deterministic Core behavior violates its contract;
-- `provider_protocol`: adapter mishandles documented native behavior;
-- `model_choice`: valid evidence was delivered but the model chose poorly;
-- `context_or_retrieval`: evidence selection or projection was wrong;
-- `shell_or_persistence`: command, mutation, lifecycle, or receipt failed;
-- `transport_or_ui`: Core emitted correctly but delivery or rendering failed;
-- `external_adapter`: ChatGPT/GPT Actions host behavior differs from Core;
-- `configuration_drift`: local, VPS, app, or provider configuration disagrees;
-- `evaluation_error`: the expected result or judging method was invalid;
-- `unknown`: evidence is incomplete; do not turn this into a confident fix.
+## Exit Criteria
 
-## Debug Workflow
-
-1. Reproduce the smallest natural symptom without altering production data.
-2. Capture the session, turn, trace, event cursor, deployed commit, and runtime
-   version.
-3. Compare the first layer that is correct with the next layer that diverges.
-4. Check ordering, stable identities, retries, duplicated persistence, and
-   terminal boundaries.
-5. Read actual payloads and text. Counters and statuses are navigation aids,
-   not the conclusion.
-6. Separate a reproducible defect from provider/model variability.
-7. Record a bug with evidence, impact, layer, reproduction, and residual
-   uncertainty.
-8. Propose the smallest owning-layer fix. Do not compensate in the UI or
-   prompt for a lower-layer defect.
-9. Verify the fix at the failed boundary and one adjacent end-to-end path.
-
-## Live Stream Checks
-
-For a stalled or delayed Product Chat, verify separately:
-
-- Core generation continues after client disconnect;
-- transient live frames arrive before completion;
-- durable V2 events remain replayable and cursor ordered;
-- proxy and response headers do not buffer or transform the stream;
-- Android uses browser streaming rather than a buffering native fetch patch;
-- pending tool/validator states have a visible start and terminal result;
-- hydration cannot overwrite a live turn; and
-- replay reconciliation matures existing blocks instead of duplicating them.
-
-## Reporting Format
-
-Lead with verified findings ordered by severity. For each finding state:
-
-- evidence and exact layer;
-- expected versus observed behavior;
-- whether it is Core, model variance, adapter, UI, configuration, or evaluator;
-- reproduction confidence;
-- proposed correction and verification; and
-- remaining uncertainty.
-
-If no defect is verified, say so and identify the missing evidence or residual
-risk.
+Return the exact affected boundary, evidence used, what remains unknown,
+reproduction scope, and the smallest safe next step. Make a fix only after the
+owner approves it or it is explicitly inside the declared scope.
 
 ## Maintenance Contract
 
-Update this skill and fix it after verified incidents, false diagnoses, provider
-changes, streaming failures, deployment drift, new observability surfaces,
-errors, or newly verified diagnostic solutions. Add a check only when it would
-have shortened a real investigation or prevented a demonstrated error, so the
-same failure is less likely to recur. Reflect contract changes in canonical
-docs first. Keep incident evidence in `docs/bug-ledger.md` and
-`docs/activity-log.md`; do not turn this skill into an incident archive.
+Update this skill when a verified incident, code path, direct trace review, or
+owner correction reveals a missing diagnostic step or a safer recurring order.
+Update an owning contract first if the runtime semantics changed. Do not turn
+this skill into an incident archive; retain incident history in the bug ledger
+or activity log. Update this skill in the same scoped task when it prevents
+repetition, then run the skill validator.

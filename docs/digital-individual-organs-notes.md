@@ -1,9 +1,14 @@
 # Digital Individual Organs - Working Notes
 
-Status: active working notes
+Status: historical research notebook, not an active implementation plan
 
 Started: 2026-06-24
-Current implementation review: 2026-07-13, V1.30.0
+Current implementation review recorded: 2026-07-13, V1.30.0
+
+Successors for current implementation are `docs/project-state.md`, the
+relevant `docs/branches/*` record, and `docs/v2-cognitive-companion-plan.md`.
+This notebook preserves exploratory reasoning and must not be read as a claim
+that the described organs or roadmap phases are currently active.
 
 Reference baseline:
 

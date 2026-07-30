@@ -1,7 +1,7 @@
 # Agentic Branches
 
-Last updated: 2026-07-28
-App baseline: V1.50.1 closed-Core baseline; V1.65.0 deployed on the protected
+Last updated: 2026-07-30
+App baseline: V1.50.1 closed-Core baseline; V1.65.1 deployed on the protected
 VPS
 Status: canonical branch map
 

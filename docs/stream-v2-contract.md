@@ -1,8 +1,8 @@
 # Scarlet Stream V2 Contract
 
-Last updated: 2026-07-28
+Last updated: 2026-07-30
 Schema: `scarlet-stream-v2`
-Contract introduced: V1.51.0; current app deployment: V1.65.0 on the
+Contract introduced: V1.51.0; current app deployment: V1.65.1 on the
 protected VPS
 Linear issue: SCA-47
 

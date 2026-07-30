@@ -1,53 +1,42 @@
 # Scarlet Project Skills
 
-These repository-local skills encode the recurring workflows that require
-project-specific judgment. They complement `AGENTS.md`; they do not replace it
-or the canonical documents under `docs/`.
+Repository skills are short operational guides for recurring, high-risk work.
+They complement `AGENTS.md`; they never replace current code or the owning
+contract.
 
-## Skill Map
-
-| Skill | Use it for |
+| Skill | Trigger |
 |---|---|
-| `scarlet-project-stewardship` | Substantial planning, architecture, state review, or work that could blur Scarlet's research direction and system boundaries. |
-| `scarlet-cognitive-change` | Changes to a cognitive organ, model context, provider lifecycle, prompt policy, history, or the model-facing shell. |
-| `scarlet-runtime-debugging` | Real turn failures, stalls, wrong answers, missing events, retrieval problems, persistence issues, or UI/runtime disagreement. |
-| `scarlet-e2e-evaluation` | Behavioral scenarios, frozen regression suites, natural live probes, and qualitative pre/post evaluation. |
-| `scarlet-vps-android-release` | VPS rollout, Product UI profile/artifact parity, Android build/install, production preflight, canary, and rollback. |
+| `scarlet-project-stewardship` | Architecture, state review, boundaries, roadmap, or work that may blur Core, UI, adapters, modules, and embodiment. |
+| `scarlet-cognitive-change` | A verified change to model context, memory, retrieval, prompt, provider lifecycle, shell, organs, modes, or autonomous cognition. |
+| `scarlet-runtime-debugging` | A runtime symptom whose failing layer is not established: provider, turn, context, storage, streaming, UI, Android, VPS, or GPT adapter. |
+| `scarlet-e2e-evaluation` | Owner-authorized natural scenarios, frozen regressions, or qualitative live Scarlet evidence. |
+| `scarlet-vps-android-release` | VPS, Product UI, Android artifact, database preflight, canary, rollback, or release parity. |
 
-The stewardship skill may be used with one operational skill. Runtime
-debugging should normally precede a cognitive fix when the failure layer is
-not yet established. A complete live behavioral suite is never implied by an
-ordinary code task; it requires an explicit owner request.
+Use stewardship alongside one operational skill when the change has both an
+architectural and an execution risk. Diagnose before changing when the failing
+layer is uncertain. A routine task never implies a full live evaluation.
 
-## Authority
+## Authority And Maintenance
 
-When sources disagree, use this order:
+Use this order when sources disagree:
 
-1. current code, executable schemas, tests, and direct runtime evidence;
-2. `AGENTS.md` and the canonical document that owns the affected contract;
-3. current branch and project-state documentation;
-4. these operational skills;
-5. conversational recollection.
+```txt
+current code and direct evidence
+> AGENTS.md and owning current contract
+> project/branch current state
+> decision or historical record
+> skill
+> conversation
+```
 
-A skill is an executable working guide, not a new architectural source of
-truth. Architectural decisions belong in `docs/decisions.md`; observed defects
-belong in `docs/bug-ledger.md`; experiments and results belong in
-`docs/experiments.md` and the relevant evaluation document.
+Update a skill only when verified evidence or an owner correction improves a
+recurring workflow. Update the owning contract first when semantics change,
+remove obsolete advice rather than accumulating folklore, and run:
 
-## Evolution Rule
+```bash
+backend/.venv/bin/python scripts/check_project_skills.py
+```
 
-Keep these skills current. When a real task exposes a reliable improvement, a
-missing check, an invalid assumption, a recurring error, or a safer workflow:
-
-1. verify the lesson against code, traces, tests, deployment evidence, or the
-   owner-approved decision;
-2. update the affected skill during the same task when that change is in
-   scope, otherwise record the exact pending correction;
-3. update canonical documentation first when the lesson changes architecture
-   or policy;
-4. preserve historical evidence instead of rewriting old results; and
-5. run `backend/.venv/bin/python scripts/check_project_skills.py`.
-
-Do not add a new skill for a one-off command or a narrow implementation detail.
-Create one only when a distinct workflow recurs, carries material risk, and
-cannot be expressed clearly by improving an existing skill.
+Do not create a new skill for a one-off command. Extend an existing skill
+unless a distinct, recurring workflow has material risk and cannot be stated
+clearly there.

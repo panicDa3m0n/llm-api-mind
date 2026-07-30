@@ -1,261 +1,98 @@
-# Project Documentation Index
+# Project Documentation Map
 
 Last updated: 2026-07-30
-App deployment: V1.65.1 on the protected VPS; V1.50.1 remains release-accepted
-Status: canonical documentation map
+Current deployment: V1.65.1 on the protected VPS
+Status: canonical routing map, not a second architecture specification
 
-This is the entry point for project documentation. It separates two layers:
+This is the entry point for documentation. Read the smallest source that owns
+the question, then verify it against current code and direct evidence. Do not
+treat chronology, an old plan, a checkpoint, or a file's existence as proof of
+current behavior.
 
-- technical infrastructure documents, which describe code, APIs, tests,
-  traces, and implementation details;
-- agentic branch documents, which describe Scarlet's real operating domains:
-  communication, memory, metacognition, goals, autonomy, external operation,
-  privacy, and future advanced capabilities.
+## Read Order
 
-Use `docs/project-state.md` for the current integrated implementation state.
-Use the branch documents when planning work that changes Scarlet as an agent.
+For every repository change:
 
-Current-state claims must be read from current-state documents and code, not
-from chronological records. `activity-log.md`, `experiments.md`, old ADR text,
-checkpoints, and completed implementation plans preserve what was true when an
-event happened; they are not silently rewritten into present-tense contracts.
+1. `AGENTS.md` for operating constraints.
+2. This map for the owning source.
+3. `docs/project-state.md` for the current integrated state.
+4. The exact current contract and executable code for the affected behavior.
+5. Only the relevant decision, bug, experiment, evaluation, or checkpoint.
 
-## Development Protocol
+Do not default-read the long ledgers. Search them for a named decision, version,
+incident, trace, or evaluation question.
 
-The active engineering protocol lives in:
+## Current Sources
 
-```txt
-docs/development-process.md
-```
+| Need | Source of truth |
+|---|---|
+| Technology choices, status, reasons, and custom solutions | `docs/technology-map.md` |
+| Bounded external computation and cited web sources | `docs/research-lab.md` |
+| Architecture boundaries, active versus experimental surfaces | `docs/core-runtime-contract.md` |
+| Current implementation state and V2 priority | `docs/project-state.md` |
+| Approved V2 direction, not implemented behavior | `docs/v2-cognitive-companion-plan.md` |
+| Native/GPT/model-facing and HTTP contracts | `docs/api-contract.md`, then executable routes and schemas |
+| Turn blocks, event evidence, UI mapping | `docs/block-registry.md`; stream work also reads `docs/stream-v2-contract.md` |
+| Dynamic packet and context delivery | `docs/context-packet-inventory.md`, `docs/runtime-context-packs.md`, and their compiler/contract code |
+| Memory behavior | `docs/branches/memory.md`, relevant API contract, and memory code |
+| Autonomous cognition, Workspace, perception | `docs/branches/decision-autonomy.md`, `docs/cognitive-workspace.md`, `docs/endogenous-cognition.md`, and owning runtime code |
+| Context-family/device experiments | `docs/context-family-registry.md`, `docs/device-exploration-layer.md`, and owning adapter code |
+| Database role and data safety | `docs/database-topology.md` |
+| Product UI/API parity | `docs/product-ui-prototype.md`, `docs/stream-v2-contract.md`, and deployed client code |
+| Modules, host, SDK boundary | `docs/agentic-modules-contract.md`, `docs/agentic-module-host.md`, `docs/agentic-module-sdk.md` |
+| Release, Android, VPS | `docs/release-process.md`, `docs/database-topology.md`, and live deployment evidence |
+| Agentic domain framing | `docs/branches/README.md`, then one relevant branch file |
 
-From V1.0.1 onward, every intervention must declare its area and classify the
-work before implementation:
+`docs/project-blueprint.md` is the durable research direction. Read it for a
+new architectural direction, not for routine current-state verification.
 
-- `Fix`: increments the patch number, `0.0.X`.
-- `Implementazione`: increments the minor number, `0.X.0`.
-- `Major release`: increments the major number, `X.0.0`, only for very large
-  release-grade changes.
+## Status Language
 
-Only the declared scope may be changed. Problems discovered during testing but
-not directly caused by the current implementation must be reported and
-discussed before a new fix is attempted.
+Use these terms precisely in current documentation:
 
-## Core Project Documents
+- **active**: supported runtime behavior with current direct evidence;
+- **experimental**: bounded research or adapter behavior, not Core authority;
+- **shadow**: observed/compared but not deciding ordinary cognition;
+- **historical**: evidence of what was true at a previous point;
+- **deprecated**: retained for provenance, migration, or rollback, not a normal
+  operating path;
+- **planned**: owner-approved direction without implementation claim.
 
-- `AGENTS.md`: always-read operating guide for Codex/Scarlet.
-- `.agents/skills/README.md`: repository-local Codex workflow map for
-  stewardship, cognitive changes, runtime debugging, E2E evaluation, and
-  VPS/Android release work. Skills are maintained operational derivatives,
-  not replacements for canonical contracts.
-- `docs/project-blueprint.md`: durable philosophy and architecture principles.
-- `docs/project-state.md`: current implementation map and convergent roadmap.
-- `docs/v2-cognitive-companion-plan.md`: owner-approved V2 architecture,
-  dependency order, acceptance evidence, V3 boundary, and explicitly deferred
-  embodiment/module work.
-- `docs/core-runtime-contract.md`: canonical Core Runtime, Product UI,
-  External Adapter, and Agentic Module boundary, including owners and
-  compatibility classes.
-- `docs/stream-v2-contract.md`: canonical Product UI stream, replay cursor,
-  provider-independent event envelope, and reference reducer contract.
-- `docs/product-ui-prototype.md`: SCA-48 static Product UI information
-  architecture, fixture boundary, preview states, visual tokens, component
-  equivalence notes, browser evidence, screenshots, and approval gate.
-- `docs/device-exploration-layer.md`: isolated Android capability laboratory,
-  observation schema, probe inventory, Product UI surface, persistence
-  boundary, and evidence required before any device signal can enter Scarlet's
-  cognition.
-- `docs/context-family-registry.md`: typed semantic context families, subject
-  versus observer ownership, evidence kinds, mode tags, activation contracts,
-  policy dependencies, shadow routing, and embodiment simulation evidence.
-- `docs/cognitive-workspace.md`: source registry, signal receipts, M2.7
-  appraisal and ignition, Scarlet-owned episodes, deterministic wake
-  conditions, runtime modes, failure semantics, and local verification.
-- `docs/endogenous-cognition.md`: adaptive free cognitive windows,
-  source-backed impulse seeds, existing-workspace competition, explicit M3
-  endorsement, outcome evidence, and bounded device-perception admission.
-- `docs/checkpoints/2026-07-24-companion-product-embodiment-direction.md`:
-  companion-product direction plus the accepted V1.60 autonomous activation,
-  exclusive internal-session, perception-inbox, and internal-history
-  architecture.
-- `docs/agentic-modules-contract.md`: public manifest, typed Core Ports,
-  permission/dependency model, lifecycle, activation rules, and compatibility
-  boundary for optional V2 Agentic Modules.
-- `docs/agentic-module-host.md`: approved-root discovery, process transport,
-  lifecycle supervision, port composition, telemetry, and failure-isolation
-  contract for the opt-in V2 Module Host.
-- `docs/agentic-module-sdk.md`: standalone SDK install/build, canonical public
-  contracts, module-side runtime, scaffold, schema export, conformance, and
-  operator handoff.
-- `docs/branches/README.md`: compact branch maturity and technical evidence
-  matrix for the current release.
-- `docs/activity-log.md`: chronological work log.
-- `docs/decisions.md`: architectural decision records.
-- `docs/bug-ledger.md`: known bugs, root causes, and monitoring items.
-- `docs/experiments.md`: hypotheses, live probes, and results.
-- `docs/api-contract.md`: implemented and planned API contracts.
-- `docs/block-registry.md`: runtime/model/UI block map for Scarlet turns.
-- `docs/context-packet-inventory.md`: reviewed inventory of automatic local and
-  GPT bridge packets, including the active V2 model packet, its rich internal
-  source snapshot, manual shell boundaries, and trace/UI-only data.
-- `docs/context-packet-implementation-plan.md`: phased V1.29.0 plan for the
-  implemented compact dynamic context contract, memory activity, source
-  navigation, provider parity, repair procedures, and regression acceptance.
-- `docs/runtime-context-packs.md`: planning baseline for always-on context
-  spine, measured context budgets, agent-mode tags, organ/source
-  classification, compaction gates, and future embodied routing.
-- `docs/behavioral-validation-framework.md`: versioned starting-condition,
-  technical-evidence, cognitive-choice, answer-outcome, and longitudinal
-  validation contract for direct Scarlet experiments.
-- `docs/evaluations/v1.30-agent-mode-live.md`: exact first application of that
-  contract to agent-mode selection, state persistence, and overclaim limits.
-- `docs/evaluations/v1.32-shell-organ-audit.md`: command-family conformance,
-  negative paths, lifecycle evidence, and five disposable MiniMax M3 organ
-  scenarios.
-- `docs/evaluations/v1.34-natural-behavioral-suite.md`: frozen starting
-  conditions, 12 natural scenarios, 36 authoritative live turns, evaluator
-  shakedown history, project-informed qualitative judgments, and cross-branch
-  findings.
-- `docs/evaluations/v1.36-history-compaction-calibration.md`: exact real-session
-  token accounting, full/derived MiniMax comparison, and the accepted
-  whole-turn exception while active compaction remains gated.
-- `docs/evaluations/v1.37-memory-rerank-calibration.md`: immutable candidate
-  coverage, final-rerank calibration, sourceable V2 delivery, latency, and
-  direct MiniMax semantic review.
-- `docs/evaluations/v1.38-historical-provenance-audit.md`: production-read-only
-  classification, explicit fixture criteria, mutation guards, disposable-copy
-  gate, residual ambiguous links, and deployment evidence.
-- `docs/evaluations/v1.39-active-history-compaction.md`: recursive artifact
-  generation, exact source anchoring, native sync/stream routing, canonical
-  preservation, and direct MiniMax validation on a disposable database.
-- `docs/evaluations/v1.40-cognitive-organ-longitudinal.md`: correlated focus,
-  volition, affect, and metacognition scenarios; runtime receipts; independent
-  controls and conservative default decisions.
-- `docs/evaluations/v1.41-answer-obligations.md`: structural and semantic final-
-  answer contracts, bounded correction, GPT rejection policy, focused tests,
-  and direct native/GPT probe evidence.
-- `docs/evaluations/v1.42-agent-mode-routing.md`: per-block routing receipts,
-  off/shadow/active delivery semantics, native/GPT parity, prompt selection
-  calibration, and bounded two-session Scarlet evidence.
-- `docs/evaluations/v1.43-mcp-retirement.md`: deprecated connector removal,
-  transport authentication cleanup, production evidence preservation, and
-  deployment closure.
-- `docs/evaluations/v1.43-memory-rerank-negative-calibration.md`: frozen
-  unsupported-personal controls, direct reranker evidence, and the documented
-  decision to defer an unsafe threshold-only correction.
-- `docs/evaluations/v1.44-chat-support-extraction.md`: SCA-34 module boundary,
-  exact pre/post contracts, direct native provider-history probe, qualitative
-  judgment, and isolated residual bug.
-- `docs/evaluations/v1.45-native-turn-orchestration.md`: SCA-33 lifecycle
-  boundary, sync/stream invariant evidence, direct continuity probe, trace
-  parity fix, and qualitative variance classification.
-- `docs/evaluations/v1.46-context-retrieval-separation.md`: SCA-35 retrieval
-  ownership boundary, frozen equivalence, direct model-facing proof, and the
-  isolated provenance-fixture gap.
-- `docs/evaluations/v1.47-memory-read-surface.md`: SCA-36 facade/read ownership,
-  exact pre/post shell evidence, and direct search/open/facts/graph inspection.
-- `docs/evaluations/v1.48-memory-mutation-surface.md`: SCA-38 mutation-domain
-  ownership, exact equivalence, direct lifecycle/proposal evidence, and a
-  natural Scarlet persistence probe.
-- `docs/evaluations/v1.49-maintenance-domains.md`: SCA-37 maintenance-domain
-  ownership, exact equivalence, direct compaction evidence, and natural
-  summary/memory-review judgment.
-- `docs/evaluations/v1.49.1-action-retry-obligations.md`: shared native/GPT
-  retry-chain evidence, deterministic regressions, and directly inspected
-  MiniMax recovery behavior.
-- `docs/evaluations/v1.50-model-facing-memory-gate.md`: complementary automatic-
-  memory delivery gate, guarded disposable provenance repair, provider-request
-  proof, and incomplete-turn negative control.
-- `docs/evaluations/v1.50.1-native-finality-recovery.md`: historical production
-  marker-omission evidence and the semantic fallback later superseded by the
-  provider-native `end_turn` contract in ADR-0132.
-- `docs/preliminary-regression-suite.md`: mandatory pre/post whole-system
-  regression gate for major reworks and architectural procedures.
-- `docs/quality-gates.md`: incremental Ruff, mypy, coverage, documentation,
-  and GitHub Actions baseline for engineering changes.
-- `docs/database-topology.md`: canonical ownership map and deployment/test
-  boundary for production, laboratory, test, and preliminary databases.
-- `docs/monolith-rework-plan.md`: current code-concentration inventory, stable
-  facades, dependency order, atomic Linear slices, and mandatory pre/post gate
-  for organizational rework.
-- `docs/release-process.md`: commit, changelog, and release discipline.
-- `CHANGELOG.md`: project-visible change history.
+Code, configuration, a table, or an old test may prove implementation
+availability. It does not by itself prove an active user-visible capability.
 
-## Document Authority
+## Historical And Research Records
 
-| Document family | Authority | Update behavior |
-|---|---|---|
-| `project-state.md`, branch index, API contract | Present implementation and current priorities | Update whenever current truth changes. |
-| Branch documents | Current behavior and branch-specific direction | Keep philosophy, evidence, status, limits, and next work aligned. |
-| Blueprint | Durable purpose and architecture constraints | Change only when the project direction or durable boundary changes. |
-| Decisions | Accepted architectural choices | Append or supersede; do not erase the original context. |
-| Experiments, activity log, checkpoints | Historical evidence | Preserve results as recorded; add corrections or current links instead of rewriting outcomes. |
-| Implementation plans | Procedure and acceptance record | Mark completed/deferred phases; do not use as current-state authority after completion. |
-| Repository skills | Executable recurring workflow guidance derived from current contracts and evidence | Update when verified lessons change the workflow; update canonical policy first when semantics change. |
+These records remain valuable but are not present-tense contracts:
 
-## Vertical Roadmaps
+- `docs/activity-log.md`, `docs/decisions.md`, `docs/bug-ledger.md`, and
+  `docs/experiments.md` are append-only evidence ledgers.
+- `docs/evaluations/` and `docs/checkpoints/` preserve bounded test and
+  discussion evidence.
+- completed implementation plans, including
+  `docs/context-packet-implementation-plan.md` and
+  `docs/monolith-rework-plan.md`, describe their recorded slice.
+- `docs/memory-roadmap.md`, `docs/cognitive-api-roadmap.md`,
+  `docs/digital-individual-organs-notes.md`, `docs/theory-goal-focus-task.md`,
+  and `docs/theory-metacognition.md` are research/roadmap material unless
+  their top status says otherwise.
+- retired MCP and avatar experiments remain historical evidence only.
 
-- `docs/memory-roadmap.md`: detailed memory system roadmap.
-- `docs/cognitive-api-roadmap.md`: schema discipline and internal
-  metacognition roadmap.
+Historical records are not rewritten to pretend they describe the present.
+When an old statement could mislead, add a status and successor link at its
+entry point.
 
-## Theory Documents
+## Documentation Maintenance
 
-- `docs/theory-goal-focus-task.md`: owner-review theory for Scarlet's future
-  goal, focus, open-loop, and task organ.
-- `docs/theory-metacognition.md`: owner-review theory for Scarlet's future
-  metacognitive organ and its distinction from notes, maintenance, and
-  validators.
-- `docs/digital-individual-organs-notes.md`: active working notes for the five
-  next digital-individual organs: lived attention, volition, affective
-  integration, temporal experience, and sleep-like consolidation.
+Update only the owning document when current truth changes:
 
-## Agentic Branch Documents
+- current contract or project state for code/runtime behavior;
+- decision log for accepted architecture or process;
+- bug ledger for a defect or residual risk;
+- experiments/evaluation for a hypothesis or result;
+- activity log for meaningful completed work;
+- changelog only for a released/project-visible product change.
 
-The canonical branch index lives in:
-
-```txt
-docs/branches/README.md
-```
-
-Current branches:
-
-1. `docs/branches/communication.md`
-2. `docs/branches/user-flows.md`
-3. `docs/branches/perception-context.md`
-4. `docs/branches/identity-relationship.md`
-5. `docs/branches/memory.md`
-6. `docs/branches/learning-adaptation.md`
-7. `docs/branches/metacognition.md`
-8. `docs/branches/operational-management.md`
-9. `docs/branches/decision-autonomy.md`
-10. `docs/branches/external-operativity.md`
-11. `docs/branches/advanced-operations.md`
-12. `docs/branches/governance-privacy-safety.md`
-13. `docs/branches/computational-affect.md`
-14. `docs/branches/multi-agent-subprocesses.md`
-
-## Branch Document Format
-
-Each branch document must keep these sections:
-
-- `Filosofia del ramo`
-- `Evidenze`
-- `Stato attuale`
-- `Sviluppi precedenti`
-- `Evolutive`
-
-Every `Stato attuale` section must include the app/system version used for the
-assessment, so future updates can be traced back to the correct implementation
-state.
-
-## Update Rules
-
-When a change affects a branch:
-
-1. update the relevant branch document;
-2. update `docs/project-state.md` if the integrated state or priority changed;
-3. update `docs/activity-log.md`;
-4. update `CHANGELOG.md`;
-5. update `docs/decisions.md` only for architectural/process decisions;
-6. update `docs/bug-ledger.md` only for bugs or residual risks;
-7. update `docs/experiments.md` only for hypotheses, probes, or results.
+Do not create a new Markdown register for a one-off note. If a document loses
+authority, retain it as historical/deprecated and name its successor rather
+than deleting evidence.

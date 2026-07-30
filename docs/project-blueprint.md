@@ -7,6 +7,10 @@ Last updated: 2026-07-30
 Primary human: project owner, evaluator, direction, validation  
 Primary software engineer: Codex/Scarlet as IDE agent
 
+Use this document for durable research direction and architecture principles.
+Use `docs/project-state.md` and `docs/core-runtime-contract.md` for current
+implementation truth; this blueprint is not a routine change checklist.
+
 ## 1. Purpose
 
 This project develops and evaluates the external cognitive architecture of

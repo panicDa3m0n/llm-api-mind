@@ -1,8 +1,16 @@
 # API Contract
 
+Last reviewed: 2026-07-30 against V1.66.0 local code
+Status: current contract sections are explicitly labelled; later historical,
+deprecated, and roadmap sections preserve evidence only
+
+The executable routers, schemas, and tests are authoritative when this record
+disagrees with prose. Read only the section owning the interface being changed.
+Do not promote a historical, shadow, or planned section into a current runtime
+claim without current code and direct evidence.
+
 This file documents stable API contracts once they are implemented.
 
-Last reviewed: 2026-07-30
 App deployment: V1.65.1 deployed on the protected VPS; V1.50.1 remains the
 closed-Core baseline.
 
@@ -184,6 +192,9 @@ focus
 volition
 affect
 mode
+perception
+episode
+lab
 metacognition
 ```
 
@@ -202,6 +213,11 @@ volition list active --limit 10
 affect prototypes
 mode read
 mode set scouting --reason "Continue environmental study after the exchange"
+perception status
+episode list --status active
+lab status
+lab web open "https://example.org/document"
+lab python --code "from sympy import factor; print(factor(x**2 - 1))"
 metacognition step --objective "check source-sensitive claim" --mode critic
 ```
 
@@ -242,6 +258,9 @@ Examples:
 - `session open` includes `message_window`, `returned_message_count`,
   `message_limit`, and `has_more_messages` so a limited transcript window is
   explicit.
+- `lab` returns only explicit, bounded Research Lab evidence. Web source text,
+  code output, and artifacts are never automatic context or semantic memory;
+  Scarlet must reopen the returned source/run/artifact id when it is useful.
 
 Output audiences:
 
@@ -619,6 +638,22 @@ The batch ingestion API accepts one to 200 idempotent events with channel,
 event type, source, source event key, offset-aware observation time, payload,
 navigation hooks, and metadata. V1.60.0 does not automatically bridge Device
 Exploration or Android notifications into this contract.
+
+### Research Lab
+
+Status: implemented locally for V1.66.0; operator-gated and not deployed.
+
+Research Lab is an on-demand evidence surface under the existing shell, not a
+new cognitive organ or an autonomous worker. `lab web open` retrieves one
+bounded public HTTPS document through the backend read-only gateway; it
+persists a source receipt and returns an id. `lab python` requests one bounded
+calculation from a separate network-disabled Python/SymPy runner through a
+Unix socket. Neither source text, code, output, nor artifact is injected into
+model context, memory, KG, perception, Workspace, or autonomous scheduling.
+
+The internal dispatcher route is `POST /mind/lab`; it is not a second model
+tool. Details, limits, persistence, and the required sidecar installation are
+defined in [Research Lab](research-lab.md).
 
 ### Context Accounting
 
@@ -2308,11 +2343,10 @@ opening full trace payloads:
 ```txt
 memory.recent_context.built
 session.continuity.built
-answer.validation.started
 ```
 
-The first two expose counts only. The validation-start event makes a blocking
-answer check visible until accepted/rejected lifecycle evidence arrives.
+Both expose counts only. Historical `answer.validation.*` events were removed
+in V1.64.0 and are not emitted by the current runtime.
 
 ### GET /api/chat/sessions/{session_id}/events
 

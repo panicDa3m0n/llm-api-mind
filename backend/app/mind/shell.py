@@ -3,7 +3,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
 
-from app.mind.command_registry import validate_shell_command
+from app.mind.command_registry import canonical_command_action, validate_shell_command
 from app.mind.contracts import MindAPIContext
 from app.mind.dispatcher import MindAPIRequest, MindAPIResponse
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
@@ -101,6 +101,8 @@ def dispatch_mind_shell(
         return _perception_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"episode", "episodes", "inquiry", "inquiries"}:
         return _episode_command(parsed, context=context, intent=intent)
+    if parsed.namespace in {"lab", "research", "research-lab"}:
+        return _research_lab_command(parsed, context=context, intent=intent)
     if parsed.namespace in {"metacognition", "meta", "reflect"}:
         return _metacognition_command(parsed, context=context, intent=intent)
 
@@ -994,6 +996,87 @@ def _perception_command(
         api_request=MindAPIRequest(
             method="POST",
             path="/mind/perception",
+            body=body,
+            intent=intent,
+        ),
+        context=context,
+    )
+
+
+def _research_lab_command(
+    parsed: ParsedCommand,
+    *,
+    context: MindAPIContext | None,
+    intent: str,
+) -> MindAPIResponse:
+    action = canonical_command_action("lab", parsed.action) or parsed.action or "status"
+    body: dict[str, Any] = {"action": action.replace("-", "_")}
+    if action == "python":
+        code = _flag_string(parsed, "code")
+        if not code:
+            return _shell_error(
+                code="shell.lab_code_required",
+                message="lab python requires code through --code.",
+                parsed=parsed,
+                namespace="lab",
+                actions=['lab python --code "from sympy import symbols; print(symbols(\'x\'))"'],
+            )
+        body = {
+            "action": "python",
+            "code": code,
+            "source_ids": _flag_values(parsed, "source", "source-id"),
+        }
+    elif action == "web":
+        subaction = parsed.args[0].casefold() if parsed.args else ""
+        url = parsed.args[1] if len(parsed.args) > 1 else _flag_string(parsed, "url")
+        if subaction != "open" or not url:
+            return _shell_error(
+                code="shell.lab_web_open_required",
+                message="lab web requires `open` followed by one public HTTPS URL.",
+                parsed=parsed,
+                namespace="lab",
+                actions=['lab web open "https://example.org"'],
+            )
+        body = {"action": "web_open", "url": url}
+    elif action == "run":
+        run_id = _first_arg_or_flag(parsed, "id", "run-id")
+        if not run_id:
+            return _shell_error(
+                code="shell.lab_run_required",
+                message="lab run requires a run id.",
+                parsed=parsed,
+                namespace="lab",
+                actions=["lab run labrun_..."],
+            )
+        body = {"action": "run", "run_id": run_id}
+    elif action == "source":
+        source_id = _first_arg_or_flag(parsed, "id", "source-id")
+        if not source_id:
+            return _shell_error(
+                code="shell.lab_source_required",
+                message="lab source requires a source id.",
+                parsed=parsed,
+                namespace="lab",
+                actions=["lab source labsrc_..."],
+            )
+        body = {"action": "source", "source_id": source_id}
+    elif action == "artifact":
+        artifact_id = _first_arg_or_flag(parsed, "id", "artifact-id")
+        if not artifact_id:
+            return _shell_error(
+                code="shell.lab_artifact_required",
+                message="lab artifact requires an artifact id.",
+                parsed=parsed,
+                namespace="lab",
+                actions=["lab artifact labart_..."],
+            )
+        body = {"action": "artifact", "artifact_id": artifact_id}
+    return _dispatch_api_as_shell(
+        parsed,
+        target=f"lab.{body['action']}",
+        api_request=MindAPIRequest(
+            method="POST",
+            path="/mind/lab",
             body=body,
             intent=intent,
         ),

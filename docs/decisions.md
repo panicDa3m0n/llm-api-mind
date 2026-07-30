@@ -7,6 +7,52 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0147 - Documentation Routes By Authority And Capability Claims Need Evidence
+
+Date: 2026-07-30
+Status: accepted process rule; no runtime change
+
+Context:
+
+The project accumulated large chronological ledgers, completed plans, research
+notes, experimental adapters, and shadow paths. Their continued presence is
+valuable evidence, but a routine requirement to read them wholesale made it
+too easy to confuse historical implementation with current behavior. Recent
+storage/retrieval review also showed that a code path or configuration name can
+look active while remaining diagnostic or experimental.
+
+Decision:
+
+- make `AGENTS.md` the compact always-read operating contract and make
+  `docs/project-documentation.md` the routing map to current owners;
+- treat executable code, schemas, tests, and direct runtime evidence as
+  stronger than prose when assessing current behavior;
+- classify model/runtime claims as active, experimental, shadow, historical,
+  deprecated, or planned, with active requiring a supported path and current
+  direct evidence;
+- preserve ledgers, checkpoints, completed plans, and evaluations as
+  queryable historical evidence instead of rewriting or deleting them;
+- update only the document that owns new truth, rather than mechanically
+  duplicating each change across every ledger; and
+- require every new shadow, prototype, or compatibility path to state an
+  owner, purpose, evidence, and an explicit future promotion, retirement, or
+  bounded-retention decision.
+
+Consequences:
+
+This decision changes documentation and engineering discipline only. It does
+not promote, retire, reconfigure, deploy, or alter any runtime component,
+including active OpenRouter reranking or the optional Milvus Lite diagnostic
+path. Future claims about those paths must use their owning code and current
+runtime evidence.
+
+Links:
+
+- `AGENTS.md`
+- `docs/project-documentation.md`
+- `.agents/skills/README.md`
+- `docs/core-runtime-contract.md`
+
 ## ADR-0146 - Autonomous M3 Scheduling Is Shared, Coalesced, And Non-Semantic
 
 Date: 2026-07-30
@@ -7295,3 +7341,43 @@ Links:
 - `backend/app/mind/affect.py`
 - `docs/digital-individual-organs-notes.md`
 - `docs/activity-log.md`
+## ADR-0148 - Research Lab Is Explicit Evidence, Not In-Process Agent Authority
+
+Date: 2026-07-30
+Status: accepted for local V1.66.0 implementation; deployment remains pending
+
+Context:
+
+Scarlet needs occasional symbolic computation and cited web evidence, but a
+generic code executor inside the API process would expose database state,
+credentials, filesystem material, and network access. Treating results as
+automatic cognitive context would also duplicate memory/perception paths and
+make external text appear more authoritative than it is.
+
+Decision:
+
+- expose one `lab` command family through the existing `mind_shell` tool;
+- persist bounded run, source, and artifact receipts in the canonical selected
+  SQLite role, keyed to profile/session/turn provenance;
+- retrieve public HTTPS documents only through a bounded backend read gateway;
+- execute Python/SymPy only in a separately deployed, network-disabled,
+  unprivileged sidecar over a Unix socket; and
+- keep all Lab material out of automatic context, memory, KG, perception,
+  Cognitive Workspace, and autonomous wake admission unless a later explicit
+  contract promotes a source-backed use.
+
+There is no general web-search integration and no fallback to in-process code
+execution when the runner is absent.
+
+Consequences:
+
+Scarlet can ask for narrow computational or source evidence without acquiring
+ambient machine authority. The operator must install the sidecar and shared
+socket mount before `lab python` becomes available. Results remain inspectable
+and reopenable rather than being transformed into semantic state by default.
+
+Links:
+
+- `docs/research-lab.md`
+- `backend/app/mind/research_lab.py`
+- `backend/research_lab_runner/`

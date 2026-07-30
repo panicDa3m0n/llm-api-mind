@@ -5,6 +5,11 @@ Planning target: V1.29.0
 Status: implemented and verified in V1.29.0
 Branch: `checkpoint/rework-baseline`
 
+This is a completed V1.29 implementation record. Current packet behavior is
+owned by `docs/context-packet-inventory.md`, `docs/runtime-context-packs.md`,
+the current runtime contract, and the compiler code. Historical phases below
+must not be read as new work or current delivery guarantees.
+
 ## V1.30.0 Follow-Up
 
 The V1.29 packet plan remains the historical implementation record. V1.30.0

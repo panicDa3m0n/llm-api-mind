@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from sqlalchemy import Column, JSON, UniqueConstraint
+from sqlalchemy import Column, JSON, LargeBinary, UniqueConstraint
 from sqlmodel import Field, SQLModel
 
 
@@ -817,6 +817,78 @@ class ToolCall(SQLModel, table=True):
     )
     status: str = Field(index=True)
     latency_ms: int | None = None
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class ResearchLabRun(SQLModel, table=True):
+    """One bounded, source-labelled laboratory operation requested by Scarlet."""
+
+    __tablename__ = "research_lab_runs"
+
+    id: str = Field(default_factory=lambda: new_id("labrun"), primary_key=True)
+    profile_id: str = Field(default="local-user", index=True)
+    session_id: str | None = Field(default=None, foreign_key="sessions.id", index=True)
+    turn_id: str | None = Field(default=None, foreign_key="turns.id", index=True)
+    action: str = Field(index=True)
+    status: str = Field(default="started", index=True)
+    intent: str
+    request_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    source_ids_json: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False),
+    )
+    result_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+    error_json: dict[str, Any] | None = Field(
+        default=None,
+        sa_column=Column(JSON, nullable=True),
+    )
+    runner_identity: str | None = Field(default=None, index=True)
+    started_at: datetime = Field(default_factory=utc_now, index=True)
+    completed_at: datetime | None = Field(default=None, index=True)
+    created_at: datetime = Field(default_factory=utc_now, index=True)
+    updated_at: datetime = Field(default_factory=utc_now, index=True)
+
+
+class ResearchLabSource(SQLModel, table=True):
+    """A bounded, read-only web source retained as laboratory evidence."""
+
+    __tablename__ = "research_lab_sources"
+
+    id: str = Field(default_factory=lambda: new_id("labsrc"), primary_key=True)
+    run_id: str = Field(foreign_key="research_lab_runs.id", index=True)
+    profile_id: str = Field(default="local-user", index=True)
+    kind: str = Field(default="web_document", index=True)
+    url: str | None = Field(default=None, index=True)
+    title: str | None = None
+    content: str
+    content_sha256: str = Field(index=True)
+    content_type: str | None = Field(default=None, index=True)
+    retrieved_at: datetime = Field(default_factory=utc_now, index=True)
+    metadata_json: dict[str, Any] = Field(
+        default_factory=dict,
+        sa_column=Column(JSON, nullable=False),
+    )
+
+
+class ResearchLabArtifact(SQLModel, table=True):
+    """A bounded output file from one isolated Python laboratory run."""
+
+    __tablename__ = "research_lab_artifacts"
+
+    id: str = Field(default_factory=lambda: new_id("labart"), primary_key=True)
+    run_id: str = Field(foreign_key="research_lab_runs.id", index=True)
+    profile_id: str = Field(default="local-user", index=True)
+    name: str
+    media_type: str = Field(default="application/octet-stream", index=True)
+    byte_size: int = Field(default=0)
+    sha256: str = Field(index=True)
+    content_bytes: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
     created_at: datetime = Field(default_factory=utc_now, index=True)
 
 

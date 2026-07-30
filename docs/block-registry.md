@@ -1,7 +1,7 @@
 # Runtime And UI Block Registry
 
-Last updated: 2026-07-28
-System version assessed: V1.65.0 deployed on the protected VPS over the
+Last reviewed: 2026-07-30
+System version assessed: V1.65.1 deployed on the protected VPS over the
 V1.50.1 Core
 Status: active diagnostic map
 
@@ -210,6 +210,7 @@ Destinations:
 | raw KG/vector/rerank payloads | no | yes | yes |
 | maintenance jobs | no | evaluator UI/API | yes |
 | memory proposals | only when Scarlet calls proposal shell commands | evaluator UI/API | yes |
+| Research Lab runs/sources/artifacts | only after an explicit `lab` command | trace/UI evidence | no |
 
 `memory.proposals.review_ready` is a private completed event admitted to the
 Cognitive Workspace as an appraisal candidate. It exposes proposal
@@ -253,8 +254,6 @@ Product Chat currently projects:
 - `mind.tool_use.started` through `mind.tool_call.completed` into one
   in-place tool block, using the model-authored `mind_shell.intent` when
   available;
-- `answer.validation.started` as a waiting block during the blocking semantic
-  check; and
 - accepted answer, persisted message, failure, and terminal events from V2.
 
 The orientation placeholder describes only the verified transport state. It is
@@ -284,6 +283,7 @@ automatic context packets.
 | volition | intentions/links/lifecycle | organ trace/events |
 | affect | state/history/prototypes | appraisal trace/events |
 | mode | active/resumable posture and registry | mode trace/events/settings |
+| lab | explicit run/source/artifact receipt | runner/socket, bounded web, and artifact diagnostics |
 | metacognition | structured review and valid recommendations | metacognition trace |
 | help | command catalog and syntax | command registry/schema |
 
@@ -298,8 +298,9 @@ automatic context packets.
    activation are checked separately.
 4. Frontend renderers still contain compatibility support for old runtime
    blocks and must not be used as proof that those blocks reach the model.
-5. Semantic answer judgment is stochastic evidence. Active mode fails closed,
-   but validator latency and false positives require monitoring.
+5. Research Lab is operator-gated. Until the isolated runner is installed and
+   verified, `lab python` must return an explicit unavailable receipt rather
+   than execute code in the backend.
 
 ## 7. Next Registry Work
 

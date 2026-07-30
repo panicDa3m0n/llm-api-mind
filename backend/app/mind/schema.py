@@ -6,8 +6,8 @@ from typing import Any
 from app.mind.command_registry import command_catalog
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-28.semantic-authority-v2"
+MIND_API_SCHEMA_VERSION = "2026-07-30.research-lab-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-07-30.research-lab-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -45,7 +45,7 @@ MIND_SHELL_TOOL_SCHEMA: dict[str, Any] = {
     "description": (
         "Scarlet's internal cognitive command shell. Use concise commands to "
         "navigate memory, sessions, focus, volition, affect, agent mode, "
-        "perception, cognitive episodes, metacognition, "
+        "perception, cognitive episodes, bounded research lab evidence, metacognition, "
         "and capability help without exposing endpoint mechanics to the user."
     ),
     "input_schema": {
@@ -1512,6 +1512,46 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "channel": "notifications",
                     "limit": 10,
                 },
+            },
+        ],
+    },
+    {
+        "method": "POST",
+        "path": "/mind/lab",
+        "status": "implemented",
+        "purpose": (
+            "Run a bounded Research Lab action: inspect status, open one public "
+            "HTTPS source, request network-disabled Python execution, or reopen a "
+            "stored run/source/artifact. Lab evidence is never automatic context or memory."
+        ),
+        "body_schema": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "type": "string",
+                    "enum": ["status", "python", "web_open", "run", "source", "artifact"],
+                },
+                "code": {"type": ["string", "null"]},
+                "source_ids": {"type": "array", "items": {"type": "string"}},
+                "url": {"type": ["string", "null"]},
+                "run_id": {"type": ["string", "null"]},
+                "source_id": {"type": ["string", "null"]},
+                "artifact_id": {"type": ["string", "null"]},
+            },
+            "required": ["action"],
+        },
+        "examples": [
+            {
+                "method": "POST",
+                "path": "/mind/lab",
+                "intent": "Read a public document as source evidence.",
+                "body": {"action": "web_open", "url": "https://example.org"},
+            },
+            {
+                "method": "POST",
+                "path": "/mind/lab",
+                "intent": "Check a symbolic calculation in an isolated runner.",
+                "body": {"action": "python", "code": "from sympy import symbols; print(symbols('x'))"},
             },
         ],
     },

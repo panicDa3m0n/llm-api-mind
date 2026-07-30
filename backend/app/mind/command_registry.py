@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-07-28.mind-shell-command-registry-v4"
+COMMAND_REGISTRY_VERSION = "2026-07-30.mind-shell-command-registry-v5"
 
 
 @dataclass(frozen=True)
@@ -344,6 +344,41 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
             ),
         },
     ),
+    "lab": CommandFamily(
+        aliases=("research", "research-lab"),
+        default_action="status",
+        actions={
+            "status": CommandAction(status="implemented", aliases=("info",)),
+            "python": CommandAction(
+                status="implemented",
+                aliases=("code", "compute"),
+                requires_any=("code",),
+                suggested_command='lab python --code "from sympy import symbols; print(symbols(\'x\'))"',
+            ),
+            "web": CommandAction(
+                status="implemented",
+                suggested_command='lab web open "https://example.org"',
+            ),
+            "run": CommandAction(
+                status="implemented",
+                aliases=("open", "inspect"),
+                requires_any=("arg", "id", "run-id"),
+                suggested_command="lab run labrun_...",
+            ),
+            "source": CommandAction(
+                status="implemented",
+                aliases=("read",),
+                requires_any=("arg", "id", "source-id"),
+                suggested_command="lab source labsrc_...",
+            ),
+            "artifact": CommandAction(
+                status="implemented",
+                aliases=("file",),
+                requires_any=("arg", "id", "artifact-id"),
+                suggested_command="lab artifact labart_...",
+            ),
+        },
+    ),
     "metacognition": CommandFamily(
         aliases=("meta", "reflect"),
         default_action="step",
@@ -374,6 +409,7 @@ COMMAND_CATALOG_METADATA: dict[str, dict[str, Any]] = {
             "help mode",
             "help perception",
             "help episode",
+            "help lab",
             "help metacognition",
         ],
     },
@@ -485,6 +521,21 @@ COMMAND_CATALOG_METADATA: dict[str, dict[str, Any]] = {
             'episode wake-add --episode episode_... --event-type "organ.volition.created"',
             "episode wake-list",
             "episode wake-cancel wake_...",
+        ],
+    },
+    "lab": {
+        "purpose": (
+            "Run bounded isolated computation and inspect explicit external "
+            "research sources without adding them automatically to memory or context."
+        ),
+        "commands": [
+            "lab status",
+            'lab web open "https://example.org"',
+            'lab python --code "from sympy import symbols; print(symbols(\'x\'))"',
+            'lab python --source labsrc_... --code "..."',
+            "lab run labrun_...",
+            "lab source labsrc_...",
+            "lab artifact labart_...",
         ],
     },
     "metacognition": {
@@ -683,6 +734,13 @@ def command_family_summaries() -> list[dict[str, str]]:
 
 def canonical_command_namespace(namespace: str) -> str | None:
     return _canonical_namespace(_normalize_token(namespace))
+
+
+def canonical_command_action(namespace: str, action: str | None) -> str | None:
+    canonical_namespace = canonical_command_namespace(namespace)
+    if canonical_namespace is None:
+        return None
+    return _canonical_action(COMMAND_FAMILIES[canonical_namespace], action)
 
 
 def _canonical_namespace(namespace: str) -> str | None:

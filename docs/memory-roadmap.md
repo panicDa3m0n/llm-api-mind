@@ -5,6 +5,11 @@ Last updated: 2026-07-30
 App baseline: V1.65.1 deployed on the protected VPS; V1.50.1 closed-Core
 baseline
 
+This is a mixed historical/research roadmap. Current memory behavior is owned
+by `docs/branches/memory.md`, `docs/project-state.md`, the relevant API
+contract, and executable code. Do not treat uncompleted roadmap phases as
+active capability.
+
 This document turns the current Memory v0 evidence, live terminal probes, and
 external memory-system research into an implementation roadmap for a robust,
 API-first Scarlet memory system.

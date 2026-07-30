@@ -1,8 +1,8 @@
 # Agentic Module Host
 
-Last updated: 2026-07-19
-App target: V1.57.0 over the release-accepted V1.50.1 Core
-Runtime status: implemented, opt-in, no product modules installed
+Last reviewed: 2026-07-30
+Introduced for V1.57.0 over the release-accepted V1.50.1 Core
+Runtime status: implemented and opt-in in V1.65.1; no product module installed
 Linear issue: SCA-54
 
 ## 1. Purpose And Boundary

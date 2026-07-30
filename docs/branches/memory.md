@@ -1,7 +1,7 @@
 # Branch: Memoria
 
-Last updated: 2026-07-28
-System version assessed: V1.65.0 deployed on the protected VPS
+Last reviewed: 2026-07-30
+System version assessed: V1.65.1 deployed on the protected VPS
 Status: active branch with repeatable natural baseline
 
 ## Filosofia del ramo

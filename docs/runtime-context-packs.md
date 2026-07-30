@@ -6,6 +6,11 @@ V1.62 shared V2 plus provisional workspace orientation
 App baseline: V1.50.1 closed-Core baseline; V1.65.1 deployed on the protected
 VPS
 
+This document mixes the active context spine with forward planning. Verify a
+specific delivery claim against `docs/context-packet-inventory.md`,
+`docs/core-runtime-contract.md`, and the current compiler before treating it
+as model-visible behavior.
+
 This document defines how API Mind keeps Scarlet's live model context bounded
 and how agent modes route automatic cognitive surfaces. It prepares the system
 for future embodiment without implementing sensors, webhooks, or actuators now.

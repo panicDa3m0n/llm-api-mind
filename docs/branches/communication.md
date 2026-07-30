@@ -1,7 +1,7 @@
 # Branch: Comunicazione Agente-Utente
 
-Last updated: 2026-07-28
-System version assessed: V1.65.0 deployed on the protected VPS; V1.50.1
+Last reviewed: 2026-07-30
+System version assessed: V1.65.1 deployed on the protected VPS; V1.50.1
 closed-Core baseline
 Status: active branch
 

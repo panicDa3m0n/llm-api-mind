@@ -1,0 +1,13 @@
+services:
+  scarlet-api:
+    build:
+      context: ./backend
+    image: scarlet-mobile-api:${SCARLET_IMAGE_TAG:-local}
+    container_name: scarlet-mobile-api
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8100:8000"
+    volumes:
+      - ./backend/data:/app/data

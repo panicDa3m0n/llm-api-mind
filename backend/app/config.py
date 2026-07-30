@@ -120,6 +120,27 @@ class Settings(BaseSettings):
     )
     device_perception_admission_mode: Literal["off", "shadow", "active"] = "active"
 
+    # Research Lab is an opt-in shell capability. Its Python execution lives
+    # in a separate, network-disabled runner; the backend never executes
+    # model-supplied code in-process.
+    research_lab_enabled: bool = False
+    research_lab_runner_uds: str | None = None
+    research_lab_runner_timeout_seconds: float = Field(default=20.0, gt=0, le=60)
+    research_lab_code_max_chars: int = Field(default=12_000, ge=256, le=12_000)
+    research_lab_source_max_chars: int = Field(default=30_000, ge=1_000, le=30_000)
+    research_lab_model_source_max_chars: int = Field(
+        default=12_000,
+        ge=1_000,
+        le=30_000,
+    )
+    research_lab_web_timeout_seconds: float = Field(default=12.0, gt=0, le=60)
+    research_lab_web_max_bytes: int = Field(default=512_000, ge=8_192, le=5_000_000)
+    research_lab_artifact_max_bytes: int = Field(
+        default=1_000_000,
+        ge=8_192,
+        le=1_000_000,
+    )
+
     model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
     model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
     model_context_relevant_memories_limit: int = Field(default=5, ge=0, le=20)
@@ -256,6 +277,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 "autonomous activation max silence must not be shorter than the "
                 "minimum M3 activation gap"
+            )
+        if self.research_lab_model_source_max_chars > self.research_lab_source_max_chars:
+            raise ValueError(
+                "research_lab_model_source_max_chars must not exceed "
+                "research_lab_source_max_chars"
             )
         return self
 

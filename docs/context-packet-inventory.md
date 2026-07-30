@@ -1,7 +1,7 @@
 # Context Packet Inventory
 
-Last reviewed: 2026-07-28
-Code baseline reviewed: V1.65.0 deployed on the protected VPS
+Last reviewed: 2026-07-30
+Code baseline reviewed: V1.65.1 deployed on the protected VPS
 Status: active V2 inventory plus historical rich-source audit
 
 ## Purpose
