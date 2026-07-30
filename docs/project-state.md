@@ -144,9 +144,10 @@ Implemented and verified:
   network, explicit-location, and notification-interaction transitions from
   the raw Device Exploration ledger without injecting them into chat context
   or treating the phone as Scarlet's own sensor;
-- an unreleased V1.66.0 operator-gated Research Lab extension: `lab` can retain
-  explicit public-source and isolated computation receipts, but it is disabled
-  by default, not deployed, and excluded from automatic context, memory, KG,
+- a V1.66.0 operator-gated Research Lab extension deployed on the protected
+  VPS: `lab` can retain explicit public-source and isolated computation
+  receipts, is enabled there through operator environment and disabled by
+  default elsewhere, and remains excluded from automatic context, memory, KG,
   perception, Workspace, and autonomous scheduling;
 - a Product Chat header surface that replays each autonomous cycle as notes,
   tools, expandable thinking, and an internal checkpoint without presenting it
@@ -492,7 +493,7 @@ product opportunity, not an unfinished Core acceptance criterion.
 | Operational management | L3/L4 | Focus lifecycle passed 6/6 V1.40 controls; V1.42 mode routing and cross-session resume posture are traceable and validated | retain organ separation before goal/task expansion |
 | Decision autonomy | L3/L4 | Model-controlled shell, volition register, structural finality, bounded mode selection, persisted internal cycles, shared V2/retrieval continuity, and locally verified active Workspace/episode lifecycle | observe source/candidate/no-wake and episode quality longitudinally with shadow rollback; design initiative/action receipts before external delivery |
 | External operativity | L1 | No external-world tool suite in Scarlet runtime | permission, safety, rollback, capability and receipt architecture |
-| Advanced operations | L2 local | Operator-gated Research Lab shell extension with bounded cited-source records and an isolated Python/SymPy runner; not deployed or active by default | install/verify the runner separately, then evaluate useful constrained companion workflows before expanding external operativity |
+| Advanced operations | L2 | Operator-gated Research Lab shell extension with bounded cited-source records and an isolated Python/SymPy runner; deployed on the protected VPS and disabled by default elsewhere | evaluate useful constrained companion workflows on disposable data before expanding external operativity |
 | Governance/privacy/safety | L2 | DB roles, traceability, profile hints, backend field ownership | authenticated user ownership, access control, export/delete/correction, embodied safety |
 | Computational affect | L3/L4 | Standalone appraisal transition passed V1.40 model/shadow/neutral controls; shadow remains default | prove causal answer benefit before model-default or integration research |
 | Multi-agent/subprocesses | L1/L2 | Maintenance is deterministic/LLM-assisted background work, not multi-agent | avoid agents until one-agent limits are measured; design bounded contracts first |

@@ -5,6 +5,7 @@ import type {
   ChatSession,
   ChatTurn,
   CognitiveEvent,
+  DashboardResearchLab,
   DashboardMemories,
   DeviceExplorationSummary,
   DeviceObservationBatchResponse,
@@ -51,17 +52,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!response.ok) {
-    let message = `${response.status} ${response.statusText}`;
-    try {
-      const body = (await response.json()) as ApiError;
-      message = body.detail?.message || body.detail?.code || message;
-    } catch {
-      // Keep the HTTP status fallback.
-    }
-    throw new Error(message);
+    throw await responseError(response);
   }
 
   return (await response.json()) as T;
+}
+
+async function responseError(response: Response): Promise<Error> {
+  let message = `${response.status} ${response.statusText}`;
+  try {
+    const body = (await response.json()) as ApiError;
+    message = body.detail?.message || body.detail?.code || message;
+  } catch {
+    // Keep the HTTP status fallback.
+  }
+  return new Error(message);
 }
 
 function resolveApiPath(path: string): string {
@@ -586,6 +591,31 @@ export function fetchDashboardMemories(params: {
     query.set("limit", String(params.limit));
   }
   return request<DashboardMemories>(`/api/dashboard/memories?${query.toString()}`);
+}
+
+export function fetchDashboardResearchLab(): Promise<DashboardResearchLab> {
+  return request<DashboardResearchLab>("/api/dashboard/research-lab");
+}
+
+export async function fetchResearchLabArtifactContent(artifactId: string): Promise<Blob> {
+  const response = await fetch(
+    resolveApiPath(`/api/dashboard/research-lab/artifacts/${artifactId}/content`),
+    { headers: apiHeaders() }
+  );
+  if (!response.ok) {
+    throw await responseError(response);
+  }
+  return response.blob();
+}
+
+export async function deleteResearchLabArtifact(artifactId: string): Promise<void> {
+  const response = await fetch(
+    resolveApiPath(`/api/dashboard/research-lab/artifacts/${artifactId}`),
+    { method: "DELETE", headers: apiHeaders() }
+  );
+  if (!response.ok) {
+    throw await responseError(response);
+  }
 }
 
 export function fetchUserProfile(): Promise<UserProfile> {

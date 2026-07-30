@@ -76,8 +76,8 @@ Research Lab stays off until all of these are true:
    ```
 
 5. Verify the runner socket with its `/health` endpoint from the backend
-   container, then use `lab status` and one disposable `lab python` command on
-   a non-production database before production enablement.
+   container. Any behavioural Lab evaluation belongs on a disposable database,
+   never on the production mount.
 
 The tracked root `docker-compose.yml` and `docker-compose.research-lab.yml`
 compose together. Their only shared volume is the socket directory. Enabling
@@ -95,3 +95,9 @@ reopened `https://example.com` by source id, and confirmed that Python fails
 closed without its socket. Docker sidecar execution and a live SymPy run are
 not yet local evidence because the runner container has not been started in
 this workspace.
+
+V1.66.0 was deployed to the protected VPS on 2026-07-30 with the API and
+runner in separate healthy containers. The production database remains mounted
+in place; deployment neither transferred, seeded, nor evaluated Lab data on
+that database. The capability is enabled there through operator environment,
+while it remains disabled by default in other environments.

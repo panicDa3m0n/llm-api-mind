@@ -3,6 +3,7 @@ import {
   BookHeart,
   Brain,
   Clock3,
+  FlaskConical,
   House,
   MessageCircleMore,
   Plus,
@@ -13,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import {
   createSession,
+  fetchDashboardResearchLab,
   fetchDashboardMemories,
   fetchHealth,
   fetchRuntimeSettings,
@@ -23,6 +25,7 @@ import { publicAssetPath } from "../runtimeAssets";
 import type {
   ChatSession,
   DashboardMemories,
+  DashboardResearchLab,
   HealthStatus,
   RuntimeSettings,
   UserProfile
@@ -32,6 +35,7 @@ import { DataJsonPanel } from "./DataJsonPanel";
 import { DeviceExplorationScreen } from "./DeviceExplorationScreen";
 import { MemoryScreen, SessionsScreen } from "./ProductScreens";
 import { ProfileSettingsScreen } from "./ProfileSettingsScreen";
+import { ResearchLabScreen } from "./ResearchLabScreen";
 import {
   UnavailableFeatureModal,
   type UnavailableFeature
@@ -45,7 +49,8 @@ export type ProductView =
   | "memory"
   | "sessions"
   | "profile"
-  | "device";
+  | "device"
+  | "lab";
 
 type ProductData = {
   health: HealthStatus | null;
@@ -53,6 +58,7 @@ type ProductData = {
   profile: UserProfile | null;
   sessions: ChatSession[];
   settings: RuntimeSettings | null;
+  lab: DashboardResearchLab | null;
 };
 
 const EMPTY_DATA: ProductData = {
@@ -60,7 +66,8 @@ const EMPTY_DATA: ProductData = {
   memories: null,
   profile: null,
   sessions: [],
-  settings: null
+  settings: null,
+  lab: null
 };
 
 export function HomeDashboard({
@@ -95,7 +102,8 @@ export function HomeDashboard({
       fetchSessions(100),
       fetchDashboardMemories({ limit: 200 }),
       fetchUserProfile(),
-      fetchRuntimeSettings()
+      fetchRuntimeSettings(),
+      fetchDashboardResearchLab()
     ]);
     const rejected = results.find(
       (result): result is PromiseRejectedResult => result.status === "rejected"
@@ -110,7 +118,8 @@ export function HomeDashboard({
       profile:
         results[3].status === "fulfilled" ? results[3].value : current.profile,
       settings:
-        results[4].status === "fulfilled" ? results[4].value : current.settings
+        results[4].status === "fulfilled" ? results[4].value : current.settings,
+      lab: results[5].status === "fulfilled" ? results[5].value : current.lab
     }));
     setConnectionError(
       rejected
@@ -191,6 +200,7 @@ export function HomeDashboard({
             onNewSession={() => void startNewSession()}
             onOpenMemory={openMemory}
             onOpenSessions={() => navigate("sessions")}
+            onOpenLab={() => navigate("lab")}
             onResumeSession={resumeSession}
           />
         ) : null}
@@ -270,6 +280,15 @@ export function HomeDashboard({
           />
         ) : null}
         {view === "device" ? <DeviceExplorationScreen /> : null}
+        {view === "lab" ? (
+          <ResearchLabScreen
+            data={data.lab}
+            loading={loading}
+            onArtifactDeleted={() => void refresh()}
+            onBack={() => navigate("home")}
+            onRefresh={() => void refresh()}
+          />
+        ) : null}
 
         <p className="scarlet-home__fixture-note">
           {loading
@@ -298,6 +317,7 @@ function HomeContent({
   onNewSession,
   onOpenMemory,
   onOpenSessions,
+  onOpenLab,
   onResumeSession
 }: {
   connectionError: string | null;
@@ -308,6 +328,7 @@ function HomeContent({
   onNewSession: () => void;
   onOpenMemory: (memoryId?: string) => void;
   onOpenSessions: () => void;
+  onOpenLab: () => void;
   onResumeSession: (session: ChatSession) => void;
 }) {
   const memories = data.memories?.memories.slice(0, 3) ?? [];
@@ -439,6 +460,16 @@ function HomeContent({
           </div>
         </section>
       </div>
+
+      <button className="scarlet-home__lab-shortcut" onClick={onOpenLab} type="button">
+        <span aria-hidden="true"><FlaskConical size={19} /></span>
+        <div>
+          <small>Ricerca e calcolo</small>
+          <strong>Artefatti del laboratorio</strong>
+          <p>Apri i risultati che Scarlet ha scelto di conservare.</p>
+        </div>
+        <ArrowRight aria-hidden="true" size={17} />
+      </button>
     </div>
   );
 }

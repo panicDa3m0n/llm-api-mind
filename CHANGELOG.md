@@ -6,6 +6,23 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.67.0 - Research Lab Artifact Library
+
+#### Added
+
+- Add one shared Product UI library for persisted Research Lab artifacts on
+  browser VPS and Android: recent runs, readable text/JSON/CSV/image/PDF
+  artifacts, direct downloads for other formats, and explicit artifact-only
+  deletion.
+- Add profile-scoped dashboard API routes for Lab receipt listing, artifact
+  content, and deletion while preserving the parent run receipt.
+
+#### Verification
+
+- Cover artifact listing, reading, deletion, profile scoping, and parent-run
+  preservation with a focused temporary-database API test; compile/lint the
+  backend and build the shared VPS Product UI.
+
 ### V1.66.0 - Research Lab
 
 #### Added
@@ -22,9 +39,11 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 #### Operational
 
-- Keep the capability disabled by default and undistributed until the runner
-  sidecar and its minimal shared socket mount are deliberately installed and
-  verified.
+- Deploy the API and network-disabled runner sidecar to the protected VPS with
+  the production database mounted in place. The capability is enabled there by
+  operator environment and remains disabled by default elsewhere; no Lab
+  command or evaluation was executed against the production database during
+  deployment.
 
 ### V1.65.1 - Autonomous Runtime Hardening
 

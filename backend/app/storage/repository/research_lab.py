@@ -175,3 +175,13 @@ def list_research_lab_artifacts(
         .order_by(ResearchLabArtifact.created_at, ResearchLabArtifact.id)
     )
     return list(db.exec(statement).all())
+
+
+def delete_research_lab_artifact(
+    db: Session,
+    artifact: ResearchLabArtifact,
+) -> None:
+    """Remove one user-visible artifact while preserving its run receipt."""
+
+    db.delete(artifact)
+    db.commit()

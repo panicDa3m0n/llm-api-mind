@@ -1,6 +1,6 @@
 # API Contract
 
-Last reviewed: 2026-07-30 against V1.66.0 local code
+Last reviewed: 2026-07-30 against V1.67.0 code
 Status: current contract sections are explicitly labelled; later historical,
 deprecated, and roadmap sections preserve evidence only
 
@@ -641,7 +641,8 @@ Exploration or Android notifications into this contract.
 
 ### Research Lab
 
-Status: implemented locally for V1.66.0; operator-gated and not deployed.
+Status: deployed in V1.66.0; operator-gated and disabled by default outside
+the protected VPS environment.
 
 Research Lab is an on-demand evidence surface under the existing shell, not a
 new cognitive organ or an autonomous worker. `lab web open` retrieves one
@@ -654,6 +655,12 @@ model context, memory, KG, perception, Workspace, or autonomous scheduling.
 The internal dispatcher route is `POST /mind/lab`; it is not a second model
 tool. Details, limits, persistence, and the required sidecar installation are
 defined in [Research Lab](research-lab.md).
+
+The Product UI projects the same persisted receipts through
+`GET /api/dashboard/research-lab`. An artifact can be read through
+`GET /api/dashboard/research-lab/artifacts/{artifact_id}/content` or deleted
+through `DELETE /api/dashboard/research-lab/artifacts/{artifact_id}`. Deletion
+removes only the artifact receipt; its parent run remains inspectable.
 
 ### Context Accounting
 

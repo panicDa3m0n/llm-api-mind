@@ -1367,6 +1367,64 @@ def test_dashboard_settings_control_runtime_context(db_engine: Engine) -> None:
     )
 
 
+def test_dashboard_research_lab_lists_reads_and_deletes_artifacts(
+    db_engine: Engine,
+) -> None:
+    client = make_client(
+        db_engine,
+        {"research_lab_enabled": True, "research_lab_runner_uds": "/tmp/lab.sock"},
+    )
+    with Session(db_engine) as db:
+        session = repositories.create_chat_session(db, title="Laboratorio")
+        run = repositories.create_research_lab_run(
+            db,
+            profile_id="local-user",
+            session_id=session.id,
+            turn_id="turn_lab_dashboard",
+            action="python",
+            intent="Preparare un risultato leggibile.",
+            request={"code_sha256": "a" * 64},
+        )
+        repositories.complete_research_lab_run(
+            db,
+            run=run,
+            result={"stdout": "risultato pronto\\n", "stderr": ""},
+        )
+        artifact = repositories.create_research_lab_artifact(
+            db,
+            run_id=run.id,
+            profile_id="local-user",
+            name="risultato.json",
+            media_type="application/json",
+            content_bytes=b'{"value": 42}',
+            sha256="b" * 64,
+        )
+
+    listing = client.get("/api/dashboard/research-lab")
+    assert listing.status_code == 200
+    body = listing.json()
+    assert body["enabled"] is True
+    assert body["runner_configured"] is True
+    assert body["total"] == 1
+    assert body["runs"][0]["result"]["stdout"] == "risultato pronto\\n"
+    assert body["runs"][0]["artifacts"][0]["id"] == artifact.id
+
+    content = client.get(
+        f"/api/dashboard/research-lab/artifacts/{artifact.id}/content"
+    )
+    assert content.status_code == 200
+    assert content.headers["content-type"].startswith("application/json")
+    assert content.content == b'{"value": 42}'
+    assert "inline" in content.headers["content-disposition"]
+
+    deletion = client.delete(f"/api/dashboard/research-lab/artifacts/{artifact.id}")
+    assert deletion.status_code == 204
+    assert client.get(
+        f"/api/dashboard/research-lab/artifacts/{artifact.id}/content"
+    ).status_code == 404
+    assert client.get("/api/dashboard/research-lab").json()["runs"][0]["artifacts"] == []
+
+
 def test_chat_turn_can_override_system_prompt(db_engine: Engine) -> None:
     client = make_client(db_engine)
     session = client.post("/api/chat/sessions", json={}).json()

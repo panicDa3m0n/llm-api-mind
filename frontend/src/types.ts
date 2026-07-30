@@ -248,6 +248,41 @@ export type DashboardMemories = {
   memories: DashboardMemory[];
 };
 
+export type ResearchLabArtifact = {
+  id: string;
+  run_id: string;
+  name: string;
+  media_type: string;
+  byte_size: number;
+  sha256: string;
+  created_at: string;
+  content_url: string;
+};
+
+export type ResearchLabRun = {
+  id: string;
+  action: string;
+  status: string;
+  intent: string;
+  session_id: string | null;
+  turn_id: string | null;
+  source_ids: string[];
+  result: Record<string, unknown>;
+  error: Record<string, unknown> | null;
+  runner_identity: string | null;
+  started_at: string;
+  completed_at: string | null;
+  artifacts: ResearchLabArtifact[];
+};
+
+export type DashboardResearchLab = {
+  enabled: boolean;
+  runner_configured: boolean;
+  total: number;
+  returned: number;
+  runs: ResearchLabRun[];
+};
+
 export type RuntimeSettings = {
   timezone: string;
   language: string;

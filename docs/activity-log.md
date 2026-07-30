@@ -8,12 +8,12 @@ Use it to record meaningful work, verification, open questions, and the next sug
 
 Area: Research Lab on `feature/core-convergence-kernels`.
 
-Type: Implementazione V1.66.0 local. Scope: one operator-gated `lab` family
+Type: Implementazione V1.66.0, deployed on the protected VPS. Scope: one operator-gated `lab` family
 under the existing `mind_shell`, bounded source/run/artifact persistence,
 public HTTPS read-only retrieval, and a separate network-disabled Python/SymPy
 runner descriptor. Memory retrieval, automatic context, session lifecycle,
-autonomy, Workspace, MiniMax prompts, GPT bridge, UI, production database, and
-deployment were out of scope.
+autonomy, Workspace, MiniMax prompts, GPT bridge, UI, and production-database
+content were out of scope.
 
 Changes:
 
@@ -39,11 +39,41 @@ Verification:
   confirmed Python fails closed without a configured socket; database-boundary,
   documentation-integrity, and project-skill validators passed.
 
+Deployment:
+
+- deployed the API and network-disabled runner sidecar on 2026-07-30;
+- verified separate healthy containers and the protected production database
+  role without transferring, seeding, or executing a Lab command against that
+  database; and
+- left the capability enabled only through the protected VPS operator
+  environment and disabled by default elsewhere.
+
 Residual:
 
-The Docker daemon/sidecar was not started locally, so a live SymPy execution
-and operator mount handshake are not claimed. The capability remains disabled
-by default and has not been deployed.
+The Docker daemon/sidecar was not started locally, so a live local SymPy run is
+not claimed. Behavioural Lab evaluation remains a disposable-database activity.
+
+## 2026-07-30 - Research Lab Artifact Library
+
+Area: Product UI and dashboard API on `feature/core-convergence-kernels`.
+
+Type: Implementazione V1.67.0. Scope: expose existing profile-scoped Research
+Lab run/artifact receipts in the shared browser/Android Product UI, support
+readable artifact previews and explicit artifact-only deletion. New Lab
+capabilities, automatic context, memory/KG mutation, Lab execution, and any
+production-database test data were out of scope.
+
+Changes:
+
+- added dashboard API list/content/delete routes over existing Lab receipts;
+- added the `Artefatti del laboratorio` dashboard entry and reader for text,
+  structured text, images, PDFs, and downloads; and
+- preserved parent run receipts after deletion for provenance.
+
+Verification:
+
+- focused local temporary-database dashboard API test passed;
+- Lab focused tests, Ruff, Python compilation, and VPS Product UI build passed.
 
 ## 2026-07-30 - Canonical Technical Stack Map
 

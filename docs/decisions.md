@@ -7344,7 +7344,7 @@ Links:
 ## ADR-0148 - Research Lab Is Explicit Evidence, Not In-Process Agent Authority
 
 Date: 2026-07-30
-Status: accepted for local V1.66.0 implementation; deployment remains pending
+Status: accepted; deployed on the protected VPS in V1.66.0
 
 Context:
 

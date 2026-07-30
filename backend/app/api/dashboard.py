@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from pathlib import PurePath
+from urllib.parse import quote
+
+from fastapi import APIRouter, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.engine import Engine
 from sqlmodel import Session
@@ -15,7 +18,7 @@ from app.runtime.preferences import (
 )
 from app.storage import repositories
 from app.storage.db import database_runtime_info
-from app.storage.models import MemoryRecord
+from app.storage.models import MemoryRecord, ResearchLabArtifact, ResearchLabRun
 
 
 class RuntimePreferencesResponse(BaseModel):
@@ -81,6 +84,41 @@ class UserProfileResponse(BaseModel):
     source: str
     memory_count: int
     top_memories: list[DashboardMemoryResponse]
+
+
+class DashboardResearchLabArtifactResponse(BaseModel):
+    id: str
+    run_id: str
+    name: str
+    media_type: str
+    byte_size: int
+    sha256: str
+    created_at: datetime
+    content_url: str
+
+
+class DashboardResearchLabRunResponse(BaseModel):
+    id: str
+    action: str
+    status: str
+    intent: str
+    session_id: str | None
+    turn_id: str | None
+    source_ids: list[str]
+    result: dict[str, Any]
+    error: dict[str, Any] | None
+    runner_identity: str | None
+    started_at: datetime
+    completed_at: datetime | None
+    artifacts: list[DashboardResearchLabArtifactResponse]
+
+
+class DashboardResearchLabResponse(BaseModel):
+    enabled: bool
+    runner_configured: bool
+    total: int
+    returned: int
+    runs: list[DashboardResearchLabRunResponse]
 
 
 def build_dashboard_router(settings: Settings, engine: Engine) -> APIRouter:
@@ -159,6 +197,59 @@ def build_dashboard_router(settings: Settings, engine: Engine) -> APIRouter:
                 top_memories=[_memory_response(memory) for memory in memories[:8]],
             )
 
+    @router.get("/research-lab", response_model=DashboardResearchLabResponse)
+    def list_research_lab_runs(
+        limit: int = Query(default=50, ge=1, le=100),
+    ) -> DashboardResearchLabResponse:
+        profile_id = str(settings.user_profile_id or "local-user")
+        with Session(engine) as db:
+            runs = repositories.list_research_lab_runs(
+                db,
+                profile_id=profile_id,
+                limit=limit,
+            )
+            payload = [
+                _research_lab_run_response(
+                    run,
+                    repositories.list_research_lab_artifacts(db, run_id=run.id),
+                )
+                for run in runs
+            ]
+        return DashboardResearchLabResponse(
+            enabled=settings.research_lab_enabled,
+            runner_configured=bool(settings.research_lab_runner_uds),
+            total=len(payload),
+            returned=len(payload),
+            runs=payload,
+        )
+
+    @router.get("/research-lab/artifacts/{artifact_id}/content")
+    def read_research_lab_artifact(artifact_id: str) -> Response:
+        profile_id = str(settings.user_profile_id or "local-user")
+        with Session(engine) as db:
+            artifact = repositories.get_research_lab_artifact(db, artifact_id)
+            if artifact is None or artifact.profile_id != profile_id:
+                raise HTTPException(status_code=404, detail=_lab_not_found_detail())
+            content = artifact.content_bytes
+            media_type = artifact.media_type
+            name = _safe_artifact_filename(artifact.name)
+        response = Response(content=content, media_type=media_type)
+        response.headers["Content-Disposition"] = (
+            f"inline; filename*=UTF-8''{quote(name)}"
+        )
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
+
+    @router.delete("/research-lab/artifacts/{artifact_id}", status_code=204)
+    def delete_research_lab_artifact(artifact_id: str) -> Response:
+        profile_id = str(settings.user_profile_id or "local-user")
+        with Session(engine) as db:
+            artifact = repositories.get_research_lab_artifact(db, artifact_id)
+            if artifact is None or artifact.profile_id != profile_id:
+                raise HTTPException(status_code=404, detail=_lab_not_found_detail())
+            repositories.delete_research_lab_artifact(db, artifact)
+        return Response(status_code=204)
+
     return router
 
 
@@ -195,3 +286,52 @@ def _memory_response(memory: MemoryRecord) -> DashboardMemoryResponse:
         last_used_at=memory.last_used_at,
         metadata=memory.metadata_json,
     )
+
+
+def _research_lab_run_response(
+    run: ResearchLabRun,
+    artifacts: list[ResearchLabArtifact],
+) -> DashboardResearchLabRunResponse:
+    return DashboardResearchLabRunResponse(
+        id=run.id,
+        action=run.action,
+        status=run.status,
+        intent=run.intent,
+        session_id=run.session_id,
+        turn_id=run.turn_id,
+        source_ids=run.source_ids_json,
+        result=run.result_json,
+        error=run.error_json,
+        runner_identity=run.runner_identity,
+        started_at=run.started_at,
+        completed_at=run.completed_at,
+        artifacts=[_research_lab_artifact_response(item) for item in artifacts],
+    )
+
+
+def _research_lab_artifact_response(
+    artifact: ResearchLabArtifact,
+) -> DashboardResearchLabArtifactResponse:
+    return DashboardResearchLabArtifactResponse(
+        id=artifact.id,
+        run_id=artifact.run_id,
+        name=artifact.name,
+        media_type=artifact.media_type,
+        byte_size=artifact.byte_size,
+        sha256=artifact.sha256,
+        created_at=artifact.created_at,
+        content_url=f"/api/dashboard/research-lab/artifacts/{artifact.id}/content",
+    )
+
+
+def _lab_not_found_detail() -> dict[str, Any]:
+    return {
+        "code": "dashboard.research_lab_artifact_not_found",
+        "message": "The Research Lab artifact is unavailable for this profile.",
+        "recoverable": True,
+    }
+
+
+def _safe_artifact_filename(name: str) -> str:
+    candidate = PurePath(name).name.strip()
+    return candidate or "scarlet-artifact"
