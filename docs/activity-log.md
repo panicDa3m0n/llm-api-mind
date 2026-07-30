@@ -36,10 +36,32 @@ Verification:
 - direct in-memory scheduler probe confirmed that two source packets resolve
   to the same pending activation with both candidate ids retained.
 
+Deployment:
+
+- deployed source commit `7288197541cc8113292a3c75d124089e2d331e5e` as
+  `scarlet-mobile-api:v1.65.1-7288197` after the online production backup at
+  `/var/backups/scarlet-mobile-test/v1651-20260730T102241Z/app.db.pre-v1651`
+  (SHA-256 `6a480876ccedfb8334cf88ecc7be7047931905090ad226a9910e14196c8dcb69`);
+- the new image passed a read-only mounted-production preflight before switch;
+- a reflinked copied-DB canary dry-run and guarded apply selected exactly 39
+  legacy retry candidates, left no matching candidate behind, and passed
+  SQLite integrity with 39 `parked` candidates;
+- production dry-run and guarded apply repeated that exact 39-row result,
+  while 22 unrelated `suspended` candidates remained untouched;
+- post-switch health and OpenAPI report V1.65.1, the production database
+  remains direct with integrity `ok`, 45 tables, 353 memories, 248 sessions,
+  1,423 messages, and 330,046 events; and
+- a brief SQLite lock was logged while the guarded migration wrote its 39
+  lifecycle events concurrently with background workers. The service remained
+  healthy, no container restarted, the later log window was clean, and this
+  operational robustness observation is recorded as BUG-0136 rather than
+  silently treated as a successful steady-state condition.
+
 Next step:
 
-Run the deployment procedure with a production backup and copied-DB canary,
-then execute the candidate operator command dry-run before its guarded apply.
+Observe ordinary autonomous worker activity over the next natural cycle and
+evaluate BUG-0136 separately; do not create an artificial M3 turn merely for
+release smoke.
 
 ## 2026-07-30 - Accepted V2 Cognitive Companion Architecture Plan
 

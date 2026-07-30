@@ -1,7 +1,7 @@
 # Quality Gates
 
-Last updated: 2026-07-28
-App deployment: V1.65.0 on the protected VPS; V1.50.1 remains release-accepted
+Last updated: 2026-07-30
+App deployment: V1.65.1 on the protected VPS; V1.50.1 remains release-accepted
 Status: active incremental baseline
 
 This document defines the first automated engineering-quality baseline for API

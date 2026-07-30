@@ -50,6 +50,11 @@ unreviewed source to copy back into the repository.
   transfer when possible because ignored SQLite residues may exist outside
   `backend/data`.
 - Run mutating canaries only on an isolated copied database.
+- A guarded SQLite operation that scans or updates many live rows can briefly
+  contend with background workers even after a copied-DB canary succeeds.
+  After the real apply, inspect a quiescent log window as well as health and
+  integrity; record persistent worker-lock errors as a release finding rather
+  than treating a successful operator exit as sufficient evidence.
 - After rollout, rerun integrity and application preflights against production
   without creating test sessions or memories.
 

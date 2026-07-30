@@ -1,9 +1,9 @@
 # Runtime Context And Agent Modes
 
-Last updated: 2026-07-27
+Last updated: 2026-07-30
 Status: Core V1 context active; V1.59 semantic family routing shadow;
 V1.62 shared V2 plus provisional workspace orientation
-App baseline: V1.50.1 closed-Core baseline; V1.65.0 deployed on the protected
+App baseline: V1.50.1 closed-Core baseline; V1.65.1 deployed on the protected
 VPS
 
 This document defines how API Mind keeps Scarlet's live model context bounded

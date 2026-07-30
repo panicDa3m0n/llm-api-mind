@@ -1,8 +1,8 @@
 # Memory Robustness Roadmap
 
 Status: Core V1 memory baseline closed; residual work is future research
-Last updated: 2026-07-28
-App baseline: V1.65.0 deployed on the protected VPS; V1.50.1 closed-Core
+Last updated: 2026-07-30
+App baseline: V1.65.1 deployed on the protected VPS; V1.50.1 closed-Core
 baseline
 
 This document turns the current Memory v0 evidence, live terminal probes, and

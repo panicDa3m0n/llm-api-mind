@@ -1,7 +1,7 @@
 # LLM API Mind - Project Blueprint
 
-Architecture baseline: Core V1.50.1 closed; V1.65.0 shared lifecycle runtime
-deployed, with V1.65.1 autonomous hardening locally verified and pending deploy
+Architecture baseline: Core V1.50.1 closed; V1.65.1 shared lifecycle runtime
+with autonomous hardening deployed
 Status: Core V1 closed; V2 cognitive companion plan accepted
 Last updated: 2026-07-30
 Primary human: project owner, evaluator, direction, validation  

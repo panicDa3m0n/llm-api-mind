@@ -1,9 +1,9 @@
 # Project State And Convergent Roadmap
 
 Last updated: 2026-07-30
-App deployment: V1.65.0 with shared human/autonomous turn kernels is deployed
-on the protected VPS; V1.65.1 runtime hardening is locally verified and
-pending deployment. V1.50.1 remains the closed-Core release baseline
+App deployment: V1.65.1 with shared human/autonomous turn kernels and runtime
+hardening is deployed on the protected VPS. V1.50.1 remains the closed-Core
+release baseline
 Status: Core V1 closed; canonical V2 current-state map
 
 The release-accepted V1.50.1 runtime is the closed Core foundation. "Closed"

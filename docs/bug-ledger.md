@@ -7,10 +7,27 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0136 - Guarded SQLite Candidate Migration Briefly Contended With Workers
+
+Date Found: 2026-07-30
+Status: observed during V1.65.1 deployment; no Core change approved
+
+The reviewed production migration parked 39 exact legacy candidates correctly,
+but its write window overlapped with the autonomous and maintenance workers.
+Those workers logged `sqlite3.OperationalError: database is locked` for their
+affected batch. The API remained healthy, the container did not restart, later
+log observation was clean, and final database integrity was `ok`.
+
+This is not evidence of lost cognitive data or a candidate-lifecycle failure.
+It is evidence that a future long-running guarded operator operation should
+coordinate more explicitly with background writer loops, or use a documented
+SQLite busy/retry policy. Do not add a broad retry or stop-the-world mechanism
+without a separate, evidence-led design review.
+
 ## BUG-0135 - Unadopted Workspace Candidates Re-entered On A Blind Timer
 
 Date Found: 2026-07-30
-Status: fixed locally in V1.65.1; guarded production reconciliation pending
+Status: fixed and reconciled on production in V1.65.1
 
 The old no-decision fallback stored a selected candidate as `suspended` and
 made it eligible again after `AUTONOMOUS_ACTIVATION_INTERVAL_SECONDS`, despite
@@ -26,10 +43,15 @@ Regression: `test_cognitive_workspace.py` covers parking and source-backed
 reconsideration; `test_park_legacy_workspace_candidates.py` proves the
 operator selection excludes an unrelated explicit suspension.
 
+Deployment evidence: the protected V1.65.1 rollout ran the same guarded
+operation against a copied production database and then production itself. In
+both cases, the exact 39 legacy rows were parked and no generic suspension was
+selected.
+
 ## BUG-0134 - Legacy Autonomous Trace Shape Blocked History Compaction
 
 Date Found: 2026-07-30
-Status: fixed locally in V1.65.1; production observation pending
+Status: fixed and deployed in V1.65.1; longitudinal compaction observation pending
 
 Early autonomous request traces stored native content as a string while later
 canonical provider history used blocks. The strict source mapper rejected the
@@ -39,6 +61,10 @@ The derived mapper now normalizes only the legacy string to one text block;
 canonical history and stored trace evidence are unchanged. Regression:
 `test_history_compaction.py` proves a mixed legacy/current chronology maps
 completely without rewriting canonical history.
+
+Deployment evidence: V1.65.1 passed the read-only production preflight and
+kept the canonical autonomous history untouched. A natural post-deployment
+compaction cycle remains the appropriate next longitudinal observation.
 
 ## BUG-0133 - Product UI Artifact Drift Broke The Protected Browser Preview
 

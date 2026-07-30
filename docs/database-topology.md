@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-28
-Backend baseline: V1.65.0 deployed on the protected VPS
+Last updated: 2026-07-30
+Backend baseline: V1.65.1 deployed on the protected VPS
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -195,6 +195,17 @@ these changes affect model-context delivery and traces, not database ownership
 or canonical history. The post-deploy production preflight remained
 `production`/`direct` with SQLite integrity `ok`.
 
+V1.65.1 retained the same production mount and role while introducing no schema
+migration. Its protected rollout created the online backup at
+`/var/backups/scarlet-mobile-test/v1651-20260730T102241Z/app.db.pre-v1651`,
+then ran the guarded legacy-candidate operation first on a reflinked copied
+database and then on production. Both selected exactly 39 rows from the exact
+retired retry path; unrelated suspended candidates were not selected. The final
+read-only production preflight reported direct production ownership, SQLite
+integrity `ok`, 45 tables, 353 memories, 248 sessions, 1,423 messages, and
+330,046 events. The temporary worker lock observed during the operator write is
+retained in BUG-0136; it did not require a database restore.
+
 V1.43.0 preserves the same database, maintenance, context, and cognitive
 boundaries. It removes only the deprecated MCP transport and query-key auth.
 The guarded rollout retained all 34 historical `mcp_bridge` sessions; the
@@ -238,6 +249,10 @@ For every deployment:
 5. Only then restart the compose service and call `/health`; confirm returned
    `database.role=production` and `database.isolation=direct`.
 6. Never seed, reset, or run `codex_test_memory_harness.py` on the VPS.
+7. After a guarded SQLite operation scans or updates many live rows, inspect a
+   later quiescent worker-log window as well as health and integrity. A
+   successful operator exit alone does not prove that background writers did
+   not contend during the mutation.
 
 An explicit owner-requested autonomous chronology restart is not a database
 seed or a broad reset. Use only the guarded

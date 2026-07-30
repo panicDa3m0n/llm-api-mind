@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-30
 Status: accepted architectural plan; no V2 implementation slice is implied
-Baseline: Core V1.50.1 closed; V1.65.0 is the current deployed runtime
+Baseline: Core V1.50.1 closed; V1.65.1 is the current deployed runtime
 
 ## 1. Purpose
 

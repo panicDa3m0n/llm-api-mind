@@ -3,8 +3,8 @@
 Last updated: 2026-07-30
 Target: V1.65.1 integration hardening
 Implementation status: complete locally; focused deterministic and simulated
-M3 lifecycle evidence accepted; V1.65.1 scheduling integration and production
-observation pending
+M3 lifecycle evidence accepted; V1.65.1 scheduling integration deployed and
+awaiting longitudinal natural-cycle observation
 Linear: SCA-58
 
 ## Purpose

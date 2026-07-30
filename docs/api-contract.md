@@ -3,8 +3,8 @@
 This file documents stable API contracts once they are implemented.
 
 Last reviewed: 2026-07-30
-App deployment: V1.65.0 deployed on the protected VPS; V1.50.1 remains the
-closed-Core baseline. V1.65.1 is locally verified and pending deployment.
+App deployment: V1.65.1 deployed on the protected VPS; V1.50.1 remains the
+closed-Core baseline.
 
 ## V1.65 Shared Turn Lifecycle Boundary
 

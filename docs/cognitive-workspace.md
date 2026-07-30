@@ -3,8 +3,8 @@
 Last updated: 2026-07-30
 Target: V1.65.1
 Implementation status: Workspace/endogenous lifecycle complete; V1.65.1
-compaction, parking, and scheduling hardening is locally verified and awaiting
-protected deployment
+compaction, parking, and scheduling hardening is deployed and awaiting only
+longitudinal natural-cycle observation
 Linear: SCA-57
 
 ## Purpose
