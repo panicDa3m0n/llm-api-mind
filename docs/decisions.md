@@ -7420,3 +7420,41 @@ Links:
 
 - `backend/app/prompts/scarlet_system.md`
 - `docs/branches/identity-relationship.md`
+
+## ADR-0150 - Native Prompt Uses One Proportional Cognitive Constitution
+
+Date: 2026-07-30
+Status: accepted for the local V1.68.0 prompt candidate; deployment pending
+
+Context:
+
+The native policy repeated the same behavior across separate epistemic,
+internal-loop, effort-routing, careful-work, and evidence-hierarchy sections.
+The repetition made the policy read like a backend operating manual and risked
+ritualized tool use, despite the existing design requiring proportional,
+source-led judgment.
+
+Decision:
+
+- replace those repeated sections with `Cognitive Conduct` and `Evidence
+  Discipline`;
+- keep one situated flow: orient, distinguish evidence from memory/inference,
+  choose the smallest useful action, verify durable changes, integrate, and
+  preserve a durable memory when warranted;
+- retain source-specific grounding, partial-evidence disclosure, and
+  metacognition only when it adds value; and
+- preserve the existing runtime-context, shell, memory, public-note, and
+  provider-finality contracts in their own sections and owners.
+
+Consequences:
+
+The static prompt becomes less procedural without transferring semantic
+judgment to keyword checks or deterministic answer validation. This candidate
+needs focused native behavior observation before it is deployed or treated as
+a complete prompt rework.
+
+Links:
+
+- `backend/app/prompts/scarlet_system.md`
+- `backend/tests/test_chat_api.py`
+- `docs/branches/identity-relationship.md`

@@ -4,6 +4,23 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-07-30 - Native Prompt Constitution: Cognitive Conduct And Evidence
+
+Area: native Scarlet system prompt on `feature/core-convergence-kernels`.
+
+Type: Implementazione locale, second V1.68.0 prompt slice. Scope: replace the
+repeated epistemic, effort-routing, cognitive-loop, work-posture, and evidence
+hierarchy prose with one operational constitution. It keeps source discipline,
+proportional effort, durable-state verification, deliberate uncertainty, and
+the option of metacognition, while removing a procedural/manual tone. Dynamic
+context, memory/retrieval behavior, shell commands, provider lifecycle, GPT
+bridge, UI, database, and deployment remain out of scope.
+
+Verification: the focused native chat test now proves that the actual bundled
+base policy delivered to the provider contains both new sections. Direct
+behavioral evaluation remains pending because the local MiniMax credential is
+not configured; no VPS deployment is claimed.
+
 ## 2026-07-30 - Native Prompt Constitution: Identity And Initiative Foundation
 
 Area: native Scarlet system prompt on `feature/core-convergence-kernels`.

@@ -1132,6 +1132,8 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert request_trace["provider_messages"][0]["role"] == "user"
     assert request_trace["system_present"] is True
     assert request_trace["system_source"] == "bundled"
+    assert "## Cognitive Conduct" in request_trace["base_system"]
+    assert "## Evidence Discipline" in request_trace["base_system"]
     assert request_trace["runtime_context_present"] is True
     assert request_trace["memory_context_trace_id"] == traces[0]["id"]
     assert request_trace["metacognitive_context_trace_id"] == traces[1]["id"]
@@ -1171,7 +1173,7 @@ def test_chat_turn_persists_messages_and_traces(db_engine: Engine) -> None:
     assert "use your digital brain" in request_trace["base_system"]
     assert "Perception And Source Of Truth" in request_trace["base_system"]
     assert "runtime_context.session.now" in request_trace["base_system"]
-    assert "There is no fixed cognitive step budget" in request_trace["base_system"]
+    assert "fixed action budget:" in request_trace["base_system"]
     assert "Previous-Turn Continuity Check" in request_trace["base_system"]
     assert "include_inactive=true" in request_trace["base_system"]
     assert "Visible Metacognition Experiment" not in request_trace["base_system"]

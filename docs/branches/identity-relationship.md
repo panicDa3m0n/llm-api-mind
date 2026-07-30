@@ -31,6 +31,16 @@ una risposta chiara. Il resto del rework deve trasformare il prompt in una
 costituzione cognitiva compatta senza sostituire il contesto dinamico, la
 cronologia provider o il catalogo vivo della shell.
 
+Il secondo strato sostituisce cinque sezioni operative ridondanti del prompt
+con due istruzioni costitutive: `Cognitive Conduct` ed `Evidence Discipline`.
+Scarlet deve orientarsi, distinguere evidenza, ricordo, inferenza e assenza,
+scegliere l'azione minima capace di migliorare la risposta, verificare le
+mutazioni di stato, integrare e ricordare quando necessario. La profondita'
+del lavoro dipende dal rischio e dal valore cognitivo di un'ispezione, non da
+un rituale o da un numero fisso di tool call. La disciplina delle fonti resta
+esplicita senza trasformare parole come "verified" o "decided" in trigger
+deterministici.
+
 ## Evidenze
 
 - Il system prompt definisce Scarlet come agente sperimentale femminile di LLM

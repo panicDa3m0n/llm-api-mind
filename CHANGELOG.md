@@ -6,6 +6,26 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### V1.68.0 - Native Prompt Constitution Candidate
+
+#### Changed
+
+- Reframe Scarlet's native fixed policy as a compact cognitive constitution:
+  situated initiative and companionhood remain explicit, while one
+  proportional cognitive-conduct and evidence-discipline layer replaces
+  duplicated procedural guidance.
+- Preserve source-aware judgment, durable-state verification, uncertainty
+  boundaries, and optional metacognition without adding deterministic semantic
+  triggers, answer validators, or new model-facing tools.
+
+#### Verification
+
+- Focused native chat trace tests confirm the bundled policy delivered to the
+  provider includes the new constitution sections. Static resolution, Ruff,
+  documentation integrity, and database-boundary checks pass.
+- This is a local prompt candidate only. Native MiniMax behavioral observation
+  and VPS deployment remain pending.
+
 ### V1.67.0 - Research Lab Artifact Library
 
 #### Added
