@@ -109,6 +109,10 @@ class MindAPIResponse(BaseModel):
     trace_id: str | None = None
     usage_guide: dict[str, Any] | None = None
     error: MindAPIError | None = None
+    provider_content_parts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        exclude=True,
+    )
 
 
 def dispatch_mind_api(
@@ -420,6 +424,7 @@ def _operation_response(
         )
         if result.error_code is not None
         else None,
+        provider_content_parts=result.provider_content_parts,
     )
 
 

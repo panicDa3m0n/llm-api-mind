@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-07-30.mind-shell-command-registry-v5"
+COMMAND_REGISTRY_VERSION = "2026-08-01.mind-shell-command-registry-v6"
 
 
 @dataclass(frozen=True)
@@ -269,6 +269,14 @@ COMMAND_FAMILIES: dict[str, CommandFamily] = {
                 aliases=("show", "get", "inspect"),
                 requires_any=("arg", "id", "event-id"),
                 suggested_command="perception read per_...",
+            ),
+            "look": CommandAction(
+                status="implemented",
+                suggested_command="perception look --source camera --seconds 3",
+                reason=(
+                    "Returns one bounded, current camera observation without "
+                    "writing memory or automatic context."
+                ),
             ),
         },
     ),

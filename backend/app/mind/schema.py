@@ -6,8 +6,8 @@ from typing import Any
 from app.mind.command_registry import command_catalog
 
 
-MIND_API_SCHEMA_VERSION = "2026-07-30.research-lab-v1"
-MIND_SHELL_SCHEMA_VERSION = "2026-07-30.research-lab-v1"
+MIND_API_SCHEMA_VERSION = "2026-08-01.camera-perception-v1"
+MIND_SHELL_SCHEMA_VERSION = "2026-08-01.camera-perception-v1"
 
 
 MIND_API_TOOL_SCHEMA: dict[str, Any] = {
@@ -1481,18 +1481,21 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
         "status": "implemented",
         "purpose": (
             "Inspect the perception availability index, open unread events from "
-            "one channel, or read one source-labelled observation."
+            "one channel, read one source-labelled observation, or request one "
+            "bounded observation from an injected live source."
         ),
         "body_schema": {
             "type": "object",
             "properties": {
                 "action": {
                     "type": "string",
-                    "enum": ["status", "open", "read"],
+                    "enum": ["status", "open", "read", "look"],
                 },
                 "channel": {"type": ["string", "null"]},
                 "event_id": {"type": ["string", "null"]},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 50},
+                "source": {"type": ["string", "null"]},
+                "seconds": {"type": "number", "minimum": 0.5, "maximum": 30},
             },
             "required": ["action"],
         },
@@ -1511,6 +1514,16 @@ MIND_API_ROUTES: list[dict[str, Any]] = [
                     "action": "open",
                     "channel": "notifications",
                     "limit": 10,
+                },
+            },
+            {
+                "method": "POST",
+                "path": "/mind/perception",
+                "intent": "Inspect one bounded current camera observation.",
+                "body": {
+                    "action": "look",
+                    "source": "camera",
+                    "seconds": 3,
                 },
             },
         ],

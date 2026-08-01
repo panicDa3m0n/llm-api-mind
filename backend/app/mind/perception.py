@@ -6,7 +6,11 @@ from typing import Any
 
 from sqlmodel import Session
 
-from app.mind.contracts import MemoryOperationResult, MindAPIContext
+from app.mind.contracts import (
+    LivePerceptionError,
+    MemoryOperationResult,
+    MindAPIContext,
+)
 from app.storage import repositories
 
 
@@ -25,6 +29,53 @@ def handle_perception(
         getattr(context.settings, "user_profile_id", None) or "local-user"
     )
     action = str(body.get("action") or "status").strip().casefold()
+    if action == "look":
+        if context.settings is None:
+            return _error(
+                "perception.settings_required",
+                "Camera perception requires runtime settings.",
+            )
+        if context.live_perception_capture is None:
+            return _error(
+                "perception.live_source_unavailable",
+                "The active model transport has no live perception source attached.",
+            )
+        source = str(body.get("source") or "camera").strip().casefold()
+        if source != "camera":
+            return _error(
+                "perception.source_unsupported",
+                f"Unsupported live perception source: {source}",
+            )
+        try:
+            seconds = float(
+                body.get("seconds")
+                or context.settings.camera_perception_default_window_seconds
+            )
+            metadata, provider_parts = context.live_perception_capture(
+                context.settings,
+                seconds,
+            )
+        except (LivePerceptionError, TypeError, ValueError) as exc:
+            return _error("perception.camera_capture_failed", str(exc))
+        return MemoryOperationResult(
+            ok=True,
+            result={
+                "operation": "perception.look",
+                "source": "camera",
+                "observation": metadata,
+                "provider_delivery": "attached_multimodal_content",
+                "intent": intent,
+            },
+            cognitive_hint=(
+                "Inspect the attached current camera evidence directly. Treat "
+                "its system interval as authoritative timing; do not imply it "
+                "was stored as memory or automatic context."
+            ),
+            suggested_next_actions=[
+                "perception look --source camera --seconds 3",
+            ],
+            provider_content_parts=provider_parts,
+        )
     with Session(context.engine) as db:
         if action == "status":
             channels = repositories.perception_availability_index(

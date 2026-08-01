@@ -133,6 +133,7 @@ def build_mind_tool_runner(
             latency_ms=latency_ms,
             tool_call_id=tool_call_id,
             trace_id=trace_id,
+            provider_content_parts=mind_response.provider_content_parts,
         )
         with Session(engine) as db:
             completed_event = record_tool_call_completed(

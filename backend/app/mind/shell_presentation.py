@@ -75,6 +75,7 @@ def dispatch_api_as_shell(
         )
         if api_response.error is not None
         else None,
+        provider_content_parts=api_response.provider_content_parts,
     )
 
 

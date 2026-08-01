@@ -9,6 +9,74 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0089 - Interactive Camera Perception Preliminary
+
+Date: 2026-08-01
+Status: simulated M3 and shell path verified; real Tapo C220 gate blocked on
+device setup
+
+Question:
+
+Can Scarlet inspect a bounded window from a continuous camera through the
+single `mind_shell` surface, using MiniMax M3's native video understanding,
+without injecting raw video into history or letting the adapter write memory,
+context, or perception-ledger events?
+
+Method and evidence:
+
+- Verified the current MiniMax Responses API contract exposes native
+  `input_image` and `input_video`, including provider-side frame sampling.
+- Sent one controlled image and one eight-second MP4 directly to MiniMax M3.
+  M3 identified the scene and ordered all visual changes correctly. Its
+  inferred timestamps were compressed and therefore are not reliable clocks.
+- Simulated three successive camera windows. A `latest-only` pending slot
+  discarded an already stale middle window when capture outran analysis,
+  while preserving the in-flight result and the newest available evidence.
+- Verified a Responses tool loop in which M3 streamed a public note, called
+  `mind_shell`, received an MP4 as multimodal `function_call_output`, and
+  answered from the scene. A later human message inserted before continuation
+  took priority, although one answer included an extra unrequested detail.
+- Ran the real Scarlet native prompt with Adaptive Thinking. M3 emitted a
+  public note, selected
+  `perception look --source camera --seconds 3`, and correctly located the
+  controlled keys after the shell returned the video attachment.
+- Published the controlled video through an ephemeral local RTSP server and
+  captured it through the same adapter intended for Tapo. Direct packet-copy
+  produced an MP4 that local tools accepted but MiniMax rejected; transcoding
+  each bounded window to self-contained H.264 fixed the failure. The resulting
+  RTSP capture, shell attachment, and M3 analysis completed successfully.
+
+Implemented experimental boundary:
+
+- `backend/app/plugins/camera_perception/` owns file/RTSP capture and secrets;
+- Core exposes only an injected live-perception port and an experimental
+  `perception look` command;
+- raw Base64 is excluded from shell JSON, tool receipts, and traces;
+- RTSP credentials are redacted from capture errors and never returned in
+  observation metadata;
+- the adapter reports explicitly that it wrote no memory, automatic context,
+  or perception event; and
+- the capability is disabled by default. The current Anthropic transport is
+  not falsely marked compatible with multimodal tool results.
+
+Open gate:
+
+The C220 was not discoverable on the local LAN. An apparent candidate at
+`192.168.1.159` was rejected after its IEEE OUI identified a Roborock device,
+not TP-Link. A real test requires the powered/configured camera on the same LAN
+plus a separate Tapo Camera Account. No credentials are committed or printed.
+The active Scarlet provider transport must be evaluated against the Responses
+tool loop before this experiment can become a normal runtime capability.
+
+Interpretation:
+
+Direct bounded file and RTSP video perception is technically viable.
+Continuous perception
+should not queue every window: source time remains deterministic metadata and
+pending evidence should favor freshness. This result does not yet choose the
+future realtime architecture, continuous cadence, retention policy, audio,
+PTZ, or event-driven perception.
+
 ## EXP-0088 - Native Lifecycle Convergence
 
 Status: deterministic acceptance complete locally; protected deployment and

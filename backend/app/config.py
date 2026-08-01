@@ -120,6 +120,35 @@ class Settings(BaseSettings):
     )
     device_perception_admission_mode: Literal["off", "shadow", "active"] = "active"
 
+    # Interactive camera perception is an isolated, opt-in experiment. A
+    # bounded capture may be returned to the active provider through
+    # mind_shell, but it never becomes memory or automatic context here.
+    camera_perception_enabled: bool = False
+    camera_perception_source: Literal["file", "rtsp"] = "file"
+    camera_perception_file_path: str | None = None
+    camera_perception_source_id: str = "tapo-c220"
+    camera_perception_host: str | None = None
+    camera_perception_port: int = Field(default=554, ge=1, le=65535)
+    camera_perception_username: str | None = Field(default=None, repr=False)
+    camera_perception_password: str | None = Field(default=None, repr=False)
+    camera_perception_stream: Literal["stream1", "stream2"] = "stream2"
+    camera_perception_ffmpeg_path: str = "ffmpeg"
+    camera_perception_default_window_seconds: float = Field(
+        default=3.0,
+        ge=0.5,
+        le=10.0,
+    )
+    camera_perception_max_window_seconds: float = Field(
+        default=10.0,
+        ge=0.5,
+        le=30.0,
+    )
+    camera_perception_max_media_bytes: int = Field(
+        default=20_000_000,
+        ge=1024,
+        le=100_000_000,
+    )
+
     # Research Lab is an opt-in shell capability. Its Python execution lives
     # in a separate, network-disabled runner; the backend never executes
     # model-supplied code in-process.

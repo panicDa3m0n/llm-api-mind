@@ -990,6 +990,9 @@ def _perception_command(
                 actions=["perception read per_..."],
             )
         body["event_id"] = event_id
+    elif action == "look":
+        body["source"] = _flag_string(parsed, "source") or "camera"
+        body["seconds"] = _flag_float(parsed, 3.0, "seconds", "duration")
     return _dispatch_api_as_shell(
         parsed,
         target=f"perception.{action}",

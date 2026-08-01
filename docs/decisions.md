@@ -7458,3 +7458,41 @@ Links:
 - `backend/app/prompts/scarlet_system.md`
 - `backend/tests/test_chat_api.py`
 - `docs/branches/identity-relationship.md`
+
+## ADR-0151 - Interactive Camera Perception Stays An Injected Experimental Port
+
+Date: 2026-08-01
+Status: accepted for preliminary evaluation; real-camera and provider gates open
+
+Context:
+
+The first camera experiment must let Scarlet inspect real visual evidence
+without turning the camera adapter into a second cognitive runtime or allowing
+it to mutate memory, context, sessions, or the existing perception ledger.
+MiniMax M3 supports native image/video input, but Scarlet's current Anthropic
+transport does not expose that media contract.
+
+Decision:
+
+- keep capture, RTSP credentials, media encoding, and source-specific behavior
+  in an optional `camera_perception` plugin;
+- expose one generic live-perception callback in the existing Mind context,
+  leaving Core independent of Tapo and RTSP;
+- use the existing `perception` shell family for a bounded `look` operation;
+- keep media in an excluded in-memory provider field and persist only bounded
+  metadata and ordinary tool lifecycle evidence; and
+- fail transparently unless an explicitly compatible provider composition
+  injects the port.
+
+Consequences:
+
+The simulated Responses path can be evaluated without switching the working
+native provider or claiming production support. Real C220 capture, active
+provider composition, continuous cadence, audio, PTZ, and event-driven
+perception remain separate evidence gates.
+
+Links:
+
+- `backend/app/plugins/camera_perception/`
+- `backend/app/mind/perception.py`
+- `docs/experiments.md#exp-0089---interactive-camera-perception-preliminary`

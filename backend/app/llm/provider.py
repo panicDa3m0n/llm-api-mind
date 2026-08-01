@@ -57,6 +57,10 @@ class LLMExecutedToolCall(BaseModel):
     latency_ms: int | None = None
     tool_call_id: str | None = None
     trace_id: str | None = None
+    provider_content_parts: list[dict[str, Any]] = Field(
+        default_factory=list,
+        exclude=True,
+    )
 
 
 class LLMStreamEvent(BaseModel):

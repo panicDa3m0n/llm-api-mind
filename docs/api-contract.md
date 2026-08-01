@@ -601,7 +601,8 @@ checkpoint, expectation, and wake history.
 ### Perception Inbox
 
 Status: storage, ingestion, availability, and shell navigation implemented in
-V1.60.0; native source adapters not implemented
+V1.60.0; bounded interactive camera adapter is experimental and disabled by
+default
 
 The canonical flow is:
 
@@ -620,6 +621,7 @@ Model-facing commands:
 perception status
 perception open <channel> --limit 10
 perception read <event_id>
+perception look --source camera --seconds 3
 ```
 
 `status` does not count as inspection. It explicitly covers external
@@ -627,6 +629,14 @@ observation channels and excludes autonomous chronology, session history, and
 semantic memory. `open` returns a bounded ordered batch and advances only the
 calling session's cursor. `read` inspects one exact event. No command deletes
 an event or changes its observation time.
+
+`look` is separate from the append-only inbox. When an explicitly compatible
+provider composition injects a live source, it captures one bounded current
+window and returns compact timing/source metadata plus an in-memory provider
+media attachment. It does not create a perception event, semantic memory,
+automatic context, or session-history media block. Media bytes are excluded
+from shell JSON and persisted tool/trace receipts. The command fails
+transparently when the experiment, source, or model transport is unavailable.
 
 Model-facing local times always use the configured human timezone, including
 the historical DST offset for the event date. Transport-facing API and stream

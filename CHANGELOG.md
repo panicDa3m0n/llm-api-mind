@@ -6,6 +6,25 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### Interactive Camera Perception Experiment
+
+#### Added
+
+- Add an opt-in Tapo/file camera adapter and experimental
+  `perception look --source camera --seconds N` command behind the existing
+  single `mind_shell` surface.
+- Add an excluded in-memory provider-content path so bounded image/video
+  evidence can reach a compatible multimodal provider without entering shell
+  JSON, traces, memory, automatic context, or the perception ledger.
+
+#### Evidence
+
+- Verify MiniMax M3 image/video input, temporal scene understanding,
+  latest-only continuous-window handling, public-note/tool sequencing, user
+  interruption before continuation, a complete simulated Scarlet shell
+  handoff, and an ephemeral RTSP-to-H.264-to-M3 path. Real C220 capture remains
+  pending device setup and no VPS deployment is claimed.
+
 ### V1.68.0 - Native Prompt Constitution
 
 #### Changed

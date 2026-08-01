@@ -148,6 +148,11 @@ Implemented and verified:
   network, explicit-location, and notification-interaction transitions from
   the raw Device Exploration ledger without injecting them into chat context
   or treating the phone as Scarlet's own sensor;
+- an isolated, disabled-by-default interactive camera experiment now exposes
+  bounded `perception look` media through an injected provider port. Controlled
+  MiniMax M3 video and shell handoff are verified; real C220 RTSP and active
+  native-provider composition remain open gates, and the adapter writes no
+  memory, automatic context, or perception-ledger event;
 - a V1.66.0 operator-gated Research Lab extension deployed on the protected
   VPS: `lab` can retain explicit public-source and isolated computation
   receipts, is enabled there through operator environment and disabled by
@@ -391,7 +396,7 @@ Implemented command families:
 | volition | list/search/create/read/update/defer/review/promote/resolve/impossible/deprecate | No autonomous execution and no automatic chat injection. |
 | affect | read/list/prototypes | Read-only to Scarlet; backend appraises state. |
 | mode | read/list/set | Agent-only posture; human turns enforce `interactive`, manual selection sets the resumable tag. |
-| perception | status/open/read | Availability-first access to append-only perception evidence; opening advances only the autonomous session cursor. |
+| perception | status/open/read; experimental look | Availability-first access to append-only perception evidence; opening advances only the autonomous session cursor. `look` is an opt-in ephemeral media handoff and does not mutate the ledger. |
 | episode | list/read/open/checkpoint/suspend/resume/resolve/abandon/reject/expectation-add/expectation-resolve/wake-list/wake-add/wake-cancel | Scarlet-owned lifecycle for provisional workspace questions and explicit future wake contracts. |
 | metacognition | step | One LLM-backed route, not an automatic control loop. |
 

@@ -4,6 +4,38 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-08-01 - Interactive Camera Perception Preliminary
+
+Area: isolated camera perception experiment on
+`experiment/tapo-c220-interactive-perception`.
+
+MiniMax M3's current Responses API was verified directly with controlled image
+and video inputs. M3 recognized scene state and visual event order, but its
+free-form timestamps were inaccurate; source time therefore remains
+deterministic metadata. A rapid three-window simulation showed why pending
+continuous evidence needs latest-only replacement rather than an unbounded
+analysis queue. A streamed tool loop proved that M3 can emit a public note,
+call `mind_shell`, receive video inside the tool result, and continue after a
+new human instruction.
+
+An ephemeral local RTSP server then exercised the camera transport itself. A
+first stream-copy clip was locally readable but rejected by MiniMax; bounded
+H.264 transcoding produced a self-contained MP4 accepted by M3. Capture errors
+now redact RTSP user information defensively.
+
+The code adds a disabled-by-default file/RTSP camera plugin, an injected Core
+port, and experimental `perception look`. Media remains in an excluded
+in-memory field and is not written to memory, automatic context, history, or
+the perception ledger. Focused tests (`86` total across camera, shell,
+perception/autonomy, provider, API, and turn runner targets), Ruff, and selected
+mypy checks pass.
+
+The physical C220 was not discoverable on the LAN. The only apparent camera
+candidate was rejected after its IEEE OUI identified a Roborock device rather
+than TP-Link. Real capture awaits device setup plus a local Camera Account; the
+current Anthropic Scarlet transport remains deliberately unconnected to the
+multimodal port until a compatible Responses composition is accepted.
+
 ## 2026-07-31 - V1.68.0 Native Prompt Constitution Deployment
 
 Area: protected VPS backend release on `feature/core-convergence-kernels`.
