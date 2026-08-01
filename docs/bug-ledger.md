@@ -7,6 +7,25 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0137 - Live Camera Command Was Executable But Absent From Shell Help
+
+Date Found: 2026-08-01
+Status: fixed locally on the camera experiment branch; not deployed
+
+`perception look` existed in the executable command family but was omitted from
+the canonical command presentation returned by `help perception`. Runtime
+capability context therefore did not give Scarlet a reliable route to discover
+the camera, and a natural MiniMax M3 probe initially answered that no camera
+was available.
+
+The command catalog now includes the bounded camera command. `perception
+status` also reports configured live sources separately from persisted inbox
+channels, and each `look` result declares its one-shot, video-only delivery
+contract. Regression tests cover help discoverability, live-source status, and
+the delivery contract. A repeated real-camera agentic run selected `status`,
+then `look`, and answered from the attached video without implying audio or
+continuous monitoring.
+
 ## BUG-0136 - Guarded SQLite Candidate Migration Briefly Contended With Workers
 
 Date Found: 2026-07-30

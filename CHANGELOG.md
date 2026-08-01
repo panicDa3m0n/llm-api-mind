@@ -21,9 +21,12 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 - Verify MiniMax M3 image/video input, temporal scene understanding,
   latest-only continuous-window handling, public-note/tool sequencing, user
-  interruption before continuation, a complete simulated Scarlet shell
-  handoff, and an ephemeral RTSP-to-H.264-to-M3 path. Real C220 capture remains
-  pending device setup and no VPS deployment is claimed.
+  interruption before continuation, a complete Scarlet shell handoff, and
+  RTSP-to-H.264-to-M3 against a real Tapo C220.
+- Expose the bounded camera command in canonical shell help and distinguish
+  persisted perception channels from available live on-demand sources. Live
+  results now state that they are one-shot video without audio or continuous
+  monitoring. No VPS deployment is claimed.
 
 ### V1.68.0 - Native Prompt Constitution
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 
-COMMAND_REGISTRY_VERSION = "2026-08-01.mind-shell-command-registry-v6"
+COMMAND_REGISTRY_VERSION = "2026-08-01.mind-shell-command-registry-v7"
 
 
 @dataclass(frozen=True)
@@ -509,6 +509,7 @@ COMMAND_CATALOG_METADATA: dict[str, dict[str, Any]] = {
             "perception status",
             "perception open notifications --limit 10",
             "perception read per_...",
+            "perception look --source camera --seconds 3",
         ],
     },
     "episode": {

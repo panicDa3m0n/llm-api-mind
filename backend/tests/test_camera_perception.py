@@ -7,11 +7,14 @@ from app.mind.contracts import MindAPIContext
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.plugins.camera_perception import capture_camera_observation
 from app.plugins.camera_perception.sources import _sanitize_capture_error
+from app.storage.db import init_db
 
 
 def _context(settings: Settings) -> MindAPIContext:
+    engine = create_engine("sqlite://")
+    init_db(engine)
     return MindAPIContext(
-        engine=create_engine("sqlite://"),
+        engine=engine,
         session_id="ses_camera_test",
         turn_id="turn_camera_test",
         source_message_id="msg_camera_test",
@@ -23,6 +26,14 @@ def _context(settings: Settings) -> MindAPIContext:
             )
         ),
     )
+
+
+def test_perception_help_exposes_bounded_camera_look() -> None:
+    response = dispatch_mind_shell(MindShellRequest(command="help perception"))
+
+    assert response.ok is True
+    commands = response.result["catalog"]["commands"][0]["commands"]
+    assert "perception look --source camera --seconds 3" in commands
 
 
 def test_perception_look_attaches_media_without_serializing_it(tmp_path: Path) -> None:
@@ -51,6 +62,12 @@ def test_perception_look_attaches_media_without_serializing_it(tmp_path: Path) -
         "automatic_context_written": False,
         "perception_event_written": False,
     }
+    assert data["delivery_contract"] == {
+        "mode": "bounded_one_shot",
+        "included_modalities": ["video"],
+        "excluded_modalities": ["audio"],
+        "continuous_monitoring": False,
+    }
     assert [part["type"] for part in response.provider_content_parts] == [
         "input_text",
         "input_video",
@@ -59,6 +76,34 @@ def test_perception_look_attaches_media_without_serializing_it(tmp_path: Path) -
     assert media_url.startswith("data:video/mp4;base64,")
     assert "provider_content_parts" not in response.model_dump(mode="json")
     assert media_url not in str(response.model_dump(mode="json"))
+
+
+def test_perception_status_exposes_available_live_camera_separately() -> None:
+    settings = Settings(
+        camera_perception_enabled=True,
+        camera_perception_source="file",
+    )
+
+    response = dispatch_mind_shell(
+        MindShellRequest(command="perception status"),
+        context=_context(settings),
+    )
+
+    assert response.ok is True
+    data = response.result["data"]
+    assert data["channel_count"] == 0
+    assert data["live_source_count"] == 1
+    assert data["live_sources"] == [
+        {
+            "source": "camera",
+            "status": "available",
+            "access": "bounded_on_demand",
+            "command": "perception look --source camera --seconds 3",
+            "included_modalities": ["video"],
+            "excluded_modalities": ["audio"],
+            "continuous_monitoring": False,
+        }
+    ]
 
 
 def test_perception_look_fails_closed_when_experiment_is_disabled() -> None:

@@ -4,6 +4,33 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-08-01 - Real Tapo C220 Perception Gate
+
+Area: isolated camera perception experiment on
+`experiment/tapo-c220-interactive-perception`.
+
+After enabling macOS Local Network access for Visual Studio Code, the physical
+C220 at `192.168.1.223` was reachable from the development process. RTSP
+exposed H.264 video at `2560x1440` and `640x360`, both at 15 fps, plus mono
+PCM A-law audio at 8 kHz. A real bounded `perception look` produced a valid
+self-contained MP4, excluded its media from shell JSON, and wrote no memory,
+automatic context, or perception event.
+
+MiniMax M3 accurately described a retained five-second camera sample. It again
+compressed provider-sampled time, so source-system observation intervals remain
+authoritative. In a natural agentic test Scarlet first called `perception
+status`, then `perception look`, and answered from the real video. That run
+exposed a missing `look` entry in canonical help plus ambiguous live-source and
+modality metadata. The registry and result contract now expose the live camera
+as bounded on-demand video with no audio or continuous monitoring. The final
+repeat used both commands correctly and kept those limits explicit.
+
+Focused verification: 38 perception/shell/autonomy tests, Ruff, and selected
+mypy checks pass. The current native Anthropic-compatible provider composition
+still cannot consume the media attachment; audio delivery, PTZ, talkback,
+continuous cadence, and event-driven perception remain open experiments. No
+VPS deployment or production data mutation occurred.
+
 ## 2026-08-01 - Interactive Camera Perception Preliminary
 
 Area: isolated camera perception experiment on

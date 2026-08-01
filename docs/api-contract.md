@@ -1,6 +1,6 @@
 # API Contract
 
-Last reviewed: 2026-07-31 against V1.68.0 code
+Last reviewed: 2026-08-01 against V1.68.0 plus the isolated camera experiment
 Status: current contract sections are explicitly labelled; later historical,
 deprecated, and roadmap sections preserve evidence only
 
@@ -637,6 +637,13 @@ media attachment. It does not create a perception event, semantic memory,
 automatic context, or session-history media block. Media bytes are excluded
 from shell JSON and persisted tool/trace receipts. The command fails
 transparently when the experiment, source, or model transport is unavailable.
+
+`perception status` keeps persisted inbox channels and live sources separate.
+A configured camera appears under `live_sources` as `bounded_on_demand`; it is
+not counted as a persisted channel. The current `look` delivery contract is
+`bounded_one_shot`, includes video, excludes audio, and explicitly provides no
+continuous monitoring. A later call creates a new observation rather than
+extending the previous one.
 
 Model-facing local times always use the configured human timezone, including
 the historical DST offset for the event date. Transport-facing API and stream

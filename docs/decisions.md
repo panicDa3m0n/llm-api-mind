@@ -7462,7 +7462,7 @@ Links:
 ## ADR-0151 - Interactive Camera Perception Stays An Injected Experimental Port
 
 Date: 2026-08-01
-Status: accepted for preliminary evaluation; real-camera and provider gates open
+Status: accepted; real-camera gate passed, native provider gate open
 
 Context:
 
@@ -7486,10 +7486,12 @@ Decision:
 
 Consequences:
 
-The simulated Responses path can be evaluated without switching the working
-native provider or claiming production support. Real C220 capture, active
-provider composition, continuous cadence, audio, PTZ, and event-driven
-perception remain separate evidence gates.
+The real C220 now passes bounded RTSP capture, shell attachment, and MiniMax M3
+Responses evaluation without switching the working native provider or claiming
+production support. Shell help and `perception status` expose the live source
+as bounded on-demand video rather than a persisted inbox channel. Active native
+provider composition, model-facing audio, continuous cadence, PTZ, talkback,
+and event-driven perception remain separate evidence gates.
 
 Links:
 

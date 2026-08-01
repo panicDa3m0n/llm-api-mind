@@ -12,8 +12,8 @@ rewritten.
 ## EXP-0089 - Interactive Camera Perception Preliminary
 
 Date: 2026-08-01
-Status: simulated M3 and shell path verified; real Tapo C220 gate blocked on
-device setup
+Status: real Tapo C220, shell path, and M3 Responses path verified; native
+provider composition remains open
 
 Question:
 
@@ -45,6 +45,20 @@ Method and evidence:
   produced an MP4 that local tools accepted but MiniMax rejected; transcoding
   each bounded window to self-contained H.264 fixed the failure. The resulting
   RTSP capture, shell attachment, and M3 analysis completed successfully.
+- Connected the physical C220 at `192.168.1.223`. Its primary and secondary
+  streams exposed H.264 at `2560x1440` and `640x360`, 15 fps, with mono PCM
+  A-law audio at 8 kHz. The real adapter produced a 3-second 158 KB MP4 and a
+  5-second 271 KB retained evaluation clip without persistence side effects.
+- M3 accurately judged the retained five-second clip against a local contact
+  sheet. Capture took 5.8 seconds and direct M3 analysis 12.3 seconds. M3's
+  internal sampled timeline compressed the source duration, while the visible
+  camera timestamp and system observation interval remained correct.
+- A natural full-prompt Responses loop initially denied camera availability
+  because canonical shell help omitted the otherwise executable `look`
+  command. After fixing discoverability and declaring live-source/modality
+  boundaries, Scarlet autonomously called `perception status`, then
+  `perception look`, and accurately described the current room while stating
+  that the evidence was one-shot video without audio or continuous monitoring.
 
 Implemented experimental boundary:
 
@@ -61,12 +75,11 @@ Implemented experimental boundary:
 
 Open gate:
 
-The C220 was not discoverable on the local LAN. An apparent candidate at
-`192.168.1.159` was rejected after its IEEE OUI identified a Roborock device,
-not TP-Link. A real test requires the powered/configured camera on the same LAN
-plus a separate Tapo Camera Account. No credentials are committed or printed.
-The active Scarlet provider transport must be evaluated against the Responses
-tool loop before this experiment can become a normal runtime capability.
+The current native Anthropic-compatible Scarlet provider cannot consume the
+multimodal tool result, so the camera remains disabled by default and outside
+normal runtime. The experiment also has no model-facing audio, PTZ, talkback,
+continuous cadence, retention policy, or event-driven admission. No camera
+credentials are committed or returned by the shell.
 
 Interpretation:
 

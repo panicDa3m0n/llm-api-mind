@@ -64,12 +64,19 @@ def handle_perception(
                 "source": "camera",
                 "observation": metadata,
                 "provider_delivery": "attached_multimodal_content",
+                "delivery_contract": {
+                    "mode": "bounded_one_shot",
+                    "included_modalities": ["video"],
+                    "excluded_modalities": ["audio"],
+                    "continuous_monitoring": False,
+                },
                 "intent": intent,
             },
             cognitive_hint=(
                 "Inspect the attached current camera evidence directly. Treat "
-                "its system interval as authoritative timing; do not imply it "
-                "was stored as memory or automatic context."
+                "its system interval as authoritative timing. This result has "
+                "video only and is one bounded observation: do not infer sound, "
+                "ongoing monitoring, memory, or automatic context."
             ),
             suggested_next_actions=[
                 "perception look --source camera --seconds 3",
@@ -83,6 +90,23 @@ def handle_perception(
                 profile_id=profile_id,
                 session_id=context.session_id,
             )
+            live_sources: list[dict[str, Any]] = []
+            if (
+                context.live_perception_capture is not None
+                and context.settings is not None
+                and bool(context.settings.camera_perception_enabled)
+            ):
+                live_sources.append(
+                    {
+                        "source": "camera",
+                        "status": "available",
+                        "access": "bounded_on_demand",
+                        "command": "perception look --source camera --seconds 3",
+                        "included_modalities": ["video"],
+                        "excluded_modalities": ["audio"],
+                        "continuous_monitoring": False,
+                    }
+                )
             return MemoryOperationResult(
                 ok=True,
                 result={
@@ -96,15 +120,22 @@ def handle_perception(
                     "profile_id": profile_id,
                     "channel_count": len(channels),
                     "channels": channels,
+                    "live_source_count": len(live_sources),
+                    "live_sources": live_sources,
                     "intent": intent,
                 },
                 cognitive_hint=(
-                    "This indexes external source-labelled observations only. "
-                    "It is not autonomous chronology, session history, or "
-                    "semantic memory. Open only channels useful now."
+                    "Channels are persisted source-labelled observations; live "
+                    "sources are separate bounded on-demand evidence. Neither "
+                    "is autonomous chronology, session history, or semantic memory."
                 ),
                 suggested_next_actions=[
                     "perception open <channel> --limit 10",
+                    *(
+                        ["perception look --source camera --seconds 3"]
+                        if live_sources
+                        else []
+                    ),
                 ],
             )
 
