@@ -33,7 +33,7 @@ from app.storage.models import ChatSession, MemoryRecord, Message, utc_now
 
 RECENT_DIALOGUE_LIMIT = 8
 MODEL_MEMORY_PACKET_VERSION = "memory-packet-v1"
-MODEL_RUNTIME_CONTEXT_PROFILE = "compact-model-facing-v1"
+MODEL_RUNTIME_CONTEXT_PROFILE = "runtime-context-v1"
 
 
 @dataclass(frozen=True)
@@ -48,7 +48,7 @@ class MemoryContextBuild:
     model_context_trace_id: str | None = None
     model_context_payload: dict[str, Any] | None = None
     model_context_projection_audit: dict[str, Any] | None = None
-    model_context_profile: str = "legacy"
+    model_context_profile: str = "v2"
 
 
 def build_memory_context(
@@ -205,49 +205,40 @@ def build_memory_context(
         payload=runtime_payload,
     )
     runtime_payload["trace_id"] = runtime_trace.id
-    model_context_profile = str(getattr(settings, "model_context_profile", "legacy"))
-    model_context_payload: dict[str, Any] | None = None
-    model_context_projection_audit: dict[str, Any] | None = None
-    model_context_trace_id: str | None = None
-    if model_context_profile in {"v2_shadow", "v2"}:
-        (
-            model_context_payload,
-            model_context_projection_audit,
-        ) = compile_model_context_v2_with_audit(
-            db,
-            chat_session=chat_session,
-            rich_memory_context=payload,
-            legacy_runtime_payload=runtime_payload,
-            now=timestamp,
-            preferences=preferences,
-            settings=settings,
-            agent_mode=agent_mode,
-            turn_origin=turn_origin,
-        )
-        model_trace = repositories.add_trace(
-            db,
-            session_id=chat_session.id,
-            turn_id=turn_id,
-            kind="model.context",
-            payload={
-                "profile": model_context_profile,
-                "source_trace_ids": [trace.id, runtime_trace.id],
-                "agent_mode": agent_mode,
-                "mode_routing": runtime_payload.get("mode_routing"),
-                "projection_audit": model_context_projection_audit,
-                "serialized_bytes": len(
-                    json.dumps(model_context_payload, ensure_ascii=True).encode("utf-8")
-                ),
-                "document": model_context_payload,
-            },
-        )
-        model_context_trace_id = model_trace.id
-    if model_context_profile == "v2" and model_context_payload is not None:
-        runtime_context = render_model_context(model_context_payload)
-    else:
-        runtime_context = render_runtime_context(
-            runtime_payload, capabilities=capabilities
-        )
+    model_context_profile = "v2"
+    (
+        model_context_payload,
+        model_context_projection_audit,
+    ) = compile_model_context_v2_with_audit(
+        db,
+        chat_session=chat_session,
+        rich_memory_context=payload,
+        legacy_runtime_payload=runtime_payload,
+        now=timestamp,
+        preferences=preferences,
+        settings=settings,
+        agent_mode=agent_mode,
+        turn_origin=turn_origin,
+    )
+    model_trace = repositories.add_trace(
+        db,
+        session_id=chat_session.id,
+        turn_id=turn_id,
+        kind="model.context",
+        payload={
+            "profile": model_context_profile,
+            "source_trace_ids": [trace.id, runtime_trace.id],
+            "agent_mode": agent_mode,
+            "mode_routing": runtime_payload.get("mode_routing"),
+            "projection_audit": model_context_projection_audit,
+            "serialized_bytes": len(
+                json.dumps(model_context_payload, ensure_ascii=True).encode("utf-8")
+            ),
+            "document": model_context_payload,
+        },
+    )
+    model_context_trace_id = model_trace.id
+    runtime_context = render_model_context(model_context_payload)
     return MemoryContextBuild(
         trace_id=trace.id,
         payload=payload,
@@ -430,36 +421,6 @@ def _build_metacognitive_context(
         runtime_preferences=runtime_preferences,
         mode=mode,
         max_lessons=int(getattr(settings, "metacognitive_context_max_lessons", 3)),
-    )
-
-
-def render_runtime_context(
-    runtime_context_payload: dict[str, Any],
-    *,
-    capabilities: dict[str, str] | None = None,
-) -> str:
-    if "blocks" in runtime_context_payload:
-        model_payload = runtime_context_payload
-    else:
-        temporal_context = runtime_context_payload.get(
-            "temporal_context"
-        ) or _temporal_context_from_turn_frame(
-            runtime_context_payload.get("turn_frame")
-        )
-        model_payload = {
-            "memory_context": _model_memory_context(runtime_context_payload),
-            "mind_shell": shell_metadata(),
-            "temporal_context": temporal_context,
-            "recent_runtime_events": runtime_context_payload.get("turn_frame", {}).get(
-                "recent_runtime_events",
-                [],
-            ),
-            "capabilities": capabilities or _capability_state(),
-        }
-    return (
-        "<runtime_context>\n"
-        + json.dumps(model_payload, ensure_ascii=True, indent=2)
-        + "\n</runtime_context>"
     )
 
 
@@ -1167,19 +1128,6 @@ def _temporal_context(
             "values should be interpreted as UTC unless an endpoint states otherwise."
         ),
     }
-
-
-def _temporal_context_from_turn_frame(value: Any) -> dict[str, Any] | None:
-    if not isinstance(value, dict):
-        return None
-    raw_time = value.get("time")
-    if not isinstance(raw_time, str):
-        return None
-    try:
-        timestamp = datetime.fromisoformat(raw_time)
-    except ValueError:
-        return None
-    return _temporal_context(timestamp)
 
 
 def _aware_datetime(value: datetime) -> datetime:

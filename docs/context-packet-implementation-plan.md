@@ -37,10 +37,9 @@ remain unchanged.
 ## Implementation Result
 
 V1.29.0 implements Phases 1 through 10 for the reviewed packet families. The
-canonical compiler is active with `model_context_profile=v2`; `legacy` and
-`v2_shadow` remain reversible settings. Rich `memory.context` and
-`runtime.context` evidence stays trace/UI-only, while the exact delivered V2
-document is persisted in `model.context`.
+canonical V2 compiler is the sole model-facing context path. Rich
+`memory.context` and `runtime.context` evidence stays trace/UI-only, while the
+exact delivered V2 document is persisted in `model.context`.
 
 The disposable laboratory validation repaired `36/36` unambiguous memory
 source-message hooks and generated `34/34` eligible missing summaries through
@@ -321,16 +320,14 @@ projection, and presentation must remain separate responsibilities.
 Add explicit settings with validated non-negative limits:
 
 ```txt
-model_context_profile=legacy|v2_shadow|v2
 model_context_previous_sessions_limit=2
 model_context_relevant_memories_limit=5
 model_context_recent_user_memories_limit=5
 model_context_recent_general_memories_limit=5
 ```
 
-`legacy` preserves current delivery, `v2_shadow` compiles and traces V2 without
-sending it, and `v2` sends V2. Production rollout begins in shadow mode and is
-reversible by configuration.
+The V2 compiler always sends the canonical V2 document. Rich source evidence is
+retained separately for trace, UI, and projection-audit purposes.
 
 ## Persistence And Selection Work
 
@@ -593,8 +590,7 @@ the same update without its own report.
 
 ### Phase 7 - Native V2 Activation
 
-1. Switch only local MiniMax model input from legacy projection to V2 behind
-   `model_context_profile=v2`.
+1. Switch local MiniMax model input from legacy projection to V2.
 2. Preserve raw evidence and exact model-context traces.
 3. Update Scarlet's native prompt only where it describes fields removed or
    renamed by the approved contract.

@@ -1506,7 +1506,6 @@ def test_mind_memory_search_active_hybrid_promotes_grouped_dense_candidate(
             "retrieval_shadow_rerank_candidate_limit": 10,
             "retrieval_shadow_rerank_top_n": 3,
             "retrieval_hybrid_mode": "active",
-            "retrieval_hybrid_min_dense_score": 0.38,
             "retrieval_hybrid_min_rerank_score": 0.55,
         },
     )
@@ -1618,7 +1617,6 @@ def test_mind_memory_search_hybrid_prefers_direct_content_over_broad_overlap(
             "retrieval_shadow_rerank_candidate_limit": 10,
             "retrieval_shadow_rerank_top_n": 5,
             "retrieval_hybrid_mode": "active",
-            "retrieval_hybrid_min_dense_score": 0.38,
             "retrieval_hybrid_min_rerank_score": 0.55,
         },
     )
@@ -1750,7 +1748,6 @@ def test_mind_memory_search_active_hybrid_does_not_select_dense_below_threshold(
             "retrieval_shadow_cloud_surface_limit": 20,
             "retrieval_shadow_rerank_enabled": False,
             "retrieval_hybrid_mode": "active",
-            "retrieval_hybrid_min_dense_score": 0.6,
         },
     )
     session = client.post(
@@ -1835,7 +1832,6 @@ def test_mind_memory_search_active_hybrid_does_not_promote_support_only_surface(
             "retrieval_shadow_rerank_candidate_limit": 10,
             "retrieval_shadow_rerank_top_n": 3,
             "retrieval_hybrid_mode": "active",
-            "retrieval_hybrid_min_dense_score": 0.38,
             "retrieval_hybrid_min_rerank_score": 0.55,
         },
     )

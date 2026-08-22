@@ -13,7 +13,7 @@ that the described organs or roadmap phases are currently active.
 Reference baseline:
 
 - Golden prompt:
-  `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
+  `docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
 - Golden prompt checkpoint:
   `docs/checkpoints/v1.16.1-approved-golden-system-prompt.md`
 

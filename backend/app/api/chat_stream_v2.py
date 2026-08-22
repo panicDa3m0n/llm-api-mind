@@ -195,32 +195,6 @@ def replay_session_events(
     )
 
 
-def stream_v2_from_native_lines(
-    lines: Iterable[str],
-    *,
-    engine: Engine,
-) -> Iterator[str]:
-    """Expose only persisted canonical events from the legacy live generator."""
-
-    emitted_ids: set[str] = set()
-    for line in lines:
-        envelope = json.loads(line)
-        if envelope.get("type") != "runtime_event":
-            continue
-        data = envelope.get("data")
-        raw_event = data.get("event") if isinstance(data, dict) else None
-        event_id = raw_event.get("id") if isinstance(raw_event, dict) else None
-        if not isinstance(event_id, str) or event_id in emitted_ids:
-            continue
-        with Session(engine) as db:
-            event = repositories.get_event(db, event_id)
-            if event is None:
-                continue
-            projected = project_stream_event(db, event)
-        emitted_ids.add(event_id)
-        yield json.dumps(projected.model_dump(mode="json"), ensure_ascii=True) + "\n"
-
-
 def stream_persisted_turn_events(
     *,
     engine: Engine,

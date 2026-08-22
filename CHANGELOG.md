@@ -6,6 +6,22 @@ This project uses a practical changelog rather than a release-only log: each mea
 
 ## Unreleased
 
+### VPS Runtime Recovery
+
+#### Operational
+
+- Reset the protected Scarlet deployment to one clean runtime built from
+  commit `44d9f3f`, preserving only the production database and remote secrets.
+  Remove 26 GiB of obsolete release backups, stale source/cache/test trees,
+  duplicate test databases, the old Scarlet API image, and Docker build cache.
+- Restore authenticated Product UI and API availability. Temporarily disable
+  autonomous activation after a clean run reproduced a 1,040,699-token
+  un-compacted request and near-3-GiB process growth; human chat and maintenance
+  remain active while `BUG-0138` is fixed.
+- Change the owner-directed VPS policy to a single current runtime with no
+  persistent release or database backups; code recovery comes from the
+  workspace/Git revision and the canonical production DB remains in place.
+
 ### Interactive Camera Perception Experiment
 
 #### Added
@@ -16,6 +32,18 @@ This project uses a practical changelog rather than a release-only log: each mea
 - Add an excluded in-memory provider-content path so bounded image/video
   evidence can reach a compatible multimodal provider without entering shell
   JSON, traces, memory, automatic context, or the perception ledger.
+- Add a replaceable Android-native speech probe to Device Exploration. It
+  exposes one-utterance speech recognition, partial/final transcripts, local
+  text-to-speech queueing, engine capability data, and an event timeline
+  without sending speech data to Core or the backend.
+- Add an opt-in app-process videocall controller and four-route backend
+  transport. It aligns a Tapo video window with Android speech, executes the
+  utterance through the existing human-turn kernel, renders the canonical live
+  stream, and speaks only Scarlet's final semantic answer.
+- Add a MiniMax Responses adapter for explicitly multimodal turns while
+  retaining the existing Anthropic-compatible adapter for normal Scarlet
+  traffic. Transient media stays outside canonical messages and provider
+  history.
 
 #### Evidence
 
@@ -27,6 +55,16 @@ This project uses a practical changelog rather than a release-only log: each mea
   persisted perception channels from available live on-demand sources. Live
   results now state that they are one-shot video without audio or continuous
   monitoring. No VPS deployment is claimed.
+- Verify the shared Product UI build, Android debug assembly, Java compilation,
+  Android Lint, mobile/desktop browser layout, and a physical Samsung SM-S918B
+  run. Android's offline Italian recognizer produced partial/final events and
+  the expected transcript; Samsung's installed Italian TTS completed queued
+  speech with native lifecycle events.
+- Verify the integrated transport with 39 focused backend tests, a real
+  speech-aligned C220 capture, and one complete MiniMax M3 turn on an ephemeral
+  database. The 16.18-second turn emitted canonical live events, described the
+  current scene correctly, and persisted no raw media. Rebuild, verify, install,
+  and launch the Android APK without deploying or modifying the VPS.
 
 ### V1.68.0 - Native Prompt Constitution
 
@@ -2287,7 +2325,7 @@ bootstrap/action/finalize gates.
 - Marked the current V1.16.1 Scarlet system prompt as an approved golden
   milestone:
   - copied the prompt to
-    `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`;
+    `docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md`;
   - recorded SHA-256
     `d5783da7fc1633f1b72e0610668b6bf7a97a68be8265ac9bb1090409b86de966`;
   - added `docs/checkpoints/v1.16.1-approved-golden-system-prompt.md`;

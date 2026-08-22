@@ -7,6 +7,33 @@ activity/experiment text may retain the identifier used at the time; current
 canonical bug ids are the headings in this file. Bug evidence and resolution
 history were not rewritten.
 
+## BUG-0138 - Missing Compaction Let Autonomy Build A Million-Token Request
+
+Date Found: 2026-08-05
+Status: production mitigated; code fix pending
+
+The protected browser API stalled while the single Scarlet process occupied
+about 3.5 GiB resident memory plus 1.5 GiB swap. A clean restart reproduced the
+growth: a `max_silence` autonomous activation routed 761 canonical messages
+because no valid history-compaction artifact existed. The request accounted
+for about 1,040,699 input tokens and drove the process from roughly 153 MiB to
+2.96 GiB before provider completion.
+
+Compaction state is unhealthy rather than merely absent: production contains
+65 failed and 57 stale `running` history-compaction jobs, while retained logs
+contained 5,199 `database is locked` occurrences and 1,524 failed maintenance
+batches. Maintenance and autonomy are independent five-second workers over one
+SQLite database; the active router currently falls back to the complete
+canonical history when an artifact is missing, without enforcing the 500k
+operational input budget.
+
+Operational mitigation: the VPS was reset to source commit `44d9f3f`, its
+autonomous worker was temporarily disabled, and human chat/API/UI surfaces
+remain active. The durable fix must enforce the input budget before provider
+execution, coordinate background work, recover interrupted job leases, and
+prevent lock retries from becoming a hot loop without deleting canonical
+history.
+
 ## BUG-0137 - Live Camera Command Was Executable But Absent From Shell Help
 
 Date Found: 2026-08-01
@@ -54,13 +81,12 @@ no new source evidence. This generated repeated autonomous M3 cycles.
 
 The fallback now stores `parked`, clears the obsolete deferral, and records an
 explicit lifecycle event. M2.7 can reopen a parked candidate only by exact id
-and genuinely new attached source evidence. The guarded operator command
-matches only the exact retired event/reason and leaves other suspension states
-untouched.
+and genuinely new attached source evidence. The one-time production migration
+matched only the exact retired event/reason and left other suspension states
+untouched; its executable command was removed after completion.
 
 Regression: `test_cognitive_workspace.py` covers parking and source-backed
-reconsideration; `test_park_legacy_workspace_candidates.py` proves the
-operator selection excludes an unrelated explicit suspension.
+reconsideration.
 
 Deployment evidence: the protected V1.65.1 rollout ran the same guarded
 operation against a copied production database and then production itself. In
@@ -3499,7 +3525,7 @@ Related Files:
 
 - `backend/tests/test_chat_api.py`
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
+- `docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
 - `docs/api-contract.md`
 
 Notes:
@@ -5777,7 +5803,7 @@ right effort level.
 Related Files:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260616T164444Z.md`
+- `docs/archive/prompt-history/scarlet_system.20260616T164444Z.md`
 - `docs/activity-log.md`
 - `docs/decisions.md`
 
@@ -6015,7 +6041,7 @@ Prompt-level probe on 2026-06-20:
 Related Files:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`
+- `docs/archive/prompt-history/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`
 - `backend/app/mind/schema.py`
 - `backend/app/llm/minimax_client.py`
 

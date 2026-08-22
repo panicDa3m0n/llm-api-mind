@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 from typing import Any
 
 from app.config import Settings
 from app.plugins.camera_perception.sources import capture_from_settings
+from app.plugins.camera_perception.contracts import CameraObservation
 
 
 def capture_camera_observation(
@@ -15,6 +17,14 @@ def capture_camera_observation(
     seconds: float,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     observation = capture_from_settings(settings, seconds=seconds)
+    return package_camera_observation(observation)
+
+
+def package_camera_observation(
+    observation: CameraObservation,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Create a model receipt plus transient provider parts for an observation."""
+
     metadata = {
         "source_id": observation.source_id,
         "source_kind": observation.source_kind,
@@ -24,6 +34,7 @@ def capture_camera_observation(
         "freshness": "current_bounded_observation",
         "mime_type": observation.mime_type,
         "media_bytes": len(observation.media_bytes),
+        "sha256": hashlib.sha256(observation.media_bytes).hexdigest(),
         "capture": observation.capture_metadata,
         "persistence": {
             "memory_written": False,

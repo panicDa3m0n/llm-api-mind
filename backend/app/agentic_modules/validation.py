@@ -7,6 +7,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.agentic_modules.support import duplicate_values
 from scarlet_agentic_module_sdk.contracts import (
     DEFAULT_CORE_MODULE_CONTRACTS,
     AgenticModuleManifest,
@@ -67,7 +68,7 @@ def build_activation_plan(
     blocked: dict[str, list[str]] = {}
     manifest_order = [manifest.module_id for manifest in manifests]
 
-    duplicates = _duplicates(manifest_order)
+    duplicates = duplicate_values(manifest_order)
     for module_id in sorted(duplicates):
         _block(
             blocked,
@@ -297,16 +298,6 @@ def _block(
             message=message,
         )
     )
-
-
-def _duplicates(values: list[str]) -> set[str]:
-    seen: set[str] = set()
-    duplicates: set[str] = set()
-    for value in values:
-        if value in seen:
-            duplicates.add(value)
-        seen.add(value)
-    return duplicates
 
 
 def _cycle_members(graph: dict[str, list[str]]) -> set[str]:

@@ -10,8 +10,8 @@ from app.mind.memory_shared import (
     _memory_not_found,
     _memory_payload,
     _record_memory_activity,
+    load_memory_facts,
 )
-from app.mind.memory_write import _ensure_memory_facts
 from app.mind.search import sync_memory_retrieval_artifacts
 from app.storage import repositories
 from app.storage.models import MemoryFact, MemoryRecord, utc_now
@@ -183,14 +183,14 @@ def handle_memory_deprecate(
                 "superseded_by": request.superseded_by,
             },
         )
-        facts, _ = _ensure_memory_facts(
+        facts, _ = load_memory_facts(
             db,
             updated,
             source_trace_id=trace.id,
         )
         replacement_facts: list[MemoryFact] = []
         if replacement is not None:
-            replacement_facts, _ = _ensure_memory_facts(
+            replacement_facts, _ = load_memory_facts(
                 db,
                 replacement,
                 source_trace_id=trace.id,
@@ -339,12 +339,12 @@ def handle_memory_supersede(
             trace_id=trace.id,
             metadata={"superseded_memory_id": updated_old.id},
         )
-        old_facts, _ = _ensure_memory_facts(
+        old_facts, _ = load_memory_facts(
             db,
             updated_old,
             source_trace_id=trace.id,
         )
-        new_facts, _ = _ensure_memory_facts(
+        new_facts, _ = load_memory_facts(
             db,
             updated_new,
             source_trace_id=trace.id,

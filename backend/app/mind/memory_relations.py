@@ -3,11 +3,11 @@ from typing import Any
 from sqlmodel import Session
 
 from app.mind.contracts import MindAPIContext, MemoryOperationResult
-from app.mind.memory_read import _facts_by_memory
 from app.mind.memory_shared import (
     _context_required,
     _memory_payload,
     _normalize_memory_text,
+    memory_facts_by_id,
 )
 from app.storage import repositories
 from app.storage.models import MemoryFact, MemoryRecord
@@ -23,7 +23,7 @@ def handle_memory_conflicts(
         memories = repositories.list_memories(
             db, scope=None, include_low_confidence=False
         )
-        facts_by_memory = _facts_by_memory(db, memories)
+        facts_by_memory = memory_facts_by_id(db, memories)
         relations = _detect_active_memory_relations(
             memories,
             facts_by_memory=facts_by_memory,

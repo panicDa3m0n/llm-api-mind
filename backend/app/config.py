@@ -10,12 +10,12 @@ class Settings(BaseSettings):
 
     app_name: str = "LLM API Mind"
     environment: str = "local"
-    log_level: str = "INFO"
 
     llm_provider: str = "minimax"
 
     minimax_api_key: str | None = Field(default=None, repr=False)
     minimax_base_url: str = "https://api.minimax.io/anthropic"
+    minimax_responses_base_url: str = "https://api.minimax.io"
     minimax_model: str = "MiniMax-M3"
     minimax_max_tokens: int = Field(default=131072, ge=1)
     auxiliary_minimax_model: str = "MiniMax-M2.7"
@@ -68,11 +68,6 @@ class Settings(BaseSettings):
         ge=60,
     )
     autonomous_activation_batch_size: int = Field(default=1, ge=1, le=5)
-    autonomous_activation_perception_channel_limit: int = Field(
-        default=20,
-        ge=1,
-        le=100,
-    )
     cognitive_workspace_mode: Literal["off", "shadow", "advisory", "active"] = (
         "active"
     )
@@ -148,6 +143,7 @@ class Settings(BaseSettings):
         ge=1024,
         le=100_000_000,
     )
+    interactive_videocall_enabled: bool = False
 
     # Research Lab is an opt-in shell capability. Its Python execution lives
     # in a separate, network-disabled runner; the backend never executes
@@ -170,7 +166,6 @@ class Settings(BaseSettings):
         le=1_000_000,
     )
 
-    model_context_profile: Literal["legacy", "v2_shadow", "v2"] = "v2"
     model_context_previous_sessions_limit: int = Field(default=2, ge=0, le=10)
     model_context_relevant_memories_limit: int = Field(default=5, ge=0, le=20)
     model_context_recent_user_memories_limit: int = Field(default=5, ge=0, le=20)
@@ -182,8 +177,6 @@ class Settings(BaseSettings):
     history_compaction_target_tokens: int = Field(default=100_000, ge=1)
     history_compaction_verbatim_tokens: int = Field(default=100_000, ge=1)
     history_compaction_safety_tokens: int = Field(default=25_000, ge=0)
-    # Retained for environment compatibility; selection is token-based in V1.36.
-    history_compaction_recent_turns: int = Field(default=8, ge=1, le=100)
     history_compaction_mode: Literal["off", "shadow", "active"] = "shadow"
     context_estimated_chars_per_token: float = Field(default=3.5, ge=1.0, le=12.0)
 
@@ -199,22 +192,12 @@ class Settings(BaseSettings):
     retrieval_shadow_rerank_candidate_limit: int = Field(default=20, ge=1, le=100)
     retrieval_shadow_rerank_top_n: int = Field(default=10, ge=1, le=50)
     retrieval_hybrid_mode: str = "off"
-    retrieval_hybrid_min_dense_score: float = Field(default=0.38, ge=-1.0, le=1.0)
     retrieval_hybrid_min_rerank_score: float = Field(default=0.004, ge=0.0, le=1.0)
     retrieval_hybrid_relative_rerank_floor: float = Field(
         default=0.01,
         ge=0.0,
         le=1.0,
     )
-    # Retained for environment compatibility only. V1.31 active retrieval does
-    # not fuse hand-authored weights; the final memory-level reranker decides.
-    retrieval_hybrid_base_weight: float = Field(default=0.35, ge=0.0, le=1.0)
-    retrieval_hybrid_sparse_weight: float = Field(default=0.15, ge=0.0, le=1.0)
-    retrieval_hybrid_dense_weight: float = Field(default=0.35, ge=0.0, le=1.0)
-    retrieval_hybrid_rerank_weight: float = Field(default=0.20, ge=0.0, le=1.0)
-    retrieval_hybrid_support_weight: float = Field(default=0.05, ge=0.0, le=1.0)
-    retrieval_hybrid_salience_weight: float = Field(default=0.0, ge=0.0, le=1.0)
-    retrieval_hybrid_confidence_weight: float = Field(default=0.0, ge=0.0, le=1.0)
     milvus_lite_uri: str = "./data/milvus_lite_shadow.db"
     milvus_collection: str = "memory_surfaces_shadow"
 

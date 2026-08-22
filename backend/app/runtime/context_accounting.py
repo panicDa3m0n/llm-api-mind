@@ -8,7 +8,6 @@ estimates, then an observed trace records the provider-reported total.
 from __future__ import annotations
 
 from copy import deepcopy
-from math import ceil
 import json
 from statistics import median
 from typing import Any
@@ -20,6 +19,7 @@ from app.runtime.history_compaction import (
     build_chronology_source_map,
     build_history_partition_plan,
 )
+from app.runtime.token_estimation import estimate_tokens
 from app.storage import repositories
 
 
@@ -76,7 +76,7 @@ def build_context_accounting_preflight(
         max(0, len(total_json) - accounted_chars),
         chars_per_token=ratio,
     )
-    total_estimated_tokens = _estimate_tokens(len(total_json), ratio)
+    total_estimated_tokens = estimate_tokens(len(total_json), ratio)
     chronology_source_map = build_chronology_source_map(
         db,
         session_id=session_id,
@@ -254,7 +254,7 @@ def build_external_context_accounting_preflight(
         "total": {
             "json_chars": len(serialized),
             "utf8_bytes": len(serialized.encode("utf-8")),
-            "estimated_backend_packet_tokens": _estimate_tokens(
+            "estimated_backend_packet_tokens": estimate_tokens(
                 len(serialized), ratio
             ),
             "total_model_input_tokens": None,
@@ -381,13 +381,9 @@ def _measurement_from_chars(
     return {
         "json_chars": chars,
         "utf8_bytes": chars if utf8_bytes is None else utf8_bytes,
-        "estimated_tokens": _estimate_tokens(chars, chars_per_token),
+        "estimated_tokens": estimate_tokens(chars, chars_per_token),
         "token_status": "estimated_not_provider_exact",
     }
-
-
-def _estimate_tokens(chars: int, chars_per_token: float) -> int:
-    return ceil(chars / chars_per_token) if chars > 0 else 0
 
 
 def _json(value: Any) -> str:

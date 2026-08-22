@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from pydantic import ValidationError
 
+from app.agentic_modules.support import duplicate_values
 from scarlet_agentic_module_sdk.contracts import AgenticModuleManifest, ContractModel
 
 
@@ -65,7 +66,7 @@ def discover_modules(
     """Discover direct child installs under approved roots without executing code."""
 
     diagnostics: list[RegistryDiagnostic] = []
-    duplicate_approvals = _duplicates([item.module_id for item in approvals])
+    duplicate_approvals = duplicate_values([item.module_id for item in approvals])
     approval_map = {
         item.module_id: item
         for item in approvals
@@ -104,7 +105,7 @@ def discover_modules(
         else:
             discovered.append(result)
 
-    duplicate_ids = _duplicates([item.manifest.module_id for item in discovered])
+    duplicate_ids = duplicate_values([item.manifest.module_id for item in discovered])
     if duplicate_ids:
         kept: list[RegisteredModule] = []
         for item in discovered:
@@ -228,13 +229,3 @@ def _diagnostic(
         manifest_path=manifest_path,
         module_id=module_id,
     )
-
-
-def _duplicates(values: list[str]) -> set[str]:
-    seen: set[str] = set()
-    duplicates: set[str] = set()
-    for value in values:
-        if value in seen:
-            duplicates.add(value)
-        seen.add(value)
-    return duplicates

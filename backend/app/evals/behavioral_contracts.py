@@ -18,7 +18,6 @@ BEHAVIORAL_SCENARIO_VERSION = "behavioral-scenario-v1"
 BEHAVIORAL_SUITE_VERSION = "behavioral-suite-v1"
 
 BEHAVIORAL_RUNTIME_CONFIGURATION_VALUES: dict[str, set[Any]] = {
-    "model_context_profile": {"legacy", "v2_shadow", "v2"},
     "organ_focus_mode": {"off", "model"},
     "organ_volition_mode": {"off", "manual", "model"},
     "organ_affect_mode": {"off", "shadow", "model"},

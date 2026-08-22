@@ -7,6 +7,93 @@ activity and experiment records may retain the identifier used at the time;
 the current canonical identifiers are the headings in this file. Decision
 content and chronology were not rewritten.
 
+## ADR-0155 - V2 Is The Sole Model-Facing Context Delivery Path
+
+Date: 2026-08-06
+Status: accepted
+
+Context:
+
+Local and protected-VPS configuration both used the V2 model context, while
+the selectable legacy and shadow model-delivery modes had no current runtime
+consumer. Retaining them made the delivered context contract harder to inspect
+without benefiting active Scarlet behavior. The rich `runtime-context-v1`
+representation remains used for trace/audit evidence and V2 preserved-organ
+projection, so it is not itself a legacy model-delivery path.
+
+Decision:
+
+- compile V2 for every native model turn and remove the obsolete delivery-mode
+  setting and branches;
+- preserve rich runtime context only for its verified trace/event/projection
+  consumers; and
+- keep the GPT bridge on the same V2 context compiler rather than creating a
+  compatibility packet.
+
+Consequences:
+
+The model-facing context has one current owner and one serialization route.
+Historical prompt/context records remain provenance, not fallbacks. Any future
+alternate delivery profile needs an explicit consumer, bounded purpose, and
+promotion or retirement decision before becoming runnable.
+
+Links:
+
+- `backend/app/mind/context.py`
+- `backend/app/runtime/turn_kernel.py`
+- `docs/core-runtime-contract.md`
+- `docs/maintainability-audit.md`
+
+## ADR-0153 - Interactive Videocall Is A Transient Transport Over The Shared Turn Kernel
+
+Date: 2026-08-02
+Status: accepted for isolated local experimentation; not deployed
+
+Context:
+
+The physical Tapo experiment proved that MiniMax M3 can understand bounded
+video, while Android supplied usable on-device Italian speech recognition and
+text-to-speech. Joining these surfaces could easily create a second Scarlet,
+persist raw camera evidence into chronology, speak internal events, or bind
+Core permanently to one speech engine or camera topology.
+
+Decision:
+
+- make the Android WebView process own only the half-duplex conversational
+  cycle: listen, mark speech start, submit the final transcript, render the
+  live turn, speak the final semantic answer, and listen again;
+- keep the call attached to an ordinary `human_dialogue` session and execute
+  every utterance through the existing native turn preparation, runner,
+  context, retrieval, shell, finality, persistence, and streaming contracts;
+- start one configured-camera capture at Android `speech_started` and close it
+  at the final transcript, so the visual interval overlaps the human speech;
+- use MiniMax Responses only for turns carrying transient multimodal content;
+  normal native Scarlet turns retain the Anthropic-compatible adapter;
+- persist the transcript and Scarlet's answer as normal messages, but retain
+  raw video only in the in-memory provider request. Store only timing, source,
+  size, hash, modality, and explicit non-persistence receipts;
+- permit additional `perception look` calls through the same injected live
+  source during the multimodal tool loop; and
+- send Android TTS only the persisted semantic final answer, never thinking,
+  public notes, shell calls, tool results, or provisional text deltas.
+
+Consequences:
+
+There is one Scarlet and one human-turn lifecycle despite a specialized media
+transport. Speech and camera adapters remain replaceable. This first version
+is app-process scoped and half-duplex: it has no barge-in, echo cancellation,
+camera audio/talkback, or survival after Android terminates the WebView. Its
+call registry is process-local and the backend must be able to reach the camera;
+therefore the protected VPS path is not currently functional for the LAN Tapo
+and no deployment is claimed.
+
+Links:
+
+- `backend/app/plugins/camera_perception/videocall.py`
+- `backend/app/llm/minimax_responses_client.py`
+- `frontend/src/nativeVideoCall.ts`
+- `docs/experiments.md#exp-0090---android-native-speech-and-videocall-transport-probe`
+
 ## ADR-0147 - Documentation Routes By Authority And Capability Claims Need Evidence
 
 Date: 2026-07-30
@@ -86,8 +173,8 @@ Decision:
   prevent a concurrent M3 start, impose a configurable 900-second minimum M3
   gap, and guarantee a non-semantic orientation opportunity within 10,800
   seconds; and
-- reconcile existing exact legacy retry rows only through a guarded,
-  production-only dry-run/apply operator command after a verified backup.
+- record the one-time reconciliation of exact legacy retry rows as completed
+  production history; no reusable operator command remains after the migration.
 
 Consequences:
 
@@ -103,7 +190,6 @@ Links:
 - `backend/app/runtime/autonomy_schedule.py`
 - `backend/app/runtime/cognitive_workspace.py`
 - `backend/app/runtime/history_compaction.py`
-- `backend/app/ops/park_legacy_workspace_candidates.py`
 - `docs/cognitive-workspace.md`
 - `docs/endogenous-cognition.md`
 
@@ -4624,7 +4710,7 @@ Consequences:
 Links:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260624T135611Z.pre-v1161-digital-individual-identity.md`
+- `docs/archive/prompt-history/scarlet_system.20260624T135611Z.pre-v1161-digital-individual-identity.md`
 - `docs/branches/identity-relationship.md`
 - `docs/experiments.md`
 
@@ -4651,7 +4737,7 @@ The current V1.16.1 system prompt is the approved golden identity baseline.
 Golden backup:
 
 ```txt
-backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md
+docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md
 ```
 
 SHA-256:
@@ -4683,7 +4769,7 @@ Links:
 
 - `docs/checkpoints/v1.16.1-approved-golden-system-prompt.md`
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
+- `docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md`
 
 ## ADR-0017 - Evolve Memory Toward API-First Atomic Facts And Lifecycle
 
@@ -6355,7 +6441,7 @@ Consequences:
 Links:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260616T134019.md`
+- `docs/archive/prompt-history/scarlet_system.20260616T134019.md`
 - `backend/app/api/chat.py`
 - `backend/app/mind/context.py`
 
@@ -6533,7 +6619,7 @@ Consequences:
 Links:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260616T164444Z.md`
+- `docs/archive/prompt-history/scarlet_system.20260616T164444Z.md`
 - `docs/branches/communication.md`
 - `docs/branches/perception-context.md`
 
@@ -6581,7 +6667,7 @@ Consequences:
 Links:
 
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260616T173917Z.long-notes-v172.md`
+- `docs/archive/prompt-history/scarlet_system.20260616T173917Z.long-notes-v172.md`
 - `docs/block-registry.md#42-public-note`
 
 ## ADR-0052 - Previous Thinking Retrospection Stays Inside Single Metacognition Route
@@ -6638,7 +6724,7 @@ Links:
 - `backend/app/mind/metacognition.py`
 - `backend/app/mind/schema.py`
 - `backend/app/prompts/scarlet_system.md`
-- `backend/app/prompts/backups/scarlet_system.20260616T120000Z.v180-thinking-retrospection.md`
+- `docs/archive/prompt-history/scarlet_system.20260616T120000Z.v180-thinking-retrospection.md`
 - `docs/api-contract.md#post-mindmetacognitionstep-through-mind_api`
 - `docs/branches/metacognition.md`
 
@@ -7128,7 +7214,7 @@ Consequences:
 Links:
 
 - `docs/checkpoints/v1.16.0-humanlike-metacognition-prompt-checkpoint.md`
-- `backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`
+- `docs/archive/prompt-history/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`
 - `docs/experiments.md`
 - `backend/app/prompts/scarlet_system.md`
 
@@ -7498,3 +7584,83 @@ Links:
 - `backend/app/plugins/camera_perception/`
 - `backend/app/mind/perception.py`
 - `docs/experiments.md#exp-0089---interactive-camera-perception-preliminary`
+
+## ADR-0152 - Android Native Speech Is A Replaceable Experimental Transport
+
+Date: 2026-08-01
+Status: accepted as the speech transport for the next timing experiment
+
+Context:
+
+The interactive camera experiment needs real timing evidence for listening and
+spoken response, but selecting or paying for a definitive speech provider
+before measuring the complete path would mix transport choice with realtime
+architecture. Android already exposes device-dependent recognition and local
+speech synthesis suitable for an initial bounded probe.
+
+Decision:
+
+- implement speech behind one application-owned Capacitor plugin rather than
+  inside Core, Scarlet's prompt, camera perception, or a provider adapter;
+- use one-utterance recognition with partial/final events and prefer the
+  on-device recognizer only when Android reports it available;
+- use Android text-to-speech for queued/interrupted experimental output;
+- expose capabilities, timing, and failures in Device Exploration; and
+- persist or transmit no speech content during this experiment.
+
+Consequences:
+
+The physical Samsung test passed with Android's explicitly offline Italian
+recognizer and installed Samsung Italian TTS, so the next conversational timing
+experiment can proceed without consuming a separate speech quota. Recognition
+may still use the installed system engine or its network service on other
+devices, so "native" does not imply offline unless the capability result
+explicitly says on-device. This probe does not establish continuous listening,
+final voice identity, camera audio/talkback, or connection to a Scarlet turn;
+each remains a later evidence gate.
+
+Links:
+
+- `frontend/android/app/src/main/java/cloud/honeylabs/scarlet/ScarletSpeechPlugin.java`
+- `frontend/src/prototype/AndroidSpeechLab.tsx`
+- `docs/experiments.md#exp-0090---android-native-speech-transport-probe`
+
+## ADR-0154 - Runnable Code Must Have A Current Consumer
+
+Date: 2026-08-05
+Status: accepted
+
+Context:
+
+Scarlet's growing codebase must remain legible to both human maintainers and
+IDE agents. Leaving former algorithms, compatibility paths, and source backups
+in ordinary runtime modules obscures which behavior is real and makes future
+changes riskier. The same principle applies to documentation: current sources
+must be linked and owned rather than multiplied into disconnected notes.
+
+Decision:
+
+- keep runnable code only while a verified current consumer, migration,
+  rollback requirement, or explicitly bounded experiment needs it;
+- classify by direct code and runtime evidence, not merely by an old test,
+  configuration option, or document;
+- after a replacement is accepted, remove unused executable compatibility code
+  and stale supporting configuration/tests in one focused, verified change;
+- use Git for code history; create a concise Markdown archive note only when
+  the retirement rationale or successor needs durable explanation; and
+- maintain a navigable documentation map pointing to the smallest current
+  owner for each subject.
+
+Consequences:
+
+The current V2 context delivery is the active model-facing contract. The old
+V1 model-delivery branch is a separately verified retirement candidate, while
+the rich `runtime-context-v1` trace source is not assumed deprecated merely
+because it is not delivered to the model.
+
+Links:
+
+- `AGENTS.md`
+- `docs/development-process.md`
+- `docs/project-documentation.md`
+- `docs/maintainability-audit.md`

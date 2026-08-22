@@ -191,6 +191,19 @@ export type ScarletLiveItem =
       frame: ScarletLiveFrame;
     };
 
+export type VideoCallState = {
+  call_id: string;
+  session_id: string;
+  state: string;
+  source_id: string;
+  speech_input: "android_speech_recognizer" | string;
+  visual_input: "configured_camera_source" | string;
+  speech_output: "android_text_to_speech" | string;
+  half_duplex: boolean;
+  started_at: string;
+  utterance_id: string | null;
+};
+
 export type AgentStep = {
   id: string;
   kind:

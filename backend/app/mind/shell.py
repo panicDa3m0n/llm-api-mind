@@ -139,9 +139,9 @@ def _memory_command(
         scope = _flag_string(parsed, "scope")
         if scope is not None:
             body["scope"] = scope
-        memory_type = _flag_values(parsed, "type", "types")
-        if memory_type:
-            body["types"] = memory_type
+        memory_types = _flag_values(parsed, "type", "types")
+        if memory_types:
+            body["types"] = memory_types
         time_filter = _time_filter(parsed, default_basis="source_conversation")
         if time_filter is not None:
             body["time"] = time_filter
@@ -253,7 +253,7 @@ def _memory_command(
             context=context,
         )
     if action == "facts":
-        body: dict[str, Any] = {
+        facts_body: dict[str, Any] = {
             "include_inactive": _flag_bool(parsed, False, "include-inactive"),
         }
         for key, flag_names in {
@@ -265,16 +265,16 @@ def _memory_command(
         }.items():
             value = _flag_string(parsed, *flag_names)
             if value is not None:
-                body[key] = value
-        if "query" not in body and parsed.args:
-            body["query"] = _joined_args(parsed)
+                facts_body[key] = value
+        if "query" not in facts_body and parsed.args:
+            facts_body["query"] = _joined_args(parsed)
         return _dispatch_api_as_shell(
             parsed,
             target="memory.facts",
             api_request=MindAPIRequest(
                 method="GET",
                 path="/mind/memory/facts",
-                body=body,
+                body=facts_body,
                 intent=intent,
             ),
             context=context,

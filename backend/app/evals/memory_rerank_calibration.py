@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from hashlib import sha256
 import json
 from pathlib import Path
 from shutil import copy2
@@ -20,6 +19,7 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from app.config import Settings
+from app.evals.file_hashing import sha256_file as _file_sha256
 from app.llm.provider import LLMMessage, LLMStreamEvent, LLMTextResult
 from app.main import create_app
 from app.storage.db import create_db_engine, init_db
@@ -60,25 +60,6 @@ class CalibrationProbeProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
-        if system and "runtime answer-obligation judge" in system:
-            payload = json.loads(prompt)
-            findings = [
-                {
-                    "obligation_id": obligation["id"],
-                    "status": "pass",
-                    "reason": (
-                        "The controlled calibration answer makes no claim beyond "
-                        "the retrieval evidence under test."
-                    ),
-                }
-                for obligation in payload.get("obligations", [])
-            ]
-            return LLMTextResult(
-                model=self.settings.minimax_model,
-                text=json.dumps({"findings": findings}),
-                usage={"input_tokens": 1, "output_tokens": 1},
-                stop_reason="end_turn",
-            )
         return self._result()
 
     def generate_chat(
@@ -465,6 +446,8 @@ def threshold_analysis(
     )
     threshold_within_observed_separation = (
         separated
+        and negative_ceiling is not None
+        and positive_floor is not None
         and negative_ceiling < current_threshold
         and current_threshold <= positive_floor
         and not relative_acceptance_failures
@@ -509,7 +492,6 @@ def _run_case(
             "database_url": f"sqlite:///{run_db}",
             "codex_test": False,
             "maintenance_enabled": False,
-            "model_context_profile": "v2",
         }
     )
     engine = create_db_engine(active_settings.database_url)
@@ -652,7 +634,6 @@ def _configuration(settings: Settings) -> dict[str, Any]:
         "retrieval_hybrid_relative_rerank_floor": (
             settings.retrieval_hybrid_relative_rerank_floor
         ),
-        "model_context_profile": "v2",
     }
 
 
@@ -784,14 +765,6 @@ def _summary(artifact: dict[str, Any]) -> dict[str, Any]:
         "source_unchanged": artifact["source_database"].get("unchanged"),
         "human_semantic_review_required": bool(live_runs),
     }
-
-
-def _file_sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def _write_artifact(path: Path, artifact: dict[str, Any]) -> None:

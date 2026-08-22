@@ -19,7 +19,8 @@ import type {
   ScarletStreamReplay,
   StreamEvent,
   TraceItem,
-  UserProfile
+  UserProfile,
+  VideoCallState
 } from "./types";
 
 const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL);
@@ -294,6 +295,83 @@ export async function streamTurnLive(
     }
   );
   await requireLiveStreamingResponse(initialResponse);
+
+  return completeLiveTurnStream(
+    initialResponse,
+    sessionId,
+    onEvent,
+    onFrame
+  );
+}
+
+export function startInteractiveVideoCall(
+  sessionId: string
+): Promise<VideoCallState> {
+  return request<VideoCallState>("/api/perception/videocall/start", {
+    method: "POST",
+    body: JSON.stringify({ session_id: sessionId, client: "android_app" })
+  });
+}
+
+export function markVideoCallSpeechStarted(
+  callId: string,
+  utteranceId: string
+): Promise<VideoCallState> {
+  return request<VideoCallState>(
+    `/api/perception/videocall/${callId}/speech-start`,
+    {
+      method: "POST",
+      body: JSON.stringify({ utterance_id: utteranceId })
+    }
+  );
+}
+
+export function stopInteractiveVideoCall(
+  callId: string
+): Promise<VideoCallState> {
+  return request<VideoCallState>(
+    `/api/perception/videocall/${callId}/stop`,
+    { method: "POST" }
+  );
+}
+
+export async function streamInteractiveVideoCallTurn(
+  callId: string,
+  sessionId: string,
+  utteranceId: string,
+  transcript: string,
+  onEvent: (event: ScarletStreamEvent) => void,
+  onFrame: (frame: ScarletLiveFrame) => void
+): Promise<string> {
+  const initialResponse = await fetch(
+    resolveApiPath(
+      `/api/perception/videocall/${callId}/turn/stream-live`
+    ),
+    {
+      method: "POST",
+      headers: apiHeaders(),
+      body: JSON.stringify({
+        utterance_id: utteranceId,
+        transcript
+      })
+    }
+  );
+  await requireLiveStreamingResponse(initialResponse);
+
+  return completeLiveTurnStream(
+    initialResponse,
+    sessionId,
+    onEvent,
+    onFrame
+  );
+}
+
+async function completeLiveTurnStream(
+  initialResponse: Response,
+  sessionId: string,
+  onEvent: (event: ScarletStreamEvent) => void,
+  onFrame: (frame: ScarletLiveFrame) => void
+): Promise<string> {
 
   const turnId = initialResponse.headers.get("X-Scarlet-Turn-ID");
   if (!turnId) {

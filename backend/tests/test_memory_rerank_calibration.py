@@ -1,4 +1,3 @@
-import json
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -87,11 +86,6 @@ def test_calibration_probe_provider_supports_sync_tools_and_streaming() -> None:
     )
     assert [event.type for event in events] == ["text_delta", "final_result"]
 
-    judge = provider.generate_text(
-        prompt='{"obligations":[{"id":"source.required"}]}',
-        system="You are the runtime answer-obligation judge.",
-    )
-    assert json.loads(judge.text)["findings"][0]["status"] == "pass"
 
 
 def test_calibration_orchestrates_repetitions_live_cases_and_source_guard(

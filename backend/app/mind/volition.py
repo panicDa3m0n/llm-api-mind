@@ -10,6 +10,7 @@ from app.mind.contracts import (
     serializable_validation_errors,
 )
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
+from app.mind.organ_support import active_owner_profile_id, recoverable_organ_error
 from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import IntentionLink, IntentionRecord, utc_now
@@ -179,7 +180,7 @@ def handle_volition(
         )
 
     with Session(context.engine) as db:
-        owner_profile_id = _owner_profile_id(context)
+        owner_profile_id = active_owner_profile_id(context)
         invalid_candidate = _invalid_candidate_link(
             db,
             links=request.links,
@@ -813,10 +814,6 @@ def _invalid_candidate_link(
     return None
 
 
-def _owner_profile_id(context: MindAPIContext) -> str:
-    return str(getattr(context.settings, "user_profile_id", None) or "local-user")
-
-
 def _source_payload(
     db: Session,
     context: MindAPIContext,
@@ -967,13 +964,11 @@ def _error(
     hint: str,
     actions: list[str],
 ) -> MemoryOperationResult:
-    return MemoryOperationResult(
-        ok=False,
-        result=result or {"operation": "volition"},
-        cognitive_hint=hint,
-        suggested_next_actions=actions,
-        confidence=1.0,
-        error_code=code,
-        error_message=message,
-        error_recoverable=True,
+    return recoverable_organ_error(
+        "volition",
+        code=code,
+        message=message,
+        result=result,
+        hint=hint,
+        actions=actions,
     )

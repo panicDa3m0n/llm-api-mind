@@ -4,6 +4,144 @@ This file preserves project continuity across IDE-agent sessions.
 
 Use it to record meaningful work, verification, open questions, and the next suggested step. Do not log every tiny edit, but do log changes that affect direction, architecture, APIs, experiments, prompts, or debugging knowledge.
 
+## 2026-08-06 - Core Maintainability Audit And Cleanup Programme
+
+Completed a read-only, behavior-preserving audit of the current Core/backend,
+configuration, operations, tests, dependencies, and documentation owners on
+`experiment/tapo-c220-interactive-perception` at baseline commit `44d9f3f`.
+No runtime, provider, database, VPS, UI, or camera-experiment logic was
+changed.
+
+The authoritative working register is
+[`maintainability-audit.md`](maintainability-audit.md). It records each
+verified retirement, consolidation, simplification, or probable-robustness
+candidate with its current consumer, preserved contract, and focused
+verification. The audit separates supported boundaries from genuine duplicate
+paths; it does not treat a default-off experiment, an external adapter, or a
+historical record as dead code by assumption.
+
+Mechanical baseline checks passed: documentation integrity, project-skill
+validation, `ruff`, `mypy` over the configured 67 source files, and the
+isolated backend suite (`369 passed`). The planned execution order begins with
+inert configuration/evaluation residue, then small uncalled helpers, then
+independent shared-ownership slices. Probable bugs remain for separate
+evidence-led investigation rather than being hidden inside refactors.
+
+## 2026-08-06 - Core Maintainability Cleanup Completed Locally
+
+Completed the approved behavior-preserving cleanup on
+`experiment/tapo-c220-interactive-perception`, without a VPS deploy, database
+mutation, UI change, prompt change, or camera-experiment change. The detailed
+result is maintained in [`maintainability-audit.md`](maintainability-audit.md).
+
+The executable Core now has one V2 model-context delivery path, no verified
+inactive configuration or one-time migration command, no unused Stream V2
+adapter, no legacy answer-obligation evaluator branch, and no historical
+prompt snapshots in the runtime package. Exact shared mechanics were given
+narrow owners; the autonomous lifecycle is now split into scheduler, explicit
+execution stages, and shared private mechanics while retaining its public API
+and shared turn kernel.
+
+Focused checks passed after each slice. Final verification also passed:
+isolated backend suite (`368 passed in 34.25s`), `ruff`, configured `mypy`
+(67 source files), documentation integrity, project-skill validation, and
+`git diff --check`. The only retained audit findings are separately scoped
+probable robustness issues: context-family ownership, timestamp normalization,
+detached-runner cancellation, autonomous reset protection, and observable FTS
+fallback.
+
+## 2026-08-05 - VPS Reset And Million-Token Autonomy Incident Isolated
+
+The protected Scarlet runtime was reset without replacing the production
+database or touching the separate HoneyLabs services. The deployment root now
+contains only `.env`, `DEPLOYED_COMMIT`, the backend build context, and the two
+versioned Compose files. Historical Scarlet release/UI backups, stray test
+databases, source/docs/cache trees, old Compose files, old Scarlet API image,
+and Docker build cache were removed. Disk use fell from 100% (about 340 MiB
+free) to 32% (about 33 GiB free).
+
+Backend and Product UI were rebuilt from clean commit `44d9f3f`; public health,
+dashboard settings, index, JavaScript, CSS, and release manifest passed. The
+only active Scarlet images are `scarlet-mobile-api:v1.68.0-44d9f3f` and the
+required Research Lab runner. The owner-directed deployment policy now keeps
+no persistent release or database backups on the VPS.
+
+The reset reproduced the runtime failure independently of deployment residue.
+One autonomous max-silence cycle built a 1,040,699-token input after active
+history routing fell back to 761 canonical messages with no compaction
+artifact. Request preparation raised Scarlet from about 153 MiB to 2.96 GiB.
+Autonomy is temporarily disabled in the remote environment; human-facing Core
+surfaces remain enabled and stabilized near 112 MiB with no new SQLite lock
+errors in the observed window. `BUG-0138` owns the code fix.
+
+## 2026-08-02 - App-Scope Android/Tapo Videocall Transport Verified Locally
+
+Area: Product UI Android process, camera experiment, MiniMax multimodal
+transport, and shared native turn kernel on
+`experiment/tapo-c220-interactive-perception`.
+
+The Android experiment now has one application-scope half-duplex controller:
+after explicit start it cycles Android STT, a Tapo window aligned to the spoken
+utterance, Scarlet's canonical live turn, semantic final-answer TTS, and a new
+listen. Navigating between mounted Product UI screens does not own or terminate
+the process. Recovery cancels a stale recognizer before rearming, and failed
+startup closes any backend call it already created.
+
+The backend exposes an opt-in four-route videocall state machine. It attaches
+each transcript to an existing `human_dialogue` session and runs the same turn
+preparation, context, retrieval, shell, persistence, finality, and streaming
+kernel as text chat. A dedicated MiniMax Responses adapter is selected only
+for transient multimodal execution. Raw MP4/Base64 exists only in the in-memory
+execution-message copy; persisted messages, provider history, memory, context,
+perception, and traces receive no media bytes.
+
+Verification passed 39 focused backend tests and the complete Android build,
+Capacitor sync, Java compilation, APK release-manifest check, physical-device
+install, launch, and crash-log inspection. A real C220 capture produced a valid
+432,784-byte MP4 and receipt. One natural Tapo plus MiniMax M3 turn on an
+in-memory database completed in 16.18 seconds with 17 events and 27 live
+frames; Scarlet accurately interpreted the current scene and only transcript,
+answer, and media receipt persisted.
+
+No VPS service, configuration, or production database changed. The APK still
+targets the protected VPS, whose current deployment neither contains this
+endpoint nor reaches the LAN camera. A reachable home/backend topology,
+multi-worker call state, barge-in, echo cancellation, camera audio/talkback,
+and process survival after Android termination remain explicit later gates.
+
+## 2026-08-01 - Android Native Speech Probe Prepared
+
+Area: Product UI Device Exploration / Android experiment on
+`experiment/tapo-c220-interactive-perception`.
+
+To measure the future camera-conversation path without first committing to a
+paid STT/TTS provider, Product UI now has a replaceable Capacitor speech
+adapter. Android speech recognition exposes one-utterance partial/final text,
+engine selection, microphone level, and elapsed events; Android text-to-speech
+exposes local queueing, interruption, locale, rate, and lifecycle events. The
+lab keeps all speech input and output outside Core, backend persistence,
+memory, context, and camera perception.
+
+TypeScript/Vite production build, Capacitor sync, Android debug assembly, Java
+compilation, Android Lint, and responsive browser inspection pass. Browser
+fallback correctly renders the same surface with native actions unavailable.
+
+The APK was then installed on the physical Samsung SM-S918B / Android 14. The
+real microphone permission flow passed. Android's offline Google SODA Italian
+recognizer opened in about 154 ms, emitted partial hypotheses around 2.9 s,
+and finalized the exact spoken text `Ciao Scarlet come va` at about 3.56 s.
+Samsung Italian TTS started about 31 ms after dispatch and completed its 1.91 s
+utterance about 2.06 s after dispatch. The user confirmed audible output. No
+speech content entered Core, memory, context, persistence, or the camera
+adapter.
+
+During ADB navigation, one coordinate was calculated from a resized preview
+instead of the physical 1080x2316 display and accidentally submitted the
+existing chat draft `Riprendiamo da dove eravamo rimasti`. The resulting real
+turn remains in its session rather than being hidden or deleted. No further
+automated Product UI navigation used unverified preview coordinates. No VPS,
+prompt, shell, or cognitive runtime changed.
+
 ## 2026-08-01 - Real Tapo C220 Perception Gate
 
 Area: isolated camera perception experiment on
@@ -5431,7 +5569,7 @@ Changes:
   use shell commands and obsolete endpoint-language recommendations are marked
   unavailable.
 - Created prompt checkpoint
-  `backend/app/prompts/backups/scarlet_system.20260706T133019Z.pre-v1220-mind-shell.md`
+  `docs/archive/prompt-history/scarlet_system.20260706T133019Z.pre-v1220-mind-shell.md`
   and converted the active Scarlet prompt from endpoint-first instructions to
   CLI-first cognition.
 - Kept `/mind/schema` and `/mind/call` as legacy/debug HTTP compatibility
@@ -5547,7 +5685,7 @@ Changes:
 - Kept affect explicitly model-only: no changes to memory retrieval, focus,
   volition, backend operation thresholds, or autonomous jobs.
 - Created prompt backup
-  `backend/app/prompts/backups/scarlet_system.20260626T000000Z.pre-v1200-affective-context.md`
+  `docs/archive/prompt-history/scarlet_system.20260626T000000Z.pre-v1200-affective-context.md`
   and added a narrow runtime-block instruction for `affective_context`.
 - Advanced backend app/package metadata to `1.20.0`.
 
@@ -5599,7 +5737,7 @@ Changes:
 - Replaced the planned attention placeholder in schema/docs with implemented
   `/mind/focus`.
 - Created prompt backup
-  `backend/app/prompts/backups/scarlet_system.20260625T000000Z.pre-v1180-focus-organ.md`
+  `docs/archive/prompt-history/scarlet_system.20260625T000000Z.pre-v1180-focus-organ.md`
   and added only minimal focus instructions to the active prompt.
 - Advanced backend app/package metadata to `1.18.0`.
 
@@ -5897,7 +6035,7 @@ Identity / communication / prompt governance.
 Changes:
 
 - Created golden prompt backup:
-  `backend/app/prompts/backups/scarlet_system.20260624T144357Z.v1161-approved-golden.md`.
+  `docs/archive/prompt-history/scarlet_system.20260624T144357Z.v1161-approved-golden.md`.
 - Recorded SHA-256:
   `d5783da7fc1633f1b72e0610668b6bf7a97a68be8265ac9bb1090409b86de966`.
 - Added checkpoint
@@ -5934,7 +6072,7 @@ Identity / communication / system prompt.
 Changes:
 
 - Backed up the current prompt to
-  `backend/app/prompts/backups/scarlet_system.20260624T135611Z.pre-v1161-digital-individual-identity.md`.
+  `docs/archive/prompt-history/scarlet_system.20260624T135611Z.pre-v1161-digital-individual-identity.md`.
 - Replaced the initial "conversational AI agent" identity frame with "digital
   individual in development, born inside LLM API Mind".
 - Added explicit anti-assistant-service language against generic openings such
@@ -5992,7 +6130,7 @@ Changes:
 - Created checkpoint
   `docs/checkpoints/v1.16.0-humanlike-metacognition-prompt-checkpoint.md`.
 - Backed up Scarlet's prompt to
-  `backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`.
+  `docs/archive/prompt-history/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`.
 - Added an operational self-model instruction: Scarlet should treat identity
   as continuity, memory, self-monitoring, relationship, goals-in-view, and API
   Mind cognition rather than as a biological or ontological claim.
@@ -6048,7 +6186,7 @@ Changes:
 
 - Created checkpoint `docs/checkpoints/v1.15.0-memory-fields-checkpoint.md`.
 - Backed up Scarlet's prompt to
-  `backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1150-memory-fields.md`.
+  `docs/archive/prompt-history/scarlet_system.20260623T000000Z.pre-v1150-memory-fields.md`.
 - Made memory `type` and `scope` permissive semantic labels.
 - Changed manual memory search default to cross-scope unless Scarlet asks for a
   specific scope.
@@ -6193,7 +6331,7 @@ Prompt / communication / memory / API Mind discipline.
 Changes:
 
 - Backed up the previous prompt to
-  `backend/app/prompts/backups/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`.
+  `docs/archive/prompt-history/scarlet_system.20260620T182223Z.pre-v1144-prompt-discipline.md`.
 - Added human-first guidance for simple social turns so Scarlet does not answer
   normal conversation like a terminal.
 - Changed near-miss memory wording so near-misses are weak leads, not
@@ -7018,7 +7156,7 @@ Changes:
 - Added small shape-hardening for observed MiniMax M3 metacognition payloads:
   `reasoning_scope`, `reasoning_detail`, and `{"item": [...]}` list wrappers.
 - Backed up the prompt to
-  `backend/app/prompts/backups/scarlet_system.20260616T120000Z.v180-thinking-retrospection.md`.
+  `docs/archive/prompt-history/scarlet_system.20260616T120000Z.v180-thinking-retrospection.md`.
 
 Verification:
 
@@ -7078,7 +7216,7 @@ Communication / Scarlet system prompt.
 Changes:
 
 - Backed up the previous prompt to
-  `backend/app/prompts/backups/scarlet_system.20260616T173917Z.long-notes-v172.md`.
+  `docs/archive/prompt-history/scarlet_system.20260616T173917Z.long-notes-v172.md`.
 - Added `Long Reasoning Notes` under `Public Work Notes`.
 - Defined when a turn counts as prolonged: multiple API Mind operations,
   multiple evidence sources, conflict/staleness/missing evidence, strategy
@@ -7131,7 +7269,7 @@ Communication / perception-context / Scarlet system prompt.
 Changes:
 
 - Backed up the previous prompt to
-  `backend/app/prompts/backups/scarlet_system.20260616T164444Z.md`.
+  `docs/archive/prompt-history/scarlet_system.20260616T164444Z.md`.
 - Added `Request Effort Routing` to classify turns as direct, contextual,
   source-sensitive, state-changing, or high-impact.
 - Direct and contextual turns may now answer from visible/runtime evidence
@@ -7284,7 +7422,7 @@ Communication / perception-context / Scarlet system prompt.
 Changes:
 
 - Backed up the previous prompt to
-  `backend/app/prompts/backups/scarlet_system.20260616T134019.md`.
+  `docs/archive/prompt-history/scarlet_system.20260616T134019.md`.
 - Added an explicit `Continuity Layers` section to
   `backend/app/prompts/scarlet_system.md`.
 - Clarified that active-session visible history may include provider-native
@@ -11002,7 +11140,7 @@ Changes:
 - Advanced Mind API schema to `2026-06-25.volition-organ-v1`.
 - Backed up the Scarlet system prompt before adding minimal volition usage
   instructions:
-  `backend/app/prompts/backups/scarlet_system.20260625T000000Z.pre-v1190-volition-organ.md`.
+  `docs/archive/prompt-history/scarlet_system.20260625T000000Z.pre-v1190-volition-organ.md`.
 - Kept `volition_context` out of normal runtime injection; intentions are
   manually inspectable and future autonomous-cycle material.
 

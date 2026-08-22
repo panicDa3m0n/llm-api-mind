@@ -30,10 +30,13 @@ incident, trace, or evaluation question.
 | Bounded external computation and cited web sources | `docs/research-lab.md` |
 | Architecture boundaries, active versus experimental surfaces | `docs/core-runtime-contract.md` |
 | Current implementation state and V2 priority | `docs/project-state.md` |
+| Verified behavior-preserving cleanup candidates | `docs/maintainability-audit.md` |
+| Code retirement, compatibility, and documentation ownership | `docs/development-process.md` |
 | Approved V2 direction, not implemented behavior | `docs/v2-cognitive-companion-plan.md` |
 | Native/GPT/model-facing and HTTP contracts | `docs/api-contract.md`, then executable routes and schemas |
 | Turn blocks, event evidence, UI mapping | `docs/block-registry.md`; stream work also reads `docs/stream-v2-contract.md` |
 | Dynamic packet and context delivery | `docs/context-packet-inventory.md`, `docs/runtime-context-packs.md`, and their compiler/contract code |
+| Historical prompt snapshots | `docs/archive/prompt-history/`; current runtime policy stays under `backend/app/prompts/` |
 | Memory behavior | `docs/branches/memory.md`, relevant API contract, and memory code |
 | Autonomous cognition, Workspace, perception | `docs/branches/decision-autonomy.md`, `docs/cognitive-workspace.md`, `docs/endogenous-cognition.md`, and owning runtime code |
 | Context-family/device experiments | `docs/context-family-registry.md`, `docs/device-exploration-layer.md`, and owning adapter code |
@@ -69,6 +72,8 @@ These records remain valuable but are not present-tense contracts:
   `docs/experiments.md` are append-only evidence ledgers.
 - `docs/evaluations/` and `docs/checkpoints/` preserve bounded test and
   discussion evidence.
+- `docs/archive/prompt-history/` preserves only cited historical prompt
+  snapshots; it is not a runtime prompt fallback.
 - completed implementation plans, including
   `docs/context-packet-implementation-plan.md` and
   `docs/monolith-rework-plan.md`, describe their recorded slice.

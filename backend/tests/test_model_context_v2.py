@@ -47,7 +47,7 @@ def _preferences() -> RuntimePreferences:
 
 
 def _settings() -> Settings:
-    return Settings(environment="test", model_context_profile="v2")
+    return Settings(environment="test")
 
 
 def _source_memory(db: Session, *, scope: str, content: str):

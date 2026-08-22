@@ -7,9 +7,7 @@ from sqlalchemy.engine import Engine
 from sqlmodel import Session
 
 from app.api.chat_accounting import provider_message_stats as _provider_message_stats
-from app.api.chat_native_turn import (
-    compose_system_with_runtime_context as _compose_system_with_runtime_context,
-)
+from app.api.session_guards import require_chat_session
 from app.api.chat_provider_history import (
     provider_messages_for_turn as _provider_messages_for_turn,
     valid_provider_history as _valid_provider_history,
@@ -17,12 +15,7 @@ from app.api.chat_provider_history import (
 from app.api.chat_serialization import (
     ChatMessageResponse,
     ChatSessionResponse,
-    memory_context_event_payload as _memory_context_event_payload,
     message_response as _message_response,
-    metacognitive_context_event_payload as _metacognitive_context_event_payload,
-    recent_memory_context_event_payload as _recent_memory_context_event_payload,
-    runtime_context_event_payload as _runtime_context_event_payload,
-    session_continuity_event_payload as _session_continuity_event_payload,
     session_response as _session_response,
 )
 from app.config import Settings
@@ -40,11 +33,13 @@ from app.runtime.events import (
     record_tool_call_started,
 )
 from app.runtime.context_accounting import build_external_context_accounting_preflight
+from app.runtime.context_events import record_context_build_events
 from app.runtime.maintenance import (
     schedule_session_idle_maintenance,
     schedule_summary_repairs,
 )
 from app.runtime.preferences import load_runtime_preferences
+from app.runtime.turn_kernel import compose_system_with_runtime_context
 from app.storage import repositories
 from app.storage.models import ChatSession, Trace, Turn, new_id
 
@@ -250,75 +245,17 @@ def build_gpt_bridge_router(
             trace_ids.append(memory_context.runtime_trace_id)
             if memory_context.model_context_trace_id is not None:
                 trace_ids.append(memory_context.model_context_trace_id)
-            record_event(
+            record_context_build_events(
                 db,
                 session_id=session_id,
                 turn_id=turn_id,
-                event_type="memory.context.built",
-                payload=_memory_context_event_payload(memory_context.payload),
-                source="memory",
-                actor="backend",
+                memory_context=memory_context,
                 visibility="debug",
-                trace_id=memory_context.trace_id,
-            )
-            if memory_context.model_context_payload is not None:
-                record_event(
-                    db,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    event_type="memory.recent_context.built",
-                    payload=_recent_memory_context_event_payload(
-                        memory_context.model_context_payload
-                    ),
-                    source="memory",
-                    actor="backend",
-                    visibility="debug",
-                    trace_id=memory_context.model_context_trace_id,
-                )
-                record_event(
-                    db,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    event_type="session.continuity.built",
-                    payload=_session_continuity_event_payload(
-                        memory_context.model_context_payload
-                    ),
-                    source="session",
-                    actor="backend",
-                    visibility="debug",
-                    trace_id=memory_context.model_context_trace_id,
-                )
-            if memory_context.metacognitive_payload is not None:
-                record_event(
-                    db,
-                    session_id=session_id,
-                    turn_id=turn_id,
-                    event_type="metacognitive.context.injected"
-                    if memory_context.metacognitive_payload.get("model_facing") is True
-                    else "metacognitive.context.shadowed",
-                    payload=_metacognitive_context_event_payload(
-                        memory_context.metacognitive_payload
-                    ),
-                    source="metacognition",
-                    actor="backend",
-                    visibility="debug",
-                    trace_id=memory_context.metacognitive_trace_id,
-                )
-            record_event(
-                db,
-                session_id=session_id,
-                turn_id=turn_id,
-                event_type="runtime.context.built",
-                payload=_runtime_context_event_payload(memory_context.runtime_payload),
-                source="runtime",
-                actor="backend",
-                visibility="debug",
-                trace_id=memory_context.runtime_trace_id,
             )
             system_prompt_content = system_prompt.get("content")
             if not isinstance(system_prompt_content, str):
                 raise RuntimeError("Scarlet system prompt content must be a string")
-            effective_system = _compose_system_with_runtime_context(
+            effective_system = compose_system_with_runtime_context(
                 system_prompt_content,
                 memory_context.runtime_context,
             )
@@ -432,7 +369,7 @@ def build_gpt_bridge_router(
                 visibility="debug",
                 trace_id=request_trace.id,
             )
-            chat_session = _require_session(db, session_id)
+            chat_session = require_chat_session(db, session_id)
             return GPTBridgeBootstrapResponse(
                 ok=True,
                 session_id=session_id,
@@ -606,7 +543,7 @@ def build_gpt_bridge_router(
                 },
             )
         with Session(engine) as db:
-            chat_session = _require_session(db, request.session_id)
+            chat_session = require_chat_session(db, request.session_id)
             turn = _require_turn(db, request.turn_id, session_id=request.session_id)
             existing_assistant = repositories.latest_message_for_turn(
                 db,
@@ -766,7 +703,7 @@ def build_gpt_bridge_router(
                     trigger_turn_id=request.turn_id,
                     trigger_event_id=turn_completed_event.id,
                 )
-            chat_session = _require_session(db, request.session_id)
+            chat_session = require_chat_session(db, request.session_id)
             return GPTBridgeFinalizeResponse(
                 ok=True,
                 session=_session_response(chat_session),
@@ -1065,7 +1002,7 @@ def _get_or_create_bridge_session(
     settings: Settings,
 ) -> ChatSession:
     if request.session_id is not None:
-        return _require_session(db, request.session_id)
+        return require_chat_session(db, request.session_id)
     metadata = {
         "source": "gpt_bridge",
         "bridge": "chatgpt_gpt_actions",
@@ -1087,20 +1024,6 @@ def _get_or_create_bridge_session(
     return chat_session
 
 
-def _require_session(db: Session, session_id: str) -> ChatSession:
-    chat_session = repositories.get_chat_session(db, session_id)
-    if chat_session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "session.not_found",
-                "message": f"Session {session_id} was not found.",
-                "recoverable": True,
-            },
-        )
-    return chat_session
-
-
 def _require_turn(db: Session, turn_id: str, *, session_id: str) -> Turn:
     turn = db.get(Turn, turn_id)
     if turn is None or turn.session_id != session_id:
@@ -1116,7 +1039,7 @@ def _require_turn(db: Session, turn_id: str, *, session_id: str) -> Turn:
 
 
 def _require_active_turn(db: Session, session_id: str, turn_id: str) -> Turn:
-    _require_session(db, session_id)
+    require_chat_session(db, session_id)
     turn = _require_turn(db, turn_id, session_id=session_id)
     if turn.status != "started":
         raise HTTPException(

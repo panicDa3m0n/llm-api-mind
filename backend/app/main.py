@@ -13,8 +13,9 @@ from app.api.maintenance import build_maintenance_router
 from app.api.mind import build_mind_router
 from app.api.system import build_system_router
 from app.config import Settings, get_settings
-from app.llm.factory import build_llm_provider
+from app.llm.factory import build_llm_provider, build_multimodal_llm_provider
 from app.plugins.gpt_bridge import build_gpt_bridge_router
+from app.plugins.camera_perception.videocall import build_videocall_router
 from app.runtime.maintenance import start_maintenance_worker
 from app.runtime.autonomy import start_autonomous_activation_worker
 from app.storage.database_boundary import validate_database_configuration
@@ -24,12 +25,21 @@ from app.storage.db import create_db_engine, init_db, prepare_runtime_database
 def create_app(
     settings: Settings | None = None,
     llm_provider_factory: ProviderFactory | None = None,
+    multimodal_provider_factory: ProviderFactory | None = None,
     db_engine: Engine | None = None,
 ) -> FastAPI:
     runtime_settings = settings or get_settings()
     validate_database_configuration(runtime_settings)
     engine = db_engine or create_db_engine(prepare_runtime_database(runtime_settings))
     provider_factory = llm_provider_factory or build_llm_provider
+    media_provider_factory = (
+        multimodal_provider_factory
+        or (
+            provider_factory
+            if llm_provider_factory is not None
+            else build_multimodal_llm_provider
+        )
+    )
     init_db(engine)
 
     @asynccontextmanager
@@ -82,6 +92,7 @@ def create_app(
         expose_headers=[
             "X-Scarlet-Stream-Schema",
             "X-Scarlet-Turn-ID",
+            "X-Scarlet-VideoCall-ID",
         ],
     )
 
@@ -100,6 +111,13 @@ def create_app(
             runtime_settings,
             engine,
             provider_factory=provider_factory,
+        )
+    )
+    app.include_router(
+        build_videocall_router(
+            runtime_settings,
+            engine,
+            provider_factory=media_provider_factory,
         )
     )
     app.include_router(

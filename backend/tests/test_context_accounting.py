@@ -19,7 +19,6 @@ def _settings(**updates) -> Settings:
         history_compaction_target_tokens=50,
         history_compaction_verbatim_tokens=200,
         history_compaction_safety_tokens=20,
-        history_compaction_recent_turns=8,
         context_estimated_chars_per_token=2.0,
         **updates,
     )

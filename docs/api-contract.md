@@ -416,7 +416,6 @@ AUTONOMOUS_ACTIVATION_LEASE_SECONDS=900
 AUTONOMOUS_ACTIVATION_DEFER_SECONDS=60
 AUTONOMOUS_ACTIVATION_HUMAN_TURN_FRESHNESS_SECONDS=21600
 AUTONOMOUS_ACTIVATION_BATCH_SIZE=1
-AUTONOMOUS_ACTIVATION_PERCEPTION_CHANNEL_LIMIT=20
 COGNITIVE_WORKSPACE_MODE=active
 COGNITIVE_WORKSPACE_SIGNAL_BATCH_SIZE=100
 COGNITIVE_WORKSPACE_APPRAISAL_BATCH_SIZE=20
@@ -645,6 +644,43 @@ not counted as a persisted channel. The current `look` delivery contract is
 continuous monitoring. A later call creates a new observation rather than
 extending the previous one.
 
+### Interactive Videocall Transport
+
+Status: isolated local experiment; disabled by default and not deployed
+
+The Android/Tapo videocall is a transport over an ordinary `human_dialogue`
+session, not a new session type or cognitive runtime. It uses these routes:
+
+```txt
+POST /api/perception/videocall/start
+POST /api/perception/videocall/{call_id}/speech-start
+POST /api/perception/videocall/{call_id}/turn/stream-live
+POST /api/perception/videocall/{call_id}/stop
+```
+
+`start` validates the existing human session. `speech-start` opens one camera
+window for the supplied `utterance_id`. `turn/stream-live` closes that window,
+submits the final Android transcript plus transient video to MiniMax M3, and
+returns the same `scarlet-live-v1` NDJSON chronology used by native chat. The
+response includes `X-Scarlet-Turn-ID` and `X-Scarlet-VideoCall-ID`; reconnects
+continue through the canonical native turn stream route.
+
+The state sequence is
+`LISTENING -> USER_SPEAKING -> WAITING_FOR_SCARLET -> LISTENING`, with Android
+rendering additional local `CONNECTING`, `SCARLET_SPEAKING`, and `RECOVERING`
+phases. Only the final transcript and semantic Scarlet answer become canonical
+messages. Raw video is attached to an excluded execution-message copy and is
+never written to provider history, messages, memory, automatic context,
+perception events, or trace payloads. The traceable receipt contains source,
+system observation interval, MIME type, byte count, SHA-256, and capture
+metadata.
+
+The current registry is process-local. The backend process must reach the
+configured camera and have a usable `CAMERA_PERCEPTION_FFMPEG_PATH`. Android
+must remain alive, speech is half-duplex, and only `assistant.answer.completed`
+is sent to TTS. Camera microphone, talkback, barge-in, multi-worker call state,
+and background survival are outside this experiment.
+
 Model-facing local times always use the configured human timezone, including
 the historical DST offset for the event date. Transport-facing API and stream
 timestamps are unambiguous UTC RFC 3339 strings with `Z`. The V2 timezone
@@ -787,12 +823,12 @@ capabilities.
 Bootstrap response profile:
 
 `POST /gpt/bootstrap` returns `context.profile=gpt-bootstrap-compact-v1`. The
-transport envelope version remains V1 for compatibility. When
-`model_context_profile=v2`, the response includes one canonical
-`context.runtime_context` serialization, plus recent provider-message hints,
-action endpoints, and trace ids. V1.30.0 removes the redundant structured
-`context.model_context` copy. Full effective prompt, rich runtime/retrieval
-snapshots, full provider messages, and retrieval diagnostics remain trace-only.
+transport envelope version remains V1 for compatibility. The response includes
+one canonical `context.runtime_context` V2 serialization, plus recent
+provider-message hints, action endpoints, and trace ids. V1.30.0 removed the
+redundant structured `context.model_context` copy. Full effective prompt, rich
+runtime/retrieval snapshots, full provider messages, and retrieval diagnostics
+remain trace-only.
 
 Authentication:
 
@@ -893,14 +929,13 @@ Output includes:
 
 ### Model Context V2
 
-Status: implemented and active by default; preserved-family review completed in V1.35.0
+Status: implemented and sole active model-facing context contract; preserved-family review completed in V1.35.0
 
-`model_context_profile` accepts `legacy`, `v2_shadow`, or `v2`. V2 is compiled
-from the same rich evidence already collected for retrieval/runtime traces; it
-does not run a second retrieval pipeline. Every delivered document is stored
-verbatim in a `model.context` trace with source trace ids, serialized byte
-count, and a non-model-facing `projection_audit`. Native MiniMax and GPT
-bootstrap receive the same serialized document inside
+V2 is compiled from the same rich evidence already collected for
+retrieval/runtime traces; it does not run a second retrieval pipeline. Every
+delivered document is stored verbatim in a `model.context` trace with source
+trace ids, serialized byte count, and a non-model-facing `projection_audit`.
+Native MiniMax and GPT bootstrap receive the same serialized document inside
 `context.runtime_context`; GPT does not receive a duplicate object.
 
 Automatic memory hooks contain only `id`, `content`, user-local `created_at`
@@ -1013,11 +1048,10 @@ Purpose:
 Build backend-owned operational context before each LLM call. This is not a public user-facing endpoint. It is an internal chat-runtime phase that makes memory evidence perceptual and traceable instead of depending only on optional model tool calls.
 
 V1.29.0 boundary: the rich `runtime-context-v1` and `memory.context`
-payloads described below are collection/trace sources. With
-`model_context_profile=v2`, Scarlet receives their compact
-`scarlet-model-context-v2` projection, not the full block/mirror document.
-The legacy detail remains documented because it is still implemented for
-rollback, diagnostics, maintenance, and UI.
+payloads described below are collection/trace sources. Scarlet receives their
+compact `scarlet-model-context-v2` projection, not the full block/mirror
+document. The rich detail remains available for diagnostics, maintenance, and
+UI; it is not a fallback model-delivery path.
 
 Target turn flow:
 

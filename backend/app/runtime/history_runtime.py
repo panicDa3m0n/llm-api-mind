@@ -21,6 +21,7 @@ from app.runtime.history_compaction import (
     build_chronology_source_map,
     build_history_partition_plan,
 )
+from app.runtime.token_estimation import estimate_tokens
 from app.storage import repositories
 from app.storage.models import HistoryCompaction
 
@@ -316,9 +317,10 @@ def generate_history_compaction(
                     for unit in covered_units
                 )
             ),
-            summary_estimated_tokens=_estimate_tokens(
+            summary_estimated_tokens=estimate_tokens(
                 len(summary),
                 chars_per_token,
+                minimum_chars_per_token=1.0,
             ),
             trigger_turn_id=trigger_turn_id,
             model=result.model or auxiliary_settings.minimax_model,
@@ -526,9 +528,3 @@ def _sanitize_unverified_source_ids(
     for source_id in invalid:
         sanitized = sanitized.replace(source_id, "[invalid_source_id_removed]")
     return sanitized, invalid
-
-
-def _estimate_tokens(chars: int, chars_per_token: float) -> int:
-    if chars <= 0:
-        return 0
-    return max(1, int((chars / max(chars_per_token, 1.0)) + 0.999999))

@@ -24,6 +24,7 @@ from app.mind.dispatcher import (
     MindAPIResponse,
 )
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
+from app.mind.contracts import LivePerceptionCapture
 from app.mind.shell import MindShellRequest, dispatch_mind_shell
 from app.runtime.events import record_tool_call_completed, record_tool_call_started
 from app.storage import repositories
@@ -44,6 +45,7 @@ def build_mind_tool_runner(
     trace_ids: list[str],
     runtime_trigger: str = "human_message",
     event_sink: list[CognitiveEvent] | None = None,
+    live_perception_capture: LivePerceptionCapture | None = None,
 ) -> Callable[[LLMToolUse], LLMExecutedToolCall]:
     """Create the single executable ``mind_shell`` path for one model turn."""
 
@@ -73,6 +75,7 @@ def build_mind_tool_runner(
                 runtime_trigger=runtime_trigger,
                 settings=settings,
                 provider_factory=provider_factory,
+                live_perception_capture=live_perception_capture,
             ),
         )
         latency_ms = int((time.perf_counter() - started) * 1000)

@@ -26,6 +26,7 @@ from app.mind.memory_shared import (
     _normalize_freeform_label,
     _normalize_memory_text,
     _record_memory_activity,
+    load_memory_facts,
 )
 from app.mind.search import sync_memory_retrieval_artifacts
 from app.storage import repositories
@@ -351,7 +352,7 @@ def handle_memory_write(
             source="memory.write",
             trace_id=trace.id,
         )
-        facts, created_facts = _ensure_memory_facts(
+        facts, created_facts = load_memory_facts(
             db,
             memory,
             source_trace_id=trace.id,
@@ -438,7 +439,7 @@ def handle_memory_facts_backfill(
         all_facts: list[MemoryFact] = []
         created: list[MemoryFact] = []
         for memory in memories:
-            facts, created_facts = _ensure_memory_facts(
+            facts, created_facts = load_memory_facts(
                 db,
                 memory,
                 source_trace_id=trace.id,
@@ -558,23 +559,6 @@ def _trace_memory_write(
             else None,
         },
     )
-
-
-def _ensure_memory_facts(
-    db: Session,
-    memory: MemoryRecord,
-    *,
-    source_trace_id: str | None = None,
-) -> tuple[list[MemoryFact], list[MemoryFact]]:
-    # Historical facts stay available for audit. New propositions must come
-    # from an explicit semantic review owned by Scarlet, not lexical inference.
-    created: list[MemoryFact] = []
-    facts = repositories.list_memory_facts(
-        db,
-        memory_id=memory.id,
-        include_inactive=True,
-    )
-    return facts, created
 
 
 def _sync_fact_lifecycle_from_memory_metadata(

@@ -15,6 +15,8 @@ import {
   Sparkles,
   Target,
   UserRound,
+  Video,
+  VideoOff,
   Wrench
 } from "lucide-react";
 import {
@@ -34,6 +36,11 @@ import {
   streamTurnLive
 } from "../api";
 import { publicAssetPath } from "../runtimeAssets";
+import { hasNativeAndroidSpeech } from "../nativeSpeech";
+import {
+  scarletVideoCall,
+  type VideoCallSnapshot
+} from "../nativeVideoCall";
 import type {
   AutonomyHistory,
   ChatMessage,
@@ -133,6 +140,9 @@ export function ChatViewportScreen({
   const [autonomyHistory, setAutonomyHistory] =
     useState<AutonomyHistory | null>(null);
   const [autonomyError, setAutonomyError] = useState<string | null>(null);
+  const [videoCall, setVideoCall] = useState<VideoCallSnapshot>(
+    scarletVideoCall.getState()
+  );
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -214,6 +224,55 @@ export function ChatViewportScreen({
       window.clearInterval(interval);
     };
   }, [autonomyOpen]);
+
+  useEffect(
+    () =>
+      scarletVideoCall.subscribe((runtimeEvent) => {
+        if (runtimeEvent.kind === "state") {
+          setVideoCall(runtimeEvent.snapshot);
+          if (runtimeEvent.snapshot.error) {
+            setError(runtimeEvent.snapshot.error);
+          }
+          return;
+        }
+        const callSessionId = scarletVideoCall.getState().sessionId;
+        if (callSessionId && callSessionId !== currentSession?.id) return;
+        if (runtimeEvent.kind === "transcript") {
+          setSending(true);
+          setAwaitingInitialContext(true);
+          setOptimisticMessage(runtimeEvent.text);
+          setError(null);
+          return;
+        }
+        if (runtimeEvent.kind === "frame") {
+          acceptLiveFrame(runtimeEvent.frame);
+          return;
+        }
+
+        const streamEvent = runtimeEvent.event;
+        if (streamEvent.event_type === "message.user.persisted") {
+          setOptimisticMessage(null);
+        }
+        if (
+          streamEvent.event_type === "memory.context.built" ||
+          streamEvent.event_type === "runtime.context.built" ||
+          streamEvent.event_type === "llm.request.started"
+        ) {
+          setAwaitingInitialContext(false);
+        }
+        setEvents((current) => mergeEvents(current, [streamEvent]));
+        if (
+          streamEvent.event_type === "turn.completed" ||
+          streamEvent.event_type === "turn.failed"
+        ) {
+          setSending(false);
+          setAwaitingInitialContext(false);
+          setOptimisticMessage(null);
+          void syncCurrentConversation();
+        }
+      }),
+    [currentSession?.id]
+  );
 
   const flow = useMemo(() => {
     const projected = projectConversation(
@@ -322,21 +381,7 @@ export function ChatViewportScreen({
           setEvents((current) => mergeEvents(current, [streamEvent]));
         },
         (frame) => {
-          const delta =
-            frame.frame_type === "tool_input_delta"
-              ? valueAsString(frame.payload.partial_json)
-              : valueAsString(frame.payload.text);
-          if (!delta) return;
-          setLiveFrames((current) => {
-            const previous = current[frame.frame_id];
-            return {
-              ...current,
-              [frame.frame_id]: {
-                ...frame,
-                text: `${previous?.text ?? ""}${delta}`
-              }
-            };
-          });
+          acceptLiveFrame(frame);
         }
       );
 
@@ -391,6 +436,66 @@ export function ChatViewportScreen({
     }
   }
 
+  function acceptLiveFrame(frame: ScarletLiveFrame) {
+    const delta =
+      frame.frame_type === "tool_input_delta"
+        ? valueAsString(frame.payload.partial_json)
+        : valueAsString(frame.payload.text);
+    if (!delta) return;
+    setLiveFrames((current) => {
+      const previous = current[frame.frame_id];
+      return {
+        ...current,
+        [frame.frame_id]: {
+          ...frame,
+          text: `${previous?.text ?? ""}${delta}`
+        }
+      };
+    });
+  }
+
+  async function syncCurrentConversation() {
+    const sessionId = scarletVideoCall.getState().sessionId ?? currentSession?.id;
+    if (!sessionId) return;
+    try {
+      const [nextEvents, nextMessages] = await Promise.all([
+        fetchAllSessionEventsV2(sessionId),
+        fetchMessages(sessionId)
+      ]);
+      setEvents(mergeEvents([], nextEvents));
+      setMessages(nextMessages);
+      setLiveFrames({});
+      onDataChanged();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : "Impossibile riallineare la videocall."
+      );
+    }
+  }
+
+  async function toggleVideoCall() {
+    setError(null);
+    try {
+      if (videoCall.active) {
+        await scarletVideoCall.stop();
+        return;
+      }
+      let targetSession = currentSession;
+      if (!targetSession) {
+        targetSession = await createSession();
+        setCurrentSession(targetSession);
+        onSessionCreated?.(targetSession);
+      }
+      await scarletVideoCall.start(targetSession.id);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : "Videocall non disponibile."
+      );
+    }
+  }
+
   const sessionData = {
     session: currentSession,
     messages,
@@ -422,9 +527,14 @@ export function ChatViewportScreen({
       streaming: true
     }
   };
+  const videoCallAttachedHere =
+    videoCall.active && videoCall.sessionId === currentSession?.id;
 
   return (
-    <section className="scarlet-screen scarlet-chat" data-testid="chat-screen">
+    <section
+      className={`scarlet-screen scarlet-chat${videoCall.active ? " has-videocall" : ""}`}
+      data-testid="chat-screen"
+    >
       <header className="scarlet-chat__header">
         <div className="scarlet-chat__header-avatar" aria-hidden="true">
           <img alt="" src={publicAssetPath("prototype/scarlet-character-v1.png")} /><i />
@@ -442,6 +552,27 @@ export function ChatViewportScreen({
         </div>
         <div className="scarlet-chat__header-actions">
           <button
+            aria-label={videoCall.active ? "Termina videocall" : "Avvia videocall"}
+            aria-pressed={videoCall.active}
+            className={videoCall.active ? "is-videocall-active" : undefined}
+            disabled={!hasNativeAndroidSpeech()}
+            onClick={() => void toggleVideoCall()}
+            title={
+              hasNativeAndroidSpeech()
+                ? videoCall.active
+                  ? "Termina videocall"
+                  : "Avvia videocall sperimentale"
+                : "Disponibile nell'app Android"
+            }
+            type="button"
+          >
+            {videoCall.active ? (
+              <VideoOff aria-hidden="true" size={16} />
+            ) : (
+              <Video aria-hidden="true" size={16} />
+            )}
+          </button>
+          <button
             aria-label="Apri la continuità interiore di Scarlet"
             onClick={() => setAutonomyOpen(true)}
             type="button"
@@ -456,6 +587,21 @@ export function ChatViewportScreen({
           </button>
         </div>
       </header>
+
+      {videoCall.active ? (
+        <div className="scarlet-chat__videocall" role="status">
+          <i aria-hidden="true" />
+          <strong>{videoCallLabel(videoCall.phase)}</strong>
+          <span>
+            {videoCallAttachedHere
+              ? videoCall.partialTranscript ||
+                (videoCall.phase === "LISTENING"
+                  ? "Puoi parlare"
+                  : "Audio Android e visione Tapo sono collegati al turno")
+              : "Continua nella conversazione in cui è stata avviata"}
+          </span>
+        </div>
+      ) : null}
 
       <div className="scarlet-chat__layout">
         <div className="scarlet-chat__conversation">
@@ -1202,6 +1348,18 @@ function failureMessage(payload: Record<string, unknown>) {
     valueAsString(payload.message) ||
     "Il turno si è interrotto prima della risposta."
   );
+}
+
+function videoCallLabel(phase: VideoCallSnapshot["phase"]): string {
+  return {
+    STOPPED: "Videocall conclusa",
+    CONNECTING: "Collego Scarlet",
+    LISTENING: "Scarlet ti ascolta",
+    USER_SPEAKING: "Scarlet ti ascolta e guarda",
+    WAITING_FOR_SCARLET: "Scarlet sta elaborando ciò che ha visto e sentito",
+    SCARLET_SPEAKING: "Scarlet sta parlando",
+    RECOVERING: "Riallineo la videocall"
+  }[phase];
 }
 
 function humanize(value: string) {

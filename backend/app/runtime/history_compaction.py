@@ -11,12 +11,12 @@ from __future__ import annotations
 
 from hashlib import sha256
 import json
-from math import ceil
 from typing import Any
 
 from sqlmodel import Session
 
 from app.storage import repositories
+from app.runtime.token_estimation import estimate_tokens
 
 
 CHRONOLOGY_SOURCE_MAP_VERSION = "chronology-source-map-v1"
@@ -134,7 +134,7 @@ def build_chronology_source_map(
                 "provider_message_count": len(segment),
                 "json_chars": len(serialized),
                 "utf8_bytes": len(serialized.encode("utf-8")),
-                "estimated_tokens": _estimate_tokens(
+                "estimated_tokens": estimate_tokens(
                     len(serialized), chars_per_token
                 ),
                 "sha256": _digest(segment),
@@ -152,7 +152,7 @@ def build_chronology_source_map(
         "canonical_history_sha256": _digest(canonical),
         "canonical_provider_message_count": len(canonical),
         "canonical_json_chars": len(canonical_serialized),
-        "canonical_estimated_tokens": _estimate_tokens(
+        "canonical_estimated_tokens": estimate_tokens(
             len(canonical_serialized), chars_per_token
         ),
         "mapped_provider_message_count": len(mapped_messages),
@@ -161,7 +161,7 @@ def build_chronology_source_map(
             "provider_message_count": len(legacy_prefix),
             "json_chars": len(legacy_serialized) if legacy_prefix else 0,
             "estimated_tokens": (
-                _estimate_tokens(len(legacy_serialized), chars_per_token)
+                estimate_tokens(len(legacy_serialized), chars_per_token)
                 if legacy_prefix
                 else 0
             ),
@@ -393,10 +393,6 @@ def _tool_call_ids(response_trace: Any | None) -> list[str]:
 
 def _is_prefix(prefix: list[dict[str, Any]], value: list[dict[str, Any]]) -> bool:
     return len(prefix) <= len(value) and value[: len(prefix)] == prefix
-
-
-def _estimate_tokens(chars: int, chars_per_token: float) -> int:
-    return ceil(chars / chars_per_token) if chars > 0 else 0
 
 
 def _digest(value: Any) -> str:

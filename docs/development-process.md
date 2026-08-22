@@ -67,7 +67,33 @@ This rule is especially important for LLM behavior bugs, natural-language
 retrieval issues, and prompt changes. Avoid quick hardcoded patches unless the
 root cause and blast radius are understood.
 
-### 3.1 Linear Issue Workflow
+### 3.1 Code Retirement And Compatibility
+
+The runnable tree is for current, supported behavior. Do not keep a former
+implementation beside its accepted replacement merely as a code backup.
+Version control preserves executable history more reliably and without making
+the active architecture ambiguous.
+
+Before retaining or retiring a compatibility path, inspect its actual current
+consumers: active configuration, production/deployment settings where relevant,
+imports, routes, background workers, and supported external contracts. Tests
+and old documents are evidence to migrate or delete; they are not by themselves
+proof that a runtime path remains required.
+
+When the replacement is verified and no current consumer, migration, rollback,
+or explicitly bounded experiment remains:
+
+1. remove the runnable deprecated path and its obsolete configuration,
+   documentation, and tests in one focused change;
+2. preserve only a concise archival Markdown note when the reason, successor,
+   or migration boundary would otherwise be unclear; and
+3. link that note from the current documentation map only while it remains
+   useful for provenance.
+
+An active diagnostic/trace representation is not deprecated merely because it
+is not model-facing. Classify it by its actual current consumer.
+
+### 3.2 Linear Issue Workflow
 
 When work is tracked in Linear, complete one issue before starting the next:
 
@@ -83,7 +109,7 @@ When work is tracked in Linear, complete one issue before starting the next:
 Discoveries may be added to future issues while the current one is active, but
 they do not become implementation scope silently.
 
-### 3.2 Repository Skill Workflow
+### 3.3 Repository Skill Workflow
 
 The recurring project-specific workflows are encoded as repository-local Codex
 skills under `.agents/skills/`. Their index maps the accepted trigger

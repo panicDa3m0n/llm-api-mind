@@ -9,6 +9,79 @@ entries may still mention the original reused identifiers; current canonical
 ids are the headings in this file. Experiment results and dates were not
 rewritten.
 
+## EXP-0090 - Android Native Speech And Videocall Transport Probe
+
+Date: 2026-08-01 to 2026-08-02
+Status: physical-device speech and local real-camera/M3 turn gates passed;
+production topology remains open
+
+Question:
+
+Can the current Android device supply low-cost conversational input and output
+for realtime camera experiments, with observable timing and replaceable
+transport boundaries, before choosing definitive STT or TTS providers?
+
+Method and current evidence:
+
+- Register an application-owned Capacitor plugin around Android
+  `SpeechRecognizer` and `TextToSpeech` rather than coupling Product UI to a
+  commercial speech API.
+- Keep recognition bounded to one utterance, expose partial and final text,
+  report RMS level and elapsed time, and prefer Android's on-device recognizer
+  only when the installed device reports it available.
+- Expose local TTS queue, interruption, Italian locale, and speech-rate control
+  with lifecycle events and elapsed time.
+- Present both paths in Device Exploration with a compact event timeline. No
+  captured text or audio is sent to Core, persistence, memory, context, or the
+  camera adapter.
+- Pass TypeScript/Vite production build, Capacitor Android sync and debug APK
+  assembly, Java compilation, Android Lint, and responsive browser inspection.
+- Install the APK on a Samsung SM-S918B running Android 14. The device reports
+  an available on-device recognizer and ready Italian Samsung TTS engine.
+- Grant microphone access through the real permission flow. A first delayed
+  attempt exercised the full offline recognizer lifecycle but ended in
+  `no_match`; a prompt second attempt produced partial hypotheses and the exact
+  final transcript `Ciao Scarlet come va`.
+- Measure the successful offline recognition call: microphone-ready event in
+  about 154 ms, first partial in about 2.9 s, and final result in about 3.56 s
+  including the spoken utterance. Android identified the engine as offline
+  Google SODA for `it-IT`.
+- Speak the recognized phrase through the installed Samsung Italian voice. TTS
+  emitted its start event about 31 ms after dispatch and completed the 1.91 s
+  utterance about 2.06 s after dispatch.
+- Implement one app-process controller that repeatedly performs Android STT,
+  a speech-aligned camera turn, canonical live-stream rendering, and Android
+  TTS. The controller continues while Product UI screens mount and unmount;
+  stopping it explicitly cancels recognition, speech, and the backend call.
+- Route each utterance through the existing `human_dialogue` native turn
+  kernel. Use MiniMax Responses only for the transient media-bearing request;
+  preserve the ordinary Anthropic-compatible provider for all other native
+  Scarlet turns.
+- Run a real C220 plus MiniMax M3 turn against an in-memory database. A
+  304,172-byte speech-aligned MP4 produced a correct scene description in
+  16.18 seconds total, with 17 canonical events and 27 live stream frames.
+  Only the transcript, final answer, and a hash/timing/size receipt persisted;
+  neither Base64 nor a media URL appeared in messages or traces.
+- Rebuild, verify, and install the Android debug APK on the physical Samsung.
+  The application starts without a Scarlet-process crash. The deployed VPS was
+  deliberately not changed and cannot reach the LAN camera.
+
+Open gate:
+
+The next real-device gate requires a backend topology reachable by both the
+Android app and the Tapo. Barge-in, echo cancellation, camera audio/talkback,
+multi-worker call recovery, execution after Android terminates the WebView, and
+long conversational timing remain open. The protected VPS cannot directly
+reach the LAN source and was not used to simulate that capability.
+
+Interpretation:
+
+The adapter is an instrumentation layer, not a final voice architecture. The
+result proves that one shared Scarlet turn can consume synchronized speech and
+visual evidence while preserving canonical continuity. It also makes the next
+constraint concrete: network placement and realtime interruption matter more
+than choosing a definitive voice provider at this stage.
+
 ## EXP-0089 - Interactive Camera Perception Preliminary
 
 Date: 2026-08-01
@@ -6279,7 +6352,7 @@ Decision Gate:
 
 Accept the prompt only if live tests show improved legibility and human-like
 presence without increasing over-processing. If it regresses, roll back to
-`backend/app/prompts/backups/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`
+`docs/archive/prompt-history/scarlet_system.20260623T000000Z.pre-v1160-humanlike-metacognition.md`
 and keep the checkpoint as a failed or partial prompt experiment.
 
 ## EXP-0048 - Volition Register Without Active-Chat Injection

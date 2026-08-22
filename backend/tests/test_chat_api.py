@@ -1666,7 +1666,6 @@ def test_chat_turn_active_hybrid_selects_paraphrased_memory_context(
             "retrieval_shadow_rerank_candidate_limit": 10,
             "retrieval_shadow_rerank_top_n": 3,
             "retrieval_hybrid_mode": "active",
-            "retrieval_hybrid_min_dense_score": 0.38,
             "retrieval_hybrid_min_rerank_score": 0.55,
         },
     )

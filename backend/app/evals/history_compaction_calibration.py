@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
-from hashlib import sha256
 import json
 from pathlib import Path
 from time import perf_counter
@@ -18,6 +17,7 @@ from typing import Any
 from sqlmodel import Session, create_engine
 
 from app.config import Settings
+from app.evals.file_hashing import sha256_file as _file_sha256
 from app.llm.factory import build_llm_provider
 from app.llm.provider import LLMMessage, LLMTextResult
 from app.runtime.history_compaction import (
@@ -268,14 +268,6 @@ def _result(result: LLMTextResult, latency_ms: int) -> dict[str, Any]:
         "usage": result.usage,
         "provider_message_id": result.provider_message_id,
     }
-
-
-def _file_sha256(path: Path) -> str:
-    digest = sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def main() -> None:

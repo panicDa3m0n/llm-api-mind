@@ -92,11 +92,12 @@ This refuses accidental inclusion of the mutable laboratory snapshot
 `backend/data/app.db`. The override is reserved for an explicitly reviewed
 data release and must be recorded in the commit and changelog.
 
-Before a VPS deployment, follow `docs/database-topology.md`: back up the
-remote DB, exclude `backend/data/`, the deployment-root `.env`, and any
-source-tree `backend/.env` from transfer, then run the new image's read-only
-preflight with `--expect-role production` before restart. Git pushes do not
-deploy runtime data.
+Before a VPS deployment, follow `docs/database-topology.md`: preserve the
+canonical remote DB in place, exclude `backend/data/`, the deployment-root
+`.env`, and any source-tree `backend/.env` from transfer, then run the new
+image's read-only preflight with `--expect-role production` before restart.
+Do not retain VPS release or database backups; Git/workspace history is the
+code source of truth. Git pushes do not deploy runtime data.
 
 The root `docker-compose.yml` is the versioned backend deployment baseline.
 Feature-specific Compose overrides must also live in the repository and be
@@ -115,8 +116,9 @@ For every Product UI publication:
 2. build the web artifact only with `cd frontend && npm run build:vps`;
 3. require `npm run verify:release:vps` to pass before copying that `dist/`
    tree to `/var/www/scarlet`;
-4. back up the old static tree, then verify the authenticated public index,
-   every asset it references, and `release-manifest.json` all return `200`;
+4. replace the old static tree atomically without retaining a duplicate, then
+   verify the authenticated public index, every asset it references, and
+   `release-manifest.json` all return `200`;
 5. build the APK only with `npm run android:debug`, which must complete
    `verify:release:android` after Gradle assembly; and
 6. when a device is available, compare installed package id/version with the

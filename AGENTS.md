@@ -52,6 +52,13 @@ Every research or shadow path needs a visible owner, purpose, evidence, and a
 future decision to promote, retire, or keep it explicitly bounded. Do not add
 silent half-integrations, fake fallbacks, or undocumented compatibility paths.
 
+Retain runnable compatibility or deprecated code only while a verified current
+consumer, migration, rollback need, or bounded experiment requires it. Record
+its owner and removal condition. Once its replacement is accepted and no such
+consumer remains, remove the executable path and its stale tests/configuration;
+Git is the code archive. Add a short Markdown archive note only when future
+readers need the retirement rationale and its successor.
+
 ## Scope And Change Discipline
 
 - Analysis means analysis: do not fix, refactor, deploy, mutate data, or alter

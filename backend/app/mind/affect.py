@@ -16,6 +16,7 @@ from app.mind.organs import (
     build_organ_runtime_block,
     organ_runtime_modes,
 )
+from app.mind.organ_support import active_owner_profile_id, recoverable_organ_error
 from app.runtime.events import record_event
 from app.runtime.preferences import RuntimePreferences
 from app.storage import repositories
@@ -194,7 +195,7 @@ def handle_affect(
         )
 
     with Session(context.engine) as db:
-        owner_profile_id = _owner_profile_id(context)
+        owner_profile_id = active_owner_profile_id(context)
         if request.action == "prototypes":
             return MemoryOperationResult(
                 ok=True,
@@ -758,10 +759,6 @@ def _affect_policy() -> dict[str, Any]:
     }
 
 
-def _owner_profile_id(context: MindAPIContext) -> str:
-    return str(getattr(context.settings, "user_profile_id", None) or "local-user")
-
-
 def _error(
     *,
     code: str,
@@ -770,13 +767,11 @@ def _error(
     hint: str,
     actions: list[str],
 ) -> MemoryOperationResult:
-    return MemoryOperationResult(
-        ok=False,
-        result=result or {"operation": "affect"},
-        cognitive_hint=hint,
-        suggested_next_actions=actions,
-        confidence=1.0,
-        error_code=code,
-        error_message=message,
-        error_recoverable=True,
+    return recoverable_organ_error(
+        "affect",
+        code=code,
+        message=message,
+        result=result,
+        hint=hint,
+        actions=actions,
     )

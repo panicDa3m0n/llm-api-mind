@@ -34,15 +34,14 @@ from app.llm.provider import (
     LLMTextResult,
 )
 from app.mind.context import MemoryContextBuild
+from app.mind.contracts import LivePerceptionCapture
 from app.mind.schema import MIND_SHELL_TOOL_SCHEMA
 from app.prompts.system import AgentSystemPromptError, resolve_agent_system_prompt
 from app.runtime.events import record_event, record_provider_stream_event
-from app.runtime.history_runtime import HistoryRoutingResult
 from app.runtime.mind_tool_runner import build_mind_tool_runner
 from app.runtime.turn_kernel import (
     ModelTurnPreparation,
     complete_model_turn,
-    compose_system_with_runtime_context as _compose_system_with_runtime_context,
     prepare_model_turn,
     record_failed_model_turn,
     require_terminal_response,
@@ -65,21 +64,40 @@ class NativeTurnFailure(RuntimeError):
 
 @dataclass
 class NativeTurnPreparation:
-    session_id: str
-    turn_id: str
-    started: float
-    trace_ids: list[str]
-    user_message: ChatMessageResponse
-    canonical_messages: list[LLMMessage]
-    model_messages: list[LLMMessage]
-    effective_system: str
-    max_tokens: int
-    memory_context: MemoryContextBuild
-    accounting_trace_id: str
-    accounting_payload: dict[str, Any]
-    history_routing: HistoryRoutingResult
-    stream: bool
+    """Native transport additions over one shared model-turn preparation."""
+
     kernel: ModelTurnPreparation
+    user_message: ChatMessageResponse
+    execution_messages: list[LLMMessage]
+    live_perception_capture: LivePerceptionCapture | None = None
+
+    @property
+    def session_id(self) -> str:
+        return self.kernel.session_id
+
+    @property
+    def turn_id(self) -> str:
+        return self.kernel.turn_id
+
+    @property
+    def trace_ids(self) -> list[str]:
+        return self.kernel.trace_ids
+
+    @property
+    def effective_system(self) -> str:
+        return self.kernel.effective_system
+
+    @property
+    def max_tokens(self) -> int:
+        return self.kernel.max_tokens
+
+    @property
+    def memory_context(self) -> MemoryContextBuild:
+        return self.kernel.memory_context
+
+    @property
+    def stream(self) -> bool:
+        return self.kernel.stream
 
 
 @dataclass(frozen=True)
@@ -97,6 +115,9 @@ def prepare_native_turn(
     system_override: str | None,
     requested_max_tokens: int | None,
     stream: bool,
+    transient_user_content_parts: list[dict[str, Any]] | None = None,
+    request_metadata: dict[str, Any] | None = None,
+    live_perception_capture: LivePerceptionCapture | None = None,
 ) -> NativeTurnPreparation:
     """Persist the human adapter boundary, then use the shared turn kernel."""
 
@@ -219,24 +240,19 @@ def prepare_native_turn(
             stream=stream,
             entrypoint=entrypoint,
             accounting_transport=accounting_transport,
+            request_metadata=request_metadata,
         )
 
+    execution_messages = _execution_messages_with_transient_content(
+        kernel_prepared.model_messages,
+        transient_user_content_parts or [],
+    )
+
     return NativeTurnPreparation(
-        session_id=kernel_prepared.session_id,
-        turn_id=kernel_prepared.turn_id,
-        started=kernel_prepared.started,
-        trace_ids=kernel_prepared.trace_ids,
-        user_message=user_message,
-        canonical_messages=kernel_prepared.canonical_messages,
-        model_messages=kernel_prepared.model_messages,
-        effective_system=kernel_prepared.effective_system,
-        max_tokens=kernel_prepared.max_tokens,
-        memory_context=kernel_prepared.memory_context,
-        accounting_trace_id=kernel_prepared.accounting_trace_id,
-        accounting_payload=kernel_prepared.accounting_payload,
-        history_routing=kernel_prepared.history_routing,
-        stream=kernel_prepared.stream,
         kernel=kernel_prepared,
+        user_message=user_message,
+        execution_messages=execution_messages,
+        live_perception_capture=live_perception_capture,
     )
 
 def complete_native_turn(
@@ -282,6 +298,7 @@ def complete_native_turn(
             user_message=prepared.user_message,
             assistant_message=message_response(assistant_message),
             trace_ids=prepared.trace_ids,
+            live_perception_capture=prepared.live_perception_capture,
             model=result.model,
             latency_ms=completion.latency_ms,
             usage=result.usage,
@@ -308,12 +325,6 @@ def record_failed_native_turn(
     )
 
 
-def compose_system_with_runtime_context(system: str, runtime_context: str) -> str:
-    """Compatibility export for the external bridge adapter."""
-
-    return _compose_system_with_runtime_context(system, runtime_context)
-
-
 def execute_native_turn(
     *,
     settings: Settings,
@@ -333,14 +344,14 @@ def execute_native_turn(
             trace_ids=prepared.trace_ids,
         )
         result = provider.generate_chat_with_tools(
-            messages=prepared.model_messages,
+            messages=prepared.execution_messages,
             system=prepared.effective_system,
             max_tokens=prepared.max_tokens,
             tools=[MIND_SHELL_TOOL_SCHEMA],
             tool_runner=tool_runner,
             max_tool_calls=None,
         )
-        result = _require_native_end_turn(result)
+        result = require_terminal_response(result)
     except LLMConfigurationError as exc:
         record_failed_native_turn(
             engine,
@@ -398,12 +409,6 @@ def execute_native_turn(
 
 
 
-def _require_native_end_turn(result: LLMTextResult) -> LLMTextResult:
-    """Compatibility alias for shared structural provider finality."""
-
-    return require_terminal_response(result)
-
-
 def stream_native_turn(
     *,
     settings: Settings,
@@ -415,7 +420,7 @@ def stream_native_turn(
     turn_id = prepared.turn_id
     trace_ids = prepared.trace_ids
     user_message_response = prepared.user_message
-    llm_messages = prepared.model_messages
+    llm_messages = prepared.execution_messages
     system = prepared.effective_system
     max_tokens = prepared.max_tokens
     memory_context = prepared.memory_context.payload
@@ -490,6 +495,7 @@ def stream_native_turn(
             source_message_id=user_message_response.id,
             trace_ids=trace_ids,
             event_sink=pending_runtime_events,
+            live_perception_capture=prepared.live_perception_capture,
         )
         for stream_event in provider.stream_chat_with_tools(
             messages=llm_messages,
@@ -521,7 +527,7 @@ def stream_native_turn(
                 yield emit(stream_event.type, stream_event.data)
         yield from flush_pending_runtime_events()
         if result is not None:
-            result = _require_native_end_turn(result)
+            result = require_terminal_response(result)
     except LLMConfigurationError as exc:
         failed_event = record_failed_native_turn(
             engine,
@@ -593,3 +599,36 @@ def stream_native_turn(
     for event in completion.runtime_events:
         yield emit("runtime_event", {"event": event})
     yield emit("turn_complete", completion.response.model_dump(mode="json"))
+
+
+def _execution_messages_with_transient_content(
+    messages: list[LLMMessage],
+    transient_parts: list[dict[str, Any]],
+) -> list[LLMMessage]:
+    """Attach media to the current user message without changing history."""
+
+    if not transient_parts:
+        return messages
+    execution_messages = [message.model_copy(deep=True) for message in messages]
+    for index in range(len(execution_messages) - 1, -1, -1):
+        message = execution_messages[index]
+        if message.role != "user":
+            continue
+        text = _message_text(message.content)
+        message.content = [
+            {"type": "input_text", "text": text},
+            *transient_parts,
+        ]
+        return execution_messages
+    raise ValueError("Transient media requires a current user message.")
+
+
+def _message_text(content: str | list[dict[str, Any]]) -> str:
+    if isinstance(content, str):
+        return content
+    return "\n".join(
+        str(block.get("text"))
+        for block in content
+        if block.get("type") in {"text", "input_text"}
+        and isinstance(block.get("text"), str)
+    ).strip()

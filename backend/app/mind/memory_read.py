@@ -20,7 +20,6 @@ from app.mind.facts import (
     canonicalize_entity,
     canonicalize_predicate,
     fact_payload,
-    fact_search_text,
 )
 from app.mind.memory_recall import (
     collect_memory_recall_evidence,
@@ -35,6 +34,7 @@ from app.mind.memory_shared import (
     _memory_payload,
     _normalize_freeform_label,
     _record_memory_activity,
+    score_memory_candidates,
 )
 from app.mind.relevance_rerank import (
     FINAL_RERANK_POLICY,
@@ -42,8 +42,6 @@ from app.mind.relevance_rerank import (
     rerank_status_payload,
 )
 from app.mind.search import (
-    entity_token_groups,
-    query_tokens,
     retrieval_stage_manifest,
     sync_memory_retrieval_artifacts,
 )
@@ -261,7 +259,7 @@ def handle_memory_search(
             sparse_limit=max(50, request.top_k * 8),
             graph_limit=max(request.top_k, 20),
         )
-        scored = _score_memories(
+        scored = score_memory_candidates(
             candidates,
             retrieval_query,
             facts_by_memory=facts_by_memory,
@@ -645,86 +643,6 @@ def handle_memory_read(
         )
 
 
-def _score_memories(
-    memories: list[MemoryRecord],
-    query: str,
-    *,
-    facts_by_memory: dict[str, list[MemoryFact]] | None = None,
-    sparse_matches: dict[str, Any] | None = None,
-    graph_signals: dict[str, Any] | None = None,
-) -> list[tuple[MemoryRecord, float, str]]:
-    query_text = query.lower()
-    tokens = set(query_tokens(query))
-    entity_groups = entity_token_groups(query)
-    scored: list[tuple[MemoryRecord, float, str]] = []
-    facts_by_memory = facts_by_memory or {}
-    sparse_matches = sparse_matches or {}
-    graph_signals = graph_signals or {}
-
-    for memory in memories:
-        haystack = " ".join(
-            item
-            for item in [
-                memory.content,
-                memory.memory_type,
-                " ".join(memory.tags_json),
-                fact_search_text(facts_by_memory.get(memory.id, [])),
-            ]
-            if item
-        ).lower()
-        haystack_tokens = set(_tokens(haystack))
-        overlap = tokens & haystack_tokens
-        tag_overlap = tokens & set(memory.tags_json)
-        entity_supported = _supports_query_entity(
-            haystack_tokens,
-            memory.tags_json,
-            entity_groups=entity_groups,
-        )
-        score = 0.0
-        reasons: list[str] = []
-        sparse_match = sparse_matches.get(memory.id)
-        graph_signal = graph_signals.get(memory.id)
-        graph_score = float(getattr(graph_signal, "score", 0.0) or 0.0)
-        if sparse_match is not None:
-            score += sparse_match.score * 2.5
-            reasons.append(sparse_match.why_relevant)
-        if graph_signal is not None and graph_score > 0:
-            score += graph_score
-            reasons.append(getattr(graph_signal, "why_relevant", "graph expansion"))
-        if entity_supported:
-            score += 3.0
-            reasons.append("query entity support")
-        if query_text in haystack:
-            score += 3.0
-            reasons.append("query substring match")
-        if overlap:
-            if entity_groups and not entity_supported:
-                continue
-            if (
-                sparse_match is None
-                and len(tokens) >= 2
-                and len(overlap) < min(2, len(tokens))
-                and not tag_overlap
-            ):
-                continue
-            token_score = len(overlap) / max(len(tokens), 1)
-            score += token_score
-            reasons.append(f"token overlap: {', '.join(sorted(overlap))}")
-        if tag_overlap:
-            score += 0.5
-            reasons.append(f"tag overlap: {', '.join(sorted(tag_overlap))}")
-        if score <= 0:
-            continue
-
-        scored.append((memory, score, "; ".join(reasons)))
-
-    return sorted(
-        scored,
-        key=lambda item: (item[1], item[0].created_at),
-        reverse=True,
-    )
-
-
 def _memory_scores_from_final_rerank(
     entries: list[MemoryRerankEntry],
 ) -> list[tuple[MemoryRecord, float, str]]:
@@ -762,25 +680,6 @@ def _expanded_retrieval_query(query: str, *, memory_types: list[str]) -> str:
     # and can be used by dedicated typed/embedded retrieval stages later.
     _ = memory_types
     return query
-
-
-def _supports_query_entity(
-    haystack_tokens: set[str],
-    tags: list[str],
-    *,
-    entity_groups: list[set[str]],
-) -> bool:
-    if not entity_groups:
-        return False
-    tag_token_sets = [
-        set(query_tokens(tag.replace("-", " ").replace("_", " "))) for tag in tags
-    ]
-    for group in entity_groups:
-        if group <= haystack_tokens:
-            return True
-        if any(group <= tag_tokens for tag_tokens in tag_token_sets):
-            return True
-    return False
 
 
 def _filter_memories_by_time(
@@ -928,23 +827,3 @@ def _graph_edge_payload(edge: MemoryGraphEdge) -> dict[str, Any]:
         "source_session_id": edge.source_session_id,
         "metadata": edge.metadata_json,
     }
-
-
-def _facts_by_memory(
-    db: Session,
-    memories: list[MemoryRecord],
-    *,
-    include_inactive: bool = False,
-) -> dict[str, list[MemoryFact]]:
-    return {
-        memory.id: repositories.list_memory_facts(
-            db,
-            memory_id=memory.id,
-            include_inactive=include_inactive,
-        )
-        for memory in memories
-    }
-
-
-def _tokens(value: str) -> list[str]:
-    return re.findall(r"\w+", value.casefold())

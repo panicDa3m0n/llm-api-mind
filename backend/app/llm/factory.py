@@ -1,5 +1,6 @@
 from app.config import Settings
 from app.llm.minimax_client import MiniMaxProvider
+from app.llm.minimax_responses_client import MiniMaxResponsesProvider
 from app.llm.provider import LLMConfigurationError, LLMProvider
 from app.llm.qwen_client import QwenProvider
 
@@ -14,6 +15,16 @@ def build_llm_provider(settings: Settings) -> LLMProvider:
         f"Unsupported LLM_PROVIDER={settings.llm_provider!r}. "
         "Supported providers: minimax, qwen."
     )
+
+
+def build_multimodal_llm_provider(settings: Settings) -> LLMProvider:
+    """Build the provider transport used only for transient media turns."""
+
+    if _normalized_provider(settings) != "minimax":
+        raise LLMConfigurationError(
+            "Transient video turns currently require LLM_PROVIDER=minimax."
+        )
+    return MiniMaxResponsesProvider(settings)
 
 
 def auxiliary_provider_settings(settings: Settings) -> Settings:

@@ -9,6 +9,7 @@ from app.mind.contracts import (
     serializable_validation_errors,
 )
 from app.mind.organs import ORGAN_EVENT_TYPES, ORGAN_TRACE_KINDS
+from app.mind.organ_support import active_owner_profile_id, recoverable_organ_error
 from app.runtime.events import record_event
 from app.storage import repositories
 from app.storage.models import FocusRecord, FocusTransition
@@ -131,7 +132,7 @@ def handle_focus(
         )
 
     with Session(context.engine) as db:
-        owner_profile_id = _owner_profile_id(context)
+        owner_profile_id = active_owner_profile_id(context)
         source = _source_payload(db, context)
         if request.action in {"set", "shift"}:
             result = _set_or_shift_focus(
@@ -611,10 +612,6 @@ def _target_focus(
     return repositories.get_active_focus(db, owner_profile_id=owner_profile_id)
 
 
-def _owner_profile_id(context: MindAPIContext) -> str:
-    return str(getattr(context.settings, "user_profile_id", None) or "local-user")
-
-
 def _source_payload(db: Session, context: MindAPIContext) -> dict[str, str | None]:
     message_id = None
     if context.turn_id is not None:
@@ -747,13 +744,11 @@ def _error(
     hint: str,
     actions: list[str],
 ) -> MemoryOperationResult:
-    return MemoryOperationResult(
-        ok=False,
-        result=result or {"operation": "focus"},
-        cognitive_hint=hint,
-        suggested_next_actions=actions,
-        confidence=1.0,
-        error_code=code,
-        error_message=message,
-        error_recoverable=True,
+    return recoverable_organ_error(
+        "focus",
+        code=code,
+        message=message,
+        result=result,
+        hint=hint,
+        actions=actions,
     )

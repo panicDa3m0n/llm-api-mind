@@ -52,7 +52,6 @@ uses these configurable policy values:
 | `history_compaction_target_tokens` | 100,000 | Maximum recursively compacted chronology (`C`). |
 | `history_compaction_verbatim_tokens` | 100,000 | Normal maximum exact complete-turn chronology (`H`). |
 | `history_compaction_safety_tokens` | 25,000 | Technical safety reservation (`M`). |
-| `history_compaction_recent_turns` | 8 | Compatibility setting only; V1.36 selection is token-based. |
 | `history_compaction_mode` | `shadow` | `off`, planning-only `shadow`, or guarded derived-history `active`. |
 
 The 500k value is an input-context policy, not the provider's output

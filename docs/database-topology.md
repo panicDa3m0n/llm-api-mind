@@ -1,7 +1,7 @@
 # Database Topology And Safety Boundaries
 
-Last updated: 2026-07-31
-Backend baseline: V1.68.0 deployed on the protected VPS
+Last updated: 2026-08-05
+Backend baseline: V1.68.0 source commit `44d9f3f` deployed on the protected VPS
 Status: accepted operational boundary
 
 This document is the canonical map of database ownership. A path ending in
@@ -58,7 +58,7 @@ Counts are operational identifiers, not a license to copy the data elsewhere.
 
 | Location | Role / status | Evidence and rule |
 |---|---|---|
-| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.68.0 is deployed as `scarlet-mobile-api:v1.68.0-3259891` with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, and direct isolation. The V1.68 read-only preflight reported SQLite integrity `ok`; its online backup is under `/var/backups/scarlet-mobile-test/v1.68.0-20260730T220630Z/`. V1.67 and earlier inventory/backup evidence remains historical. |
+| VPS `/opt/scarlet-mobile-test/backend/data/app.db` mounted at container `/app/data/app.db` | `production` | Real persistent data. V1.68.0 source commit `44d9f3f` is deployed as the sole Scarlet API image `scarlet-mobile-api:v1.68.0-44d9f3f`, with one writable `/app/data` mount, `DATABASE_ROLE=production`, `CODEX_TEST=false`, and direct isolation. Persistent VPS release/database backups were removed by owner decision on 2026-08-05; historical backup references below remain evidence of past releases, not current files. |
 | `backend/data/app.db` | Mutable local `laboratory` snapshot; Git LFS-tracked file | The explicit 2026-07-23 cross-machine checkpoint publishes SHA-256 `9b6ec713425e67439f9784b9b9525b50cc253ea986121e97c83abda22ff0448f`: integrity `ok`, 27 tables, 36 memories, 26 facts, 163 sessions, 598 messages, and 3,597 events. It is not production, a test target, or a deployment seed. Future changes still require a separately reviewed data release. |
 | `backend/data/preliminary-rework-v1.db` | Frozen local source for `preliminary-regression-v1` | Ignored copy of published SHA-256 `827bb...c1ed5`; 34 memories, 25 facts, 155 sessions, 567 messages. Never mutate it. |
 | `backend/data/preliminary-rework-v1-run.db` | `preliminary` disposable run | Recreated from the frozen source by every preliminary regression run. Ignored. |
@@ -161,7 +161,7 @@ so it cannot summarize a newly completed turn immediately; it can be enabled
 again after its age policy is separated from historical reconciliation.
 
 V1.40.0 preserves that maintenance boundary while aligning active cognition
-with the verified local runtime: `model_context_profile=v2`, OpenRouter
+with the verified local runtime: canonical V2 model context, OpenRouter
 retrieval/rerank enabled, active final arbitration with absolute floor `0.004`
 and relative floor `0.01`, active
 agent-mode routing, active recursive history compaction at the 400k total-input
@@ -245,7 +245,8 @@ left integrity `ok`; the old pending activation alone became `cancelled`.
 
 For every deployment:
 
-1. Make a timestamped remote backup of `/opt/scarlet-mobile-test/backend/data/app.db` before replacing code or restarting the container.
+1. Keep `/opt/scarlet-mobile-test/backend/data/app.db` in its canonical mount;
+   do not copy, replace, seed, or retain a duplicate on the VPS.
 2. Transfer code with exclusions for `backend/data/`, the deployment-root
    `/opt/scarlet-mobile-test/.env`, and any source-tree `backend/.env`.
    An `rsync --delete` command without those exclusions is prohibited.
@@ -264,12 +265,12 @@ For every deployment:
 
 An explicit owner-requested autonomous chronology restart is not a database
 seed or a broad reset. Use only the guarded
-`python -m app.ops.reset_autonomous_chronology` command after a fresh online
-backup and copied-DB dry-run/apply canary. The command archives the current
+`python -m app.ops.reset_autonomous_chronology` command after an explicitly
+approved local/canary validation; do not create a persistent VPS backup. The command archives the current
 autonomous session and preserves all canonical evidence; it must never delete
 human sessions, semantic memory, perception, or backend maintenance records.
 
 The Dockerfile's `.dockerignore` already excludes `data/`, but that only
-protects image construction. The transfer exclusion and remote backup are
-separate mandatory safeguards because the compose service binds the remote
-data directory into the container at runtime.
+protects image construction. The transfer exclusion remains mandatory because
+the compose service binds the remote data directory into the container at
+runtime.

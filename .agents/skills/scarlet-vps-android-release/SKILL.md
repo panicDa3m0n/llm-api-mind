@@ -8,8 +8,8 @@ description: Build, deploy, verify, and roll back Scarlet across the VPS, Produc
 ## Purpose
 
 Publish one verified Core-backed Product UI experience without losing production
-data, secrets, configuration integrity, browser/mobile parity, or rollback
-ability.
+data, secrets, configuration integrity, or browser/mobile parity. The VPS is a
+single-current-version human-test runtime, not a release archive.
 
 ## Authoritative Sources
 
@@ -20,14 +20,15 @@ configuration rather than inferring it from a past release note.
 
 ## Release Preconditions
 
-1. Confirm owner approval, branch/revision, scope, target version, and rollback
-   point.
+1. Confirm owner approval, branch/revision, scope, and target version.
 2. Inspect the worktree; do not release unrelated changes.
 3. Run the focused tests and build required by the changed boundary.
 4. Verify that browser and Android consume the same deployed Core API and
    event contract. UI fixtures must not masquerade as runtime state.
-5. Run the read-only production database preflight and record a remote backup
-   reference before restart.
+5. Run the read-only production database preflight before restart. Do not create
+   persistent VPS code, UI, image, or database backups; Git/workspace history is
+   the code rollback source and the live production database remains only in its
+   canonical mount.
 6. Transfer code/artifacts only. Never transfer local databases, runtime
    `data/`, secrets, or remote `.env` files.
 
@@ -45,10 +46,10 @@ configuration rather than inferring it from a past release note.
 ## Failure And Rollback
 
 Stop on database-role mismatch, failed preflight, unknown remote revision,
-missing backup reference, wrong endpoint, or failed smoke. Roll back code and
-artifact together to the declared revision; do not "repair" a release by
-copying a database. Preserve logs, traces, and exact observed behavior before a
-follow-up fix.
+wrong endpoint, or failed smoke. Recover code and the UI by rebuilding the
+declared Git revision from the workspace; do not create or retain duplicate
+release trees on the VPS and do not "repair" a release by copying a database.
+Preserve diagnostic evidence in project records, not as VPS release backups.
 
 ## Maintenance Contract
 

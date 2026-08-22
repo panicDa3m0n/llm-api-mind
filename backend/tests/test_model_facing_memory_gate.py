@@ -106,11 +106,6 @@ def test_controlled_providers_expose_stop_reason_boundary_difference() -> None:
     )
     assert streamed[-1].type == "final_result"
 
-    judge = provider.generate_text(
-        prompt=json.dumps({"obligations": [{"id": "source.required"}]}),
-        system="runtime answer-obligation judge",
-    )
-    assert json.loads(judge.text)["findings"][0]["status"] == "pass"
     review = provider.generate_text(prompt="{}", system="metacognition")
     assert json.loads(review.text)["should_continue"] is False
 

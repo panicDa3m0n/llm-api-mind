@@ -101,11 +101,11 @@ Actions transport is the sole external GPT connection.
 
 ## Context And Accounting
 
-Bootstrap returns `context.profile=gpt-bootstrap-compact-v1`. With
-`model_context_profile=v2`, `context.runtime_context` contains the same
-canonical `scarlet-model-context-v2` serialization delivered to native
-MiniMax. Recent provider messages are navigation hints; full prompt, retrieval,
-and accounting diagnostics remain trace-only.
+Bootstrap returns `context.profile=gpt-bootstrap-compact-v1`.
+`context.runtime_context` contains the same canonical
+`scarlet-model-context-v2` serialization delivered to native MiniMax. Recent
+provider messages are navigation hints; full prompt, retrieval, and accounting
+diagnostics remain trace-only.
 
 V1.30.0 removed the redundant `context.model_context` copy. Accounting covers
 the backend packet and marks ChatGPT-owned prompt, history, and token usage as

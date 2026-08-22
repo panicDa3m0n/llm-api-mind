@@ -509,6 +509,10 @@ product opportunity, not an unfinished Core acceptance criterion.
 
 ## 5. Code Health
 
+Verified behavior-preserving cleanup candidates are tracked in
+`docs/maintainability-audit.md`. That register is an audit aid, not a roadmap
+or authorization to alter current runtime behavior.
+
 ### 5.1 Strong Boundaries
 
 - provider adapters are isolated;

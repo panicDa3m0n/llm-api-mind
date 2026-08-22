@@ -23,6 +23,7 @@ import type {
   DeviceExplorationSummary,
   DeviceObservationInput
 } from "../types";
+import { AndroidSpeechLab } from "./AndroidSpeechLab";
 
 export function DeviceExplorationScreen() {
   const controllerRef = useRef<DeviceExplorationController | null>(null);
@@ -202,6 +203,8 @@ export function DeviceExplorationScreen() {
           }
         />
       </section>
+
+      <AndroidSpeechLab />
 
       <div className="scarlet-device-lab__grid">
         <section className="scarlet-device-lab__probes">

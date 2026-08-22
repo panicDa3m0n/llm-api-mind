@@ -5,7 +5,6 @@
   "baseline_database": "data/preliminary-rework-v1.db",
   "database_fingerprint": "827bb25a7d0d41940d4911715072b4f8cb6da3ec7178f0526834b75a020c1ed5",
   "configuration": {
-    "model_context_profile": "v2",
     "organ_focus_mode": "model",
     "organ_volition_mode": "model",
     "organ_affect_mode": "model",

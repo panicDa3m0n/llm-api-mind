@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import shlex
 from dataclasses import dataclass
 from typing import Any
+
+from app.mind.shell_parsing import ShellParseError, normalize_token, parse_command
 
 
 COMMAND_REGISTRY_VERSION = "2026-08-01.mind-shell-command-registry-v7"
@@ -593,24 +594,16 @@ def validate_shell_command(command: str | None) -> dict[str, Any]:
         )
 
     try:
-        tokens = shlex.split(command)
-    except ValueError as exc:
+        parsed = parse_command(command)
+    except ShellParseError as exc:
         return _validation(
             command=command,
             schema_status="parse_error",
             call_is_available=False,
             suggested_action="Retry with quoted text closed correctly.",
-            details={"error": str(exc)},
+            details={"error": exc.message},
         )
-    if not tokens:
-        return _validation(
-            command=command,
-            schema_status="empty_command",
-            call_is_available=False,
-            suggested_action="Use help to inspect available commands.",
-        )
-
-    namespace = _normalize_token(tokens[0])
+    namespace = parsed.namespace
     canonical_namespace = _canonical_namespace(namespace)
     if canonical_namespace is None:
         return _validation(
@@ -622,7 +615,7 @@ def validate_shell_command(command: str | None) -> dict[str, Any]:
         )
 
     if canonical_namespace == "help":
-        action = _normalize_token(tokens[1]) if len(tokens) > 1 else ""
+        action = parsed.action or ""
         if not action:
             return _validation(
                 command=command,
@@ -659,7 +652,7 @@ def validate_shell_command(command: str | None) -> dict[str, Any]:
         )
 
     family = COMMAND_FAMILIES[canonical_namespace]
-    raw_action = _normalize_token(tokens[1]) if len(tokens) > 1 else family.default_action
+    raw_action = parsed.action or family.default_action
     canonical_action = _canonical_action(family, raw_action)
     if canonical_action is None:
         return _validation(
@@ -687,7 +680,7 @@ def validate_shell_command(command: str | None) -> dict[str, Any]:
             details={"reason": spec.reason} if spec.reason else {},
         )
 
-    positional_args, flags = _parse_args_and_flags(tokens[2:])
+    positional_args, flags = parsed.args, set(parsed.flags)
     missing_all = _missing_required_all(spec.requires_all, positional_args, flags)
     if missing_all:
         return _validation(
@@ -742,7 +735,7 @@ def command_family_summaries() -> list[dict[str, str]]:
 
 
 def canonical_command_namespace(namespace: str) -> str | None:
-    return _canonical_namespace(_normalize_token(namespace))
+    return _canonical_namespace(normalize_token(namespace))
 
 
 def canonical_command_action(namespace: str, action: str | None) -> str | None:
@@ -760,29 +753,13 @@ def _canonical_namespace(namespace: str) -> str | None:
 
 
 def _canonical_action(family: CommandFamily, action: str | None) -> str | None:
-    normalized = _normalize_token(action or family.default_action or "")
+    normalized = normalize_token(action or family.default_action or "")
     for canonical, spec in family.actions.items():
-        if normalized == _normalize_token(canonical):
+        if normalized == normalize_token(canonical):
             return canonical
-        if any(normalized == _normalize_token(alias) for alias in spec.aliases):
+        if any(normalized == normalize_token(alias) for alias in spec.aliases):
             return canonical
     return None
-
-
-def _parse_args_and_flags(tokens: list[str]) -> tuple[list[str], set[str]]:
-    args: list[str] = []
-    flags: set[str] = set()
-    index = 0
-    while index < len(tokens):
-        token = tokens[index]
-        if token.startswith("--") and len(token) > 2:
-            flags.add(_normalize_token(token[2:].split("=", 1)[0]))
-            if "=" not in token and index + 1 < len(tokens) and not tokens[index + 1].startswith("--"):
-                index += 1
-        else:
-            args.append(token)
-        index += 1
-    return args, flags
 
 
 def _has_required_input(
@@ -803,7 +780,7 @@ def _missing_required_all(
 ) -> list[str]:
     missing: list[str] = []
     for raw_key in required_all:
-        alternatives = tuple(_normalize_token(item) for item in raw_key.split("|"))
+        alternatives = tuple(normalize_token(item) for item in raw_key.split("|"))
         if any(_requirement_met(item, positional_args, flags) for item in alternatives):
             continue
         missing.append(raw_key)
@@ -815,7 +792,7 @@ def _requirement_met(
     positional_args: list[str],
     flags: set[str],
 ) -> bool:
-    normalized = _normalize_token(requirement)
+    normalized = normalize_token(requirement)
     parts = normalized.split("+")
     if len(parts) > 1:
         return all(_requirement_met(part, positional_args, flags) for part in parts)
@@ -832,10 +809,6 @@ def _canonical_command(namespace: str, action: str | None) -> str:
     if action:
         return f"{namespace} {action.replace('_', '-')}"
     return namespace
-
-
-def _normalize_token(value: str) -> str:
-    return value.strip().casefold().replace("_", "-")
 
 
 def _validation(

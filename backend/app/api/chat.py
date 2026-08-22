@@ -18,6 +18,7 @@ from app.api.chat_serialization import (
     session_response as _session_response,
     trace_response as _trace_response,
 )
+from app.api.session_guards import require_chat_session
 from app.api.chat_native_turn import (
     NativeTurnFailure,
     execute_native_turn,
@@ -43,7 +44,6 @@ from app.runtime.maintenance import (
 )
 from app.runtime.preferences import load_runtime_preferences
 from app.storage import repositories
-from app.storage.models import ChatSession
 
 
 ProviderFactory = Callable[[Settings], LLMProvider]
@@ -110,7 +110,7 @@ def build_chat_router(
     )
     def get_messages(session_id: str) -> list[ChatMessageResponse]:
         with Session(engine) as db:
-            _require_session(db, session_id)
+            require_chat_session(db, session_id)
             messages = repositories.list_messages(db, session_id=session_id)
             return [_message_response(message) for message in messages]
 
@@ -260,7 +260,7 @@ def build_chat_router(
         after_seq: int = Query(default=0, ge=0),
     ) -> StreamingResponse:
         with Session(engine) as db:
-            _require_session(db, session_id)
+            require_chat_session(db, session_id)
             turn = repositories.get_turn(db, turn_id)
             if turn is None or turn.session_id != session_id:
                 raise HTTPException(
@@ -295,7 +295,7 @@ def build_chat_router(
         limit: int = Query(default=500, ge=1, le=1000),
     ) -> StreamReplayResponse:
         with Session(engine) as db:
-            _require_session(db, session_id)
+            require_chat_session(db, session_id)
             return replay_session_events(
                 db,
                 session_id=session_id,
@@ -355,17 +355,3 @@ def build_trace_router(engine: Engine) -> APIRouter:
             return [_event_response(event) for event in events]
 
     return router
-
-
-def _require_session(db: Session, session_id: str) -> ChatSession:
-    chat_session = repositories.get_chat_session(db, session_id)
-    if chat_session is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "code": "session.not_found",
-                "message": f"Session {session_id} was not found.",
-                "recoverable": True,
-            },
-        )
-    return chat_session

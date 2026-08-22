@@ -131,7 +131,7 @@ configured GPT Actions schema. Neither belongs to dynamic context routing.
 
 ## Active V2 Dynamic Packet
 
-The active `model_context_profile=v2` sends one dynamic document:
+The active model-facing V2 contract sends one dynamic document:
 
 | Area | Model-facing data | System-only data |
 |---|---|---|
@@ -156,7 +156,7 @@ trace/UI/backend-only or are available through API Mind on demand.
 | Property | Current behavior |
 | --- | --- |
 | Delivery | `trace_ui_only` rich source; projected into V2 |
-| Source | `render_runtime_context()` over `runtime-context-v1`. |
+| Source | `build_runtime_context_payload()` producing `runtime-context-v1`. |
 | Recipients | Backend projection compiler, traces, UI, diagnostics, maintenance, and evaluation. Scarlet receives only the V2 projection. |
 | Function | Preserve full backend evidence and compile the smaller V2 document. |
 | Excluded from | Raw retrieval internals, arbitrary database tables, and trace payloads not represented by blocks. |

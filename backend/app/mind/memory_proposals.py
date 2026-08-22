@@ -5,11 +5,11 @@ from pydantic import ValidationError
 from sqlmodel import Session
 
 from app.mind.contracts import MindAPIContext
-from app.mind.memory_read import _score_memories
 from app.mind.memory_shared import (
     DEFAULT_MEMORY_SCOPE,
     _isoformat,
     _normalize_memory_text,
+    score_memory_candidates,
 )
 from app.mind.memory_write import (
     NEUTRAL_STORED_CONFIDENCE,
@@ -171,7 +171,7 @@ def _proposal_decision_for_request(
             limit=50,
         )
     )
-    scored = _score_memories(
+    scored = score_memory_candidates(
         candidates,
         request.content,
         facts_by_memory=facts_by_memory,

@@ -77,35 +77,23 @@ class ModelFacingGateProvider:
         system: str | None = None,
         max_tokens: int | None = None,
     ) -> LLMTextResult:
-        if system and "runtime answer-obligation judge" in system:
-            payload = json.loads(prompt)
-            findings = [
-                {
-                    "obligation_id": obligation["id"],
-                    "status": "pass",
-                    "reason": "The controlled draft is consistent with supplied evidence.",
-                }
-                for obligation in payload.get("obligations", [])
-            ]
-            text = json.dumps({"findings": findings})
-        else:
-            text = json.dumps(
-                {
-                    "review_summary": "Controlled model-facing memory gate review.",
-                    "risks": [],
-                    "claim_checks": [],
-                    "missing_evidence": [],
-                    "recommended_internal_actions": [],
-                    "reasoning_digest": "",
-                    "drift_findings": [],
-                    "open_loops": [],
-                    "tool_use_assessment": [],
-                    "memory_candidates_from_reasoning": [],
-                    "should_continue": False,
-                    "next_focus_question": "",
-                    "public_summary": "",
-                }
-            )
+        text = json.dumps(
+            {
+                "review_summary": "Controlled model-facing memory gate review.",
+                "risks": [],
+                "claim_checks": [],
+                "missing_evidence": [],
+                "recommended_internal_actions": [],
+                "reasoning_digest": "",
+                "drift_findings": [],
+                "open_loops": [],
+                "tool_use_assessment": [],
+                "memory_candidates_from_reasoning": [],
+                "should_continue": False,
+                "next_focus_question": "",
+                "public_summary": "",
+            }
+        )
         return LLMTextResult(
             model="model-facing-gate-controlled",
             text=text,
